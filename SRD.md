@@ -15,7 +15,7 @@ Documents are published quarterly and used by individual students. Instructors c
 | Authoring | Oxygen XML Editor (DITA) |
 | Publication | Responsive HTML via Oxygen DITA publishing |
 | Runtime | Browser-based JavaScript enhancement |
-| Data Storage | IndexedDB (primary), localStorage (cache), sessionStorage (session state) |
+| Data Storage | IndexedDB (primary), sessionStorage (cache and session state) |
 | Offline | 100% standalone — no server dependencies |
 
 ---
@@ -45,7 +45,8 @@ Documents are published quarterly and used by individual students. Instructors c
 - Session stored in `sessionStorage` for 30 minutes of inactivity.
 - All user data stored by composite key:  
   `qd/{release}/u{serviceId}`.
-- On logout or expiry, session cleared but stored data remains.
+- On logout or expiry, both session data and cached page state are cleared.
+- Next session rebuilds cache from IndexedDB after login.
 
 ### 4.2 Quiz Tables
 - Each page may contain one table: `table.qd-quiz.qd-page`.
@@ -78,8 +79,8 @@ Documents are published quarterly and used by individual students. Instructors c
   - `unstarted` → no answers  
   - `incomplete` → some answered or any incorrect  
   - `complete` → all answered correctly
-- Stored in a localStorage cache  
-  `qd/state/{release}/u{serviceId}` for fast badge rendering.
+- Stored in `sessionStorage` during active user session only.  
+  Cleared when session ends or user logs out.
 
 ### 4.6 Home Page Badges
 - Each button link with `class="qd-test-link"` receives R/A/G badge based on cached state.
@@ -119,11 +120,9 @@ Documents are published quarterly and used by individual students. Instructors c
 }
 ```
 
-### 5.2 Local Cache
+### 5.2 Session Cache (sessionStorage)
 ```json
 {
-  "schema": 1,
-  "updated": "2025-11-10T14:44:00Z",
   "totals": {"answered": 12, "correct": 10},
   "pages": {
     "gram-1": {"state":"incomplete","answered":2,"correct":1,"last":"2025-11-10T14:04:43Z"}
@@ -140,6 +139,8 @@ Documents are published quarterly and used by individual students. Instructors c
 - Instructor unlock reveals compact tables of all student entries for that cell:
   - 4-char username prefix + text.
   - Hover shows full name + service ID.
+- No color tints or correctness applied for these values.
+- No CSV export for analysis tables.
 
 ---
 
@@ -165,7 +166,7 @@ Documents are published quarterly and used by individual students. Instructors c
 
 ### 6.3 Erase All Data
 - Instructor-only.
-- Deletes all records from IndexedDB and all localStorage caches.
+- Deletes all records from IndexedDB and clears all `sessionStorage` keys.
 - Confirm by typing `DELETE ALL`.
 - Optionally export quiz results before erase.
 - Broadcasts update so all open tabs refresh to blank state.
@@ -177,8 +178,7 @@ Documents are published quarterly and used by individual students. Instructors c
 | Layer | Purpose | Lifetime |
 |--------|----------|-----------|
 | IndexedDB | Primary user data (answers, analysis) | Persistent |
-| localStorage | Page-state cache | Persistent |
-| sessionStorage | Active user session + instructor mode | Until browser close or 30 min idle |
+| sessionStorage | Page-state cache and user session | Until browser/tab close or 30 min idle |
 
 Backup/export options:
 - “Save Results” → CSV (per-answer or per-page)
@@ -238,6 +238,7 @@ Author runtime validation:
 
 ---
 
-**Document version:** v1.0  
-**Date:** 2025-11-10  
+**Document version:** v1.1  
+**Date:** 2025-11-11  
+**Author:** Sirius Digital  
 **Project:** Sonar Training Interactive Document
