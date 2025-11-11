@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<topic id="Untitled" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="urn:oasis:names:tc:dita:xsd:topic.xsd">
+    <title>7 Questions</title>
+    <shortdesc>Seven basic analysis qusetsions</shortdesc>
+    <body>
+        <table>
+            <tgroup cols="2">
+                <tbody>
+                    <row>
+                        <entry>1. Why?</entry><entry>Some reason</entry>
+                    </row>
+                </tbody>
+            </tgroup>
+        </table>
+    </body>
+</topic>

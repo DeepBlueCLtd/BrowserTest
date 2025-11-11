@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<topic id="Untitled" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="urn:oasis:names:tc:dita:xsd:topic.xsd">
+    <title>Gramless Gram 2</title>
+    <body>
+        <p>Some background to this set of questions.</p>
+        <p>
+            <simpletable frame="all" relcolwidth="1.0* 2.7*" id="simpletable_lfd_vym_bgc" outputclass="qd-quiz">
+                <strow>
+                    <stentry>Question</stentry>
+                    <stentry>Theory</stentry>
+                </strow>
+                <strow>
+                    <stentry>Have you considered depth?</stentry>
+                    <stentry/>
+                </strow>
+                <strow>
+                    <stentry>Have you considered height?</stentry>
+                    <stentry/>
+                </strow>
+                <strow>
+                    <stentry>Have you considered the weather?</stentry>
+                    <stentry/>
+                </strow>
+            </simpletable>
+        </p>
+    </body>
+</topic>
