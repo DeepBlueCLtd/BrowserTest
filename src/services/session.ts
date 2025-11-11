@@ -220,6 +220,111 @@ export class SessionService {
   }
 }
 
+// ============================================================================
+// CACHE BUILDING UTILITIES
+// ============================================================================
+
+/**
+ * Build session cache from a student record
+ *
+ * This creates a SessionCache structure that provides quick access to
+ * page states and totals without querying IndexedDB.
+ *
+ * @param record - Student record to build cache from
+ * @returns Session cache with totals and page entries
+ */
+export function buildCacheFromRecord(record: import('../types/contracts').StudentRecord): SessionCache {
+  const cache: SessionCache = {
+    totals: {
+      answered: 0,
+      correct: 0,
+    },
+    pages: {},
+  };
+
+  // Build cache entry for each page
+  for (const [pageId, pageData] of Object.entries(record.pages)) {
+    const pageCache = buildPageCache(pageId, pageData);
+    cache.pages[pageId] = pageCache;
+
+    // Accumulate totals
+    cache.totals.answered += pageCache.answered;
+    cache.totals.correct += pageCache.correct;
+  }
+
+  return cache;
+}
+
+/**
+ * Build a page cache entry from page data
+ *
+ * @param pageId - Page identifier
+ * @param pageData - Page data from student record
+ * @returns Page cache entry
+ */
+export function buildPageCache(
+  pageId: string,
+  pageData: import('../types/contracts').StudentRecord['pages'][string]
+): import('../types/contracts').PageCache {
+  const answered = pageData.answers.length;
+  const correct = pageData.answers.filter((a) => a.success).length;
+
+  return {
+    state: pageData.state,
+    answered,
+    correct,
+    last: pageData.lastAttempted,
+  };
+}
+
+/**
+ * Update cache with a new answer
+ *
+ * This incrementally updates the cache when a new answer is submitted,
+ * avoiding the need to rebuild the entire cache.
+ *
+ * @param cache - Current cache to update
+ * @param pageId - Page where answer was submitted
+ * @param isCorrect - Whether the answer is correct
+ * @returns Updated cache
+ */
+export function updateCacheWithAnswer(
+  cache: SessionCache,
+  pageId: string,
+  isCorrect: boolean
+): SessionCache {
+  const now = new Date().toISOString();
+
+  // Get or create page entry
+  const pageCache = cache.pages[pageId] || {
+    state: 'incomplete' as const,
+    answered: 0,
+    correct: 0,
+  };
+
+  // Update page counts
+  const updatedPage = {
+    ...pageCache,
+    answered: pageCache.answered + 1,
+    correct: pageCache.correct + (isCorrect ? 1 : 0),
+    last: now,
+  };
+
+  // Update totals
+  const updatedTotals = {
+    answered: cache.totals.answered + 1,
+    correct: cache.totals.correct + (isCorrect ? 1 : 0),
+  };
+
+  return {
+    totals: updatedTotals,
+    pages: {
+      ...cache.pages,
+      [pageId]: updatedPage,
+    },
+  };
+}
+
 /**
  * Create and return a singleton instance of the session service
  */
