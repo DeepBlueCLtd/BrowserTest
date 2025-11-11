@@ -73,7 +73,7 @@ export class QdInstructor extends LitElement {
    * Student summaries for scores view
    */
   @state()
-  private _studentSummaries: any[] = [];
+  private _studentSummaries: import('../types/contracts').StudentSummary[] = [];
 
   static styles = css`
     :host {
@@ -337,7 +337,7 @@ export class QdInstructor extends LitElement {
       <h2>Instructor Access</h2>
       <p>Enter the instructor password to unlock advanced features.</p>
 
-      <form class="unlock-form" @submit=${this._handleUnlock}>
+      <form class="unlock-form" @submit=${(e: Event) => this._handleUnlock(e)}>
         <div class="field">
           <label for="password">Instructor Password</label>
           <input
@@ -365,13 +365,13 @@ export class QdInstructor extends LitElement {
       <h2>Instructor Dashboard</h2>
 
       <div class="controls">
-        <button type="button" class="lock-button" @click=${this._handleLock}>
+        <button type="button" class="lock-button" @click=${() => this._handleLock()}>
           Lock Instructor Mode
         </button>
-        <button type="button" class="export-csv" @click=${this._handleExport}>
+        <button type="button" class="export-csv" @click=${() => this._handleExport()}>
           Export CSV
         </button>
-        <button type="button" class="erase-data" @click=${this._handleEraseRequest}>
+        <button type="button" class="erase-data" @click=${() => this._handleEraseRequest()}>
           Erase All Data
         </button>
       </div>
@@ -439,7 +439,7 @@ export class QdInstructor extends LitElement {
         </thead>
         <tbody>
           ${this._studentSummaries.map(
-            (student: any) => html`
+            (student) => html`
               <tr>
                 <td>${student.serviceId}</td>
                 <td>${student.name}</td>
@@ -457,7 +457,7 @@ export class QdInstructor extends LitElement {
 
   private _renderEraseDialog() {
     return html`
-      <div class="dialog-overlay" @click=${this._handleCancelErase}>
+      <div class="dialog-overlay" @click=${() => this._handleCancelErase()}>
         <div class="dialog" @click=${(e: Event) => e.stopPropagation()}>
           <h3>⚠️ Erase All Data</h3>
           <div class="warning">
@@ -478,12 +478,12 @@ export class QdInstructor extends LitElement {
             />
           </div>
           <div class="dialog-actions">
-            <button type="button" @click=${this._handleCancelErase}>Cancel</button>
+            <button type="button" @click=${() => this._handleCancelErase()}>Cancel</button>
             <button
               type="button"
               class="erase-data"
               ?disabled=${this._confirmText !== 'DELETE ALL'}
-              @click=${this._handleConfirmErase}
+              @click=${() => this._handleConfirmErase()}
             >
               Erase Everything
             </button>
@@ -561,7 +561,7 @@ export class QdInstructor extends LitElement {
     this._confirmText = '';
   }
 
-  private async _handleConfirmErase() {
+  private _handleConfirmErase() {
     if (this._confirmText !== 'DELETE ALL') {
       return;
     }

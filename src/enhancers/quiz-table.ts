@@ -79,6 +79,10 @@ export function enhanceQuizTable(
     const answerCell = row.querySelector('td:nth-child(2)');
     if (!answerCell) return;
 
+    // Store correct answer as data attribute before enhancement
+    // This allows instructor reveal to work after enhancement
+    answerCell.setAttribute('data-correct-answer', question.correctAnswer);
+
     // Get saved answer if available
     const savedAnswer = savedAnswers?.[index];
 
@@ -288,6 +292,9 @@ export function enhanceAllQuizTables(
  *
  * T073: Implements correct answer display for instructors
  *
+ * Note: This function parses the ORIGINAL table structure from the detail column (3rd column)
+ * rather than trying to re-parse already-enhanced answer cells.
+ *
  * @param table - The quiz table element to reveal answers in
  */
 export function revealCorrectAnswers(table: HTMLTableElement | null): void {
@@ -296,23 +303,41 @@ export function revealCorrectAnswers(table: HTMLTableElement | null): void {
     return;
   }
 
-  // Parse the table to get questions and correct answers
-  const parsed = parseQuizTable(table);
+  // Get all rows from tbody
+  const rows = Array.from(table.querySelectorAll('tbody tr'));
 
-  if (!parsed.questions || parsed.questions.length === 0) {
-    console.warn('Quiz table reveal: No questions found');
+  if (rows.length === 0) {
+    console.warn('Quiz table reveal: No rows found');
     return;
   }
 
-  // Get all answer cells (second column in tbody)
-  const rows = Array.from(table.querySelectorAll('tbody tr'));
+  rows.forEach((row) => {
+    const cells = Array.from(row.querySelectorAll('td'));
 
-  rows.forEach((row, index) => {
-    const question = parsed.questions[index];
-    if (!question) return;
+    // Need all 3 columns
+    if (cells.length !== 3) {
+      return;
+    }
 
-    const answerCell = row.querySelector('td:nth-child(2)');
-    if (!answerCell) return;
+    const [, answerCell, detailCell] = cells;
+
+    // Skip if already revealed
+    if (answerCell.classList.contains('qd-answer-revealed')) {
+      return;
+    }
+
+    // Extract correct answer from original cell data attribute or parse detail column
+    // The answer cell's original text content is in the 2nd column before enhancement
+    // We need to determine question type from detail column (3rd column)
+    const olElement = detailCell.querySelector('ol');
+
+    // Get correct answer from data attribute if set, otherwise from text
+    const correctAnswer =
+      answerCell.getAttribute('data-correct-answer') || answerCell.textContent?.trim() || '';
+
+    if (!correctAnswer) {
+      return;
+    }
 
     // Mark cell as having revealed answer
     answerCell.classList.add('qd-answer-revealed');
@@ -322,14 +347,17 @@ export function revealCorrectAnswers(table: HTMLTableElement | null): void {
     revealDiv.className = 'qd-correct-answer';
 
     // Display correct answer based on question type
-    if (question.kind === 'mcq') {
-      revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${question.correctAnswer}`;
+    if (olElement) {
+      // MCQ question
+      revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${correctAnswer}`;
     } else {
-      // Numeric question
-      const toleranceSpan = question.tolerance
-        ? ` <span class="qd-tolerance">(±${question.tolerance})</span>`
-        : '';
-      revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${question.correctAnswer}${toleranceSpan}`;
+      // Numeric question - extract tolerance from detail cell
+      const toleranceText = detailCell.textContent?.trim() || '';
+      const tolerance = parseFloat(toleranceText);
+
+      const toleranceSpan =
+        !isNaN(tolerance) ? ` <span class="qd-tolerance">(±${tolerance})</span>` : '';
+      revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${correctAnswer}${toleranceSpan}`;
     }
 
     // Prepend to cell (so it appears above student input)
