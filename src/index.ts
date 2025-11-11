@@ -8,8 +8,11 @@
  */
 
 import { CSS_CLASSES, ELEMENT_IDS } from './types/contracts';
+import type { AnswerRecord } from './types/contracts';
 import { findQuizTables } from './services/quiz-parser';
 import { enhanceQuizTable, injectQuizStyles } from './enhancers/quiz-table';
+import { getSessionService, updateCacheWithAnswer } from './services/session';
+import { initializeHomeBadges } from './enhancers/home-badges';
 
 // Import components to register custom elements
 import './components/qd-login';
@@ -174,6 +177,67 @@ function showValidationBanner(table: HTMLTableElement, errors: string[]): void {
 }
 
 /**
+ * Handle answer saved event - update cache and persist
+ *
+ * @param answer - The saved answer record
+ */
+function handleAnswerSaved(answer: AnswerRecord): void {
+  const sessionService = getSessionService();
+
+  // Get current cache
+  let cache = sessionService.getCache();
+
+  if (!cache) {
+    log('No cache found, creating new one');
+    cache = {
+      totals: { answered: 0, correct: 0 },
+      pages: {},
+    };
+  }
+
+  // Determine current page ID
+  // For now, use a simple approach - look for meta tag or derive from URL
+  const pageIdMeta = document.querySelector('meta[name="page-id"]');
+  const pageId =
+    pageIdMeta?.getAttribute('content') ||
+    document.location.pathname.replace(/^.*\//, '').replace(/\.html?$/, '') ||
+    'unknown-page';
+
+  // Update cache with the new answer
+  const updatedCache = updateCacheWithAnswer(cache, pageId, answer.success);
+
+  // TODO: Recalculate page state based on total questions vs answered
+  // For now, we'll mark as incomplete if we have any answers
+  if (updatedCache.pages[pageId]) {
+    // Set state based on answers
+    if (updatedCache.pages[pageId].answered === 0) {
+      updatedCache.pages[pageId].state = 'unstarted';
+    } else {
+      // This is simplified - in real implementation we'd check if all questions are answered and correct
+      updatedCache.pages[pageId].state = 'incomplete';
+    }
+  }
+
+  // Save updated cache
+  sessionService.saveCache(updatedCache);
+
+  // Emit state-changed event
+  const stateChangedEvent = new CustomEvent('qd:state-changed', {
+    detail: {
+      pageId,
+      state: updatedCache.pages[pageId]?.state || 'unstarted',
+    },
+    bubbles: true,
+  });
+  document.dispatchEvent(stateChangedEvent);
+
+  log('Cache updated and state-changed event emitted');
+
+  // Update session activity
+  sessionService.updateActivity();
+}
+
+/**
  * Setup event listeners for quiz system
  */
 function setupEventListeners(doc: Document = document): void {
@@ -195,11 +259,17 @@ function setupEventListeners(doc: Document = document): void {
 
   // Listen for answer-saved events
   doc.addEventListener('qd:answer-saved', (e: Event) => {
-    const detail = (e as CustomEvent<unknown>).detail;
+    const detail = (
+      e as CustomEvent<{
+        questionIndex: number;
+        answer: AnswerRecord;
+        tableElement: HTMLTableElement;
+      }>
+    ).detail;
     log('Answer saved:', detail);
 
-    // TODO: Update status panel and session storage
-    // This will be fully implemented when storage service is wired up
+    // Update session cache
+    handleAnswerSaved(detail.answer);
   });
 
   // Listen for logout events
@@ -249,6 +319,13 @@ function init(userConfig?: Partial<SonarQuizConfig>): void {
   // Enhance tables if auto-enhance is enabled
   if (config.autoEnhance) {
     enhanceAllTables();
+  }
+
+  // Initialize home page badges if we're on a home page
+  const hasTestLinks = document.querySelectorAll(`.${CSS_CLASSES.TEST_LINK}`).length > 0;
+  if (hasTestLinks) {
+    initializeHomeBadges();
+    log('Home page badges initialized');
   }
 
   log('Initialization complete');
