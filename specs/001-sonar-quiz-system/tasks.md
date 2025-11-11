@@ -46,15 +46,15 @@ Single project structure:
 
 ### Storage Layer
 
-- [ ] T014 [P] Write tests for Storage Adapter interface in tests/unit/services/storage/adapter.test.ts
-- [ ] T015 Create Storage Adapter interface in src/services/storage/adapter.ts
-- [ ] T016 [P] Write tests for IndexedDB implementation in tests/unit/services/storage/indexeddb.test.ts
-- [ ] T017 Implement IndexedDB storage adapter with atomic transactions in src/services/storage/indexeddb.ts
+- [X] T014 [P] Write tests for Storage Adapter interface in tests/unit/services/storage/adapter.test.ts
+- [X] T015 Create Storage Adapter interface in src/services/storage/adapter.ts
+- [X] T016 [P] Write tests for IndexedDB implementation in tests/unit/services/storage/indexeddb.test.ts
+- [X] T017 Implement IndexedDB storage adapter with atomic transactions in src/services/storage/indexeddb.ts
 
 ### Session Management
 
-- [ ] T018 [P] Write tests for session management in tests/unit/services/session.test.ts
-- [ ] T019 Implement session service with 30-minute timeout in src/services/session.ts
+- [X] T018 [P] Write tests for session management in tests/unit/services/session.test.ts
+- [X] T019 Implement session service with 30-minute timeout in src/services/session.ts
 - [ ] T020 [P] Write tests for session cache rebuilding in tests/unit/services/session-cache.test.ts
 - [ ] T021 Implement session cache logic in src/services/session.ts
 
