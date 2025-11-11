@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analysis Table Examples - Sonar Quiz System</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      line-height: 1.6;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 2rem 0;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 0.75rem;
+      text-align: left;
+    }
+    th {
+      background-color: #f5f5f5;
+      font-weight: bold;
+    }
+    .readonly {
+      background-color: #e9ecef;
+    }
+    .editable {
+      background-color: #ffffff;
+    }
+    .example-section {
+      margin: 3rem 0;
+      border-top: 2px solid #333;
+      padding-top: 1rem;
+    }
+    .note {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+    .legend {
+      display: flex;
+      gap: 2rem;
+      margin: 1rem 0;
+      padding: 1rem;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .legend-box {
+      width: 30px;
+      height: 20px;
+      border: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <h1>Analysis Table Examples</h1>
+  <p>Demonstration of analysis table formats for the Sonar Quiz System.</p>
+
+  <div class="note">
+    <strong>Note:</strong> These tables will be automatically enhanced when the Sonar Quiz System script is loaded.
+    The system detects tables with class <code>qd-analysis</code> and makes cells without background-color editable.
+  </div>
+
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box readonly"></div>
+      <span>Read-only (has background-color style)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box editable"></div>
+      <span>Editable (no background-color)</span>
+    </div>
+  </div>
+
+  <!-- Example 1: Sonar Contact Analysis -->
+  <div class="example-section">
+    <h2>Example 1: Sonar Contact Analysis</h2>
+    <p>Students analyze sonar contacts and fill in classification details.</p>
+
+    <table class="qd-analysis">
+      <thead>
+        <tr>
+          <th style="background-color: #e9ecef;">Contact ID</th>
+          <th style="background-color: #e9ecef;">Bearing (°)</th>
+          <th style="background-color: #e9ecef;">Classification</th>
+          <th style="background-color: #e9ecef;">Confidence</th>
+          <th style="background-color: #e9ecef;">Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="background-color: #e9ecef;">C-001</td>
+          <td style="background-color: #e9ecef;">045</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="background-color: #e9ecef;">C-002</td>
+          <td style="background-color: #e9ecef;">120</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="background-color: #e9ecef;">C-003</td>
+          <td style="background-color: #e9ecef;">270</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="background-color: #e9ecef;">C-004</td>
+          <td style="background-color: #e9ecef;">315</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Example 2: Performance Calculation Worksheet -->
+  <div class="example-section">
+    <h2>Example 2: Sonar Performance Calculations</h2>
+    <p>Students perform calculations and record intermediate values.</p>
+
+    <table class="qd-analysis">
+      <thead>
+        <tr>
+          <th style="background-color: #e9ecef;">Parameter</th>
+          <th style="background-color: #e9ecef;">Given Value</th>
+          <th style="background-color: #e9ecef;">Your Calculation</th>
+          <th style="background-color: #e9ecef;">Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="background-color: #e9ecef;">Source Level (SL)</td>
+          <td style="background-color: #e9ecef;">220 dB</td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="background-color: #e9ecef;">Transmission Loss (TL)</td>
+          <td style="background-color: #e9ecef;">80 dB</td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="background-color: #e9ecef;">Target Strength (TS)</td>
+          <td style="background-color: #e9ecef;">15 dB</td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="background-color: #e9ecef;">Noise Level (NL)</td>
+          <td style="background-color: #e9ecef;">60 dB</td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="background-color: #e9ecef;">Detection Threshold (DT)</td>
+          <td style="background-color: #e9ecef;">10 dB</td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="background-color: #e9ecef;">Signal Excess (SE)</td>
+          <td style="background-color: #e9ecef;">-</td>
+          <td></td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Example 3: Simple Note-Taking Grid -->
+  <div class="example-section">
+    <h2>Example 3: Tactical Decision Matrix</h2>
+    <p>Students record their tactical analysis decisions.</p>
+
+    <table class="qd-analysis">
+      <tbody>
+        <tr>
+          <td style="background-color: #e9ecef; width: 30%;">Threat Assessment:</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="background-color: #e9ecef;">Recommended Action:</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="background-color: #e9ecef;">Course Change (if any):</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="background-color: #e9ecef;">Speed Change (if any):</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="background-color: #e9ecef;">Sonar Mode Selection:</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="background-color: #e9ecef;">Justification:</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Example 4: Mixed Read-Only and Editable -->
+  <div class="example-section">
+    <h2>Example 4: Environmental Analysis</h2>
+    <p>Combination of pre-filled data and student input fields.</p>
+
+    <table class="qd-analysis">
+      <thead>
+        <tr>
+          <th style="background-color: #e9ecef;">Depth (m)</th>
+          <th style="background-color: #e9ecef;">Temperature (°C)</th>
+          <th style="background-color: #e9ecef;">Sound Speed (m/s)</th>
+          <th style="background-color: #e9ecef;">Layer Type</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="background-color: #e9ecef;">0</td>
+          <td style="background-color: #e9ecef;">20</td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="background-color: #e9ecef;">50</td>
+          <td style="background-color: #e9ecef;">18</td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="background-color: #e9ecef;">100</td>
+          <td style="background-color: #e9ecef;">12</td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="background-color: #e9ecef;">200</td>
+          <td style="background-color: #e9ecef;">8</td>
+          <td></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td style="background-color: #e9ecef;">500</td>
+          <td style="background-color: #e9ecef;">5</td>
+          <td></td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="example-section">
+    <h2>Authoring Guidelines</h2>
+    <ul>
+      <li><strong>Class attribute:</strong> Tables must have the <code>qd-analysis</code> class</li>
+      <li><strong>Read-only cells:</strong> Add <code>style="background-color: #xxx"</code> to make cells read-only</li>
+      <li><strong>Editable cells:</strong> Leave cells WITHOUT any background-color style to make them editable</li>
+      <li><strong>Maximum:</strong> ONE analysis table per page</li>
+      <li><strong>Cell content limit:</strong> Maximum 500 characters per cell</li>
+      <li><strong>Auto-save:</strong> Student entries are automatically saved as they type</li>
+      <li><strong>Uniqueness:</strong> Each cell gets a unique key based on position and content hash</li>
+    </ul>
+  </div>
+
+  <script>
+    // Placeholder for sonar-quiz.iife.js
+    console.log('Demo page loaded. Add <script src="sonar-quiz.iife.js"></script> to activate analysis functionality.');
+  </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+dist/
+build/
+node_modules/
+coverage/
+*.min.js
+.storybook/
+storybook-static/
+playwright-report/
+test-results/
+*.config.js
+*.config.ts
+specs/
