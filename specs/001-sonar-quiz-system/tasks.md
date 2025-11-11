@@ -83,10 +83,10 @@ Single project structure:
 
 ### Login Component
 
-- [ ] T031 [P] [US1] Write tests for login component in tests/unit/components/qd-login.test.ts
-- [ ] T032 [US1] Create login web component with service ID + name inputs in src/components/qd-login.ts
-- [ ] T033 [P] [US1] Create Storybook story for login component in stories/components/qd-login.stories.ts
-- [ ] T034 [US1] Style login component with Shadow DOM in src/components/qd-login.ts
+- [X] T031 [P] [US1] Write tests for login component in tests/unit/components/qd-login.test.ts
+- [X] T032 [US1] Create login web component with service ID + name inputs in src/components/qd-login.ts
+- [X] T033 [P] [US1] Create Storybook story for login component in stories/components/qd-login.stories.ts
+- [X] T034 [US1] Style login component with Shadow DOM in src/components/qd-login.ts
 
 ### Quiz Table Enhancement
 
