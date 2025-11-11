@@ -42,8 +42,8 @@ export class QdLogin extends LitElement {
       max-width: 400px;
       margin: 0 auto;
       padding: 2rem;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-        'Helvetica Neue', Arial, sans-serif;
+      font-family:
+        -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     }
 
     form {
@@ -214,9 +214,7 @@ export class QdLogin extends LitElement {
 
     // Create session data
     const now = new Date().toISOString();
-    const expiresAt = new Date(
-      Date.now() + SESSION_TIMEOUT_MS,
-    ).toISOString();
+    const expiresAt = new Date(Date.now() + SESSION_TIMEOUT_MS).toISOString();
 
     const sessionData: SessionData = {
       serviceId,

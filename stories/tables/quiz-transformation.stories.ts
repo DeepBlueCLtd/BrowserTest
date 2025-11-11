@@ -50,9 +50,15 @@ export const McqTransformation: Story = {
           <table class="qd-quiz" style="width: 100%; border-collapse: collapse;">
             <thead>
               <tr>
-                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Question</th>
-                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Answer</th>
-                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Detail</th>
+                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">
+                  Question
+                </th>
+                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">
+                  Answer
+                </th>
+                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">
+                  Detail
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -74,16 +80,18 @@ export const McqTransformation: Story = {
         <div>
           <h3>After Enhancement</h3>
           <p style="color: #666;">Interactive with dropdown</p>
-          <table
-            id="mcq-demo"
-            class="qd-quiz"
-            style="width: 100%; border-collapse: collapse;"
-          >
+          <table id="mcq-demo" class="qd-quiz" style="width: 100%; border-collapse: collapse;">
             <thead>
               <tr>
-                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Question</th>
-                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Answer</th>
-                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Detail</th>
+                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">
+                  Question
+                </th>
+                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">
+                  Answer
+                </th>
+                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">
+                  Detail
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -104,7 +112,7 @@ export const McqTransformation: Story = {
             setTimeout(() => {
               const table = document.getElementById('mcq-demo');
               if (table && !table.classList.contains('qd-enhanced')) {
-                ${enhanceQuizTable.toString()}
+                ${enhanceQuizTable.toString()};
                 enhanceQuizTable(table);
               }
             }, 100);
@@ -131,9 +139,15 @@ export const NumericTransformation: Story = {
           <table class="qd-quiz" style="width: 100%; border-collapse: collapse;">
             <thead>
               <tr>
-                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Question</th>
-                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Answer</th>
-                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Detail</th>
+                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">
+                  Question
+                </th>
+                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">
+                  Answer
+                </th>
+                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">
+                  Detail
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -151,16 +165,18 @@ export const NumericTransformation: Story = {
         <div>
           <h3>After Enhancement</h3>
           <p style="color: #666;">Interactive with number input</p>
-          <table
-            id="numeric-demo"
-            class="qd-quiz"
-            style="width: 100%; border-collapse: collapse;"
-          >
+          <table id="numeric-demo" class="qd-quiz" style="width: 100%; border-collapse: collapse;">
             <thead>
               <tr>
-                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Question</th>
-                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Answer</th>
-                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Detail</th>
+                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">
+                  Question
+                </th>
+                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">
+                  Answer
+                </th>
+                <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">
+                  Detail
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -177,7 +193,7 @@ export const NumericTransformation: Story = {
             setTimeout(() => {
               const table = document.getElementById('numeric-demo');
               if (table && !table.classList.contains('qd-enhanced')) {
-                ${enhanceQuizTable.toString()}
+                ${enhanceQuizTable.toString()};
                 enhanceQuizTable(table);
               }
             }, 100);
@@ -220,14 +236,12 @@ export const LiveTransformation: Story = {
           Enhance Table
         </button>
 
-        <table
-          id="live-table"
-          class="qd-quiz"
-          style="width: 100%; border-collapse: collapse;"
-        >
+        <table id="live-table" class="qd-quiz" style="width: 100%; border-collapse: collapse;">
           <thead>
             <tr>
-              <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Question</th>
+              <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">
+                Question
+              </th>
               <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Answer</th>
               <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Detail</th>
             </tr>
@@ -288,14 +302,12 @@ export const VisualFeedback: Story = {
           Table with answers showing correct (green) and incorrect (red) styling
         </p>
 
-        <table
-          id="feedback-table"
-          class="qd-quiz"
-          style="width: 100%; border-collapse: collapse;"
-        >
+        <table id="feedback-table" class="qd-quiz" style="width: 100%; border-collapse: collapse;">
           <thead>
             <tr>
-              <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Question</th>
+              <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">
+                Question
+              </th>
               <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Answer</th>
               <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Detail</th>
             </tr>
@@ -358,14 +370,12 @@ export const MixedQuestionTypes: Story = {
           Table containing both MCQ (dropdowns) and numeric (inputs) questions
         </p>
 
-        <table
-          id="mixed-table"
-          class="qd-quiz"
-          style="width: 100%; border-collapse: collapse;"
-        >
+        <table id="mixed-table" class="qd-quiz" style="width: 100%; border-collapse: collapse;">
           <thead>
             <tr>
-              <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Question</th>
+              <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">
+                Question
+              </th>
               <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Answer</th>
               <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Detail</th>
             </tr>
@@ -418,7 +428,10 @@ export const MixedQuestionTypes: Story = {
           <h4 style="margin-top: 0;">Question Type Detection:</h4>
           <ul style="margin-bottom: 0;">
             <li><strong>MCQ:</strong> Detail column contains &lt;ol&gt; → Dropdown injected</li>
-            <li><strong>Numeric:</strong> Detail column contains number (tolerance) → Number input injected</li>
+            <li>
+              <strong>Numeric:</strong> Detail column contains number (tolerance) → Number input
+              injected
+            </li>
           </ul>
         </div>
       </div>
@@ -476,7 +489,9 @@ export const AutoSaveDemo: Story = {
         >
           <thead>
             <tr>
-              <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Question</th>
+              <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">
+                Question
+              </th>
               <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Answer</th>
               <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Detail</th>
             </tr>
@@ -502,10 +517,7 @@ export const AutoSaveDemo: Story = {
 
         <div style="border: 1px solid #ddd; border-radius: 4px; padding: 1rem;">
           <h4 style="margin-top: 0;">Event Log:</h4>
-          <div
-            id="event-log"
-            style="max-height: 300px; overflow-y: auto;"
-          >
+          <div id="event-log" style="max-height: 300px; overflow-y: auto;">
             <p style="color: #666; text-align: center; font-style: italic;">
               Select an answer above to see events...
             </p>

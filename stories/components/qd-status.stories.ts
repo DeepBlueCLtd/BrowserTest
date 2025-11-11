@@ -63,8 +63,7 @@ const meta: Meta<QdStatus> = {
   parameters: {
     docs: {
       description: {
-        component:
-          'Progress status panel with R/A/G color coding for quiz completion tracking.',
+        component: 'Progress status panel with R/A/G color coding for quiz completion tracking.',
       },
     },
   },
@@ -220,9 +219,7 @@ export const InteractiveDemo: Story = {
           >
             Advance Progress
           </button>
-          <p style="margin-top: 1rem; color: #666;">
-            Click to simulate quiz progress
-          </p>
+          <p style="margin-top: 1rem; color: #666;">Click to simulate quiz progress</p>
         </div>
       </div>
     `;
@@ -239,32 +236,17 @@ export const ComparisonView: Story = {
     >
       <div>
         <h3 style="text-align: center; margin-bottom: 1rem;">Not Started</h3>
-        <qd-status
-          state="unstarted"
-          attempted="0"
-          correct="0"
-          total="10"
-        ></qd-status>
+        <qd-status state="unstarted" attempted="0" correct="0" total="10"></qd-status>
       </div>
 
       <div>
         <h3 style="text-align: center; margin-bottom: 1rem;">In Progress</h3>
-        <qd-status
-          state="incomplete"
-          attempted="5"
-          correct="4"
-          total="10"
-        ></qd-status>
+        <qd-status state="incomplete" attempted="5" correct="4" total="10"></qd-status>
       </div>
 
       <div>
         <h3 style="text-align: center; margin-bottom: 1rem;">Completed</h3>
-        <qd-status
-          state="complete"
-          attempted="10"
-          correct="10"
-          total="10"
-        ></qd-status>
+        <qd-status state="complete" attempted="10" correct="10" total="10"></qd-status>
       </div>
     </div>
   `,
@@ -302,32 +284,17 @@ export const ResponsiveLayout: Story = {
     <div style="padding: 1rem;">
       <h3>Desktop View (500px)</h3>
       <div style="max-width: 500px; margin-bottom: 2rem;">
-        <qd-status
-          state="incomplete"
-          attempted="7"
-          correct="5"
-          total="10"
-        ></qd-status>
+        <qd-status state="incomplete" attempted="7" correct="5" total="10"></qd-status>
       </div>
 
       <h3>Tablet View (400px)</h3>
       <div style="max-width: 400px; margin-bottom: 2rem;">
-        <qd-status
-          state="incomplete"
-          attempted="7"
-          correct="5"
-          total="10"
-        ></qd-status>
+        <qd-status state="incomplete" attempted="7" correct="5" total="10"></qd-status>
       </div>
 
       <h3>Mobile View (320px)</h3>
       <div style="max-width: 320px;">
-        <qd-status
-          state="incomplete"
-          attempted="7"
-          correct="5"
-          total="10"
-        ></qd-status>
+        <qd-status state="incomplete" attempted="7" correct="5" total="10"></qd-status>
       </div>
     </div>
   `,
@@ -353,7 +320,9 @@ export const RealTimeUpdates: Story = {
           total="10"
         ></qd-status>
 
-        <div style="margin-top: 2rem; text-align: center; display: flex; gap: 1rem; justify-content: center;">
+        <div
+          style="margin-top: 2rem; text-align: center; display: flex; gap: 1rem; justify-content: center;"
+        >
           <button
             style="padding: 0.75rem 1.5rem; font-size: 1rem; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer;"
             @click=${() => {
@@ -372,9 +341,7 @@ export const RealTimeUpdates: Story = {
                   status.attempted = attempted;
                   status.correct = correct;
                   status.state =
-                    attempted === total && correct === total
-                      ? 'complete'
-                      : 'incomplete';
+                    attempted === total && correct === total ? 'complete' : 'incomplete';
                 } else {
                   clearInterval(interval);
                 }
@@ -411,16 +378,9 @@ export const RealTimeUpdates: Story = {
 export const AccessibilityFeatures: Story = {
   render: () => html`
     <div style="max-width: 600px; margin: 0 auto;">
-      <qd-status
-        state="incomplete"
-        attempted="6"
-        correct="4"
-        total="10"
-      ></qd-status>
+      <qd-status state="incomplete" attempted="6" correct="4" total="10"></qd-status>
 
-      <div
-        style="margin-top: 2rem; padding: 1rem; background: #f5f5f5; border-radius: 4px;"
-      >
+      <div style="margin-top: 2rem; padding: 1rem; background: #f5f5f5; border-radius: 4px;">
         <h3 style="margin-top: 0;">Accessibility Features:</h3>
         <ul style="margin-bottom: 0;">
           <li><strong>ARIA live region:</strong> Announces updates to screen readers</li>

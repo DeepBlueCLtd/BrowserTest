@@ -10,10 +10,7 @@
  * - Numeric: Detail column contains tolerance number
  */
 
-import type {
-  ParsedQuizTable,
-  QuizQuestion,
-} from '../types/contracts';
+import type { ParsedQuizTable, QuizQuestion } from '../types/contracts';
 
 /**
  * Parse a quiz table and extract question data
@@ -121,9 +118,7 @@ export function parseQuizTable(table: HTMLTableElement): ParsedQuizTable {
  */
 function extractMcqOptions(ol: HTMLOListElement): string[] {
   const listItems = Array.from(ol.querySelectorAll('li'));
-  return listItems
-    .map((li) => li.textContent?.trim() || '')
-    .filter((text) => text.length > 0);
+  return listItems.map((li) => li.textContent?.trim() || '').filter((text) => text.length > 0);
 }
 
 /**
@@ -133,9 +128,7 @@ function extractMcqOptions(ol: HTMLOListElement): string[] {
  * @returns Array of ParsedQuizTable results
  */
 export function findQuizTables(doc: Document = document): ParsedQuizTable[] {
-  const tables = Array.from(
-    doc.querySelectorAll<HTMLTableElement>('table.qd-quiz'),
-  );
+  const tables = Array.from(doc.querySelectorAll<HTMLTableElement>('table.qd-quiz'));
   return tables.map((table) => parseQuizTable(table));
 }
 

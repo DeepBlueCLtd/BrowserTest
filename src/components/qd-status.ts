@@ -53,8 +53,8 @@ export class QdStatus extends LitElement {
   static styles = css`
     :host {
       display: block;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-        'Helvetica Neue', Arial, sans-serif;
+      font-family:
+        -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     }
 
     .status-panel {
@@ -143,7 +143,9 @@ export class QdStatus extends LitElement {
 
     .progress-bar {
       height: 100%;
-      transition: width 0.3s ease, background-color 0.3s;
+      transition:
+        width 0.3s ease,
+        background-color 0.3s;
       border-radius: 8px;
     }
 
@@ -231,17 +233,10 @@ export class QdStatus extends LitElement {
           aria-valuemax="100"
           aria-label="Quiz completion progress"
         >
-          <div
-            class="progress-bar ${this.state}"
-            style="width: ${percentage}%"
-          ></div>
+          <div class="progress-bar ${this.state}" style="width: ${percentage}%"></div>
         </div>
 
-        <div
-          class="status-message ${this.state}"
-          aria-live="polite"
-          aria-atomic="true"
-        >
+        <div class="status-message ${this.state}" aria-live="polite" aria-atomic="true">
           ${statusMessage}
         </div>
       </div>

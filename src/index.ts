@@ -9,10 +9,7 @@
 
 import { CSS_CLASSES, ELEMENT_IDS } from './types/contracts';
 import { findQuizTables } from './services/quiz-parser';
-import {
-  enhanceQuizTable,
-  injectQuizStyles,
-} from './enhancers/quiz-table';
+import { enhanceQuizTable, injectQuizStyles } from './enhancers/quiz-table';
 
 // Import components to register custom elements
 import './components/qd-login';
@@ -82,8 +79,7 @@ function injectLoginComponent(doc: Document = document): void {
   }
 
   // Look for a suitable container (first heading or start of body)
-  const container =
-    doc.querySelector('main') || doc.querySelector('article') || doc.body;
+  const container = doc.querySelector('main') || doc.querySelector('article') || doc.body;
 
   if (container) {
     const login = doc.createElement('qd-login');
@@ -157,10 +153,7 @@ function enhanceAllTables(doc: Document = document): void {
 /**
  * Show validation banner for debug mode
  */
-function showValidationBanner(
-  table: HTMLTableElement,
-  errors: string[],
-): void {
+function showValidationBanner(table: HTMLTableElement, errors: string[]): void {
   const banner = document.createElement('div');
   banner.style.cssText = `
     background: #fff3cd;
@@ -275,9 +268,7 @@ function init(userConfig?: Partial<SonarQuizConfig>): void {
  * Manual table enhancement (for dynamic content)
  */
 function enhanceTables(selector?: string): void {
-  const tables = document.querySelectorAll<HTMLTableElement>(
-    selector || config.quizTableSelector!,
-  );
+  const tables = document.querySelectorAll<HTMLTableElement>(selector || config.quizTableSelector!);
 
   tables.forEach((table) => {
     enhanceQuizTable(table);

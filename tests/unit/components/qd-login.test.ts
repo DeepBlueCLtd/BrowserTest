@@ -56,9 +56,7 @@ describe('QdLogin Component', () => {
       // Wait for component to render
       await element.updateComplete;
 
-      const input = element.shadowRoot?.querySelector(
-        'input[name="serviceId"]',
-      );
+      const input = element.shadowRoot?.querySelector('input[name="serviceId"]');
       expect(input).toBeDefined();
     });
 
@@ -115,9 +113,7 @@ describe('QdLogin Component', () => {
       document.body.appendChild(element);
       await element.updateComplete;
 
-      const input = element.shadowRoot?.querySelector(
-        'input[name="name"]',
-      ) as HTMLInputElement;
+      const input = element.shadowRoot?.querySelector('input[name="name"]') as HTMLInputElement;
       expect(input?.required).toBe(true);
     });
 
@@ -142,9 +138,7 @@ describe('QdLogin Component', () => {
       document.body.appendChild(element);
       await element.updateComplete;
 
-      const input = element.shadowRoot?.querySelector(
-        'input[name="name"]',
-      ) as HTMLInputElement;
+      const input = element.shadowRoot?.querySelector('input[name="name"]') as HTMLInputElement;
 
       expect(input).toBeDefined();
     });
@@ -164,9 +158,7 @@ describe('QdLogin Component', () => {
       const serviceIdInput = element.shadowRoot?.querySelector(
         'input[name="serviceId"]',
       ) as HTMLInputElement;
-      const nameInput = element.shadowRoot?.querySelector(
-        'input[name="name"]',
-      ) as HTMLInputElement;
+      const nameInput = element.shadowRoot?.querySelector('input[name="name"]') as HTMLInputElement;
 
       if (serviceIdInput && nameInput) {
         serviceIdInput.value = 'RN2344';
@@ -174,9 +166,7 @@ describe('QdLogin Component', () => {
 
         // Trigger submit
         const form = element.shadowRoot?.querySelector('form') as HTMLFormElement;
-        form?.dispatchEvent(
-          new Event('submit', { bubbles: true, cancelable: true }),
-        );
+        form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
       }
 
       // Event should be emitted (when component is implemented)
@@ -211,9 +201,7 @@ describe('QdLogin Component', () => {
       document.body.appendChild(element);
       await element.updateComplete;
 
-      const serviceIdLabel = element.shadowRoot?.querySelector(
-        'label[for="serviceId"]',
-      );
+      const serviceIdLabel = element.shadowRoot?.querySelector('label[for="serviceId"]');
       const nameLabel = element.shadowRoot?.querySelector('label[for="name"]');
 
       expect(serviceIdLabel || nameLabel).toBeDefined();
@@ -286,9 +274,7 @@ describe('QdLogin Component', () => {
       const serviceIdInput = element.shadowRoot?.querySelector(
         'input[name="serviceId"]',
       ) as HTMLInputElement;
-      const nameInput = element.shadowRoot?.querySelector(
-        'input[name="name"]',
-      ) as HTMLInputElement;
+      const nameInput = element.shadowRoot?.querySelector('input[name="name"]') as HTMLInputElement;
 
       expect(serviceIdInput?.value || '').toBe('');
       expect(nameInput?.value || '').toBe('');

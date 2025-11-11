@@ -98,9 +98,7 @@ export const FilledForm: Story = {
       document.addEventListener('DOMContentLoaded', () => {
         const login = document.querySelector('qd-login');
         if (login?.shadowRoot) {
-          const serviceIdInput = login.shadowRoot.querySelector(
-            'input[name="serviceId"]'
-          );
+          const serviceIdInput = login.shadowRoot.querySelector('input[name="serviceId"]');
           const nameInput = login.shadowRoot.querySelector('input[name="name"]');
           if (serviceIdInput) serviceIdInput.value = 'RN2344';
           if (nameInput) nameInput.value = 'Smith, J';
@@ -197,9 +195,7 @@ export const ResponsiveLayout: Story = {
  */
 export const DarkModeExample: Story = {
   render: () => html`
-    <div
-      style="background: #1e1e1e; padding: 2rem; min-height: 100vh; color: white;"
-    >
+    <div style="background: #1e1e1e; padding: 2rem; min-height: 100vh; color: white;">
       <style>
         qd-login {
           --background-color: #2d2d2d;
@@ -255,9 +251,7 @@ export const EventHandling: Story = {
           id="event-log"
           style="border: 1px solid #ccc; border-radius: 4px; padding: 1rem; min-height: 100px; max-height: 300px; overflow-y: auto;"
         >
-          <p style="color: #666; text-align: center;">
-            Submit the form to see events logged here
-          </p>
+          <p style="color: #666; text-align: center;">Submit the form to see events logged here</p>
         </div>
       </div>
     </div>

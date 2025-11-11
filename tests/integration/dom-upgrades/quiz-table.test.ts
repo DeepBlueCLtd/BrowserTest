@@ -36,9 +36,7 @@ describe('Quiz Table DOM Upgrades', () => {
       ]);
 
       // Import and enhance the table
-      const { enhanceQuizTable } = await import(
-        '../../../src/enhancers/quiz-table'
-      );
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
       enhanceQuizTable(table);
 
       // Check for injected select element in Answer column
@@ -55,9 +53,7 @@ describe('Quiz Table DOM Upgrades', () => {
         },
       ]);
 
-      const { enhanceQuizTable } = await import(
-        '../../../src/enhancers/quiz-table'
-      );
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
       enhanceQuizTable(table);
 
       const select = table.querySelector('select');
@@ -77,9 +73,7 @@ describe('Quiz Table DOM Upgrades', () => {
         },
       ]);
 
-      const { enhanceQuizTable } = await import(
-        '../../../src/enhancers/quiz-table'
-      );
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
       enhanceQuizTable(table);
 
       const select = table.querySelector('select') as HTMLSelectElement;
@@ -104,9 +98,7 @@ describe('Quiz Table DOM Upgrades', () => {
       const originalRowCount = table.querySelectorAll('tbody tr').length;
       const originalCellCount = table.querySelectorAll('tbody td').length;
 
-      const { enhanceQuizTable } = await import(
-        '../../../src/enhancers/quiz-table'
-      );
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
       enhanceQuizTable(table);
 
       // Should not add/remove rows or cells
@@ -125,9 +117,7 @@ describe('Quiz Table DOM Upgrades', () => {
         },
       ]);
 
-      const { enhanceQuizTable } = await import(
-        '../../../src/enhancers/quiz-table'
-      );
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
       enhanceQuizTable(table);
 
       const input = table.querySelector('input[type="number"]');
@@ -143,9 +133,7 @@ describe('Quiz Table DOM Upgrades', () => {
         },
       ]);
 
-      const { enhanceQuizTable } = await import(
-        '../../../src/enhancers/quiz-table'
-      );
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
       enhanceQuizTable(table);
 
       const input = table.querySelector('input[type="number"]') as HTMLInputElement;
@@ -162,9 +150,7 @@ describe('Quiz Table DOM Upgrades', () => {
         },
       ]);
 
-      const { enhanceQuizTable } = await import(
-        '../../../src/enhancers/quiz-table'
-      );
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
       enhanceQuizTable(table);
 
       const input = table.querySelector('input[type="number"]') as HTMLInputElement;
@@ -187,9 +173,7 @@ describe('Quiz Table DOM Upgrades', () => {
         },
       ]);
 
-      const { enhanceQuizTable } = await import(
-        '../../../src/enhancers/quiz-table'
-      );
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
       enhanceQuizTable(table);
 
       // Should have both select and input
@@ -211,9 +195,7 @@ describe('Quiz Table DOM Upgrades', () => {
         },
       ]);
 
-      const { enhanceQuizTable } = await import(
-        '../../../src/enhancers/quiz-table'
-      );
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
       enhanceQuizTable(table);
 
       const select = table.querySelector('select') as HTMLSelectElement;
@@ -239,9 +221,7 @@ describe('Quiz Table DOM Upgrades', () => {
         },
       ]);
 
-      const { enhanceQuizTable } = await import(
-        '../../../src/enhancers/quiz-table'
-      );
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
       enhanceQuizTable(table);
 
       const input = table.querySelector('input[type="number"]') as HTMLInputElement;
@@ -283,9 +263,7 @@ describe('Quiz Table DOM Upgrades', () => {
       // Simulate existing answer data
       const savedAnswers = [{ answer: '2', success: true, timestamp: new Date().toISOString() }];
 
-      const { enhanceQuizTable } = await import(
-        '../../../src/enhancers/quiz-table'
-      );
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
       enhanceQuizTable(table, savedAnswers);
 
       const select = table.querySelector('select') as HTMLSelectElement;
@@ -304,9 +282,7 @@ describe('Quiz Table DOM Upgrades', () => {
 
       const savedAnswers = [{ answer: '95', success: true, timestamp: new Date().toISOString() }];
 
-      const { enhanceQuizTable } = await import(
-        '../../../src/enhancers/quiz-table'
-      );
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
       enhanceQuizTable(table, savedAnswers);
 
       const input = table.querySelector('input[type="number"]') as HTMLInputElement;
@@ -326,9 +302,7 @@ describe('Quiz Table DOM Upgrades', () => {
 
       const savedAnswers = [{ answer: '1', success: true, timestamp: new Date().toISOString() }];
 
-      const { enhanceQuizTable } = await import(
-        '../../../src/enhancers/quiz-table'
-      );
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
       enhanceQuizTable(table, savedAnswers);
 
       // Should have visual indicator for correct answer
@@ -348,9 +322,7 @@ describe('Quiz Table DOM Upgrades', () => {
 
       const savedAnswers = [{ answer: '2', success: false, timestamp: new Date().toISOString() }];
 
-      const { enhanceQuizTable } = await import(
-        '../../../src/enhancers/quiz-table'
-      );
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
       enhanceQuizTable(table, savedAnswers);
 
       const answerCell = table.querySelector('tbody tr td:nth-child(2)');
@@ -368,9 +340,7 @@ describe('Quiz Table DOM Upgrades', () => {
         },
       ]);
 
-      const { enhanceQuizTable } = await import(
-        '../../../src/enhancers/quiz-table'
-      );
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
       enhanceQuizTable(table);
 
       const input = table.querySelector('input[type="number"]') as HTMLInputElement;
@@ -401,9 +371,7 @@ describe('Quiz Table DOM Upgrades', () => {
         },
       ]);
 
-      const { enhanceQuizTable } = await import(
-        '../../../src/enhancers/quiz-table'
-      );
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
       enhanceQuizTable(table);
 
       // Performance test will be verified when implemented
@@ -421,18 +389,14 @@ describe('Quiz Table DOM Upgrades', () => {
         },
       ]);
 
-      const { enhanceQuizTable } = await import(
-        '../../../src/enhancers/quiz-table'
-      );
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
 
       // Should not throw, but may skip enhancement
       expect(() => enhanceQuizTable(table)).not.toThrow();
     });
 
     it('should handle missing table gracefully', async () => {
-      const { enhanceQuizTable } = await import(
-        '../../../src/enhancers/quiz-table'
-      );
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
 
       // Should not throw on null/undefined
       expect(() => enhanceQuizTable(null as any)).not.toThrow();
@@ -457,9 +421,7 @@ describe('Quiz Table DOM Upgrades', () => {
         },
       ]);
 
-      const { enhanceQuizTable } = await import(
-        '../../../src/enhancers/quiz-table'
-      );
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
 
       enhanceQuizTable(table1);
       enhanceQuizTable(table2);

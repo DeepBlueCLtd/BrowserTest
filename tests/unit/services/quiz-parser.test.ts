@@ -201,9 +201,7 @@ describe('Quiz Table Parser', () => {
       ]);
 
       const result = parseQuizTable(table);
-      expect(result.questions[0].text).toBe(
-        'What is the primary function of a sonar system?',
-      );
+      expect(result.questions[0].text).toBe('What is the primary function of a sonar system?');
     });
 
     it('should trim whitespace from question text', () => {
@@ -469,12 +467,8 @@ describe('Quiz Table Parser', () => {
   describe('findQuizTables function', () => {
     it('should find all quiz tables in document', () => {
       // Create multiple quiz tables
-      createQuizTable([
-        { question: 'Q1', answer: '1', detail: '<ol><li>A</li></ol>' },
-      ]);
-      createQuizTable([
-        { question: 'Q2', answer: '100', detail: '10' },
-      ]);
+      createQuizTable([{ question: 'Q1', answer: '1', detail: '<ol><li>A</li></ol>' }]);
+      createQuizTable([{ question: 'Q2', answer: '100', detail: '10' }]);
 
       const results = findQuizTables(document);
       expect(results).toHaveLength(2);

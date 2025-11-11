@@ -128,13 +128,7 @@ function enhanceMcqCell(
 
   // Add change event handler with auto-save
   select.addEventListener('change', (e) => {
-    handleAnswerChange(
-      e.target as HTMLSelectElement,
-      question,
-      questionIndex,
-      table,
-      cell,
-    );
+    handleAnswerChange(e.target as HTMLSelectElement, question, questionIndex, table, cell);
   });
 
   // Clear cell and inject select
@@ -168,13 +162,7 @@ function enhanceNumericCell(
 
   // Add input event handler with debounced auto-save
   input.addEventListener('input', (e) => {
-    handleAnswerChangeDebounced(
-      e.target as HTMLInputElement,
-      question,
-      questionIndex,
-      table,
-      cell,
-    );
+    handleAnswerChangeDebounced(e.target as HTMLInputElement, question, questionIndex, table, cell);
   });
 
   // Clear cell and inject input
