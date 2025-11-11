@@ -106,8 +106,8 @@ Single project structure:
 
 ### Integration & Entry Point
 
-- [ ] T044 [US1] Implement main entry point with auto-init in src/index.ts
-- [ ] T045 [US1] Wire up DOMContentLoaded detection and table scanning in src/index.ts
+- [X] T044 [US1] Implement main entry point with auto-init in src/index.ts
+- [X] T045 [US1] Wire up DOMContentLoaded detection and table scanning in src/index.ts
 - [ ] T046 [P] [US1] Write E2E test for complete login → answer → save flow in tests/e2e/workflows/student-quiz.spec.ts
 - [ ] T047 [US1] Verify Phase 1 exit gate: Chromatic interactions pass, parsing unit tests green
 
