@@ -5,7 +5,8 @@
       "Bash(curl -d \"Doc Boeuf: Spec complete for sonar-quiz-system. All quality checks passed. Ready for planning phase.\" ntfy.sh/iancc2025)",
       "Bash(.specify/scripts/bash/update-agent-context.sh:*)",
       "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
