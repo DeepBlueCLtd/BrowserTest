@@ -10,9 +10,8 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/web-components';
-import type { SessionCache, SessionData, AnswerRecord } from '../../src/types/contracts';
+import type { SessionCache, SessionData } from '../../src/types/contracts';
 import { injectBadges } from '../../src/enhancers/home-badges';
-import { STORAGE_KEYS } from '../../src/types/contracts';
 
 const meta: Meta = {
   title: 'Tables/Home Badges Workflow',
