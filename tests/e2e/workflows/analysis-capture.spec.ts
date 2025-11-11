@@ -113,10 +113,10 @@ const testHtmlContent = `<!DOCTYPE html>
 
             // Generate cell content hash
             const cellContent = cell.textContent.trim();
-            const hash = await generateHash(cellContent || `r${rowIndex}c${colIndex}`);
+            const hash = await generateHash(cellContent || 'r' + rowIndex + 'c' + colIndex);
 
             // Generate cell key in expected format: R{row}C{col}#f:{hash}
-            const cellKey = `R${rowIndex}C${colIndex}#f:${hash}`;
+            const cellKey = 'R' + rowIndex + 'C' + colIndex + '#f:' + hash;
 
             // Create text input
             const input = document.createElement('input');
@@ -126,7 +126,7 @@ const testHtmlContent = `<!DOCTYPE html>
             input.dataset.cellKey = cellKey; // Store cell key as data attribute
 
             // Load saved data from sessionStorage
-            const storageKey = `analysis/${tableId}/${cellKey}`;
+            const storageKey = 'analysis/' + tableId + '/' + cellKey;
             const savedData = sessionStorage.getItem(storageKey);
             if (savedData) {
               try {
