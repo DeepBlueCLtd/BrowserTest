@@ -14,14 +14,16 @@ import { CSS_CLASSES, ELEMENT_IDS } from './types/contracts.js';
  * This function is called automatically on DOMContentLoaded
  */
 function init() {
-  console.log('[SonarQuiz] Initializing...');
-
   // Phase 0: Bootstrap complete
   // Phase 1+: Will add table detection and enhancement logic
 
-  console.log('[SonarQuiz] Phase 0 - Bootstrap complete');
-  console.log('[SonarQuiz] Looking for tables with classes:', CSS_CLASSES);
-  console.log('[SonarQuiz] Looking for status panel with ID:', ELEMENT_IDS.STATUS_PANEL);
+  // Debug logging disabled in production
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('[SonarQuiz] Initializing...');
+    console.warn('[SonarQuiz] Phase 0 - Bootstrap complete');
+    console.warn('[SonarQuiz] Looking for tables with classes:', CSS_CLASSES);
+    console.warn('[SonarQuiz] Looking for status panel with ID:', ELEMENT_IDS.STATUS_PANEL);
+  }
 }
 
 // Auto-initialize on DOM ready
