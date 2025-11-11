@@ -2,11 +2,11 @@
  * Analysis Table Parser
  *
  * Parses DITA analysis tables with qd-analysis class and identifies
- * editable cells (those without background-color style).
+ * editable cells (those with 'interactive' class).
  *
  * Per contract specifications:
- * - Cells WITH background-color = read-only
- * - Cells WITHOUT background-color = editable
+ * - Cells WITH 'interactive' class = editable
+ * - Cells WITHOUT 'interactive' class = read-only
  * - Cell keys format: R{row}C{col}#f:{hash}
  * - Table ID: 16-char hash of table structure
  */
@@ -99,23 +99,13 @@ export function parseAnalysisTable(
 }
 
 /**
- * Check if a cell is editable (no background-color style)
+ * Check if a cell is editable (has 'interactive' class)
  *
  * @param cell - Table cell element
  * @returns True if cell is editable
  */
 function isEditableCell(cell: HTMLTableCellElement): boolean {
-  const style = cell.getAttribute('style');
-
-  // No style attribute = editable
-  if (!style) {
-    return true;
-  }
-
-  // Check for background-color in style string (case-insensitive)
-  const hasBackgroundColor = /background-color\s*:/i.test(style);
-
-  return !hasBackgroundColor;
+  return cell.classList.contains('interactive');
 }
 
 /**

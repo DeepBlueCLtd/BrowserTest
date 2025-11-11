@@ -51,13 +51,13 @@ export const BasicAnalysisTable: Story = {
           <tbody>
             <tr>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Temperature</td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
             <tr>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Depth</td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
           </tbody>
         </table>
@@ -96,23 +96,23 @@ export const SonarContactAnalysis: Story = {
             <tr>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">C-001</td>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">045</td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
             <tr>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">C-002</td>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">120</td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
             <tr>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">C-003</td>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">270</td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
           </tbody>
         </table>
@@ -150,26 +150,26 @@ export const PerformanceCalculations: Story = {
             <tr>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Source Level (SL)</td>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">220 dB</td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
             <tr>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Transmission Loss (TL)</td>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">80 dB</td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
             <tr>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Target Strength (TS)</td>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">15 dB</td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
             <tr>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Signal Excess (SE)</td>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">-</td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
           </tbody>
         </table>
@@ -198,27 +198,27 @@ export const TacticalDecisionMatrix: Story = {
           <tbody>
             <tr>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem; width: 30%;">Threat Assessment:</td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
             <tr>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Recommended Action:</td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
             <tr>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Course Change (if any):</td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
             <tr>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Speed Change (if any):</td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
             <tr>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Sonar Mode Selection:</td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
             <tr>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Justification:</td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
           </tbody>
         </table>
@@ -253,11 +253,11 @@ export const WithExistingData: Story = {
           <tbody>
             <tr>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">What is the primary advantage of active sonar?</td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;">Provides precise range and bearing information</td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;">Provides precise range and bearing information</td>
             </tr>
             <tr>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">What is the primary disadvantage?</td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;">Reveals own position to adversaries</td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;">Reveals own position to adversaries</td>
             </tr>
           </tbody>
         </table>
@@ -289,19 +289,19 @@ export const AllEditableCells: Story = {
         <table class="qd-analysis" style="width: 100%; border-collapse: collapse; margin: 1rem 0;">
           <tbody>
             <tr>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
             <tr>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
             <tr>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
           </tbody>
         </table>
@@ -339,20 +339,20 @@ export const EnvironmentalAnalysis: Story = {
             <tr>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">0</td>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">20</td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
             <tr>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">50</td>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">18</td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
             <tr>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">100</td>
               <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">12</td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
-              <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
           </tbody>
         </table>

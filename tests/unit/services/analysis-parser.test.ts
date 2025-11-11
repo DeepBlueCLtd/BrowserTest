@@ -28,8 +28,8 @@ describe('Analysis Table Parser', () => {
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td style="background-color: #e9ecef;">Label:</td>
-              <td>Editable content</td>
+              <td>Label:</td>
+              <td class="interactive">Editable content</td>
             </tr>
           </tbody>
         </table>
@@ -53,7 +53,7 @@ describe('Analysis Table Parser', () => {
         <table>
           <tbody>
             <tr>
-              <td>Some content</td>
+              <td class="interactive">Some content</td>
             </tr>
           </tbody>
         </table>
@@ -65,19 +65,19 @@ describe('Analysis Table Parser', () => {
       expect(result).toBeNull();
     });
 
-    it('should identify editable cells (no background-color)', () => {
+    it('should identify editable cells (with interactive class)', () => {
       container.innerHTML = `
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td style="background-color: #e9ecef;">Read-only</td>
-              <td>Editable 1</td>
-              <td>Editable 2</td>
+              <td>Read-only</td>
+              <td class="interactive">Editable 1</td>
+              <td class="interactive">Editable 2</td>
             </tr>
             <tr>
-              <td style="background-color: rgb(233, 236, 239);">Read-only</td>
-              <td>Editable 3</td>
-              <td style="background-color: #fff;">Read-only with white bg</td>
+              <td>Read-only</td>
+              <td class="interactive">Editable 3</td>
+              <td>Read-only without interactive</td>
             </tr>
           </tbody>
         </table>
@@ -101,14 +101,14 @@ describe('Analysis Table Parser', () => {
         <table class="qd-analysis">
           <thead>
             <tr>
-              <th style="background-color: #e9ecef;">Header 1</th>
-              <th style="background-color: #e9ecef;">Header 2</th>
+              <th>Header 1</th>
+              <th>Header 2</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td style="background-color: #e9ecef;">Label</td>
-              <td>Editable</td>
+              <td>Label</td>
+              <td class="interactive">Editable</td>
             </tr>
           </tbody>
         </table>
@@ -129,12 +129,12 @@ describe('Analysis Table Parser', () => {
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td>Cell A</td>
-              <td>Cell B</td>
+              <td class="interactive">Cell A</td>
+              <td class="interactive">Cell B</td>
             </tr>
             <tr>
-              <td>Cell C</td>
-              <td>Cell D</td>
+              <td class="interactive">Cell C</td>
+              <td class="interactive">Cell D</td>
             </tr>
           </tbody>
         </table>
@@ -162,9 +162,9 @@ describe('Analysis Table Parser', () => {
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td style="background-color: #e9ecef;">All</td>
-              <td style="background-color: #e9ecef;">Read</td>
-              <td style="background-color: #e9ecef;">Only</td>
+              <td>All</td>
+              <td>Read</td>
+              <td>Only</td>
             </tr>
           </tbody>
         </table>
@@ -177,16 +177,16 @@ describe('Analysis Table Parser', () => {
       expect(result!.editableCells).toHaveLength(0);
     });
 
-    it('should detect cells with inline background-color in various formats', () => {
+    it('should detect cells with interactive class', () => {
       container.innerHTML = `
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td style="background-color: #e9ecef;">Hex format</td>
-              <td style="background-color: rgb(233, 236, 239);">RGB format</td>
-              <td style="background-color: rgba(233, 236, 239, 1);">RGBA format</td>
-              <td style="BACKGROUND-COLOR: #fff;">Uppercase</td>
-              <td>No background</td>
+              <td>Cell without class</td>
+              <td class="other-class">Cell with other class</td>
+              <td class="interactive">Cell with interactive class</td>
+              <td class="interactive another-class">Cell with multiple classes including interactive</td>
+              <td>Another cell without class</td>
             </tr>
           </tbody>
         </table>
@@ -196,8 +196,9 @@ describe('Analysis Table Parser', () => {
       const result = parseAnalysisTable(table);
 
       expect(result).toBeDefined();
-      expect(result!.editableCells).toHaveLength(1);
-      expect(result!.editableCells[0].col).toBe(4); // Only the last cell is editable
+      expect(result!.editableCells).toHaveLength(2);
+      expect(result!.editableCells[0].col).toBe(2); // Third cell has interactive class
+      expect(result!.editableCells[1].col).toBe(3); // Fourth cell has interactive class
     });
 
     it('should generate table ID from table structure hash', () => {
@@ -205,7 +206,7 @@ describe('Analysis Table Parser', () => {
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td>Content</td>
+              <td class="interactive">Content</td>
             </tr>
           </tbody>
         </table>
@@ -226,7 +227,7 @@ describe('Analysis Table Parser', () => {
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td>
+              <td class="interactive">
                 <strong>Bold text</strong>
                 <em>Italic text</em>
                 Line breaks and spaces
@@ -250,16 +251,16 @@ describe('Analysis Table Parser', () => {
           <tbody>
             <tr>
               <td colspan="2">Spanning cell</td>
-              <td>Regular cell</td>
+              <td class="interactive">Regular cell</td>
             </tr>
             <tr>
-              <td>Cell 1</td>
+              <td class="interactive">Cell 1</td>
               <td rowspan="2">Spanning vertically</td>
-              <td>Cell 3</td>
+              <td class="interactive">Cell 3</td>
             </tr>
             <tr>
-              <td>Cell 4</td>
-              <td>Cell 6</td>
+              <td class="interactive">Cell 4</td>
+              <td class="interactive">Cell 6</td>
             </tr>
           </tbody>
         </table>
@@ -368,7 +369,7 @@ describe('Analysis Table Parser', () => {
       container.innerHTML = `
         <table class="qd-analysis">
           <tr>
-            <td>Direct child rows</td>
+            <td class="interactive">Direct child rows</td>
           </tr>
         </table>
       `;
@@ -413,7 +414,7 @@ describe('Analysis Table Parser', () => {
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td>${longContent}</td>
+              <td class="interactive">${longContent}</td>
             </tr>
           </tbody>
         </table>

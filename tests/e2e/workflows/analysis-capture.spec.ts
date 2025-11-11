@@ -64,18 +64,18 @@ const testHtmlContent = `<!DOCTYPE html>
     <tbody>
       <tr>
         <td style="background-color: #e9ecef;">Temperature</td>
-        <td id="cell-temp"></td>
-        <td id="cell-temp-notes"></td>
+        <td id="cell-temp" class="interactive"></td>
+        <td id="cell-temp-notes" class="interactive"></td>
       </tr>
       <tr>
         <td style="background-color: #e9ecef;">Pressure</td>
-        <td id="cell-pressure"></td>
-        <td id="cell-pressure-notes"></td>
+        <td id="cell-pressure" class="interactive"></td>
+        <td id="cell-pressure-notes" class="interactive"></td>
       </tr>
       <tr>
         <td style="background-color: #e9ecef;">Salinity</td>
-        <td id="cell-salinity"></td>
-        <td id="cell-salinity-notes"></td>
+        <td id="cell-salinity" class="interactive"></td>
+        <td id="cell-salinity-notes" class="interactive"></td>
       </tr>
     </tbody>
   </table>
@@ -293,8 +293,8 @@ test.describe('Analysis Data Capture E2E', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
-    // Verify read-only cells (first column with background-color) have no inputs
-    const readOnlyCell = page.locator('td[style*="background-color"]').first();
+    // Verify read-only cells (first column without interactive class) have no inputs
+    const readOnlyCell = page.locator('td:not(.interactive)').first();
     const inputInReadOnly = readOnlyCell.locator('input');
 
     await expect(inputInReadOnly).toHaveCount(0);

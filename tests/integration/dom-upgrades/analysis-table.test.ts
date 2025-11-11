@@ -39,8 +39,8 @@ describe('Analysis Table DOM Upgrades', () => {
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td style="background-color: #e9ecef;">Label:</td>
-              <td>Original content</td>
+              <td>Label:</td>
+              <td class="interactive">Original content</td>
             </tr>
           </tbody>
         </table>
@@ -60,7 +60,7 @@ describe('Analysis Table DOM Upgrades', () => {
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td>Existing content</td>
+              <td class="interactive">Existing content</td>
             </tr>
           </tbody>
         </table>
@@ -76,13 +76,13 @@ describe('Analysis Table DOM Upgrades', () => {
       expect(input.value).toBe(originalContent);
     });
 
-    it('should not modify read-only cells', () => {
+    it('should not modify cells without interactive class', () => {
       container.innerHTML = `
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td style="background-color: #e9ecef;">Read-only</td>
-              <td>Editable</td>
+              <td>Read-only</td>
+              <td class="interactive">Editable</td>
             </tr>
           </tbody>
         </table>
@@ -91,7 +91,8 @@ describe('Analysis Table DOM Upgrades', () => {
       const table = container.querySelector('table') as HTMLTableElement;
       enhanceAnalysisTable(table);
 
-      const readOnlyCell = table.querySelector('td[style*="background-color"]');
+      // Get the first cell (without interactive class)
+      const readOnlyCell = table.querySelector('td:not(.interactive)');
       const input = readOnlyCell?.querySelector('input');
 
       expect(input).toBeNull();
@@ -102,13 +103,13 @@ describe('Analysis Table DOM Upgrades', () => {
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td>Cell 1</td>
-              <td>Cell 2</td>
-              <td>Cell 3</td>
+              <td class="interactive">Cell 1</td>
+              <td class="interactive">Cell 2</td>
+              <td class="interactive">Cell 3</td>
             </tr>
             <tr>
-              <td>Cell 4</td>
-              <td>Cell 5</td>
+              <td class="interactive">Cell 4</td>
+              <td class="interactive">Cell 5</td>
             </tr>
           </tbody>
         </table>
@@ -126,7 +127,7 @@ describe('Analysis Table DOM Upgrades', () => {
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td>Content</td>
+              <td class="interactive">Content</td>
             </tr>
           </tbody>
         </table>
@@ -145,7 +146,7 @@ describe('Analysis Table DOM Upgrades', () => {
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td>Content</td>
+              <td class="interactive">Content</td>
             </tr>
           </tbody>
         </table>
@@ -168,7 +169,7 @@ describe('Analysis Table DOM Upgrades', () => {
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td>Content</td>
+              <td class="interactive">Content</td>
             </tr>
           </tbody>
         </table>
@@ -192,7 +193,7 @@ describe('Analysis Table DOM Upgrades', () => {
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td>Content</td>
+              <td class="interactive">Content</td>
             </tr>
           </tbody>
         </table>
@@ -233,8 +234,8 @@ describe('Analysis Table DOM Upgrades', () => {
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td style="background-color: #e9ecef;">Label:</td>
-              <td>Original content</td>
+              <td>Label:</td>
+              <td class="interactive">Original content</td>
             </tr>
           </tbody>
         </table>
@@ -273,7 +274,7 @@ describe('Analysis Table DOM Upgrades', () => {
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td>Content</td>
+              <td class="interactive">Content</td>
             </tr>
           </tbody>
         </table>
@@ -309,7 +310,7 @@ describe('Analysis Table DOM Upgrades', () => {
         <table class="qd-analysis" data-table-id="test-table-id">
           <tbody>
             <tr>
-              <td>Content</td>
+              <td class="interactive">Content</td>
             </tr>
           </tbody>
         </table>
@@ -328,7 +329,7 @@ describe('Analysis Table DOM Upgrades', () => {
         <table>
           <tbody>
             <tr>
-              <td>Content</td>
+              <td class="interactive">Content</td>
             </tr>
           </tbody>
         </table>
@@ -359,7 +360,7 @@ describe('Analysis Table DOM Upgrades', () => {
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td>${'x'.repeat(600)}</td>
+              <td class="interactive">${'x'.repeat(600)}</td>
             </tr>
           </tbody>
         </table>
@@ -379,14 +380,14 @@ describe('Analysis Table DOM Upgrades', () => {
         <table class="qd-analysis">
           <thead>
             <tr>
-              <th style="background-color: #e9ecef;">Header 1</th>
-              <th style="background-color: #e9ecef;">Header 2</th>
+              <th >Header 1</th>
+              <th >Header 2</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td>Cell 1</td>
-              <td>Cell 2</td>
+              <td class="interactive">Cell 1</td>
+              <td class="interactive">Cell 2</td>
             </tr>
           </tbody>
         </table>
@@ -409,7 +410,7 @@ describe('Analysis Table DOM Upgrades', () => {
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td><strong>Bold</strong> and <em>italic</em> text</td>
+              <td class="interactive"><strong>Bold</strong> and <em>italic</em> text</td>
             </tr>
           </tbody>
         </table>
@@ -432,9 +433,9 @@ describe('Analysis Table DOM Upgrades', () => {
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td style="background-color: #e9ecef;">Read-only</td>
-              <td>Editable 1</td>
-              <td>Editable 2</td>
+              <td>Read-only</td>
+              <td class="interactive">Editable 1</td>
+              <td class="interactive">Editable 2</td>
             </tr>
           </tbody>
         </table>
@@ -458,7 +459,7 @@ describe('Analysis Table DOM Upgrades', () => {
         <table class="qd-analysis">
           <tbody>
             <tr>
-              <td>Test content</td>
+              <td class="interactive">Test content</td>
             </tr>
           </tbody>
         </table>
