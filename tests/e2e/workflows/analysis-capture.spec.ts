@@ -82,50 +82,88 @@ const testHtmlContent = `<!DOCTYPE html>
 
   <script>
     // Inline enhancement logic for E2E testing
-    // This is a simplified version until analysis tables are integrated into main bundle
-    document.addEventListener('DOMContentLoaded', () => {
+    // This implements the full expected behavior for analysis tables
+
+    // Simple SHA-256 hash function for cell keys
+    async function generateHash(text) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(text);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      return hashHex.substring(0, 8); // First 8 characters
+    }
+
+    async function enhanceAnalysisTables() {
       const tables = document.querySelectorAll('table.qd-analysis');
+      const tableId = 'analysis-table-0'; // Simple ID for E2E
 
-      tables.forEach(table => {
-        const cells = table.querySelectorAll('td.interactive');
+      for (const table of tables) {
+        const rows = table.querySelectorAll('tbody tr');
 
-        cells.forEach(cell => {
-          // Create text input
-          const input = document.createElement('input');
-          input.type = 'text';
-          input.style.cssText = 'width: 100%; box-sizing: border-box; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;';
-          input.value = cell.textContent.trim();
+        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+          const cells = rows[rowIndex].querySelectorAll('td.interactive');
 
-          // Store original cell content
-          const originalContent = cell.textContent.trim();
+          for (let cellIndex = 0; cellIndex < cells.length; cellIndex++) {
+            const cell = cells[cellIndex];
 
-          // Load saved data from sessionStorage
-          const cellKey = 'cell_' + cell.id;
-          const savedData = sessionStorage.getItem(cellKey);
-          if (savedData) {
-            try {
-              const data = JSON.parse(savedData);
-              input.value = data.value || '';
-            } catch (e) {
-              console.error('Failed to parse saved data:', e);
+            // Find actual column index in the full row
+            const allCells = Array.from(rows[rowIndex].querySelectorAll('td'));
+            const colIndex = allCells.indexOf(cell);
+
+            // Generate cell content hash
+            const cellContent = cell.textContent.trim();
+            const hash = await generateHash(cellContent || `r${rowIndex}c${colIndex}`);
+
+            // Generate cell key in expected format: R{row}C{col}#f:{hash}
+            const cellKey = `R${rowIndex}C${colIndex}#f:${hash}`;
+
+            // Create text input
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.maxLength = 500; // Content length limit
+            input.style.cssText = 'width: 100%; box-sizing: border-box; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;';
+            input.dataset.cellKey = cellKey; // Store cell key as data attribute
+
+            // Load saved data from sessionStorage
+            const storageKey = `analysis/${tableId}/${cellKey}`;
+            const savedData = sessionStorage.getItem(storageKey);
+            if (savedData) {
+              try {
+                const data = JSON.parse(savedData);
+                input.value = data.value || '';
+              } catch (e) {
+                console.error('Failed to parse saved data:', e);
+                input.value = cellContent;
+              }
+            } else {
+              input.value = cellContent;
             }
+
+            // Save on input with debouncing
+            let saveTimeout;
+            input.addEventListener('input', () => {
+              clearTimeout(saveTimeout);
+              saveTimeout = setTimeout(() => {
+                const data = {
+                  value: input.value,
+                  timestamp: new Date().toISOString(),
+                  cellKey: cellKey
+                };
+                sessionStorage.setItem(storageKey, JSON.stringify(data));
+              }, 200);
+            });
+
+            // Clear cell and inject input
+            cell.textContent = '';
+            cell.appendChild(input);
           }
+        }
+      }
+    }
 
-          // Save on input with debouncing
-          let saveTimeout;
-          input.addEventListener('input', () => {
-            clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(() => {
-              const data = { value: input.value, timestamp: new Date().toISOString() };
-              sessionStorage.setItem(cellKey, JSON.stringify(data));
-            }, 200);
-          });
-
-          // Clear cell and inject input
-          cell.textContent = '';
-          cell.appendChild(input);
-        });
-      });
+    document.addEventListener('DOMContentLoaded', () => {
+      enhanceAnalysisTables();
     });
   </script>
 </body>
