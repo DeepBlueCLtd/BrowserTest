@@ -24,19 +24,19 @@ Single project structure:
 
 **Purpose**: Establish toolchain and frozen interfaces per Delivery Plan Phase 0
 
-- [ ] T001 Create package.json with TypeScript 5.x, Lit 3, Vite dependencies
-- [ ] T002 [P] Configure Vite for library mode with IIFE + ESM outputs in vite.config.ts
-- [ ] T003 [P] Setup TypeScript configuration for ES2022 target in tsconfig.json
-- [ ] T004 [P] Configure Vitest for unit testing in vitest.config.ts
-- [ ] T005 [P] Configure Playwright for E2E testing with file:// protocol support in playwright.config.ts
-- [ ] T006 [P] Setup Storybook with Lit framework in .storybook/main.js
-- [ ] T007 [P] Configure Chromatic for visual regression testing
-- [ ] T008 [P] Setup ESLint and Prettier for code quality
-- [ ] T009 [P] Create CI workflow for lint, test, build, bundle size check in .github/workflows/ci.yml
-- [ ] T010 Create frozen contracts file from spec at src/types/contracts.ts
-- [ ] T011 [P] Create demo HTML fixtures for quiz tables in demo/quiz-examples.html
-- [ ] T012 [P] Create demo HTML fixtures for analysis tables in demo/analysis-examples.html
-- [ ] T013 Verify Phase 0 exit gate: contracts published, Storybook renders, CI green
+- [X] T001 Create package.json with TypeScript 5.x, Lit 3, Vite dependencies
+- [X] T002 [P] Configure Vite for library mode with IIFE + ESM outputs in vite.config.ts
+- [X] T003 [P] Setup TypeScript configuration for ES2022 target in tsconfig.json
+- [X] T004 [P] Configure Vitest for unit testing in vitest.config.ts
+- [X] T005 [P] Configure Playwright for E2E testing with file:// protocol support in playwright.config.ts
+- [X] T006 [P] Setup Storybook with Lit framework in .storybook/main.js
+- [X] T007 [P] Configure Chromatic for visual regression testing
+- [X] T008 [P] Setup ESLint and Prettier for code quality
+- [X] T009 [P] Create CI workflow for lint, test, build, bundle size check in .github/workflows/ci.yml
+- [X] T010 Create frozen contracts file from spec at src/types/contracts.ts
+- [X] T011 [P] Create demo HTML fixtures for quiz tables in demo/quiz-examples.html
+- [X] T012 [P] Create demo HTML fixtures for analysis tables in demo/analysis-examples.html
+- [X] T013 Verify Phase 0 exit gate: contracts published, Storybook renders, CI green
 
 ---
 

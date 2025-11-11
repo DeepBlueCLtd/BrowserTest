@@ -1,0 +1,12 @@
+dist/
+build/
+node_modules/
+coverage/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+.storybook/
+storybook-static/
+playwright-report/
+test-results/
+*.min.js

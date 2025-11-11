@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Table Examples - Sonar Quiz System</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      line-height: 1.6;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 2rem 0;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 0.75rem;
+      text-align: left;
+    }
+    th {
+      background-color: #f5f5f5;
+      font-weight: bold;
+    }
+    ol {
+      margin: 0;
+      padding-left: 1.5rem;
+    }
+    .example-section {
+      margin: 3rem 0;
+      border-top: 2px solid #333;
+      padding-top: 1rem;
+    }
+    .note {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Quiz Table Examples</h1>
+  <p>Demonstration of quiz table formats for the Sonar Quiz System.</p>
+
+  <div class="note">
+    <strong>Note:</strong> These tables will be automatically enhanced when the Sonar Quiz System script is loaded.
+    The system detects tables with class <code>qd-quiz qd-page</code> and adds interactive elements.
+  </div>
+
+  <!-- Example 1: Mixed MCQ and Numeric Questions -->
+  <div class="example-section">
+    <h2>Example 1: Mixed MCQ and Numeric Questions</h2>
+    <p>This table demonstrates a mix of multiple-choice questions (with ordered lists) and numeric questions (with tolerance values).</p>
+
+    <table class="qd-quiz qd-page">
+      <thead>
+        <tr>
+          <th>Question</th>
+          <th>Answer</th>
+          <th>Detail</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>What is the primary function of a sonar system?</td>
+          <td>3</td>
+          <td>
+            <ol>
+              <li>To navigate using stars</li>
+              <li>To communicate with other vessels</li>
+              <li>To detect underwater objects using sound waves</li>
+              <li>To measure water depth only</li>
+            </ol>
+          </td>
+        </tr>
+        <tr>
+          <td>At what frequency (in kHz) does a typical hull-mounted sonar operate?</td>
+          <td>5</td>
+          <td>0.5</td>
+        </tr>
+        <tr>
+          <td>Which type of sonar uses reflections to detect objects?</td>
+          <td>1</td>
+          <td>
+            <ol>
+              <li>Active sonar</li>
+              <li>Passive sonar</li>
+              <li>Side-scan sonar</li>
+              <li>Doppler sonar</li>
+            </ol>
+          </td>
+        </tr>
+        <tr>
+          <td>What is the speed of sound in seawater (in m/s)?</td>
+          <td>1500</td>
+          <td>50</td>
+        </tr>
+        <tr>
+          <td>Which component converts electrical signals into sound waves?</td>
+          <td>2</td>
+          <td>
+            <ol>
+              <li>Receiver</li>
+              <li>Transducer</li>
+              <li>Display</li>
+              <li>Amplifier</li>
+            </ol>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Example 2: MCQ Only -->
+  <div class="example-section">
+    <h2>Example 2: MCQ Questions Only</h2>
+    <p>This table contains only multiple-choice questions.</p>
+
+    <table class="qd-quiz qd-page">
+      <thead>
+        <tr>
+          <th>Question</th>
+          <th>Answer</th>
+          <th>Options</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>What does SONAR stand for?</td>
+          <td>2</td>
+          <td>
+            <ol>
+              <li>Sound Navigation And Ranging</li>
+              <li>Sound Navigation And Ranging</li>
+              <li>Sonic Navigation And Recording</li>
+              <li>Sound Observation And Recognition</li>
+            </ol>
+          </td>
+        </tr>
+        <tr>
+          <td>Which maritime force first developed practical sonar?</td>
+          <td>3</td>
+          <td>
+            <ol>
+              <li>United States Navy</li>
+              <li>German Kriegsmarine</li>
+              <li>British Royal Navy</li>
+              <li>French Marine Nationale</li>
+            </ol>
+          </td>
+        </tr>
+        <tr>
+          <td>What environmental factor most affects sonar performance?</td>
+          <td>1</td>
+          <td>
+            <ol>
+              <li>Water temperature and salinity</li>
+              <li>Moon phase</li>
+              <li>Atmospheric pressure</li>
+              <li>Time of day</li>
+            </ol>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Example 3: Numeric Only -->
+  <div class="example-section">
+    <h2>Example 3: Numeric Questions Only</h2>
+    <p>This table contains only numeric questions with tolerance values.</p>
+
+    <table class="qd-quiz qd-page">
+      <thead>
+        <tr>
+          <th>Question</th>
+          <th>Correct Value</th>
+          <th>Tolerance (±)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>What is the typical beam width (in degrees) for a narrow-beam sonar?</td>
+          <td>15</td>
+          <td>2</td>
+        </tr>
+        <tr>
+          <td>What is the maximum detection range (in meters) for a standard hull-mounted sonar?</td>
+          <td>5000</td>
+          <td>500</td>
+        </tr>
+        <tr>
+          <td>What pulse length (in milliseconds) is typical for a medium-range sonar?</td>
+          <td>10</td>
+          <td>2</td>
+        </tr>
+        <tr>
+          <td>At what depth (in meters) does the thermocline typically occur in temperate waters?</td>
+          <td>50</td>
+          <td>10</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="example-section">
+    <h2>Authoring Guidelines</h2>
+    <ul>
+      <li><strong>Class attribute:</strong> Tables must have both <code>qd-quiz</code> and <code>qd-page</code> classes</li>
+      <li><strong>Columns:</strong> Exactly 3 columns required: Question | Answer | Detail</li>
+      <li><strong>MCQ format:</strong> Use <code>&lt;ol&gt;</code> (ordered list) in the Detail column</li>
+      <li><strong>MCQ answers:</strong> Must be 1-indexed (first option = 1, not 0)</li>
+      <li><strong>Numeric format:</strong> Provide tolerance as a plain number in the Detail column</li>
+      <li><strong>Maximum:</strong> ONE quiz table per page</li>
+      <li><strong>Mixing types:</strong> You can mix MCQ and numeric questions in the same table</li>
+    </ul>
+  </div>
+
+  <script>
+    // Placeholder for sonar-quiz.iife.js
+    console.log('Demo page loaded. Add <script src="sonar-quiz.iife.js"></script> to activate quiz functionality.');
+  </script>
+</body>
+</html>
