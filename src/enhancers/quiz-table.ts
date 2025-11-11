@@ -355,8 +355,9 @@ export function revealCorrectAnswers(table: HTMLTableElement | null): void {
       const toleranceText = detailCell.textContent?.trim() || '';
       const tolerance = parseFloat(toleranceText);
 
-      const toleranceSpan =
-        !isNaN(tolerance) ? ` <span class="qd-tolerance">(±${tolerance})</span>` : '';
+      const toleranceSpan = !isNaN(tolerance)
+        ? ` <span class="qd-tolerance">(±${tolerance})</span>`
+        : '';
       revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${correctAnswer}${toleranceSpan}`;
     }
 

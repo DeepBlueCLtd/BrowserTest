@@ -346,8 +346,7 @@ export class QdInstructor extends LitElement {
             name="password"
             required
             .value=${this._password}
-            @input=${(e: Event) =>
-              (this._password = (e.target as HTMLInputElement).value)}
+            @input=${(e: Event) => (this._password = (e.target as HTMLInputElement).value)}
             autofocus
             autocomplete="current-password"
           />
@@ -412,8 +411,8 @@ export class QdInstructor extends LitElement {
     return html`
       <div>
         <p>
-          Instructor mode is active. You can now view correct answers, review student
-          progress, export data, and manage the system.
+          Instructor mode is active. You can now view correct answers, review student progress,
+          export data, and manage the system.
         </p>
         <p>Use the tabs above to navigate between different views.</p>
       </div>
@@ -464,15 +463,12 @@ export class QdInstructor extends LitElement {
             This action will permanently delete all student records, quiz answers, and analysis
             data. This cannot be undone.
           </div>
-          <p>
-            Type <strong>DELETE ALL</strong> to confirm:
-          </p>
+          <p>Type <strong>DELETE ALL</strong> to confirm:</p>
           <div class="field">
             <input
               type="text"
               .value=${this._confirmText}
-              @input=${(e: Event) =>
-                (this._confirmText = (e.target as HTMLInputElement).value)}
+              @input=${(e: Event) => (this._confirmText = (e.target as HTMLInputElement).value)}
               placeholder="DELETE ALL"
               autofocus
             />
