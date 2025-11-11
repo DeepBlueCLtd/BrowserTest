@@ -134,7 +134,7 @@ Content authors must follow these rules (runtime validation enforces):
 
 ### Quiz Tables
 - Exactly 3 columns: Question | Answer | Detail
-- Class: `qd-quiz qd-page`
+- Class: `qd-quiz`
 - MCQ: Use `<ol>` lists (1-indexed, first option = 1)
 - Numeric: Tolerance in third column
 - **Maximum ONE** quiz table per page

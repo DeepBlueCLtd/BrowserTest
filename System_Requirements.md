@@ -190,7 +190,7 @@ Backup/export options:
 
 | Table Type | Class | Author Instructions |
 |-------------|--------|--------------------|
-| Quiz | `qd-quiz qd-page` | One per page, 3 columns (question, answer, detail). Use `<ol>` for MCQ options. |
+| Quiz | `qd-quiz` | One per page, 3 columns (question, answer, detail). Use `<ol>` for MCQ options. |
 | Analysis | `qd-analysis` | One per page. Cells with `class="interactive"` become text inputs; others remain static. |
 | Status Panel | `#qd-status` | Empty floating div on quiz pages. JS injects status summary. |
 

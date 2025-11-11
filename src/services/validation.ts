@@ -5,7 +5,7 @@
  * Implements FR-007 (runtime validation) and FR-017 (one table per page).
  *
  * Authoring Rules:
- * - Quiz tables: Must have class "qd-quiz qd-page", exactly 3 columns, max ONE per page
+ * - Quiz tables: Must have class "qd-quiz", exactly 3 columns, max ONE per page
  * - Analysis tables: Must have class "qd-analysis", max ONE per page
  * - MCQ questions: Detail column must contain <ol> tag
  * - Numeric questions: Detail column must contain tolerance (numeric value)
@@ -45,13 +45,13 @@ export interface ValidationResult {
 }
 
 /**
- * Check if a table has the required quiz classes
+ * Check if a table has the required quiz class
  *
  * @param table - Table element to check
- * @returns True if table has "qd-quiz" and "qd-page" classes
+ * @returns True if table has "qd-quiz" class
  */
 export function hasQuizTableClass(table: HTMLTableElement): boolean {
-  return table.classList.contains('qd-quiz') && table.classList.contains('qd-page');
+  return table.classList.contains('qd-quiz');
 }
 
 /**
@@ -134,7 +134,7 @@ export function validateQuizTable(table: HTMLTableElement): ValidationResult {
   if (!hasQuizTableClass(table)) {
     errors.push({
       code: 'MISSING_QUIZ_CLASS',
-      message: 'Quiz table must have both "qd-quiz" and "qd-page" classes',
+      message: 'Quiz table must have "qd-quiz" class',
       element: table,
     });
   }

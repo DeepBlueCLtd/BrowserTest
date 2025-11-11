@@ -147,7 +147,7 @@ export const SESSION_TIMEOUT_MS = 1800000;  // 30 minutes
 
 ## 8. Validation Rules
 
-- Zero or one quiz table (`table.qd-quiz.qd-page`) per page.
+- Zero or one quiz table (`table.qd-quiz`) per page.
 - Zero or one analysis table (`table.qd-analysis`) per page.
 - A page may contain both a quiz table and an analysis table.
 - MCQ lists use `<ol>` and are **1-indexed**.

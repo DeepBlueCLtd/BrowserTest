@@ -5,7 +5,7 @@
  * Ensures authoring rules are enforced (FR-007, FR-017).
  *
  * Rules:
- * - Quiz tables: Exactly 3 columns, class "qd-quiz qd-page", max ONE per page
+ * - Quiz tables: Exactly 3 columns, class "qd-quiz", max ONE per page
  * - Analysis tables: Class "qd-analysis", max ONE per page
  * - MCQ questions: Detail column contains <ol> tag
  * - Numeric questions: Detail column contains tolerance number
@@ -36,18 +36,11 @@ describe('Table Validation', () => {
   });
 
   describe('hasQuizTableClass()', () => {
-    it('should return true for table with qd-quiz and qd-page classes', () => {
-      const table = document.createElement('table');
-      table.className = 'qd-quiz qd-page';
-
-      expect(hasQuizTableClass(table)).toBe(true);
-    });
-
-    it('should return false for table with only qd-quiz', () => {
+    it('should return true for table with qd-quiz class', () => {
       const table = document.createElement('table');
       table.className = 'qd-quiz';
 
-      expect(hasQuizTableClass(table)).toBe(false);
+      expect(hasQuizTableClass(table)).toBe(true);
     });
 
     it('should return false for table with only qd-page', () => {
@@ -59,7 +52,7 @@ describe('Table Validation', () => {
 
     it('should return true for table with additional classes', () => {
       const table = document.createElement('table');
-      table.className = 'qd-quiz qd-page other-class';
+      table.className = 'qd-quiz other-class';
 
       expect(hasQuizTableClass(table)).toBe(true);
     });
@@ -167,7 +160,7 @@ describe('Table Validation', () => {
   describe('validateQuizTable()', () => {
     it('should pass validation for valid quiz table', () => {
       const table = document.createElement('table');
-      table.className = 'qd-quiz qd-page';
+      table.className = 'qd-quiz';
 
       const thead = document.createElement('thead');
       const headerRow = document.createElement('tr');
@@ -202,7 +195,7 @@ describe('Table Validation', () => {
 
     it('should fail validation if not exactly 3 columns', () => {
       const table = document.createElement('table');
-      table.className = 'qd-quiz qd-page';
+      table.className = 'qd-quiz';
 
       const thead = document.createElement('thead');
       const headerRow = document.createElement('tr');
@@ -222,7 +215,7 @@ describe('Table Validation', () => {
 
     it('should fail validation if table has no rows', () => {
       const table = document.createElement('table');
-      table.className = 'qd-quiz qd-page';
+      table.className = 'qd-quiz';
 
       const thead = document.createElement('thead');
       const headerRow = document.createElement('tr');
@@ -242,7 +235,7 @@ describe('Table Validation', () => {
 
     it('should fail validation if answer column contains non-numeric value for MCQ', () => {
       const table = document.createElement('table');
-      table.className = 'qd-quiz qd-page';
+      table.className = 'qd-quiz';
 
       const thead = document.createElement('thead');
       const headerRow = document.createElement('tr');
@@ -268,7 +261,7 @@ describe('Table Validation', () => {
 
     it('should fail validation if numeric question has no tolerance', () => {
       const table = document.createElement('table');
-      table.className = 'qd-quiz qd-page';
+      table.className = 'qd-quiz';
 
       const thead = document.createElement('thead');
       const headerRow = document.createElement('tr');
@@ -294,7 +287,7 @@ describe('Table Validation', () => {
 
     it('should pass validation for numeric question with tolerance', () => {
       const table = document.createElement('table');
-      table.className = 'qd-quiz qd-page';
+      table.className = 'qd-quiz';
 
       const thead = document.createElement('thead');
       const headerRow = document.createElement('tr');
@@ -315,7 +308,7 @@ describe('Table Validation', () => {
 
     it('should fail validation if question has neither <ol> nor numeric tolerance', () => {
       const table = document.createElement('table');
-      table.className = 'qd-quiz qd-page';
+      table.className = 'qd-quiz';
 
       const thead = document.createElement('thead');
       const headerRow = document.createElement('tr');
@@ -419,7 +412,7 @@ describe('Table Validation', () => {
   describe('validatePageTables()', () => {
     it('should pass validation for page with one quiz table', () => {
       document.body.innerHTML = `
-        <table class="qd-quiz qd-page">
+        <table class="qd-quiz">
           <thead><tr><th>Q</th><th>A</th><th>D</th></tr></thead>
           <tbody><tr><td>Q1</td><td>1</td><td><ol><li>A</li></ol></td></tr></tbody>
         </table>
@@ -444,7 +437,7 @@ describe('Table Validation', () => {
 
     it('should pass validation for page with one quiz and one analysis table', () => {
       document.body.innerHTML = `
-        <table class="qd-quiz qd-page">
+        <table class="qd-quiz">
           <thead><tr><th>Q</th><th>A</th><th>D</th></tr></thead>
           <tbody><tr><td>Q1</td><td>1</td><td><ol><li>A</li></ol></td></tr></tbody>
         </table>
@@ -460,11 +453,11 @@ describe('Table Validation', () => {
 
     it('should fail validation for page with TWO quiz tables', () => {
       document.body.innerHTML = `
-        <table class="qd-quiz qd-page">
+        <table class="qd-quiz">
           <thead><tr><th>Q</th><th>A</th><th>D</th></tr></thead>
           <tbody><tr><td>Q1</td><td>1</td><td><ol><li>A</li></ol></td></tr></tbody>
         </table>
-        <table class="qd-quiz qd-page">
+        <table class="qd-quiz">
           <thead><tr><th>Q</th><th>A</th><th>D</th></tr></thead>
           <tbody><tr><td>Q2</td><td>2</td><td><ol><li>B</li></ol></td></tr></tbody>
         </table>
@@ -515,10 +508,10 @@ describe('Table Validation', () => {
 
     it('should accumulate multiple validation errors', () => {
       document.body.innerHTML = `
-        <table class="qd-quiz qd-page">
+        <table class="qd-quiz">
           <thead><tr><th>Q</th><th>A</th></tr></thead>
         </table>
-        <table class="qd-quiz qd-page">
+        <table class="qd-quiz">
           <thead><tr><th>Q</th><th>A</th><th>D</th></tr></thead>
           <tbody><tr><td>Q2</td><td>2</td><td><ol><li>B</li></ol></td></tr></tbody>
         </table>
@@ -543,7 +536,7 @@ describe('Table Validation', () => {
   describe('Edge Cases', () => {
     it('should handle table with mixed valid and invalid rows', () => {
       const table = document.createElement('table');
-      table.className = 'qd-quiz qd-page';
+      table.className = 'qd-quiz';
 
       const thead = document.createElement('thead');
       const headerRow = document.createElement('tr');
@@ -567,7 +560,7 @@ describe('Table Validation', () => {
 
     it('should handle table with empty cells', () => {
       const table = document.createElement('table');
-      table.className = 'qd-quiz qd-page';
+      table.className = 'qd-quiz';
 
       const thead = document.createElement('thead');
       const headerRow = document.createElement('tr');
@@ -594,7 +587,7 @@ describe('Table Validation', () => {
 
     it('should handle table with colspan in header', () => {
       const table = document.createElement('table');
-      table.className = 'qd-quiz qd-page';
+      table.className = 'qd-quiz';
 
       const thead = document.createElement('thead');
       const headerRow = document.createElement('tr');
