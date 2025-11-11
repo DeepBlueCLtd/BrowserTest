@@ -12,8 +12,6 @@
  */
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { JSDOM } from 'jsdom';
@@ -43,14 +41,7 @@ describe('Table Validation', () => {
       expect(hasQuizTableClass(table)).toBe(true);
     });
 
-    it('should return false for table with only qd-page', () => {
-      const table = document.createElement('table');
-      table.className = 'qd-page';
-
-      expect(hasQuizTableClass(table)).toBe(false);
-    });
-
-    it('should return true for table with additional classes', () => {
+    it('should return true for table with qd-quiz and additional classes', () => {
       const table = document.createElement('table');
       table.className = 'qd-quiz other-class';
 
@@ -59,6 +50,13 @@ describe('Table Validation', () => {
 
     it('should return false for table with no classes', () => {
       const table = document.createElement('table');
+
+      expect(hasQuizTableClass(table)).toBe(false);
+    });
+
+    it('should return false for table without qd-quiz class', () => {
+      const table = document.createElement('table');
+      table.className = 'some-other-class';
 
       expect(hasQuizTableClass(table)).toBe(false);
     });
@@ -181,7 +179,7 @@ describe('Table Validation', () => {
 
     it('should fail validation if missing qd-quiz class', () => {
       const table = document.createElement('table');
-      table.className = 'qd-page';
+      table.className = 'some-other-class';
 
       const result = validateQuizTable(table);
       expect(result.valid).toBe(false);
@@ -376,6 +374,22 @@ describe('Table Validation', () => {
           message: expect.stringContaining('no cells'),
         }),
       );
+    });
+
+    it('should pass validation if all cells have background-color', () => {
+      const table = document.createElement('table');
+      table.className = 'qd-analysis';
+
+      const tbody = document.createElement('tbody');
+      const row = document.createElement('tr');
+      row.innerHTML =
+        '<td style="background-color: #eee;">Cell 1</td><td style="background-color: #fff;">Cell 2</td>';
+      tbody.appendChild(row);
+      table.appendChild(tbody);
+
+      const result = validateAnalysisTable(table);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
     });
 
     it('should pass validation if no cells have interactive class', () => {

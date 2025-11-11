@@ -128,7 +128,7 @@ function hasTolerance(cell: HTMLTableCellElement): boolean {
 export function validateQuizTable(table: HTMLTableElement): ValidationResult {
   const errors: ValidationError[] = [];
 
-  // Check for required classes
+  // Check for required class
   if (!hasQuizTableClass(table)) {
     errors.push({
       code: 'MISSING_QUIZ_CLASS',
