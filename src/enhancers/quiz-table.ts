@@ -6,7 +6,7 @@
  * Handles auto-save with debouncing and emits custom events.
  *
  * Usage:
- *   const table = document.querySelector('table.qd-quiz.qd-page');
+ *   const table = document.querySelector('table.qd-quiz');
  *   enhanceQuizTable(table);
  */
 
@@ -283,7 +283,7 @@ export function enhanceAllQuizTables(
   doc: Document = document,
   answersByPage?: Map<string, AnswerRecord[]>,
 ): void {
-  const tables = doc.querySelectorAll<HTMLTableElement>('table.qd-quiz.qd-page');
+  const tables = doc.querySelectorAll<HTMLTableElement>('table.qd-quiz');
 
   tables.forEach((table) => {
     // Try to determine pageId for answer restoration

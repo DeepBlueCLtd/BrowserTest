@@ -44,7 +44,7 @@ export const McqTransformation: Story = {
         <div>
           <h3>Before Enhancement</h3>
           <p style="color: #666;">Static DITA HTML table</p>
-          <table class="qd-quiz qd-page" style="width: 100%; border-collapse: collapse;">
+          <table class="qd-quiz" style="width: 100%; border-collapse: collapse;">
             <thead>
               <tr>
                 <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Question</th>
@@ -73,7 +73,7 @@ export const McqTransformation: Story = {
           <p style="color: #666;">Interactive with dropdown</p>
           <table
             id="mcq-demo"
-            class="qd-quiz qd-page"
+            class="qd-quiz"
             style="width: 100%; border-collapse: collapse;"
           >
             <thead>
@@ -125,7 +125,7 @@ export const NumericTransformation: Story = {
         <div>
           <h3>Before Enhancement</h3>
           <p style="color: #666;">Static DITA HTML table</p>
-          <table class="qd-quiz qd-page" style="width: 100%; border-collapse: collapse;">
+          <table class="qd-quiz" style="width: 100%; border-collapse: collapse;">
             <thead>
               <tr>
                 <th style="border: 1px solid #ddd; padding: 0.75rem; background: #f5f5f5;">Question</th>
@@ -150,7 +150,7 @@ export const NumericTransformation: Story = {
           <p style="color: #666;">Interactive with number input</p>
           <table
             id="numeric-demo"
-            class="qd-quiz qd-page"
+            class="qd-quiz"
             style="width: 100%; border-collapse: collapse;"
           >
             <thead>
@@ -219,7 +219,7 @@ export const LiveTransformation: Story = {
 
         <table
           id="live-table"
-          class="qd-quiz qd-page"
+          class="qd-quiz"
           style="width: 100%; border-collapse: collapse;"
         >
           <thead>
@@ -287,7 +287,7 @@ export const VisualFeedback: Story = {
 
         <table
           id="feedback-table"
-          class="qd-quiz qd-page"
+          class="qd-quiz"
           style="width: 100%; border-collapse: collapse;"
         >
           <thead>
@@ -357,7 +357,7 @@ export const MixedQuestionTypes: Story = {
 
         <table
           id="mixed-table"
-          class="qd-quiz qd-page"
+          class="qd-quiz"
           style="width: 100%; border-collapse: collapse;"
         >
           <thead>
@@ -468,7 +468,7 @@ export const AutoSaveDemo: Story = {
 
         <table
           id="autosave-table"
-          class="qd-quiz qd-page"
+          class="qd-quiz"
           style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;"
         >
           <thead>

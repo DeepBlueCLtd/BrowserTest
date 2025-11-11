@@ -41,14 +41,7 @@ describe('Table Validation', () => {
       expect(hasQuizTableClass(table)).toBe(true);
     });
 
-    it('should return false for table with only qd-page', () => {
-      const table = document.createElement('table');
-      table.className = 'qd-page';
-
-      expect(hasQuizTableClass(table)).toBe(false);
-    });
-
-    it('should return true for table with additional classes', () => {
+    it('should return true for table with qd-quiz and additional classes', () => {
       const table = document.createElement('table');
       table.className = 'qd-quiz other-class';
 
@@ -57,6 +50,13 @@ describe('Table Validation', () => {
 
     it('should return false for table with no classes', () => {
       const table = document.createElement('table');
+
+      expect(hasQuizTableClass(table)).toBe(false);
+    });
+
+    it('should return false for table without qd-quiz class', () => {
+      const table = document.createElement('table');
+      table.className = 'some-other-class';
 
       expect(hasQuizTableClass(table)).toBe(false);
     });
@@ -179,7 +179,7 @@ describe('Table Validation', () => {
 
     it('should fail validation if missing qd-quiz class', () => {
       const table = document.createElement('table');
-      table.className = 'qd-page';
+      table.className = 'some-other-class';
 
       const result = validateQuizTable(table);
       expect(result.valid).toBe(false);

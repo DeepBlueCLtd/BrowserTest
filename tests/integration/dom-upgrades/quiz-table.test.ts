@@ -473,7 +473,7 @@ describe('Quiz Table DOM Upgrades', () => {
     rows: Array<{ question: string; answer: string; detail: string }>,
   ): HTMLTableElement {
     const table = document.createElement('table');
-    table.className = 'qd-quiz qd-page';
+    table.className = 'qd-quiz';
 
     // Add header
     const thead = table.createTHead();

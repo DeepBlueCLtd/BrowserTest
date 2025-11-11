@@ -36,7 +36,7 @@ interface SonarQuizConfig {
 const DEFAULT_CONFIG: SonarQuizConfig = {
   debug: false,
   autoEnhance: true,
-  quizTableSelector: `table.${CSS_CLASSES.QUIZ_TABLE}.${CSS_CLASSES.PAGE_TABLE}`,
+  quizTableSelector: `table.${CSS_CLASSES.QUIZ_TABLE}`,
 };
 
 /**

@@ -4,7 +4,7 @@
  * Parses DITA-generated HTML quiz tables and extracts question data.
  *
  * Table Structure:
- * - Must have class "qd-quiz qd-page"
+ * - Must have class "qd-quiz"
  * - Exactly 3 columns: Question | Answer | Detail
  * - MCQ: Detail column contains <ol> with options
  * - Numeric: Detail column contains tolerance number
@@ -19,7 +19,7 @@ import type {
 /**
  * Parse a quiz table and extract question data
  *
- * @param table - HTMLTableElement with class "qd-quiz qd-page"
+ * @param table - HTMLTableElement with class "qd-quiz"
  * @returns ParsedQuizTable with questions and any validation errors
  */
 export function parseQuizTable(table: HTMLTableElement): ParsedQuizTable {
@@ -27,11 +27,8 @@ export function parseQuizTable(table: HTMLTableElement): ParsedQuizTable {
   const questions: QuizQuestion[] = [];
 
   // Validate table has correct class
-  if (
-    !table.classList.contains('qd-quiz') ||
-    !table.classList.contains('qd-page')
-  ) {
-    errors.push('Table must have classes "qd-quiz" and "qd-page"');
+  if (!table.classList.contains('qd-quiz')) {
+    errors.push('Table must have class "qd-quiz"');
     return { element: table, questions, errors };
   }
 
@@ -138,7 +135,7 @@ function extractMcqOptions(ol: HTMLOListElement): string[] {
  */
 export function findQuizTables(doc: Document = document): ParsedQuizTable[] {
   const tables = Array.from(
-    doc.querySelectorAll<HTMLTableElement>('table.qd-quiz.qd-page'),
+    doc.querySelectorAll<HTMLTableElement>('table.qd-quiz'),
   );
   return tables.map((table) => parseQuizTable(table));
 }

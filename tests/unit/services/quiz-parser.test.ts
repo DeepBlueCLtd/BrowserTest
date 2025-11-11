@@ -7,7 +7,7 @@ import { parseQuizTable, validateAnswer, findQuizTables } from '../../../src/ser
  * Tests for Quiz Table Parser
  *
  * The quiz parser is responsible for:
- * - Detecting and parsing quiz tables with class "qd-quiz qd-page"
+ * - Detecting and parsing quiz tables with class "qd-quiz"
  * - Identifying question types (MCQ vs numeric)
  * - Extracting questions, answers, and options
  * - Validating table structure
@@ -233,7 +233,7 @@ describe('Quiz Table Parser', () => {
   describe('Table Structure Validation', () => {
     it('should require exactly 3 columns', () => {
       const table = document.createElement('table');
-      table.className = 'qd-quiz qd-page';
+      table.className = 'qd-quiz';
       const tbody = table.createTBody();
       const row = tbody.insertRow();
       row.insertCell().textContent = 'Question';
@@ -245,7 +245,7 @@ describe('Quiz Table Parser', () => {
       expect(result.errors?.[0]).toContain('expected 3');
     });
 
-    it('should detect quiz tables by class "qd-quiz qd-page"', () => {
+    it('should detect quiz tables by class "qd-quiz"', () => {
       const table = createQuizTable([
         {
           question: 'Test question',
@@ -255,12 +255,11 @@ describe('Quiz Table Parser', () => {
       ]);
 
       expect(table.classList.contains('qd-quiz')).toBe(true);
-      expect(table.classList.contains('qd-page')).toBe(true);
     });
 
     it('should handle table with header row', () => {
       const table = document.createElement('table');
-      table.className = 'qd-quiz qd-page';
+      table.className = 'qd-quiz';
 
       // Add header
       const thead = table.createTHead();
@@ -283,7 +282,7 @@ describe('Quiz Table Parser', () => {
 
     it('should handle empty quiz table', () => {
       const table = document.createElement('table');
-      table.className = 'qd-quiz qd-page';
+      table.className = 'qd-quiz';
       table.createTBody();
 
       const result = parseQuizTable(table);
@@ -351,7 +350,7 @@ describe('Quiz Table Parser', () => {
 
     it('should handle missing answer column', () => {
       const table = document.createElement('table');
-      table.className = 'qd-quiz qd-page';
+      table.className = 'qd-quiz';
       const tbody = table.createTBody();
       const row = tbody.insertRow();
       row.insertCell().textContent = 'Question';
@@ -490,7 +489,7 @@ describe('Quiz Table Parser', () => {
     rows: Array<{ question: string; answer: string; detail: string }>,
   ): HTMLTableElement {
     const table = document.createElement('table');
-    table.className = 'qd-quiz qd-page';
+    table.className = 'qd-quiz';
 
     // Add header
     const thead = table.createTHead();
