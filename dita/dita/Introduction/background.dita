@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<topic id="Untitled" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="urn:oasis:names:tc:dita:xsd:topic.xsd">
+    <title>Background</title>
+    <shortdesc>Welcome and background details</shortdesc>
+    <body>
+        <p>This CSA scheme is going to introduce you to blah, blah.</p>
+        <p>You should have the following availble:<ul id="ul_xxt_4r5_ghc">
+                <li>The other pub</li>
+                <li>Calculator</li>
+                <li>Core analysis skills</li>
+            </ul></p>
+        <p>
+            <xref format="dita" href="../page-index.dita" outputclass="enterBtn">Next Page</xref>
+        </p>
+    </body>
+    <!-- note: we're linking to these supporting documents here, to ensure they are build/converted -->
+    <related-links>        
+        <link href="../welcome.dita" format="dita"></link>
+        <link href="./security.dita" format="dita"></link>
+    </related-links>
+</topic>
