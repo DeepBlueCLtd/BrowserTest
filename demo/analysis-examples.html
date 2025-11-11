@@ -69,17 +69,17 @@
 
   <div class="note">
     <strong>Note:</strong> These tables will be automatically enhanced when the Sonar Quiz System script is loaded.
-    The system detects tables with class <code>qd-analysis</code> and makes cells with class <code>interactive</code> editable.
+    The system detects tables with class <code>qd-analysis</code> and makes cells with <code>class="interactive"</code> editable.
   </div>
 
   <div class="legend">
     <div class="legend-item">
       <div class="legend-box readonly"></div>
-      <span>Read-only (no 'interactive' class)</span>
+      <span>Read-only (no interactive class)</span>
     </div>
     <div class="legend-item">
       <div class="legend-box editable"></div>
-      <span>Editable (has 'interactive' class)</span>
+      <span>Editable (has class="interactive")</span>
     </div>
   </div>
 
@@ -274,8 +274,9 @@
     <h2>Authoring Guidelines</h2>
     <ul>
       <li><strong>Class attribute:</strong> Tables must have the <code>qd-analysis</code> class</li>
-      <li><strong>Editable cells:</strong> Add <code>class="interactive"</code> to cells that students should fill in</li>
-      <li><strong>Read-only cells:</strong> Leave cells WITHOUT the <code>interactive</code> class to make them read-only</li>
+      <li><strong>Editable cells:</strong> Add <code>class="interactive"</code> to make cells editable</li>
+      <li><strong>Read-only cells:</strong> Cells WITHOUT the <code>interactive</code> class remain read-only</li>
+      <li><strong>Styling:</strong> Authors can add background colors or other styles independently of editability</li>
       <li><strong>Maximum:</strong> ONE analysis table per page</li>
       <li><strong>Cell content limit:</strong> Maximum 500 characters per cell</li>
       <li><strong>Auto-save:</strong> Student entries are automatically saved as they type</li>
@@ -285,7 +286,7 @@
 
   <script>
     // Placeholder for sonar-quiz.iife.js
-    console.log('Demo page loaded. Add <script src="sonar-quiz.iife.js"></script> to activate analysis functionality.');
+    console.log('Demo page loaded. Add <script src="sonar-quiz.iife.js"><\/script> to activate analysis functionality.');
   </script>
 </body>
 </html>

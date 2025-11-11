@@ -87,20 +87,26 @@ jobs:
     name: Visual Regression Tests
     runs-on: ubuntu-latest
     # Only run if CHROMATIC_PROJECT_TOKEN is configured
-    if: github.event_name == 'push' && secrets.CHROMATIC_PROJECT_TOKEN != ''
+    if: github.event_name == 'push'
+    env:
+      CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
     steps:
       - uses: actions/checkout@v4
+        if: env.CHROMATIC_PROJECT_TOKEN != ''
         with:
           fetch-depth: 0
       - uses: actions/setup-node@v4
+        if: env.CHROMATIC_PROJECT_TOKEN != ''
         with:
           node-version: '18'
           cache: 'npm'
       - run: npm ci
+        if: env.CHROMATIC_PROJECT_TOKEN != ''
       - name: Run Chromatic
+        if: env.CHROMATIC_PROJECT_TOKEN != ''
         uses: chromaui/action@latest
         with:
-          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          projectToken: ${{ env.CHROMATIC_PROJECT_TOKEN }}
           exitZeroOnChanges: true
           # Don't fail the build on Chromatic errors during Phase 0
           onlyChanged: true

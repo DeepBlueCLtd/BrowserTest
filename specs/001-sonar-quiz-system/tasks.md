@@ -151,7 +151,7 @@ Single project structure:
 
 - [X] T057 [P] [US4] Write tests for analysis table parser in tests/unit/services/analysis-parser.test.ts
 - [X] T058 [US4] Implement analysis table DOM parser in src/services/analysis-parser.ts
-- [X] T059 [US4] Implement editable cell detection (no background-color) in src/services/analysis-parser.ts
+- [X] T059 [US4] Implement editable cell detection (class="interactive") in src/services/analysis-parser.ts
 - [X] T060 [US4] Implement cell key generation (R{row}C{col}#f:{hash}) in src/services/analysis-parser.ts
 
 ### Table Enhancement

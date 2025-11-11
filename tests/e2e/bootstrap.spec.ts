@@ -41,7 +41,7 @@ test.describe('Phase 0 - Bootstrap Verification', () => {
     await expect(heading).toContainText('Quiz Table Examples');
 
     // Verify at least one quiz table exists
-    const quizTables = page.locator('table.qd-quiz.qd-page');
+    const quizTables = page.locator('table.qd-quiz');
     await expect(quizTables.first()).toBeVisible();
   });
 

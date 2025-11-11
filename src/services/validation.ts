@@ -5,7 +5,7 @@
  * Implements FR-007 (runtime validation) and FR-017 (one table per page).
  *
  * Authoring Rules:
- * - Quiz tables: Must have class "qd-quiz qd-page", exactly 3 columns, max ONE per page
+ * - Quiz tables: Must have class "qd-quiz", exactly 3 columns, max ONE per page
  * - Analysis tables: Must have class "qd-analysis", max ONE per page
  * - MCQ questions: Detail column must contain <ol> tag
  * - Numeric questions: Detail column must contain tolerance (numeric value)
@@ -45,13 +45,13 @@ export interface ValidationResult {
 }
 
 /**
- * Check if a table has the required quiz classes
+ * Check if a table has the required quiz class
  *
  * @param table - Table element to check
- * @returns True if table has "qd-quiz" and "qd-page" classes
+ * @returns True if table has "qd-quiz" class
  */
 export function hasQuizTableClass(table: HTMLTableElement): boolean {
-  return table.classList.contains('qd-quiz') && table.classList.contains('qd-page');
+  return table.classList.contains('qd-quiz');
 }
 
 /**
@@ -73,9 +73,7 @@ export function hasAnalysisTableClass(table: HTMLTableElement): boolean {
 export function hasCorrectQuizColumns(table: HTMLTableElement): boolean {
   // Check first row in thead or tbody
   const firstRow =
-    table.querySelector('thead tr') ||
-    table.querySelector('tbody tr') ||
-    table.querySelector('tr');
+    table.querySelector('thead tr') || table.querySelector('tbody tr') || table.querySelector('tr');
 
   if (!firstRow) {
     return false;
@@ -134,7 +132,7 @@ export function validateQuizTable(table: HTMLTableElement): ValidationResult {
   if (!hasQuizTableClass(table)) {
     errors.push({
       code: 'MISSING_QUIZ_CLASS',
-      message: 'Quiz table must have both "qd-quiz" and "qd-page" classes',
+      message: 'Quiz table must have "qd-quiz" class',
       element: table,
     });
   }
@@ -248,7 +246,7 @@ export function validateAnalysisTable(table: HTMLTableElement): ValidationResult
     });
   }
 
-  // Note: Editable cell detection (cells without background-color) is done
+  // Note: Editable cell detection (cells with class="interactive") is done
   // during enhancement, not validation. All analysis tables are valid
   // regardless of which cells are editable.
 
@@ -270,11 +268,9 @@ export function validatePageTables(document: Document): ValidationResult {
   const errors: ValidationError[] = [];
 
   // Find all quiz and analysis tables
-  const quizTables = Array.from(
-    document.querySelectorAll<HTMLTableElement>('table.qd-quiz.qd-page')
-  );
+  const quizTables = Array.from(document.querySelectorAll<HTMLTableElement>('table.qd-quiz'));
   const analysisTables = Array.from(
-    document.querySelectorAll<HTMLTableElement>('table.qd-analysis')
+    document.querySelectorAll<HTMLTableElement>('table.qd-analysis'),
   );
 
   // Check for multiple quiz tables
@@ -294,13 +290,13 @@ export function validatePageTables(document: Document): ValidationResult {
   }
 
   // Validate each quiz table
-  quizTables.forEach(table => {
+  quizTables.forEach((table) => {
     const result = validateQuizTable(table);
     errors.push(...result.errors);
   });
 
   // Validate each analysis table
-  analysisTables.forEach(table => {
+  analysisTables.forEach((table) => {
     const result = validateAnalysisTable(table);
     errors.push(...result.errors);
   });

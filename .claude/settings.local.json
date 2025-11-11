@@ -6,7 +6,14 @@
       "Bash(.specify/scripts/bash/update-agent-context.sh:*)",
       "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
       "Bash(curl:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx prettier:*)",
+      "Bash(npm install)",
+      "Bash(npm run test:unit:*)",
+      "Bash(npm run format:check:*)",
+      "Bash(npm run test:e2e:*)"
     ],
     "deny": [],
     "ask": []

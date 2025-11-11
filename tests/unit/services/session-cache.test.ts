@@ -124,9 +124,7 @@ describe('Session Cache Rebuilding', () => {
             state: 'unstarted',
           },
           'page-2': {
-            answers: [
-              { answer: 'a', success: true, timestamp: '2025-01-15T10:00:00.000Z' },
-            ],
+            answers: [{ answer: 'a', success: true, timestamp: '2025-01-15T10:00:00.000Z' }],
             state: 'incomplete',
           },
           'page-3': {
@@ -252,9 +250,7 @@ describe('Session Cache Rebuilding', () => {
 
     it('should include last attempted timestamp', () => {
       const pageData = {
-        answers: [
-          { answer: 'a', success: true, timestamp: '2025-01-15T10:00:00.000Z' },
-        ],
+        answers: [{ answer: 'a', success: true, timestamp: '2025-01-15T10:00:00.000Z' }],
         state: 'incomplete' as const,
         lastAttempted: '2025-01-15T10:00:00.000Z',
       };
@@ -340,7 +336,9 @@ describe('Session Cache Rebuilding', () => {
       const updated = updateCacheWithAnswer(cache, 'page-1', true);
 
       expect(updated.pages['page-1'].last).toBeDefined();
-      expect(new Date(updated.pages['page-1'].last!).getTime()).toBeGreaterThanOrEqual(before.getTime());
+      expect(new Date(updated.pages['page-1'].last!).getTime()).toBeGreaterThanOrEqual(
+        before.getTime(),
+      );
     });
   });
 
