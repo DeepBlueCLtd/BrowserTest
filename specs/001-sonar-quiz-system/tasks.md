@@ -97,12 +97,12 @@ Single project structure:
 
 ### Status Panel Component
 
-- [ ] T039 [P] [US1] Write tests for status panel component in tests/unit/components/qd-status.test.ts
-- [ ] T040 [US1] Create status panel web component in src/components/qd-status.ts
-- [ ] T041 [US1] Implement R/A/G color coding logic in src/components/qd-status.ts
-- [ ] T042 [US1] Add ARIA live regions for accessibility in src/components/qd-status.ts
-- [ ] T043 [P] [US1] Create Storybook stories for status panel states in stories/components/qd-status.stories.ts
-- [ ] T043a [P] [US1] Create dynamic transformation story for quiz tables in stories/tables/quiz-transformation.stories.ts
+- [X] T039 [P] [US1] Write tests for status panel component in tests/unit/components/qd-status.test.ts
+- [X] T040 [US1] Create status panel web component in src/components/qd-status.ts
+- [X] T041 [US1] Implement R/A/G color coding logic in src/components/qd-status.ts
+- [X] T042 [US1] Add ARIA live regions for accessibility in src/components/qd-status.ts
+- [X] T043 [P] [US1] Create Storybook stories for status panel states in stories/components/qd-status.stories.ts
+- [X] T043a [P] [US1] Create dynamic transformation story for quiz tables in stories/tables/quiz-transformation.stories.ts
 
 ### Integration & Entry Point
 
