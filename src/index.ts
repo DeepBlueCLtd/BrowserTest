@@ -198,9 +198,10 @@ function handleAnswerSaved(answer: AnswerRecord): void {
   // Determine current page ID
   // For now, use a simple approach - look for meta tag or derive from URL
   const pageIdMeta = document.querySelector('meta[name="page-id"]');
-  const pageId = pageIdMeta?.getAttribute('content') ||
-                 document.location.pathname.replace(/^.*\//, '').replace(/\.html?$/, '') ||
-                 'unknown-page';
+  const pageId =
+    pageIdMeta?.getAttribute('content') ||
+    document.location.pathname.replace(/^.*\//, '').replace(/\.html?$/, '') ||
+    'unknown-page';
 
   // Update cache with the new answer
   const updatedCache = updateCacheWithAnswer(cache, pageId, answer.success);
@@ -258,11 +259,13 @@ function setupEventListeners(doc: Document = document): void {
 
   // Listen for answer-saved events
   doc.addEventListener('qd:answer-saved', (e: Event) => {
-    const detail = (e as CustomEvent<{
-      questionIndex: number;
-      answer: AnswerRecord;
-      tableElement: HTMLTableElement;
-    }>).detail;
+    const detail = (
+      e as CustomEvent<{
+        questionIndex: number;
+        answer: AnswerRecord;
+        tableElement: HTMLTableElement;
+      }>
+    ).detail;
     log('Answer saved:', detail);
 
     // Update session cache

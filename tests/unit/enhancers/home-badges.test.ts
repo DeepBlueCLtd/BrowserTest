@@ -151,9 +151,9 @@ describe('Badge Color Calculation', () => {
     const cache: SessionCache = {
       totals: { answered: 5, correct: 5 },
       pages: {
-        'page1': { state: 'unstarted', answered: 0, correct: 0 },
-        'page2': { state: 'incomplete', answered: 2, correct: 1 },
-        'page3': { state: 'complete', answered: 3, correct: 3 },
+        page1: { state: 'unstarted', answered: 0, correct: 0 },
+        page2: { state: 'incomplete', answered: 2, correct: 1 },
+        page3: { state: 'complete', answered: 3, correct: 3 },
       },
     };
 
@@ -215,8 +215,8 @@ describe('Badge Injection', () => {
     const cache: SessionCache = {
       totals: { answered: 0, correct: 0 },
       pages: {
-        'page1': { state: 'complete', answered: 5, correct: 5 },
-        'page2': { state: 'incomplete', answered: 2, correct: 1 },
+        page1: { state: 'complete', answered: 5, correct: 5 },
+        page2: { state: 'incomplete', answered: 2, correct: 1 },
       },
     };
 
@@ -238,7 +238,7 @@ describe('Badge Injection', () => {
 
     const cache: SessionCache = {
       totals: { answered: 0, correct: 0 },
-      pages: { 'page1': { state: 'complete', answered: 5, correct: 5 } },
+      pages: { page1: { state: 'complete', answered: 5, correct: 5 } },
     };
 
     // Act - inject badges twice
@@ -267,12 +267,12 @@ describe('Badge Injection', () => {
 
     const cache1: SessionCache = {
       totals: { answered: 1, correct: 0 },
-      pages: { 'page1': { state: 'incomplete', answered: 1, correct: 0 } },
+      pages: { page1: { state: 'incomplete', answered: 1, correct: 0 } },
     };
 
     const cache2: SessionCache = {
       totals: { answered: 5, correct: 5 },
-      pages: { 'page1': { state: 'complete', answered: 5, correct: 5 } },
+      pages: { page1: { state: 'complete', answered: 5, correct: 5 } },
     };
 
     // Act

@@ -34,9 +34,9 @@ export function extractPageIdFromHref(href: string): string | null {
  */
 export function getBadgeColor(state: CompletionState): string {
   const colorMap: Record<CompletionState, string> = {
-    'unstarted': 'red',
-    'incomplete': 'amber',
-    'complete': 'green',
+    unstarted: 'red',
+    incomplete: 'amber',
+    complete: 'green',
   };
 
   return colorMap[state];
@@ -68,10 +68,10 @@ export function createBadgeElement(color: string): HTMLElement {
   badge.className = `qd-badge qd-badge--${color}`;
 
   const ariaLabels: Record<string, string> = {
-    'red': 'Quiz not started',
-    'amber': 'Quiz in progress',
-    'green': 'Quiz complete',
-    'gray': 'Quiz status unknown',
+    red: 'Quiz not started',
+    amber: 'Quiz in progress',
+    green: 'Quiz complete',
+    gray: 'Quiz status unknown',
   };
 
   badge.setAttribute('aria-label', ariaLabels[color] || 'Quiz status unknown');
@@ -85,10 +85,10 @@ export function createBadgeElement(color: string): HTMLElement {
   badge.style.marginLeft = '8px';
 
   const colorStyles: Record<string, string> = {
-    'red': '#dc2626',
-    'amber': '#f59e0b',
-    'green': '#16a34a',
-    'gray': '#9ca3af',
+    red: '#dc2626',
+    amber: '#f59e0b',
+    green: '#16a34a',
+    gray: '#9ca3af',
   };
 
   badge.style.backgroundColor = colorStyles[color] || colorStyles['gray'];

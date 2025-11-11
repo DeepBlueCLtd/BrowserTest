@@ -568,10 +568,12 @@ export const CompleteWorkflow: Story = {
       cacheDisplay.textContent = JSON.stringify(state.cache.pages, null, 2);
 
       // Update totals
-      (container.querySelector('#total-answered') as HTMLElement).textContent =
-        String(state.cache.totals.answered);
-      (container.querySelector('#total-correct') as HTMLElement).textContent =
-        String(state.cache.totals.correct);
+      (container.querySelector('#total-answered') as HTMLElement).textContent = String(
+        state.cache.totals.answered,
+      );
+      (container.querySelector('#total-correct') as HTMLElement).textContent = String(
+        state.cache.totals.correct,
+      );
 
       // Update home page badges
       updateBadges();
@@ -599,7 +601,8 @@ export const CompleteWorkflow: Story = {
         return input.classList.contains('correct');
       });
 
-      if (!allAnswered) return quizInputs.some((input) => input.value.trim()) ? 'incomplete' : 'unstarted';
+      if (!allAnswered)
+        return quizInputs.some((input) => input.value.trim()) ? 'incomplete' : 'unstarted';
       if (allCorrect) return 'complete';
       return 'incomplete';
     }
