@@ -72,14 +72,14 @@ interface PageData {
 interface AnswerRecord {
   answer: string;          // User's answer (e.g., "a", "12.5")
   success: boolean;        // Whether answer is correct
-  questionId?: string;     // Optional question identifier
-  timestamp?: string;      // Optional answer timestamp
+  timestamp: string;       // ISO 8601 when answer was submitted
 }
 ```
 
 **Validation Rules**:
 - answer: Required, non-empty string
 - success: Required boolean
+- timestamp: Required, valid ISO 8601 format
 - For MCQ: answer must be single letter a-z
 - For numeric: answer must be valid number string
 
@@ -108,7 +108,7 @@ interface AnalysisData {
 
 ```typescript
 interface SessionData {
-  // User identity
+  // User identity (duplicated for quick access without storage lookup)
   serviceId: string;
   name: string;
   release: string;
@@ -125,10 +125,12 @@ interface SessionData {
 ```
 
 **Validation Rules**:
-- All identity fields required
+- serviceId, name, release: Duplicated from storage key for convenience
 - Timestamps must be valid ISO 8601
 - Session expires 30 minutes after lastActivity
 - instructorUnlocked defaults to false
+
+**Note**: The serviceId and release are indeed part of the storage key used to retrieve the StudentRecord from IndexedDB. They're duplicated here in SessionData for convenient access without requiring a storage lookup on every operation.
 
 ### 6. SessionCache
 
