@@ -305,9 +305,6 @@ export class QdStatus extends LitElement {
   }
 }
 
-// Export type for use in tests and other modules
-export type { QdStatus };
-
 declare global {
   interface HTMLElementTagNameMap {
     'qd-status': QdStatus;

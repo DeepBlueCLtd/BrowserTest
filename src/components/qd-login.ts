@@ -151,7 +151,7 @@ export class QdLogin extends LitElement {
 
   render() {
     return html`
-      <form @submit=${this._handleSubmit} novalidate>
+      <form @submit=${(e: Event) => this._handleSubmit(e)} novalidate>
         <h2>Student Login</h2>
 
         <div class="field">
@@ -201,8 +201,8 @@ export class QdLogin extends LitElement {
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
 
-    const serviceId = formData.get('serviceId')?.toString().trim() || '';
-    const name = formData.get('name')?.toString().trim() || '';
+    const serviceId = (formData.get('serviceId') as string | null)?.trim() || '';
+    const name = (formData.get('name') as string | null)?.trim() || '';
 
     // Validate inputs
     if (!this._validateInputs(serviceId, name)) {
@@ -279,9 +279,6 @@ export class QdLogin extends LitElement {
     return `${month}-${year}`;
   }
 }
-
-// Export type for use in tests and other modules
-export type { QdLogin };
 
 declare global {
   interface HTMLElementTagNameMap {

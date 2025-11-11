@@ -13,7 +13,6 @@
 import type {
   ParsedQuizTable,
   QuizQuestion,
-  QuestionKind,
 } from '../types/contracts';
 
 /**

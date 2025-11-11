@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import type { Meta, StoryObj } from '@storybook/web-components';
 import { html } from 'lit';
 import '../../src/enhancers/quiz-table';

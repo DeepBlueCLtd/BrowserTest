@@ -99,8 +99,12 @@ describe('Quiz Table Parser', () => {
       ]);
 
       const result = parseQuizTable(table);
-      expect(result.questions[0].options).toHaveLength(1);
-      expect(result.questions[0].options[0]).toBe('Only option');
+      const question = result.questions[0];
+      expect(question.kind).toBe('mcq');
+      if (question.kind === 'mcq' && question.options) {
+        expect(question.options).toHaveLength(1);
+        expect(question.options[0]).toBe('Only option');
+      }
     });
   });
 

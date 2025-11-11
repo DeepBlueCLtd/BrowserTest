@@ -47,8 +47,9 @@ let config: SonarQuizConfig = { ...DEFAULT_CONFIG };
 /**
  * Debug logger
  */
-function log(...args: any[]): void {
+function log(...args: unknown[]): void {
   if (config.debug) {
+    // eslint-disable-next-line no-console
     console.log('[SonarQuiz]', ...args);
   }
 }
@@ -56,7 +57,7 @@ function log(...args: any[]): void {
 /**
  * Error logger (always logs)
  */
-function error(...args: any[]): void {
+function error(...args: unknown[]): void {
   console.error('[SonarQuiz]', ...args);
 }
 
@@ -185,14 +186,14 @@ function showValidationBanner(
 function setupEventListeners(doc: Document = document): void {
   // Listen for login events
   doc.addEventListener('qd:login', (e: Event) => {
-    const detail = (e as CustomEvent).detail;
+    const detail = (e as CustomEvent<unknown>).detail;
     log('Login event:', detail);
 
     // Store session in sessionStorage
     sessionStorage.setItem('qd/session', JSON.stringify(detail));
 
     // Initialize or update status panel
-    const statusPanel = doc.querySelector('qd-status') as any;
+    const statusPanel = doc.querySelector('qd-status');
     if (statusPanel) {
       // TODO: Update status panel with session data
       log('Status panel ready for session data');
@@ -201,7 +202,7 @@ function setupEventListeners(doc: Document = document): void {
 
   // Listen for answer-saved events
   doc.addEventListener('qd:answer-saved', (e: Event) => {
-    const detail = (e as CustomEvent).detail;
+    const detail = (e as CustomEvent<unknown>).detail;
     log('Answer saved:', detail);
 
     // TODO: Update status panel and session storage
@@ -209,7 +210,7 @@ function setupEventListeners(doc: Document = document): void {
   });
 
   // Listen for logout events
-  doc.addEventListener('qd:logout', (e: Event) => {
+  doc.addEventListener('qd:logout', (_e: Event) => {
     log('Logout event');
     sessionStorage.removeItem('qd/session');
     sessionStorage.removeItem('qd/state');
