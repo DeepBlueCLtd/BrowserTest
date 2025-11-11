@@ -16,7 +16,9 @@ const meta: Meta = {
     <div style="padding: 2rem; font-family: sans-serif;">
       <h1>🎉 Sonar Quiz System - Phase 0 Complete</h1>
 
-      <div style="background-color: #d4edda; border-left: 4px solid #28a745; padding: 1rem; margin: 1rem 0;">
+      <div
+        style="background-color: #d4edda; border-left: 4px solid #28a745; padding: 1rem; margin: 1rem 0;"
+      >
         <h3>✅ Toolchain Bootstrap Successful</h3>
         <p>The following tools are now configured:</p>
         <ul>
@@ -32,13 +34,17 @@ const meta: Meta = {
         </ul>
       </div>
 
-      <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 1rem; margin: 1rem 0;">
+      <div
+        style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 1rem; margin: 1rem 0;"
+      >
         <h3>📝 Frozen Contracts Published</h3>
         <p>Type contracts are now available at <code>src/types/contracts.ts</code></p>
         <p>These types are FROZEN and require version bump + migration for changes.</p>
       </div>
 
-      <div style="background-color: #d1ecf1; border-left: 4px solid #17a2b8; padding: 1rem; margin: 1rem 0;">
+      <div
+        style="background-color: #d1ecf1; border-left: 4px solid #17a2b8; padding: 1rem; margin: 1rem 0;"
+      >
         <h3>🎨 Demo Fixtures Created</h3>
         <p>Example HTML files are available:</p>
         <ul>
