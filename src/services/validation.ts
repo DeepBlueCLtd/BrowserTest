@@ -73,9 +73,7 @@ export function hasAnalysisTableClass(table: HTMLTableElement): boolean {
 export function hasCorrectQuizColumns(table: HTMLTableElement): boolean {
   // Check first row in thead or tbody
   const firstRow =
-    table.querySelector('thead tr') ||
-    table.querySelector('tbody tr') ||
-    table.querySelector('tr');
+    table.querySelector('thead tr') || table.querySelector('tbody tr') || table.querySelector('tr');
 
   if (!firstRow) {
     return false;
@@ -271,10 +269,10 @@ export function validatePageTables(document: Document): ValidationResult {
 
   // Find all quiz and analysis tables
   const quizTables = Array.from(
-    document.querySelectorAll<HTMLTableElement>('table.qd-quiz.qd-page')
+    document.querySelectorAll<HTMLTableElement>('table.qd-quiz'),
   );
   const analysisTables = Array.from(
-    document.querySelectorAll<HTMLTableElement>('table.qd-analysis')
+    document.querySelectorAll<HTMLTableElement>('table.qd-analysis'),
   );
 
   // Check for multiple quiz tables
@@ -294,13 +292,13 @@ export function validatePageTables(document: Document): ValidationResult {
   }
 
   // Validate each quiz table
-  quizTables.forEach(table => {
+  quizTables.forEach((table) => {
     const result = validateQuizTable(table);
     errors.push(...result.errors);
   });
 
   // Validate each analysis table
-  analysisTables.forEach(table => {
+  analysisTables.forEach((table) => {
     const result = validateAnalysisTable(table);
     errors.push(...result.errors);
   });
