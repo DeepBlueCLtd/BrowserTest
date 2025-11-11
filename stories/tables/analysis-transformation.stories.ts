@@ -15,7 +15,8 @@ const meta: Meta = {
   parameters: {
     docs: {
       description: {
-        component: 'Visualizes the progressive enhancement transformation: plain DITA HTML → interactive analysis table with auto-save inputs.',
+        component:
+          'Visualizes the progressive enhancement transformation: plain DITA HTML → interactive analysis table with auto-save inputs.',
       },
     },
   },
@@ -38,7 +39,9 @@ export const BeforeAfterComparison: Story = {
     return html`
       <div style="padding: 2rem; font-family: sans-serif;">
         <h1>Analysis Table Progressive Enhancement</h1>
-        <p>Demonstrates how plain DITA HTML tables are transformed into interactive analysis forms.</p>
+        <p>
+          Demonstrates how plain DITA HTML tables are transformed into interactive analysis forms.
+        </p>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem;">
           <!-- BEFORE: Plain HTML -->
@@ -52,21 +55,31 @@ export const BeforeAfterComparison: Story = {
             <table style="width: 100%; border-collapse: collapse; margin: 1rem 0;">
               <thead>
                 <tr>
-                  <th style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Parameter</th>
-                  <th style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Value</th>
+                  <th style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                    Parameter
+                  </th>
+                  <th style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                    Value
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Temperature</td>
+                  <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                    Temperature
+                  </td>
                   <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
                 </tr>
                 <tr>
-                  <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Depth</td>
+                  <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                    Depth
+                  </td>
                   <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
                 </tr>
                 <tr>
-                  <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Salinity</td>
+                  <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                    Salinity
+                  </td>
                   <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
                 </tr>
               </tbody>
@@ -81,24 +94,38 @@ export const BeforeAfterComparison: Story = {
               <p>Text inputs injected, auto-save enabled, data persisted.</p>
             </div>
 
-            <table id="enhanced-table" class="qd-analysis" style="width: 100%; border-collapse: collapse; margin: 1rem 0;">
+            <table
+              id="enhanced-table"
+              class="qd-analysis"
+              style="width: 100%; border-collapse: collapse; margin: 1rem 0;"
+            >
               <thead>
                 <tr>
-                  <th style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Parameter</th>
-                  <th style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Value</th>
+                  <th style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                    Parameter
+                  </th>
+                  <th style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                    Value
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Temperature</td>
+                  <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                    Temperature
+                  </td>
                   <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
                 </tr>
                 <tr>
-                  <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Depth</td>
+                  <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                    Depth
+                  </td>
                   <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
                 </tr>
                 <tr>
-                  <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Salinity</td>
+                  <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                    Salinity
+                  </td>
                   <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
                 </tr>
               </tbody>
@@ -106,12 +133,18 @@ export const BeforeAfterComparison: Story = {
           </div>
         </div>
 
-        <div style="margin-top: 2rem; padding: 1.5rem; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+        <div
+          style="margin-top: 2rem; padding: 1.5rem; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;"
+        >
           <h3>🔄 Transformation Process</h3>
           <ol style="margin: 0.5rem 0;">
             <li><strong>Detect:</strong> Find tables with <code>qd-analysis</code> class</li>
-            <li><strong>Parse:</strong> Identify editable cells (those with 'interactive' class)</li>
-            <li><strong>Generate Keys:</strong> Create unique cell identifiers (R{row}C{col}#f:{hash})</li>
+            <li>
+              <strong>Parse:</strong> Identify editable cells (those with 'interactive' class)
+            </li>
+            <li>
+              <strong>Generate Keys:</strong> Create unique cell identifiers (R{row}C{col}#f:{hash})
+            </li>
             <li><strong>Inject Inputs:</strong> Replace cell content with text inputs</li>
             <li><strong>Load Data:</strong> Restore previously saved values from storage</li>
             <li><strong>Attach Handlers:</strong> Enable auto-save with 200ms debouncing</li>
@@ -157,18 +190,30 @@ export const AnimatedTransformation: Story = {
           </ul>
         </div>
 
-        <table id="animate-table" class="qd-analysis" style="width: 100%; border-collapse: collapse; margin: 1rem 0;">
+        <table
+          id="animate-table"
+          class="qd-analysis"
+          style="width: 100%; border-collapse: collapse; margin: 1rem 0;"
+        >
           <tbody>
             <tr>
-              <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem; width: 40%;">Observation 1:</td>
+              <td
+                style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem; width: 40%;"
+              >
+                Observation 1:
+              </td>
               <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
             <tr>
-              <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Observation 2:</td>
+              <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                Observation 2:
+              </td>
               <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
             <tr>
-              <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Observation 3:</td>
+              <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                Observation 3:
+              </td>
               <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
             </tr>
           </tbody>
@@ -186,7 +231,7 @@ export const MultipleTablesTransformation: Story = {
   render: () => {
     setTimeout(() => {
       const tables = document.querySelectorAll('.qd-analysis');
-      tables.forEach(table => {
+      tables.forEach((table) => {
         if (table instanceof HTMLTableElement) {
           enhanceAnalysisTable(table);
         }
@@ -200,20 +245,31 @@ export const MultipleTablesTransformation: Story = {
 
         <div style="margin-bottom: 2rem;">
           <h3>Table 1: Contact Classification</h3>
-          <table class="qd-analysis" style="width: 100%; border-collapse: collapse; margin: 1rem 0;">
+          <table
+            class="qd-analysis"
+            style="width: 100%; border-collapse: collapse; margin: 1rem 0;"
+          >
             <thead>
               <tr>
-                <th style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Contact</th>
-                <th style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Type</th>
+                <th style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                  Contact
+                </th>
+                <th style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                  Type
+                </th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">C-001</td>
+                <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                  C-001
+                </td>
                 <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
               </tr>
               <tr>
-                <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">C-002</td>
+                <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                  C-002
+                </td>
                 <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
               </tr>
             </tbody>
@@ -222,14 +278,23 @@ export const MultipleTablesTransformation: Story = {
 
         <div style="margin-bottom: 2rem;">
           <h3>Table 2: Environmental Data</h3>
-          <table class="qd-analysis" style="width: 100%; border-collapse: collapse; margin: 1rem 0;">
+          <table
+            class="qd-analysis"
+            style="width: 100%; border-collapse: collapse; margin: 1rem 0;"
+          >
             <tbody>
               <tr>
-                <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem; width: 40%;">Sea State:</td>
+                <td
+                  style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem; width: 40%;"
+                >
+                  Sea State:
+                </td>
                 <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
               </tr>
               <tr>
-                <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Wind Speed:</td>
+                <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                  Wind Speed:
+                </td>
                 <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;"></td>
               </tr>
             </tbody>
@@ -238,7 +303,9 @@ export const MultipleTablesTransformation: Story = {
 
         <div style="padding: 1rem; background-color: #d4edda; border-radius: 4px;">
           <strong>✅ Both tables enhanced independently</strong>
-          <p style="margin: 0.5rem 0 0 0;">Each table gets its own unique table ID and cell keys for isolated data storage.</p>
+          <p style="margin: 0.5rem 0 0 0;">
+            Each table gets its own unique table ID and cell keys for isolated data storage.
+          </p>
         </div>
       </div>
     `;
@@ -255,31 +322,48 @@ export const GracefulDegradation: Story = {
     return html`
       <div style="padding: 2rem; font-family: sans-serif;">
         <h2>Graceful Degradation</h2>
-        <p>This story intentionally does NOT run the enhancer to demonstrate graceful degradation.</p>
+        <p>
+          This story intentionally does NOT run the enhancer to demonstrate graceful degradation.
+        </p>
 
-        <div style="margin: 1rem 0; padding: 1rem; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+        <div
+          style="margin: 1rem 0; padding: 1rem; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;"
+        >
           <strong>⚠️ Scenario: JavaScript Disabled or Failed</strong>
           <p style="margin: 0.5rem 0 0 0;">
-            If the enhancement script fails to load or JavaScript is disabled, the table remains as functional static HTML.
-            Content authors can still create training materials, and students can print/read the content.
+            If the enhancement script fails to load or JavaScript is disabled, the table remains as
+            functional static HTML. Content authors can still create training materials, and
+            students can print/read the content.
           </p>
         </div>
 
         <table class="qd-analysis" style="width: 100%; border-collapse: collapse; margin: 1rem 0;">
           <thead>
             <tr>
-              <th style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Parameter</th>
-              <th style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Value</th>
+              <th style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                Parameter
+              </th>
+              <th style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                Value
+              </th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Temperature</td>
-              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;">[Student would write here manually]</td>
+              <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                Temperature
+              </td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;">
+                [Student would write here manually]
+              </td>
             </tr>
             <tr>
-              <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Pressure</td>
-              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;">[Student would write here manually]</td>
+              <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                Pressure
+              </td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;">
+                [Student would write here manually]
+              </td>
             </tr>
           </tbody>
         </table>
@@ -287,8 +371,9 @@ export const GracefulDegradation: Story = {
         <div style="padding: 1rem; background-color: #d4edda; border-radius: 4px;">
           <strong>✅ Zero Impact on Author Workflow</strong>
           <p style="margin: 0.5rem 0 0 0;">
-            Content authors write standard DITA with <code>qd-analysis</code> class on the table and <code>interactive</code> class on editable cells.
-            The enhancement is completely opt-in and non-breaking.
+            Content authors write standard DITA with <code>qd-analysis</code> class on the table and
+            <code>interactive</code> class on editable cells. The enhancement is completely opt-in
+            and non-breaking.
           </p>
         </div>
       </div>
@@ -310,12 +395,13 @@ export const CellKeyGeneration: Story = {
         // Show cell keys in the UI
         setTimeout(() => {
           const inputs = table.querySelectorAll('input');
-          inputs.forEach(input => {
+          inputs.forEach((input) => {
             const key = input.dataset.cellKey;
             if (key) {
               const badge = document.createElement('div');
               badge.textContent = key;
-              badge.style.cssText = 'font-size: 0.7rem; color: #6c757d; margin-top: 0.25rem; font-family: monospace;';
+              badge.style.cssText =
+                'font-size: 0.7rem; color: #6c757d; margin-top: 0.25rem; font-family: monospace;';
               input.parentElement?.appendChild(badge);
             }
           });
@@ -328,24 +414,44 @@ export const CellKeyGeneration: Story = {
         <h2>Cell Key Generation</h2>
         <p>Each editable cell gets a unique key in format: <code>R{row}C{col}#f:{hash}</code></p>
 
-        <table id="key-demo-table" class="qd-analysis" style="width: 100%; border-collapse: collapse; margin: 1rem 0;">
+        <table
+          id="key-demo-table"
+          class="qd-analysis"
+          style="width: 100%; border-collapse: collapse; margin: 1rem 0;"
+        >
           <tbody>
             <tr>
-              <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem; width: 30%;">Cell A:</td>
-              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;">Content A</td>
+              <td
+                style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem; width: 30%;"
+              >
+                Cell A:
+              </td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;">
+                Content A
+              </td>
             </tr>
             <tr>
-              <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Cell B:</td>
-              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;">Content B</td>
+              <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                Cell B:
+              </td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;">
+                Content B
+              </td>
             </tr>
             <tr>
-              <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">Cell C:</td>
-              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;">Content C</td>
+              <td style="background-color: #e9ecef; border: 1px solid #ddd; padding: 0.75rem;">
+                Cell C:
+              </td>
+              <td class="interactive" style="border: 1px solid #ddd; padding: 0.75rem;">
+                Content C
+              </td>
             </tr>
           </tbody>
         </table>
 
-        <div style="margin-top: 1rem; padding: 1rem; background-color: #d1ecf1; border-radius: 4px;">
+        <div
+          style="margin-top: 1rem; padding: 1rem; background-color: #d1ecf1; border-radius: 4px;"
+        >
           <strong>🔑 Key Components:</strong>
           <ul style="margin: 0.5rem 0;">
             <li><strong>R{row}:</strong> Row index (0-based) from tbody</li>
@@ -353,7 +459,8 @@ export const CellKeyGeneration: Story = {
             <li><strong>#f:{hash}:</strong> 8-char content hash for uniqueness</li>
           </ul>
           <p style="margin-top: 0.5rem;">
-            Keys are shown below each input in this demo. In production, they're stored as data attributes.
+            Keys are shown below each input in this demo. In production, they're stored as data
+            attributes.
           </p>
         </div>
       </div>

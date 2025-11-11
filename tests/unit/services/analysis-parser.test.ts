@@ -90,7 +90,7 @@ describe('Analysis Table Parser', () => {
       expect(result!.editableCells).toHaveLength(3);
 
       // Check positions of editable cells
-      const positions = result!.editableCells.map(c => ({ row: c.row, col: c.col }));
+      const positions = result!.editableCells.map((c) => ({ row: c.row, col: c.col }));
       expect(positions).toContainEqual({ row: 0, col: 1 });
       expect(positions).toContainEqual({ row: 0, col: 2 });
       expect(positions).toContainEqual({ row: 1, col: 1 });
@@ -147,12 +147,12 @@ describe('Analysis Table Parser', () => {
       expect(result!.editableCells).toHaveLength(4);
 
       // Check that all keys are unique
-      const keys = result!.editableCells.map(c => c.key);
+      const keys = result!.editableCells.map((c) => c.key);
       const uniqueKeys = new Set(keys);
       expect(uniqueKeys.size).toBe(4);
 
       // Check key format: R{row}C{col}#f:{hash}
-      keys.forEach(key => {
+      keys.forEach((key) => {
         expect(key).toMatch(/^R\d+C\d+#f:[a-f0-9]{8}$/);
       });
     });

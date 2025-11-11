@@ -220,7 +220,7 @@ describe('Analysis Table DOM Upgrades', () => {
       expect(saveSpy).not.toHaveBeenCalled();
 
       // Wait for debounce
-      await new Promise(resolve => setTimeout(resolve, 250));
+      await new Promise((resolve) => setTimeout(resolve, 250));
 
       // Should have called save once after debounce
       expect(saveSpy).toHaveBeenCalledTimes(1);
@@ -292,7 +292,7 @@ describe('Analysis Table DOM Upgrades', () => {
       input.dispatchEvent(new Event('input', { bubbles: true }));
 
       // Wait for debounce and save
-      await new Promise(resolve => setTimeout(resolve, 250));
+      await new Promise((resolve) => setTimeout(resolve, 250));
 
       // Check that setItem was called
       // eslint-disable-next-line @typescript-eslint/unbound-method

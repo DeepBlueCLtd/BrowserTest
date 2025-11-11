@@ -21,7 +21,7 @@ import { CSS_CLASSES, LIMITS } from '../types/contracts';
  * @returns Parsed table data or null if invalid
  */
 export function parseAnalysisTable(
-  table: HTMLTableElement | null | undefined
+  table: HTMLTableElement | null | undefined,
 ): ParsedAnalysisTable | null {
   // Validate input
   if (!table || !(table instanceof HTMLTableElement)) {
@@ -47,7 +47,7 @@ export function parseAnalysisTable(
     const directRows = Array.from(table.querySelectorAll('tr'));
     // Filter out thead rows
     const theadRows = Array.from(table.querySelectorAll('thead tr'));
-    rows.push(...directRows.filter(row => !theadRows.includes(row)));
+    rows.push(...directRows.filter((row) => !theadRows.includes(row)));
   }
 
   // Check if table has any cells
@@ -66,7 +66,7 @@ export function parseAnalysisTable(
         // Validate content length
         if (content.length > LIMITS.MAX_CELL_CONTENT_LENGTH) {
           errors.push(
-            `Cell at R${rowIndex}C${colIndex} exceeds maximum length of ${LIMITS.MAX_CELL_CONTENT_LENGTH} characters`
+            `Cell at R${rowIndex}C${colIndex} exceeds maximum length of ${LIMITS.MAX_CELL_CONTENT_LENGTH} characters`,
           );
         }
 
@@ -153,7 +153,7 @@ function simpleHash(str: string): string {
 
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
 

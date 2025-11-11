@@ -155,8 +155,8 @@ test.describe('Analysis Data Capture E2E', () => {
     // Verify data is in sessionStorage
     const storageData = await page.evaluate(() => {
       const keys = Object.keys(sessionStorage);
-      const analysisKeys = keys.filter(k => k.includes('analysis'));
-      return analysisKeys.map(k => ({
+      const analysisKeys = keys.filter((k) => k.includes('analysis'));
+      return analysisKeys.map((k) => ({
         key: k,
         value: sessionStorage.getItem(k),
       }));
@@ -220,7 +220,7 @@ test.describe('Analysis Data Capture E2E', () => {
     await page.waitForTimeout(250);
 
     const storageAfterDebounce = await page.evaluate(() => {
-      const keys = Object.keys(sessionStorage).filter(k => k.includes('analysis'));
+      const keys = Object.keys(sessionStorage).filter((k) => k.includes('analysis'));
       return keys.length;
     });
 
@@ -331,11 +331,11 @@ test.describe('Analysis Data Capture E2E', () => {
     // Get cell keys from data attributes
     const cellKeys = await page.evaluate(() => {
       const inputs = document.querySelectorAll('table.qd-analysis input');
-      return Array.from(inputs).map(input => (input as HTMLInputElement).dataset.cellKey);
+      return Array.from(inputs).map((input) => (input as HTMLInputElement).dataset.cellKey);
     });
 
     // Verify all keys exist and match format
-    cellKeys.forEach(key => {
+    cellKeys.forEach((key) => {
       expect(key).toMatch(/^R\d+C\d+#f:[a-f0-9]{8}$/);
     });
 

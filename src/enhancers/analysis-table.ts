@@ -38,7 +38,7 @@ const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
  */
 export function enhanceAnalysisTable(
   table: HTMLTableElement,
-  options: EnhancementOptions = {}
+  options: EnhancementOptions = {},
 ): void {
   // Parse the table
   const parsed = parseAnalysisTable(table);
@@ -64,7 +64,7 @@ export function enhanceAnalysisTable(
   const existingData = loadAnalysisData(parsed.tableId);
 
   // Enhance each editable cell
-  parsed.editableCells.forEach(cellInfo => {
+  parsed.editableCells.forEach((cellInfo) => {
     enhanceCell(table, cellInfo, existingData, parsed.tableId, options);
   });
 }
@@ -77,7 +77,7 @@ function enhanceCell(
   cellInfo: { row: number; col: number; key: CellKey },
   existingData: AnalysisData | null,
   tableId: string,
-  options: EnhancementOptions
+  options: EnhancementOptions,
 ): void {
   // Find the cell in the table
   const rows = Array.from(table.querySelectorAll('tbody tr'));
@@ -85,7 +85,7 @@ function enhanceCell(
     // Fallback to all rows if no tbody
     const allRows = Array.from(table.querySelectorAll('tr'));
     const theadRows = Array.from(table.querySelectorAll('thead tr'));
-    rows.push(...allRows.filter(row => !theadRows.includes(row)));
+    rows.push(...allRows.filter((row) => !theadRows.includes(row)));
   }
 
   const row = rows[cellInfo.row];
@@ -135,7 +135,7 @@ function handleInputChange(
   input: HTMLInputElement,
   tableId: string,
   cellKey: CellKey,
-  options: EnhancementOptions
+  options: EnhancementOptions,
 ): void {
   const debounceMs = options.debounceMs ?? 200;
 
@@ -161,7 +161,7 @@ function saveAnalysisData(
   tableId: string,
   cellKey: CellKey,
   value: string,
-  options: EnhancementOptions
+  options: EnhancementOptions,
 ): void {
   // Load existing data
   let data = loadAnalysisData(tableId);
@@ -232,7 +232,7 @@ function getPageId(): PageId {
  */
 export function enhanceAllAnalysisTables(options: EnhancementOptions = {}): void {
   const tables = document.querySelectorAll('table.qd-analysis');
-  tables.forEach(table => {
+  tables.forEach((table) => {
     if (table instanceof HTMLTableElement) {
       enhanceAnalysisTable(table, options);
     }
