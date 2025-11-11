@@ -75,39 +75,39 @@ Single project structure:
 
 ### Parsing & Detection
 
-- [ ] T026 [P] [US1] Write tests for quiz table parser (MCQ detection) in tests/unit/services/quiz-parser.test.ts
-- [ ] T027 [P] [US1] Write tests for quiz table parser (numeric detection) in tests/unit/services/quiz-parser.test.ts
-- [ ] T028 [US1] Implement quiz table DOM parser in src/services/quiz-parser.ts
-- [ ] T029 [P] [US1] Write tests for answer correctness checking in tests/unit/services/quiz-parser.test.ts
-- [ ] T030 [US1] Implement answer validation logic in src/services/quiz-parser.ts
+- [X] T026 [P] [US1] Write tests for quiz table parser (MCQ detection) in tests/unit/services/quiz-parser.test.ts
+- [X] T027 [P] [US1] Write tests for quiz table parser (numeric detection) in tests/unit/services/quiz-parser.test.ts
+- [X] T028 [US1] Implement quiz table DOM parser in src/services/quiz-parser.ts
+- [X] T029 [P] [US1] Write tests for answer correctness checking in tests/unit/services/quiz-parser.test.ts
+- [X] T030 [US1] Implement answer validation logic in src/services/quiz-parser.ts
 
 ### Login Component
 
-- [ ] T031 [P] [US1] Write tests for login component in tests/unit/components/qd-login.test.ts
-- [ ] T032 [US1] Create login web component with service ID + name inputs in src/components/qd-login.ts
-- [ ] T033 [P] [US1] Create Storybook story for login component in stories/components/qd-login.stories.ts
-- [ ] T034 [US1] Style login component with Shadow DOM in src/components/qd-login.ts
+- [X] T031 [P] [US1] Write tests for login component in tests/unit/components/qd-login.test.ts
+- [X] T032 [US1] Create login web component with service ID + name inputs in src/components/qd-login.ts
+- [X] T033 [P] [US1] Create Storybook story for login component in stories/components/qd-login.stories.ts
+- [X] T034 [US1] Style login component with Shadow DOM in src/components/qd-login.ts
 
 ### Quiz Table Enhancement
 
-- [ ] T035 [P] [US1] Write tests for quiz table DOM upgrades in tests/integration/dom-upgrades/quiz-table.test.ts
-- [ ] T036 [US1] Implement quiz table enhancer to inject dropdowns/inputs in src/enhancers/quiz-table.ts
-- [ ] T037 [US1] Add event handlers for answer changes in src/enhancers/quiz-table.ts
-- [ ] T038 [US1] Implement auto-save on answer change (<200ms) in src/enhancers/quiz-table.ts
+- [X] T035 [P] [US1] Write tests for quiz table DOM upgrades in tests/integration/dom-upgrades/quiz-table.test.ts
+- [X] T036 [US1] Implement quiz table enhancer to inject dropdowns/inputs in src/enhancers/quiz-table.ts
+- [X] T037 [US1] Add event handlers for answer changes in src/enhancers/quiz-table.ts
+- [X] T038 [US1] Implement auto-save on answer change (<200ms) in src/enhancers/quiz-table.ts
 
 ### Status Panel Component
 
-- [ ] T039 [P] [US1] Write tests for status panel component in tests/unit/components/qd-status.test.ts
-- [ ] T040 [US1] Create status panel web component in src/components/qd-status.ts
-- [ ] T041 [US1] Implement R/A/G color coding logic in src/components/qd-status.ts
-- [ ] T042 [US1] Add ARIA live regions for accessibility in src/components/qd-status.ts
-- [ ] T043 [P] [US1] Create Storybook stories for status panel states in stories/components/qd-status.stories.ts
-- [ ] T043a [P] [US1] Create dynamic transformation story for quiz tables in stories/tables/quiz-transformation.stories.ts
+- [X] T039 [P] [US1] Write tests for status panel component in tests/unit/components/qd-status.test.ts
+- [X] T040 [US1] Create status panel web component in src/components/qd-status.ts
+- [X] T041 [US1] Implement R/A/G color coding logic in src/components/qd-status.ts
+- [X] T042 [US1] Add ARIA live regions for accessibility in src/components/qd-status.ts
+- [X] T043 [P] [US1] Create Storybook stories for status panel states in stories/components/qd-status.stories.ts
+- [X] T043a [P] [US1] Create dynamic transformation story for quiz tables in stories/tables/quiz-transformation.stories.ts
 
 ### Integration & Entry Point
 
-- [ ] T044 [US1] Implement main entry point with auto-init in src/index.ts
-- [ ] T045 [US1] Wire up DOMContentLoaded detection and table scanning in src/index.ts
+- [X] T044 [US1] Implement main entry point with auto-init in src/index.ts
+- [X] T045 [US1] Wire up DOMContentLoaded detection and table scanning in src/index.ts
 - [ ] T046 [P] [US1] Write E2E test for complete login → answer → save flow in tests/e2e/workflows/student-quiz.spec.ts
 - [ ] T047 [US1] Verify Phase 1 exit gate: Chromatic interactions pass, parsing unit tests green
 

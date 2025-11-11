@@ -1,0 +1,12 @@
+dist/
+build/
+node_modules/
+coverage/
+storybook-static/
+playwright-report/
+test-results/
+*.min.js
+*.config.js
+*.config.ts
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
