@@ -6,7 +6,8 @@
       "Bash(.specify/scripts/bash/update-agent-context.sh:*)",
       "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
       "Bash(curl:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(npm run lint:*)"
     ],
     "deny": [],
     "ask": []
