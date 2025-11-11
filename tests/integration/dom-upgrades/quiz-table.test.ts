@@ -86,7 +86,7 @@ describe('Quiz Table DOM Upgrades', () => {
       expect(options[2]?.value).toBe('2');
     });
 
-    it('should preserve original table structure', async () => {
+    it('should preserve row count but remove detail column', async () => {
       const table = createQuizTable([
         {
           question: 'What is sonar?',
@@ -101,9 +101,10 @@ describe('Quiz Table DOM Upgrades', () => {
       const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
       enhanceQuizTable(table);
 
-      // Should not add/remove rows or cells
+      // Should preserve row count
       expect(table.querySelectorAll('tbody tr').length).toBe(originalRowCount);
-      expect(table.querySelectorAll('tbody td').length).toBe(originalCellCount);
+      // Should have one fewer cell per row (detail column removed)
+      expect(table.querySelectorAll('tbody td').length).toBe(originalCellCount - originalRowCount);
     });
   });
 
@@ -432,6 +433,133 @@ describe('Quiz Table DOM Upgrades', () => {
     });
   });
 
+  describe('Detail Column Removal', () => {
+    it('should remove detail column header from table', async () => {
+      const table = createQuizTable([
+        {
+          question: 'Question',
+          answer: '1',
+          detail: '<ol><li>Option A</li></ol>',
+        },
+      ]);
+
+      // Before enhancement, should have 3 header cells
+      expect(table.querySelectorAll('thead th').length).toBe(3);
+
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
+      enhanceQuizTable(table);
+
+      // After enhancement, should have 2 header cells (Question and Answer only)
+      expect(table.querySelectorAll('thead th').length).toBe(2);
+    });
+
+    it('should remove detail column cells from all body rows', async () => {
+      const table = createQuizTable([
+        {
+          question: 'Q1',
+          answer: '1',
+          detail: '<ol><li>A</li><li>B</li></ol>',
+        },
+        {
+          question: 'Q2',
+          answer: '100',
+          detail: '10',
+        },
+        {
+          question: 'Q3',
+          answer: '2',
+          detail: '<ol><li>X</li><li>Y</li><li>Z</li></ol>',
+        },
+      ]);
+
+      // Before: 3 rows × 3 cells = 9 cells
+      expect(table.querySelectorAll('tbody td').length).toBe(9);
+
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
+      enhanceQuizTable(table);
+
+      // After: 3 rows × 2 cells = 6 cells
+      expect(table.querySelectorAll('tbody td').length).toBe(6);
+
+      // Each row should have exactly 2 cells
+      const rows = table.querySelectorAll('tbody tr');
+      rows.forEach((row) => {
+        expect(row.querySelectorAll('td').length).toBe(2);
+      });
+    });
+
+    it('should remove detail column before enhancing cells', async () => {
+      const table = createQuizTable([
+        {
+          question: 'Test MCQ',
+          answer: '2',
+          detail: '<ol><li>Option 1</li><li>Option 2</li></ol>',
+        },
+      ]);
+
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
+      enhanceQuizTable(table);
+
+      // The detail column should be gone
+      const row = table.querySelector('tbody tr');
+      const cells = row?.querySelectorAll('td');
+
+      expect(cells?.length).toBe(2);
+
+      // First cell should still have question text
+      expect(cells?.[0]?.textContent).toBe('Test MCQ');
+
+      // Second cell should have the dropdown (not the original answer text)
+      expect(cells?.[1]?.querySelector('select')).toBeDefined();
+    });
+
+    it('should still create correct options despite detail column removal', async () => {
+      const table = createQuizTable([
+        {
+          question: 'MCQ',
+          answer: '1',
+          detail: '<ol><li>First</li><li>Second</li><li>Third</li></ol>',
+        },
+      ]);
+
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
+      enhanceQuizTable(table);
+
+      // Options should still be correctly extracted and populated
+      const select = table.querySelector('select');
+      const options = select?.querySelectorAll('option');
+
+      // Should have blank + 3 options = 4 total
+      expect(options?.length).toBe(4);
+      expect(options?.[1]?.textContent).toContain('First');
+      expect(options?.[2]?.textContent).toContain('Second');
+      expect(options?.[3]?.textContent).toContain('Third');
+    });
+
+    it('should remove detail column with tolerance for numeric questions', async () => {
+      const table = createQuizTable([
+        {
+          question: 'Speed of sound?',
+          answer: '1500',
+          detail: '50',
+        },
+      ]);
+
+      const { enhanceQuizTable } = await import('../../../src/enhancers/quiz-table');
+      enhanceQuizTable(table);
+
+      // Detail cell with tolerance should be removed
+      const row = table.querySelector('tbody tr');
+      const cells = row?.querySelectorAll('td');
+
+      expect(cells?.length).toBe(2);
+
+      // Should have question and input only
+      expect(cells?.[0]?.textContent).toBe('Speed of sound?');
+      expect(cells?.[1]?.querySelector('input[type="number"]')).toBeDefined();
+    });
+  });
+
   // Helper function to create quiz tables for testing
   function createQuizTable(
     rows: Array<{ question: string; answer: string; detail: string }>,
@@ -442,9 +570,15 @@ describe('Quiz Table DOM Upgrades', () => {
     // Add header
     const thead = table.createTHead();
     const headerRow = thead.insertRow();
-    headerRow.insertCell().textContent = 'Question';
-    headerRow.insertCell().textContent = 'Answer';
-    headerRow.insertCell().textContent = 'Detail';
+    const th1 = document.createElement('th');
+    th1.textContent = 'Question';
+    headerRow.appendChild(th1);
+    const th2 = document.createElement('th');
+    th2.textContent = 'Answer';
+    headerRow.appendChild(th2);
+    const th3 = document.createElement('th');
+    th3.textContent = 'Detail';
+    headerRow.appendChild(th3);
 
     // Add data rows
     const tbody = table.createTBody();
