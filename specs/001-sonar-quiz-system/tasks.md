@@ -90,10 +90,10 @@ Single project structure:
 
 ### Quiz Table Enhancement
 
-- [ ] T035 [P] [US1] Write tests for quiz table DOM upgrades in tests/integration/dom-upgrades/quiz-table.test.ts
-- [ ] T036 [US1] Implement quiz table enhancer to inject dropdowns/inputs in src/enhancers/quiz-table.ts
-- [ ] T037 [US1] Add event handlers for answer changes in src/enhancers/quiz-table.ts
-- [ ] T038 [US1] Implement auto-save on answer change (<200ms) in src/enhancers/quiz-table.ts
+- [X] T035 [P] [US1] Write tests for quiz table DOM upgrades in tests/integration/dom-upgrades/quiz-table.test.ts
+- [X] T036 [US1] Implement quiz table enhancer to inject dropdowns/inputs in src/enhancers/quiz-table.ts
+- [X] T037 [US1] Add event handlers for answer changes in src/enhancers/quiz-table.ts
+- [X] T038 [US1] Implement auto-save on answer change (<200ms) in src/enhancers/quiz-table.ts
 
 ### Status Panel Component
 
