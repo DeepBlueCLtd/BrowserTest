@@ -2,12 +2,17 @@ import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 import { resolve } from 'path';
 
-export default defineConfig({
+export default defineConfig(({ command, mode }) => ({
   plugins: [
-    dts({
-      insertTypesEntry: true,
-      rollupTypes: true,
-    }),
+    // Only generate declaration files during library build, not Storybook
+    ...(command === 'build' && mode !== 'development'
+      ? [
+          dts({
+            insertTypesEntry: true,
+            rollupTypes: true,
+          }),
+        ]
+      : []),
   ],
   build: {
     lib: {
@@ -48,4 +53,4 @@ export default defineConfig({
     port: 3000,
     open: true,
   },
-});
+}));
