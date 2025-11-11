@@ -55,15 +55,15 @@ Single project structure:
 
 - [X] T018 [P] Write tests for session management in tests/unit/services/session.test.ts
 - [X] T019 Implement session service with 30-minute timeout in src/services/session.ts
-- [ ] T020 [P] Write tests for session cache rebuilding in tests/unit/services/session-cache.test.ts
-- [ ] T021 Implement session cache logic in src/services/session.ts
+- [X] T020 [P] Write tests for session cache rebuilding in tests/unit/services/session-cache.test.ts
+- [X] T021 Implement session cache logic in src/services/session.ts
 
 ### Validation & Utilities
 
-- [ ] T022 [P] Write tests for table validation rules in tests/unit/services/validation.test.ts
-- [ ] T023 Implement table validation service in src/services/validation.ts
-- [ ] T024 [P] Write tests for state calculation logic in tests/unit/services/state-calculator.test.ts
-- [ ] T025 Implement completion state calculator in src/services/state-calculator.ts
+- [X] T022 [P] Write tests for table validation rules in tests/unit/services/validation.test.ts
+- [X] T023 Implement table validation service in src/services/validation.ts
+- [X] T024 [P] Write tests for state calculation logic in tests/unit/services/state-calculator.test.ts
+- [X] T025 Implement completion state calculator in src/services/state-calculator.ts
 
 ---
 
