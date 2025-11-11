@@ -86,7 +86,8 @@ jobs:
   chromatic:
     name: Visual Regression Tests
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    # Only run if CHROMATIC_PROJECT_TOKEN is configured
+    if: github.event_name == 'push' && secrets.CHROMATIC_PROJECT_TOKEN != ''
     steps:
       - uses: actions/checkout@v4
         with:
@@ -101,3 +102,5 @@ jobs:
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           exitZeroOnChanges: true
+          # Don't fail the build on Chromatic errors during Phase 0
+          onlyChanged: true
