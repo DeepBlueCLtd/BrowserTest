@@ -18,9 +18,14 @@ describe('Bootstrap - Phase 0', () => {
     expect(typeof module.init).toBe('function');
   });
 
-  it('should log initialization message when init is called', async () => {
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  it('should log initialization message when init is called in development', async () => {
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'development';
 
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    // Need to re-import to pick up the new NODE_ENV
+    vi.resetModules();
     const module = await import('../../src/index');
     module.init();
 
@@ -30,5 +35,6 @@ describe('Bootstrap - Phase 0', () => {
     );
 
     consoleSpy.mockRestore();
+    process.env.NODE_ENV = originalEnv;
   });
 });

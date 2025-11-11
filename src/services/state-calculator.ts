@@ -20,7 +20,7 @@ import type { AnswerRecord, CompletionState } from '../types/contracts';
  */
 export function calculateCompletionState(
   answers: AnswerRecord[],
-  totalQuestions: number
+  totalQuestions: number,
 ): CompletionState {
   // Handle edge case: no questions
   if (totalQuestions === 0) {
@@ -93,7 +93,7 @@ export function countCorrectAnswers(answers: AnswerRecord[]): number {
  */
 export function calculateSuccessPercentage(
   answers: AnswerRecord[],
-  totalQuestions: number
+  totalQuestions: number,
 ): number {
   if (totalQuestions === 0) {
     return 0;

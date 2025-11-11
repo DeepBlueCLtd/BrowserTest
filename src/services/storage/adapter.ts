@@ -5,12 +5,7 @@
  * and provides utility functions for working with storage keys.
  */
 
-import type {
-  StorageAdapter,
-  StudentRecord,
-  ReleaseId,
-  ServiceId,
-} from '../../types/contracts';
+import type { StorageAdapter, StudentRecord, ReleaseId, ServiceId } from '../../types/contracts';
 
 // Re-export the interface for convenience
 export type { StorageAdapter, StudentRecord, ReleaseId, ServiceId };
@@ -78,7 +73,7 @@ export function createEmptyStudentRecord(
   release: ReleaseId,
   serviceId: ServiceId,
   name: string,
-  docId: string
+  docId: string,
 ): StudentRecord {
   return {
     schema: 1,
@@ -100,7 +95,7 @@ export class StorageError extends Error {
   constructor(
     message: string,
     public readonly operation: string,
-    public readonly cause?: Error
+    public readonly cause?: Error,
   ) {
     super(message);
     this.name = 'StorageError';

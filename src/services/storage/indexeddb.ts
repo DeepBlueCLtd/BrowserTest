@@ -114,11 +114,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
         request.onerror = () => {
           reject(
-            new StorageError(
-              'Failed to get student record',
-              'getStudent',
-              request.error as Error
-            )
+            new StorageError('Failed to get student record', 'getStudent', request.error as Error),
           );
         };
       } catch (error) {
@@ -160,8 +156,8 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
               new StorageError(
                 'Failed to save student record',
                 'saveStudent',
-                request.error as Error
-              )
+                request.error as Error,
+              ),
             );
           }
         };
@@ -171,8 +167,8 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             new StorageError(
               'Transaction failed while saving student',
               'saveStudent',
-              transaction.error as Error
-            )
+              transaction.error as Error,
+            ),
           );
         };
       } catch (error) {
@@ -204,13 +200,17 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             new StorageError(
               'Failed to get students by release',
               'getStudentsByRelease',
-              request.error as Error
-            )
+              request.error as Error,
+            ),
           );
         };
       } catch (error) {
         reject(
-          new StorageError('Failed to get students by release', 'getStudentsByRelease', error as Error)
+          new StorageError(
+            'Failed to get students by release',
+            'getStudentsByRelease',
+            error as Error,
+          ),
         );
       }
     });
@@ -255,8 +255,8 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             new StorageError(
               'Failed to clear students',
               'clearAll',
-              clearStudentsRequest.error as Error
-            )
+              clearStudentsRequest.error as Error,
+            ),
           );
         };
 
@@ -265,14 +265,18 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             new StorageError(
               'Failed to clear backups',
               'clearAll',
-              clearBackupsRequest.error as Error
-            )
+              clearBackupsRequest.error as Error,
+            ),
           );
         };
 
         transaction.onerror = () => {
           reject(
-            new StorageError('Transaction failed during clearAll', 'clearAll', transaction.error as Error)
+            new StorageError(
+              'Transaction failed during clearAll',
+              'clearAll',
+              transaction.error as Error,
+            ),
           );
         };
       } catch (error) {
@@ -312,9 +316,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
           if (request.error?.name === 'QuotaExceededError') {
             reject(new StorageQuotaError('backup'));
           } else {
-            reject(
-              new StorageError('Failed to create backup', 'backup', request.error as Error)
-            );
+            reject(new StorageError('Failed to create backup', 'backup', request.error as Error));
           }
         };
 
@@ -323,8 +325,8 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             new StorageError(
               'Transaction failed during backup',
               'backup',
-              transaction.error as Error
-            )
+              transaction.error as Error,
+            ),
           );
         };
       } catch (error) {

@@ -12,8 +12,6 @@
  */
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { JSDOM } from 'jsdom';
@@ -196,7 +194,7 @@ describe('Table Validation', () => {
         expect.objectContaining({
           code: 'MISSING_QUIZ_CLASS',
           message: expect.stringContaining('qd-quiz'),
-        })
+        }),
       );
     });
 
@@ -216,7 +214,7 @@ describe('Table Validation', () => {
         expect.objectContaining({
           code: 'INVALID_COLUMN_COUNT',
           message: expect.stringContaining('3 columns'),
-        })
+        }),
       );
     });
 
@@ -236,7 +234,7 @@ describe('Table Validation', () => {
         expect.objectContaining({
           code: 'NO_QUESTIONS',
           message: expect.stringContaining('no questions'),
-        })
+        }),
       );
     });
 
@@ -262,7 +260,7 @@ describe('Table Validation', () => {
         expect.objectContaining({
           code: 'INVALID_ANSWER_FORMAT',
           row: 1,
-        })
+        }),
       );
     });
 
@@ -288,7 +286,7 @@ describe('Table Validation', () => {
         expect.objectContaining({
           code: 'MISSING_TOLERANCE',
           row: 1,
-        })
+        }),
       );
     });
 
@@ -336,7 +334,7 @@ describe('Table Validation', () => {
         expect.objectContaining({
           code: 'MISSING_TOLERANCE',
           row: 1,
-        })
+        }),
       );
     });
   });
@@ -367,7 +365,7 @@ describe('Table Validation', () => {
         expect.objectContaining({
           code: 'MISSING_ANALYSIS_CLASS',
           message: expect.stringContaining('qd-analysis'),
-        })
+        }),
       );
     });
 
@@ -381,7 +379,7 @@ describe('Table Validation', () => {
         expect.objectContaining({
           code: 'NO_CELLS',
           message: expect.stringContaining('no cells'),
-        })
+        }),
       );
     });
 
@@ -391,7 +389,8 @@ describe('Table Validation', () => {
 
       const tbody = document.createElement('tbody');
       const row = document.createElement('tr');
-      row.innerHTML = '<td style="background-color: #eee;">Cell 1</td><td style="background-color: #fff;">Cell 2</td>';
+      row.innerHTML =
+        '<td style="background-color: #eee;">Cell 1</td><td style="background-color: #fff;">Cell 2</td>';
       tbody.appendChild(row);
       table.appendChild(tbody);
 
@@ -476,7 +475,7 @@ describe('Table Validation', () => {
         expect.objectContaining({
           code: 'MULTIPLE_QUIZ_TABLES',
           message: expect.stringContaining('maximum ONE quiz table'),
-        })
+        }),
       );
     });
 
@@ -496,7 +495,7 @@ describe('Table Validation', () => {
         expect.objectContaining({
           code: 'MULTIPLE_ANALYSIS_TABLES',
           message: expect.stringContaining('maximum ONE analysis table'),
-        })
+        }),
       );
     });
 
@@ -530,12 +529,12 @@ describe('Table Validation', () => {
 
       // Should have error for wrong column count
       expect(result.errors).toContainEqual(
-        expect.objectContaining({ code: 'INVALID_COLUMN_COUNT' })
+        expect.objectContaining({ code: 'INVALID_COLUMN_COUNT' }),
       );
 
       // Should have error for multiple quiz tables
       expect(result.errors).toContainEqual(
-        expect.objectContaining({ code: 'MULTIPLE_QUIZ_TABLES' })
+        expect.objectContaining({ code: 'MULTIPLE_QUIZ_TABLES' }),
       );
     });
   });
@@ -562,7 +561,7 @@ describe('Table Validation', () => {
       const result = validateQuizTable(table);
       expect(result.valid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
-      expect(result.errors.some(e => e.row === 2)).toBe(true);
+      expect(result.errors.some((e) => e.row === 2)).toBe(true);
     });
 
     it('should handle table with empty cells', () => {
