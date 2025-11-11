@@ -136,17 +136,20 @@ All are `CustomEvent<T>` with `bubbles: true`, `composed: true`.
 ## 7. Constants and Keys
 
 ```ts
-export const LOCAL_PREFIX = 'qd/';
-export const SESSION_KEY  = 'qd/session';
-export const STATE_KEY    = 'qd/state';
-export const SCHEMA_VER   = 3;
+export const LOCAL_PREFIX      = 'qd/';
+export const SESSION_KEY       = 'qd/session';
+export const STATE_KEY         = 'qd/state';
+export const SCHEMA_VER        = 3;
+export const SESSION_TIMEOUT_MS = 1800000;  // 30 minutes
 ```
 
 ---
 
 ## 8. Validation Rules
 
-- One quiz or analysis table per page.
+- Zero or one quiz table (`table.qd-quiz.qd-page`) per page.
+- Zero or one analysis table (`table.qd-analysis`) per page.
+- A page may contain both a quiz table and an analysis table.
 - MCQ lists use `<ol>` and are **1-indexed**.
 - Numeric tolerance: single number (float), blank = zero.
 - Editable analysis cells = `<td>` without inline `background-color`.

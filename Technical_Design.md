@@ -13,11 +13,11 @@
 - **No network:** No telemetry, no remote config, no CDNs.
 
 ## 3. UI Technology Decisions
-- **Framework:** Lit 3 custom elements for UI islands (e.g., status, student answers, login).
+- **Framework:** Lit 3 custom elements for UI islands (e.g., status, login).
 - **Why Lit:** Small runtime, clean reactivity, strong encapsulation, good maintainability.
-- **Components:** `<qd-login>`, `<qd-status>`, `<qd-student-answers>`; rest by DOM upgrade.
+- **Components:** `<qd-login>`, `<qd-status>`; rest by DOM upgrade.
 - **Styling:** CSS variables `--qd-*` for theming; avoid global CSS collisions.
-- **Author-visible contracts:** One `table.qd-quiz.qd-page` and one `table.qd-analysis` per page; `#qd-status` placeholder panel.
+- **Author-visible contracts:** Zero or one `table.qd-quiz.qd-page` and zero or one `table.qd-analysis` per page; `#qd-status` placeholder panel.
 
 ## 4. Packaging and Distribution
 - **Bundles:**
@@ -37,7 +37,8 @@
 - **Include:** Single `<script>` in the Oxygen HTML template footer.
 - **Auto‑init:** On page load, component validates and upgrades known tables, attaches overlays.
 - **Zero author config:** Content authors copy/paste table patterns; optional `data-qd-*` attributes for page‑level toggles.
-- **Runtime validation:** Clear banner if authoring constraints are violated (e.g., more than one quiz table).
+- **MCQ authoring:** Multiple choice questions use `<ol>` ordered lists that are **1-indexed** (first option = 1, not 0).
+- **Runtime validation:** Clear banner if authoring constraints are violated (e.g., more than one quiz table per page).
 
 ## 7. Data and Session Model
 - **Record key:** `qd/{release}/u{serviceId}`.
@@ -106,7 +107,14 @@
 - **Erase all data:** Clears IndexedDB + sessionStorage; optional CSV export prompt before destructive action.
 
 ## 19. Extensibility
-- **Events:** Custom events on `window` (e.g., `qd:login`, `qd:answer-saved`, `qd:unlock`, `qd:erase`) for integration hooks.
+- **Events:** Custom events on `window` for integration hooks:
+  - `qd:login`, `qd:logout` — session management
+  - `qd:answer-saved`, `qd:status-changed` — quiz activity
+  - `qd:analysis-cell-change` — analysis table edits
+  - `qd:unlock`, `qd:lock` — instructor mode
+  - `qd:show-all-responses` — student response display toggle
+  - `qd:erase` — data deletion
+  - `qd:error` — error notifications
 - **Public API:** `window.SonarQuiz.init()` for manual re‑init; stable minor‑version contract.
 - **Add‑ons:** Future UI islands can be added as Lit elements without touching core upgrade logic.
 
