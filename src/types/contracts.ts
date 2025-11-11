@@ -239,6 +239,8 @@ export interface ParsedAnalysisTable {
     col: number;
     key: CellKey;
   }>;
+  /** Validation errors if any */
+  errors?: string[];
 }
 
 // ============================================================================
