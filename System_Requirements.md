@@ -64,7 +64,7 @@ Documents are published quarterly and used by individual students. Instructors c
 - Numeric questions rendered as `<input type="number">`.
 - Page results saved immediately on input change.
 - Correctness calculated locally and displayed with minimal icons.
-- Instructor can unlock answers via password.
+- Instructor can unlock answers via password. Next to the correct answer will be a compact table showing user’s answer and color coding (green/red) based on success boolean.
 
 ### 4.4 Quiz Page Status Panel
 - A floating panel (`id="qd-status"`) summarizes page state:
@@ -103,7 +103,7 @@ Documents are published quarterly and used by individual students. Instructors c
   "updated": "2025-11-10T14:27:00Z",
   "pages": {
     "gram-1": {
-      "answers": ["a:+", "12.2:-"],
+      "answers":  [ { "answer": "a", "success": true }, { "answer": "12.2", "success": false } ],
       "firstAttempted": "2025-11-10T13:59:01Z",
       "lastAttempted":  "2025-11-10T14:04:43Z",
       "state": "incomplete",
