@@ -11,9 +11,12 @@
  * - Numeric questions: Detail column contains tolerance number
  */
 
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+
 import { describe, it, expect, beforeEach } from 'vitest';
 import { JSDOM } from 'jsdom';
-import type { ValidationResult, ValidationError } from '../../../src/services/validation';
 import {
   validateQuizTable,
   validateAnalysisTable,
@@ -29,7 +32,7 @@ describe('Table Validation', () => {
 
   beforeEach(() => {
     dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
-    document = dom.window.document;
+    document = dom.window.document as unknown as Document;
   });
 
   describe('hasQuizTableClass()', () => {
@@ -582,7 +585,7 @@ describe('Table Validation', () => {
 
     it('should handle document with no body', () => {
       const emptyDom = new JSDOM('<!DOCTYPE html><html></html>');
-      const emptyDoc = emptyDom.window.document;
+      const emptyDoc = emptyDom.window.document as unknown as Document;
 
       const result = validatePageTables(emptyDoc);
       expect(result.valid).toBe(true); // No tables = valid

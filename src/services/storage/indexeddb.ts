@@ -109,7 +109,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         const request = store.get(key);
 
         request.onsuccess = () => {
-          resolve(request.result || null);
+          resolve((request.result as StudentRecord | undefined) || null);
         };
 
         request.onerror = () => {

@@ -54,7 +54,7 @@ describe('SessionService', () => {
       const stored = sessionStorage.getItem(STORAGE_KEYS.SESSION);
       expect(stored).toBeTruthy();
 
-      const parsed = JSON.parse(stored!);
+      const parsed = JSON.parse(stored!) as SessionData;
       expect(parsed.serviceId).toBe('TEST001');
     });
 

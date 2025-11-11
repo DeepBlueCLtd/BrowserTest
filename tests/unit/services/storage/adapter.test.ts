@@ -15,40 +15,55 @@ class MockStorageAdapter implements StorageAdapter {
   private storage = new Map<string, StudentRecord>();
   private initialized = false;
 
-  async init(): Promise<void> {
+  init(): Promise<void> {
     this.initialized = true;
+    return Promise.resolve();
   }
 
-  async getStudent(release: ReleaseId, serviceId: ServiceId): Promise<StudentRecord | null> {
-    if (!this.initialized) throw new Error('Storage not initialized');
+  getStudent(release: ReleaseId, serviceId: ServiceId): Promise<StudentRecord | null> {
+    if (!this.initialized) {
+      return Promise.reject(new Error('Storage not initialized'));
+    }
     const key = `qd/${release}/u${serviceId}`;
-    return this.storage.get(key) || null;
+    return Promise.resolve(this.storage.get(key) || null);
   }
 
-  async saveStudent(record: StudentRecord): Promise<void> {
-    if (!this.initialized) throw new Error('Storage not initialized');
+  saveStudent(record: StudentRecord): Promise<void> {
+    if (!this.initialized) {
+      return Promise.reject(new Error('Storage not initialized'));
+    }
     const key = `qd/${record.release}/u${record.serviceId}`;
     this.storage.set(key, { ...record });
+    return Promise.resolve();
   }
 
-  async getStudentsByRelease(release: ReleaseId): Promise<StudentRecord[]> {
-    if (!this.initialized) throw new Error('Storage not initialized');
+  getStudentsByRelease(release: ReleaseId): Promise<StudentRecord[]> {
+    if (!this.initialized) {
+      return Promise.reject(new Error('Storage not initialized'));
+    }
     const prefix = `qd/${release}/`;
-    return Array.from(this.storage.entries())
+    const results = Array.from(this.storage.entries())
       .filter(([key]) => key.startsWith(prefix))
       .map(([, value]) => value);
+    return Promise.resolve(results);
   }
 
-  async clearAll(): Promise<void> {
-    if (!this.initialized) throw new Error('Storage not initialized');
+  clearAll(): Promise<void> {
+    if (!this.initialized) {
+      return Promise.reject(new Error('Storage not initialized'));
+    }
     this.storage.clear();
+    return Promise.resolve();
   }
 
-  async backup(record: StudentRecord): Promise<void> {
-    if (!this.initialized) throw new Error('Storage not initialized');
+  backup(record: StudentRecord): Promise<void> {
+    if (!this.initialized) {
+      return Promise.reject(new Error('Storage not initialized'));
+    }
     const timestamp = new Date().toISOString();
     const backupKey = `backup_${timestamp}_${record.serviceId}`;
     this.storage.set(backupKey, { ...record });
+    return Promise.resolve();
   }
 }
 

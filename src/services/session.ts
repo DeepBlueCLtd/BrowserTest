@@ -258,12 +258,12 @@ export function buildCacheFromRecord(record: import('../types/contracts').Studen
 /**
  * Build a page cache entry from page data
  *
- * @param pageId - Page identifier
+ * @param _pageId - Page identifier (unused, kept for API consistency)
  * @param pageData - Page data from student record
  * @returns Page cache entry
  */
 export function buildPageCache(
-  pageId: string,
+  _pageId: string,
   pageData: import('../types/contracts').StudentRecord['pages'][string]
 ): import('../types/contracts').PageCache {
   const answered = pageData.answers.length;

@@ -162,18 +162,17 @@ export function validateQuizTable(table: HTMLTableElement): ValidationResult {
 
   // Validate each question row
   rows.forEach((row, index) => {
-    const cells = row.querySelectorAll('td');
+    const cells = Array.from(row.querySelectorAll('td'));
     if (cells.length !== 3) {
       return; // Skip rows with wrong cell count (already reported)
     }
 
-    const questionCell = cells[0] as HTMLTableCellElement;
-    const answerCell = cells[1] as HTMLTableCellElement;
-    const detailCell = cells[2] as HTMLTableCellElement;
+    const questionCell = cells[0];
+    const answerCell = cells[1];
+    const detailCell = cells[2];
 
     const questionText = questionCell.textContent?.trim() || '';
     const answerText = answerCell.textContent?.trim() || '';
-    const detailText = detailCell.textContent?.trim() || '';
 
     // Check if answer is numeric (required for both MCQ and numeric questions)
     if (!isNumeric(answerText)) {
@@ -272,11 +271,11 @@ export function validatePageTables(document: Document): ValidationResult {
 
   // Find all quiz and analysis tables
   const quizTables = Array.from(
-    document.querySelectorAll('table.qd-quiz.qd-page')
-  ) as HTMLTableElement[];
+    document.querySelectorAll<HTMLTableElement>('table.qd-quiz.qd-page')
+  );
   const analysisTables = Array.from(
-    document.querySelectorAll('table.qd-analysis')
-  ) as HTMLTableElement[];
+    document.querySelectorAll<HTMLTableElement>('table.qd-analysis')
+  );
 
   // Check for multiple quiz tables
   if (quizTables.length > 1) {
