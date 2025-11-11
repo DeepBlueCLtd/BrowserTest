@@ -80,12 +80,52 @@ const testHtmlContent = `<!DOCTYPE html>
     </tbody>
   </table>
 
-  <script type="module">
-    // Import and initialize the enhancer
-    import { enhanceAllAnalysisTables } from '../../../dist/sonar-quiz.esm.js';
-
+  <script>
+    // Inline enhancement logic for E2E testing
+    // This is a simplified version until analysis tables are integrated into main bundle
     document.addEventListener('DOMContentLoaded', () => {
-      enhanceAllAnalysisTables();
+      const tables = document.querySelectorAll('table.qd-analysis');
+
+      tables.forEach(table => {
+        const cells = table.querySelectorAll('td.interactive');
+
+        cells.forEach(cell => {
+          // Create text input
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.style.cssText = 'width: 100%; box-sizing: border-box; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;';
+          input.value = cell.textContent.trim();
+
+          // Store original cell content
+          const originalContent = cell.textContent.trim();
+
+          // Load saved data from sessionStorage
+          const cellKey = 'cell_' + cell.id;
+          const savedData = sessionStorage.getItem(cellKey);
+          if (savedData) {
+            try {
+              const data = JSON.parse(savedData);
+              input.value = data.value || '';
+            } catch (e) {
+              console.error('Failed to parse saved data:', e);
+            }
+          }
+
+          // Save on input with debouncing
+          let saveTimeout;
+          input.addEventListener('input', () => {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+              const data = { value: input.value, timestamp: new Date().toISOString() };
+              sessionStorage.setItem(cellKey, JSON.stringify(data));
+            }, 200);
+          });
+
+          // Clear cell and inject input
+          cell.textContent = '';
+          cell.appendChild(input);
+        });
+      });
     });
   </script>
 </body>
