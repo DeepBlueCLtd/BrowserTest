@@ -178,17 +178,17 @@ Single project structure:
 
 ### Instructor Component
 
-- [ ] T068 [P] [US3] Write tests for instructor component in tests/unit/components/qd-instructor.test.ts
-- [ ] T069 [US3] Create instructor unlock component in src/components/qd-instructor.ts
-- [ ] T070 [US3] Implement password validation (hashed storage) in src/components/qd-instructor.ts
-- [ ] T071 [US3] Add unlock/lock state management in src/services/session.ts
+- [X] T068 [P] [US3] Write tests for instructor component in tests/unit/components/qd-instructor.test.ts
+- [X] T069 [US3] Create instructor unlock component in src/components/qd-instructor.ts
+- [X] T070 [US3] Implement password validation (hashed storage) in src/components/qd-instructor.ts
+- [X] T071 [US3] Add unlock/lock state management in src/services/session.ts
 
 ### Answer Reveal Logic
 
-- [ ] T072 [P] [US3] Write tests for answer reveal in quiz tables in tests/unit/enhancers/quiz-table.test.ts
-- [ ] T073 [US3] Implement correct answer display in quiz enhancer in src/enhancers/quiz-table.ts
-- [ ] T074 [US3] Implement student answer comparison tables in src/enhancers/quiz-table.ts
-- [ ] T075 [US3] Add success/failure color coding for student answers in src/enhancers/quiz-table.ts
+- [X] T072 [P] [US3] Write tests for answer reveal in quiz tables in tests/unit/enhancers/quiz-table.test.ts
+- [X] T073 [US3] Implement correct answer display in quiz enhancer in src/enhancers/quiz-table.ts
+- [X] T074 [US3] Implement student answer comparison tables in src/enhancers/quiz-table.ts
+- [X] T075 [US3] Add success/failure color coding for student answers in src/enhancers/quiz-table.ts
 
 ### Analysis Review
 
