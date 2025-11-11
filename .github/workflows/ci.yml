@@ -111,7 +111,7 @@ jobs:
         with:
           projectToken: ${{ env.CHROMATIC_PROJECT_TOKEN }}
           exitZeroOnChanges: true
-          # Don't fail the build on Chromatic errors during Phase 0
-          onlyChanged: true
+          # TurboSnap disabled for Vite-based Storybook (no webpack stats)
+          onlyChanged: false
           # Auto-accept changes on main branch
           autoAcceptChanges: ${{ github.ref == 'refs/heads/main' }}
