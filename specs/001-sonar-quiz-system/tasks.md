@@ -75,11 +75,11 @@ Single project structure:
 
 ### Parsing & Detection
 
-- [ ] T026 [P] [US1] Write tests for quiz table parser (MCQ detection) in tests/unit/services/quiz-parser.test.ts
-- [ ] T027 [P] [US1] Write tests for quiz table parser (numeric detection) in tests/unit/services/quiz-parser.test.ts
-- [ ] T028 [US1] Implement quiz table DOM parser in src/services/quiz-parser.ts
-- [ ] T029 [P] [US1] Write tests for answer correctness checking in tests/unit/services/quiz-parser.test.ts
-- [ ] T030 [US1] Implement answer validation logic in src/services/quiz-parser.ts
+- [X] T026 [P] [US1] Write tests for quiz table parser (MCQ detection) in tests/unit/services/quiz-parser.test.ts
+- [X] T027 [P] [US1] Write tests for quiz table parser (numeric detection) in tests/unit/services/quiz-parser.test.ts
+- [X] T028 [US1] Implement quiz table DOM parser in src/services/quiz-parser.ts
+- [X] T029 [P] [US1] Write tests for answer correctness checking in tests/unit/services/quiz-parser.test.ts
+- [X] T030 [US1] Implement answer validation logic in src/services/quiz-parser.ts
 
 ### Login Component
 
