@@ -12,7 +12,8 @@
       "Bash(npx prettier:*)",
       "Bash(npm install)",
       "Bash(npm run test:unit:*)",
-      "Bash(npm run format:check:*)"
+      "Bash(npm run format:check:*)",
+      "Bash(npm run test:e2e:*)"
     ],
     "deny": [],
     "ask": []
