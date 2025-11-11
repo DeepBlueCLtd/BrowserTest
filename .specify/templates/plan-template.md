@@ -31,7 +31,13 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- [ ] **Offline-First**: Feature works completely offline, no network dependencies
+- [ ] **Progressive Enhancement**: Enhances existing HTML without breaking functionality
+- [ ] **Test-Driven Development**: Tests written first, Red-Green-Refactor cycle planned
+- [ ] **Phase-Gated Delivery**: Clear exit criteria defined for each implementation phase
+- [ ] **Performance Constraints**: Within 25KB bundle limit, <200ms operations
+- [ ] **Data Isolation**: Local storage only, proper key namespacing
+- [ ] **Zero Configuration**: No setup required beyond script inclusion
 
 ## Project Structure
 
