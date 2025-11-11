@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git fetch:*)",
+      "Bash(curl -d \"Doc Boeuf: Spec complete for sonar-quiz-system. All quality checks passed. Ready for planning phase.\" ntfy.sh/iancc2025)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
