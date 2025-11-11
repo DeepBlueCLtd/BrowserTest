@@ -149,24 +149,24 @@ Single project structure:
 
 ### Parsing & Detection
 
-- [ ] T057 [P] [US4] Write tests for analysis table parser in tests/unit/services/analysis-parser.test.ts
-- [ ] T058 [US4] Implement analysis table DOM parser in src/services/analysis-parser.ts
-- [ ] T059 [US4] Implement editable cell detection (class="interactive") in src/services/analysis-parser.ts
-- [ ] T060 [US4] Implement cell key generation (R{row}C{col}#f:{hash}) in src/services/analysis-parser.ts
+- [X] T057 [P] [US4] Write tests for analysis table parser in tests/unit/services/analysis-parser.test.ts
+- [X] T058 [US4] Implement analysis table DOM parser in src/services/analysis-parser.ts
+- [X] T059 [US4] Implement editable cell detection (class="interactive") in src/services/analysis-parser.ts
+- [X] T060 [US4] Implement cell key generation (R{row}C{col}#f:{hash}) in src/services/analysis-parser.ts
 
 ### Table Enhancement
 
-- [ ] T061 [P] [US4] Write tests for analysis table DOM upgrades in tests/integration/dom-upgrades/analysis-table.test.ts
-- [ ] T062 [US4] Implement analysis table enhancer to inject text inputs in src/enhancers/analysis-table.ts
-- [ ] T063 [US4] Add event handlers for cell value changes in src/enhancers/analysis-table.ts
-- [ ] T064 [US4] Implement auto-save on cell edit in src/enhancers/analysis-table.ts
-- [ ] T065 [P] [US4] Create Storybook stories for analysis tables in stories/tables/analysis.stories.ts
-- [ ] T065a [P] [US4] Create dynamic transformation story for analysis tables in stories/tables/analysis-transformation.stories.ts
+- [X] T061 [P] [US4] Write tests for analysis table DOM upgrades in tests/integration/dom-upgrades/analysis-table.test.ts
+- [X] T062 [US4] Implement analysis table enhancer to inject text inputs in src/enhancers/analysis-table.ts
+- [X] T063 [US4] Add event handlers for cell value changes in src/enhancers/analysis-table.ts
+- [X] T064 [US4] Implement auto-save on cell edit in src/enhancers/analysis-table.ts
+- [X] T065 [P] [US4] Create Storybook stories for analysis tables in stories/tables/analysis.stories.ts
+- [X] T065a [P] [US4] Create dynamic transformation story for analysis tables in stories/tables/analysis-transformation.stories.ts
 
 ### Integration
 
-- [ ] T066 [P] [US4] Write E2E test for analysis data persistence in tests/e2e/workflows/analysis-capture.spec.ts
-- [ ] T067 [US4] Verify Phase 2 exit gate: visual baselines stable, cell mapping tests pass
+- [X] T066 [P] [US4] Write E2E test for analysis data persistence in tests/e2e/workflows/analysis-capture.spec.ts
+- [X] T067 [US4] Verify Phase 2 exit gate: visual baselines stable, cell mapping tests pass
 
 ---
 

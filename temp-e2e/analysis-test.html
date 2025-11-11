@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analysis Capture E2E Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 2rem 0;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 0.75rem;
+      text-align: left;
+    }
+    th {
+      background-color: #f5f5f5;
+    }
+    .readonly {
+      background-color: #e9ecef;
+    }
+  </style>
+</head>
+<body>
+  <h1>Analysis Capture Test Page</h1>
+  <p>This page is used for E2E testing of analysis table functionality.</p>
+
+  <table class="qd-analysis">
+    <thead>
+      <tr>
+        <th style="background-color: #e9ecef;">Parameter</th>
+        <th style="background-color: #e9ecef;">Value</th>
+        <th style="background-color: #e9ecef;">Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="background-color: #e9ecef;">Temperature</td>
+        <td id="cell-temp" class="interactive"></td>
+        <td id="cell-temp-notes" class="interactive"></td>
+      </tr>
+      <tr>
+        <td style="background-color: #e9ecef;">Pressure</td>
+        <td id="cell-pressure" class="interactive"></td>
+        <td id="cell-pressure-notes" class="interactive"></td>
+      </tr>
+      <tr>
+        <td style="background-color: #e9ecef;">Salinity</td>
+        <td id="cell-salinity" class="interactive"></td>
+        <td id="cell-salinity-notes" class="interactive"></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <script>
+    // Inline enhancement logic for E2E testing
+    // This is a simplified version until analysis tables are integrated into main bundle
+    document.addEventListener('DOMContentLoaded', () => {
+      const tables = document.querySelectorAll('table.qd-analysis');
+
+      tables.forEach(table => {
+        const cells = table.querySelectorAll('td.interactive');
+
+        cells.forEach(cell => {
+          // Create text input
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.style.cssText = 'width: 100%; box-sizing: border-box; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;';
+          input.value = cell.textContent.trim();
+
+          // Store original cell content
+          const originalContent = cell.textContent.trim();
+
+          // Load saved data from sessionStorage
+          const cellKey = 'cell_' + cell.id;
+          const savedData = sessionStorage.getItem(cellKey);
+          if (savedData) {
+            try {
+              const data = JSON.parse(savedData);
+              input.value = data.value || '';
+            } catch (e) {
+              console.error('Failed to parse saved data:', e);
+            }
+          }
+
+          // Save on input with debouncing
+          let saveTimeout;
+          input.addEventListener('input', () => {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+              const data = { value: input.value, timestamp: new Date().toISOString() };
+              sessionStorage.setItem(cellKey, JSON.stringify(data));
+            }, 200);
+          });
+
+          // Clear cell and inject input
+          cell.textContent = '';
+          cell.appendChild(input);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
