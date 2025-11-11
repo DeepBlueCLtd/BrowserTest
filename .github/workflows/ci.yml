@@ -86,8 +86,11 @@ jobs:
   chromatic:
     name: Visual Regression Tests
     runs-on: ubuntu-latest
-    # Only run if CHROMATIC_PROJECT_TOKEN is configured
-    if: github.event_name == 'push'
+    # Run on both push and pull_request events if CHROMATIC_PROJECT_TOKEN is configured
+    # Chromatic will automatically post PR comments with Storybook preview links
+    permissions:
+      contents: read
+      pull-requests: write
     env:
       CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
     steps:
@@ -110,3 +113,5 @@ jobs:
           exitZeroOnChanges: true
           # Don't fail the build on Chromatic errors during Phase 0
           onlyChanged: true
+          # Auto-accept changes on main branch
+          autoAcceptChanges: ${{ github.ref == 'refs/heads/main' }}
