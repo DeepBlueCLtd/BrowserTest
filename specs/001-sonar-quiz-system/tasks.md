@@ -121,21 +121,21 @@ Single project structure:
 
 ### Home Page Badge Enhancement
 
-- [ ] T048 [P] [US2] Write tests for home page badge detection in tests/unit/enhancers/home-badges.test.ts
-- [ ] T049 [US2] Implement badge injector for links with qd-test-link class in src/enhancers/home-badges.ts
-- [ ] T050 [US2] Calculate badge color from session cache in src/enhancers/home-badges.ts
-- [ ] T051 [US2] Handle cache rebuild after session expiry in src/enhancers/home-badges.ts
+- [X] T048 [P] [US2] Write tests for home page badge detection in tests/unit/enhancers/home-badges.test.ts
+- [X] T049 [US2] Implement badge injector for links with qd-test-link class in src/enhancers/home-badges.ts
+- [X] T050 [US2] Calculate badge color from session cache in src/enhancers/home-badges.ts
+- [X] T051 [US2] Handle cache rebuild after session expiry in src/enhancers/home-badges.ts
 
 ### Cache Management
 
-- [ ] T052 [P] [US2] Write tests for cache update after quiz completion in tests/unit/services/session-cache.test.ts
-- [ ] T053 [US2] Implement cache synchronization on answer save in src/services/session.ts
-- [ ] T054 [P] [US2] Create Storybook story for home page with various badge states in stories/tables/home-badges.stories.ts
+- [X] T052 [P] [US2] Write tests for cache update after quiz completion in tests/unit/services/session-cache.test.ts
+- [X] T053 [US2] Implement cache synchronization on answer save in src/services/session.ts
+- [X] T054 [P] [US2] Create Storybook story for home page with various badge states in stories/tables/home-badges.stories.ts
 
 ### Integration
 
-- [ ] T055 [P] [US2] Write E2E test for home page badge updates in tests/e2e/workflows/progress-tracking.spec.ts
-- [ ] T056 [US2] Verify independent test: badges reflect quiz completion accurately
+- [X] T055 [P] [US2] Write E2E test for home page badge updates in tests/e2e/workflows/progress-tracking.spec.ts
+- [X] T056 [US2] Verify independent test: badges reflect quiz completion accurately
 
 ---
 
