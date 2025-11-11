@@ -46,15 +46,16 @@ The Sonar Quiz System enhances DITA-published HTML training documents with inter
    ```html
    <table class="qd-analysis">
      <tr>
-       <td style="background-color: #ccc;">Label (read-only)</td>
-       <td>Editable cell for student input</td>
+       <td>Label (read-only)</td>
+       <td class="interactive">Editable cell for student input</td>
      </tr>
    </table>
    ```
 
 2. **Rules**:
-   - Cells WITH `background-color` style are read-only
-   - Cells WITHOUT background color become editable text inputs
+   - Cells WITH `class="interactive"` become editable text inputs
+   - Cells WITHOUT `interactive` class remain read-only/unused
+   - Authors can style cells (e.g., shaded backgrounds) independently of editability
    - Maximum ONE analysis table per page
 
 ### Home Page Setup

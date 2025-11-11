@@ -141,8 +141,9 @@ Content authors must follow these rules (runtime validation enforces):
 
 ### Analysis Tables
 - Class: `qd-analysis`
-- Cells WITH `background-color` style = read-only
-- Cells WITHOUT background-color = editable
+- Cells WITH `class="interactive"` (DITA: `outputClass="interactive"`) = editable
+- Cells WITHOUT `interactive` class = read-only/unused
+- Authors can style cells with `outputClass="shaded"` without affecting editability
 - **Maximum ONE** analysis table per page
 
 ### Home Page

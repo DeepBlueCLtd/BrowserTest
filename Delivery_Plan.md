@@ -16,7 +16,7 @@ Exit gate: Chromatic interactions pass; unit tests for parsing + state.
 
 ## Phase 2 — Analysis Workbook (no login, no IDB)
 Goal: Editable analysis sheet.
-- Parse/upgrade `table.qd-analysis`; editable iff no inline `background-color`.
+- Parse/upgrade `table.qd-analysis`; editable iff cell has `class="interactive"`.
 - Cell keys `R{row}C{col}#f:{hash}` and `tableId`.
 - Storybook: Worksheet `Blank/Few/Dense`.
 Exit gate: visual baselines stable; unit tests for cell mapping.

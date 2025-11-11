@@ -248,7 +248,7 @@ export function validateAnalysisTable(table: HTMLTableElement): ValidationResult
     });
   }
 
-  // Note: Editable cell detection (cells without background-color) is done
+  // Note: Editable cell detection (cells with class="interactive") is done
   // during enhancement, not validation. All analysis tables are valid
   // regardless of which cells are editable.
 

@@ -348,7 +348,7 @@ describe('Table Validation', () => {
 
       const tbody = document.createElement('tbody');
       const row = document.createElement('tr');
-      row.innerHTML = '<td style="background-color: #eee;">Read-only</td><td>Editable</td>';
+      row.innerHTML = '<td>Read-only</td><td class="interactive">Editable</td>';
       tbody.appendChild(row);
       table.appendChild(tbody);
 
@@ -385,13 +385,13 @@ describe('Table Validation', () => {
       );
     });
 
-    it('should pass validation if all cells have background-color', () => {
+    it('should pass validation if no cells have interactive class', () => {
       const table = document.createElement('table');
       table.className = 'qd-analysis';
 
       const tbody = document.createElement('tbody');
       const row = document.createElement('tr');
-      row.innerHTML = '<td style="background-color: #eee;">Cell 1</td><td style="background-color: #fff;">Cell 2</td>';
+      row.innerHTML = '<td>Cell 1</td><td>Cell 2</td>';
       tbody.appendChild(row);
       table.appendChild(tbody);
 
@@ -400,13 +400,13 @@ describe('Table Validation', () => {
       expect(result.errors).toHaveLength(0);
     });
 
-    it('should pass validation if no cells have background-color', () => {
+    it('should pass validation if some cells have interactive class', () => {
       const table = document.createElement('table');
       table.className = 'qd-analysis';
 
       const tbody = document.createElement('tbody');
       const row = document.createElement('tr');
-      row.innerHTML = '<td>Cell 1</td><td>Cell 2</td>';
+      row.innerHTML = '<td>Cell 1</td><td class="interactive">Cell 2</td>';
       tbody.appendChild(row);
       table.appendChild(tbody);
 
