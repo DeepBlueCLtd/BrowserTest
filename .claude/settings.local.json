@@ -7,7 +7,9 @@
       "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
       "Bash(curl:*)",
       "Bash(git push:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx prettier:*)"
     ],
     "deny": [],
     "ask": []
