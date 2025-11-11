@@ -5,39 +5,110 @@
     <body>
         <p/>
         <p>Some background content on this gram goes in here.</p>
-        <div id="section_r1z_rym_bgc">
-            <table frame="all" rowsep="1" colsep="1" id="table_uyb_bym_bgc"
-                outputclass="gram-config">
-                <tgroup cols="2" align="center">
-                    <colspec colname="c1" colnum="1" colwidth="1*"/>
-                    <colspec colname="c2" colnum="2" colwidth="1*"/>
-                    <tbody>
-                        <row>
-                            <entry namest="c1" nameend="c2">
-                                <image placement="break" href="images/gram-1.png" align="center"
-                                    id="image_svr_dym_bgc"/>
-                            </entry>
-                        </row>
-                        <row>
-                            <entry>time-start</entry>
-                            <entry>0</entry>
-                        </row>
-                        <row>
-                            <entry>time-end</entry>
-                            <entry>40</entry>
-                        </row>
-                        <row>
-                            <entry>freq-start</entry>
-                            <entry>100</entry>
-                        </row>
-                        <row>
-                            <entry>freq-end</entry>
-                            <entry>300</entry>
-                        </row>
-                    </tbody>
-                </tgroup>
-            </table>
-        </div>
+        <table frame="all" rowsep="1" colsep="1" id="table_uyb_bym_bgc" outputclass="gram-config">
+            <tgroup cols="2" align="center">
+                <colspec colname="c1" colnum="1" colwidth="1*"/>
+                <colspec colname="c2" colnum="2" colwidth="1*"/>
+                <tbody>
+                    <row>
+                        <entry namest="c1" nameend="c2">
+                            <image placement="break" href="images/gram-1.png" align="center"
+                                id="image_svr_dym_bgc"/>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>time-start</entry>
+                        <entry>0</entry>
+                    </row>
+                    <row>
+                        <entry>time-end</entry>
+                        <entry>40</entry>
+                    </row>
+                    <row>
+                        <entry>freq-start</entry>
+                        <entry>100</entry>
+                    </row>
+                    <row>
+                        <entry>freq-end</entry>
+                        <entry>300</entry>
+                    </row>
+                </tbody>
+            </tgroup>
+        </table>
+        <p>And now the analysis worksheet:<simpletable frame="all"
+                relcolwidth="1* 1* 1* 1* 1* 1* 1* 1*" id="simpletable_ugy_vnv_ghc">
+                <strow>
+                    <stentry/>
+                    <stentry>SR</stentry>
+                    <stentry>SSR</stentry>
+                    <stentry>SG</stentry>
+                    <stentry>SSG</stentry>
+                    <stentry>TPK</stentry>
+                    <stentry>ART</stentry>
+                    <stentry>DAN</stentry>
+                </strow>
+                <strow>
+                    <stentry>Low: Min 1</stentry>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                </strow>
+                <strow>
+                    <stentry>High: Min 13</stentry>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                </strow>
+                <strow>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                </strow>
+                <strow>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry>Classify:</stentry>
+                    <stentry/>
+                    <stentry>Speed</stentry>
+                    <stentry/>
+                </strow>
+                <strow>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry>Acceleration</stentry>
+                    <stentry/>
+                </strow>
+                <strow>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry/>
+                    <stentry>Elevation</stentry>
+                    <stentry/>
+                </strow>
+            </simpletable></p>
+        <div id="section_r1z_rym_bgc"/>
         <div id="questions">
             <simpletable frame="all" relcolwidth="1.0* 3.4*" id="simpletable_lfd_vym_bgc">
                 <strow>
