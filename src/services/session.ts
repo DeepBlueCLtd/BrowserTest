@@ -233,7 +233,9 @@ export class SessionService {
  * @param record - Student record to build cache from
  * @returns Session cache with totals and page entries
  */
-export function buildCacheFromRecord(record: import('../types/contracts').StudentRecord): SessionCache {
+export function buildCacheFromRecord(
+  record: import('../types/contracts').StudentRecord,
+): SessionCache {
   const cache: SessionCache = {
     totals: {
       answered: 0,
@@ -264,7 +266,7 @@ export function buildCacheFromRecord(record: import('../types/contracts').Studen
  */
 export function buildPageCache(
   _pageId: string,
-  pageData: import('../types/contracts').StudentRecord['pages'][string]
+  pageData: import('../types/contracts').StudentRecord['pages'][string],
 ): import('../types/contracts').PageCache {
   const answered = pageData.answers.length;
   const correct = pageData.answers.filter((a) => a.success).length;
@@ -291,7 +293,7 @@ export function buildPageCache(
 export function updateCacheWithAnswer(
   cache: SessionCache,
   pageId: string,
-  isCorrect: boolean
+  isCorrect: boolean,
 ): SessionCache {
   const now = new Date().toISOString();
 

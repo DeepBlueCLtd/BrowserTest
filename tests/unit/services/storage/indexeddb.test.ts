@@ -201,7 +201,7 @@ describe('IndexedDBStorageAdapter', () => {
 
         expect(retrieved?.updated).not.toBe('2020-01-01T00:00:00.000Z');
         expect(new Date(retrieved!.updated).getTime()).toBeGreaterThan(
-          new Date('2020-01-01').getTime()
+          new Date('2020-01-01').getTime(),
         );
       });
 
@@ -239,7 +239,7 @@ describe('IndexedDBStorageAdapter', () => {
 
         // Verify all were saved correctly
         const results = await Promise.all(
-          records.map((r) => adapter.getStudent('01-2025', r.serviceId))
+          records.map((r) => adapter.getStudent('01-2025', r.serviceId)),
         );
 
         expect(results.every((r) => r !== null)).toBe(true);
@@ -654,15 +654,17 @@ describe('IndexedDBStorageAdapter', () => {
 
       await adapter.saveStudent(record);
       const result = await adapter.getStudent('01-2025', 'TEST001');
-      expect(result).toEqual(expect.objectContaining({
-        schema: 1,
-        docId: 'test-doc',
-        release: '01-2025',
-        serviceId: 'TEST001',
-        name: 'Test Student',
-        attempted: 5,
-        correct: 3,
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          schema: 1,
+          docId: 'test-doc',
+          release: '01-2025',
+          serviceId: 'TEST001',
+          name: 'Test Student',
+          attempted: 5,
+          correct: 3,
+        }),
+      );
     });
 
     it('should preserve all record fields', async () => {

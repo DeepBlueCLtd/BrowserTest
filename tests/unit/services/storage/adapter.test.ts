@@ -6,7 +6,12 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { StorageAdapter, StudentRecord, ReleaseId, ServiceId } from '../../../../src/types/contracts';
+import type {
+  StorageAdapter,
+  StudentRecord,
+  ReleaseId,
+  ServiceId,
+} from '../../../../src/types/contracts';
 
 /**
  * Mock Storage Adapter for testing interface contracts
@@ -151,9 +156,9 @@ describe('StorageAdapter Interface', () => {
 
     it('should throw error if not initialized', async () => {
       const uninitializedAdapter = new MockStorageAdapter();
-      await expect(
-        uninitializedAdapter.getStudent('01-2025', 'TEST001')
-      ).rejects.toThrow('Storage not initialized');
+      await expect(uninitializedAdapter.getStudent('01-2025', 'TEST001')).rejects.toThrow(
+        'Storage not initialized',
+      );
     });
   });
 
@@ -259,9 +264,9 @@ describe('StorageAdapter Interface', () => {
         pages: {},
       };
 
-      await expect(
-        uninitializedAdapter.saveStudent(record)
-      ).rejects.toThrow('Storage not initialized');
+      await expect(uninitializedAdapter.saveStudent(record)).rejects.toThrow(
+        'Storage not initialized',
+      );
     });
   });
 
@@ -308,7 +313,7 @@ describe('StorageAdapter Interface', () => {
       const result = await adapter.getStudentsByRelease('01-2025');
 
       expect(result).toHaveLength(2);
-      expect(result.map(r => r.serviceId).sort()).toEqual(['TEST001', 'TEST002']);
+      expect(result.map((r) => r.serviceId).sort()).toEqual(['TEST001', 'TEST002']);
     });
 
     it('should not return students from different releases', async () => {
@@ -347,9 +352,9 @@ describe('StorageAdapter Interface', () => {
 
     it('should throw error if not initialized', async () => {
       const uninitializedAdapter = new MockStorageAdapter();
-      await expect(
-        uninitializedAdapter.getStudentsByRelease('01-2025')
-      ).rejects.toThrow('Storage not initialized');
+      await expect(uninitializedAdapter.getStudentsByRelease('01-2025')).rejects.toThrow(
+        'Storage not initialized',
+      );
     });
   });
 
@@ -420,9 +425,7 @@ describe('StorageAdapter Interface', () => {
 
     it('should throw error if not initialized', async () => {
       const uninitializedAdapter = new MockStorageAdapter();
-      await expect(
-        uninitializedAdapter.clearAll()
-      ).rejects.toThrow('Storage not initialized');
+      await expect(uninitializedAdapter.clearAll()).rejects.toThrow('Storage not initialized');
     });
   });
 
@@ -482,9 +485,7 @@ describe('StorageAdapter Interface', () => {
         pages: {},
       };
 
-      await expect(
-        uninitializedAdapter.backup(record)
-      ).rejects.toThrow('Storage not initialized');
+      await expect(uninitializedAdapter.backup(record)).rejects.toThrow('Storage not initialized');
     });
   });
 

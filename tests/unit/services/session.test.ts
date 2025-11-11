@@ -257,7 +257,10 @@ describe('SessionService', () => {
     });
 
     it('should clear cache along with session', () => {
-      sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify({ totals: { answered: 0, correct: 0 }, pages: {} }));
+      sessionStorage.setItem(
+        STORAGE_KEYS.CACHE,
+        JSON.stringify({ totals: { answered: 0, correct: 0 }, pages: {} }),
+      );
 
       service.clearSession();
 

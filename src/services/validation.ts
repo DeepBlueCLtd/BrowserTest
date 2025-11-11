@@ -268,9 +268,7 @@ export function validatePageTables(document: Document): ValidationResult {
   const errors: ValidationError[] = [];
 
   // Find all quiz and analysis tables
-  const quizTables = Array.from(
-    document.querySelectorAll<HTMLTableElement>('table.qd-quiz'),
-  );
+  const quizTables = Array.from(document.querySelectorAll<HTMLTableElement>('table.qd-quiz'));
   const analysisTables = Array.from(
     document.querySelectorAll<HTMLTableElement>('table.qd-analysis'),
   );
