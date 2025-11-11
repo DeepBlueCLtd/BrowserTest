@@ -240,5 +240,4 @@ Author runtime validation:
 
 **Document version:** v1.1  
 **Date:** 2025-11-11  
-**Author:** Sirius Digital  
 **Project:** Sonar Training Interactive Document
