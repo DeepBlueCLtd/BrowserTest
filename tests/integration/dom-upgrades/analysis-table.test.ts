@@ -254,7 +254,9 @@ describe('Analysis Table DOM Upgrades', () => {
       };
 
       // Mock getItem to return data when the storage key matches
-      vi.mocked(sessionStorage.getItem).mockImplementation((key: string) => {
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const getItemMock = vi.mocked(sessionStorage.getItem);
+      getItemMock.mockImplementation((key: string) => {
         if (key.includes(actualTableId)) {
           return JSON.stringify(mockData);
         }
@@ -293,7 +295,9 @@ describe('Analysis Table DOM Upgrades', () => {
       await new Promise(resolve => setTimeout(resolve, 250));
 
       // Check that setItem was called
-      expect(sessionStorage.setItem).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const setItemMock = vi.mocked(sessionStorage.setItem);
+      expect(setItemMock).toHaveBeenCalled();
     });
 
     it('should handle missing cell keys gracefully', () => {
@@ -304,7 +308,9 @@ describe('Analysis Table DOM Upgrades', () => {
         },
       };
 
-      vi.mocked(sessionStorage.getItem).mockReturnValue(JSON.stringify(mockData));
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const getItemMock = vi.mocked(sessionStorage.getItem);
+      getItemMock.mockReturnValue(JSON.stringify(mockData));
 
       container.innerHTML = `
         <table class="qd-analysis" data-table-id="test-table-id">

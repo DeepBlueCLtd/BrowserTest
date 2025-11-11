@@ -397,13 +397,13 @@ describe('Analysis Table Parser', () => {
     });
 
     it('should handle null input gracefully', () => {
-      const result = parseAnalysisTable(null as any);
+      const result = parseAnalysisTable(null as unknown as HTMLTableElement);
 
       expect(result).toBeNull();
     });
 
     it('should handle undefined input gracefully', () => {
-      const result = parseAnalysisTable(undefined as any);
+      const result = parseAnalysisTable(undefined as unknown as HTMLTableElement);
 
       expect(result).toBeNull();
     });
