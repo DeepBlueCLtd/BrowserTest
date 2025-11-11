@@ -16,7 +16,7 @@ Goals:
 
 **Controls**
 - `loggedIn:boolean`
-- `supervisor:boolean`
+- `instructor:boolean`
 - `showAllResponses:boolean`
 - `release:string`
 - `serviceId:string`
@@ -56,7 +56,7 @@ Goals:
 
 **Controls**
 - `loggedIn:boolean`
-- `supervisor:boolean`
+- `instructor:boolean`
 - `sheetSlug:{ tableId, cells, entries[] }`
 - `cellSize:'compact'|'comfortable'`
 - `maxCols:number`
@@ -79,7 +79,7 @@ Show unmodified HTML table, then let reviewers toggle enhancement.
 | Arg | Type | Description |
 |------|------|-------------|
 | `applied` | boolean | Whether the upgrade is active (`true`) or reset (`false`). |
-| `supervisor` | boolean | Instructor view toggle. |
+| `instructor` | boolean | Instructor view toggle. |
 | `showAllResponses` | boolean | Show all student responses. |
 | `slug` | object | Mock `UserReleaseRecord` content for page. |
 
@@ -101,7 +101,7 @@ Demonstrate transformation of plain table to editable workbook.
 | Arg | Type | Description |
 |------|------|-------------|
 | `applied` | boolean | Whether cell enhancement is active. |
-| `supervisor` | boolean | Show instructor overlays. |
+| `instructor` | boolean | Show instructor overlays. |
 | `sheetSlug` | object | Mock data for cell values and entries. |
 
 **Behavior**
@@ -122,7 +122,7 @@ Demonstrate transformation of plain table to editable workbook.
 | Control | Description |
 |----------|-------------|
 | `loggedIn` | Simulates active session; toggles login states. |
-| `supervisor` | Enables instructor mode for answer display. |
+| `instructor` | Enables instructor mode for answer display. |
 | `showAllResponses` | Displays compact table of student responses. |
 | `slug` | Static mock equivalent to `UserReleaseRecord`. |
 | `sheetSlug` | Mock for analysis sheet state. |
@@ -186,5 +186,5 @@ All mock data deterministic for stable Chromatic screenshots.
 Each PR must include:
 - Link to Chromatic build.
 - Which stories changed.
-- Expected behavior checklist (supervisor toggle, Dynamic test, etc.).
+- Expected behavior checklist (instructor toggle, Dynamic test, etc.).
 - Reference screenshots for visual deltas.

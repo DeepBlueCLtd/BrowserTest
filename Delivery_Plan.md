@@ -94,7 +94,7 @@ Exit gate: regression suite clean.
 
 ## Locked Contract Elements (Phase 0)
 
-- **Keys:** `qd/{release}/u{serviceId}`, cell key `R#C#f:#`.
+- **Keys:** Storage key format and cell key format defined in `Contracts.md`.
 - **Encodings:** answers stored as { answer: string, success: boolean } objects.
 - **Events:** `qd:login/logout`, `qd:answer-saved`, `qd:status-changed`, `qd:unlock/lock`, `qd:show-all-responses`, `qd:erase`, `qd:error`.
 - **Enums:** `State = 'unstarted'|'incomplete'|'complete'`.
