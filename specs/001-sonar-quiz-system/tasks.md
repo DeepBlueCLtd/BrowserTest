@@ -102,6 +102,7 @@ Single project structure:
 - [ ] T041 [US1] Implement R/A/G color coding logic in src/components/qd-status.ts
 - [ ] T042 [US1] Add ARIA live regions for accessibility in src/components/qd-status.ts
 - [ ] T043 [P] [US1] Create Storybook stories for status panel states in stories/components/qd-status.stories.ts
+- [ ] T043a [P] [US1] Create dynamic transformation story for quiz tables in stories/tables/quiz-transformation.stories.ts
 
 ### Integration & Entry Point
 
@@ -160,6 +161,7 @@ Single project structure:
 - [ ] T063 [US4] Add event handlers for cell value changes in src/enhancers/analysis-table.ts
 - [ ] T064 [US4] Implement auto-save on cell edit in src/enhancers/analysis-table.ts
 - [ ] T065 [P] [US4] Create Storybook stories for analysis tables in stories/tables/analysis.stories.ts
+- [ ] T065a [P] [US4] Create dynamic transformation story for analysis tables in stories/tables/analysis-transformation.stories.ts
 
 ### Integration
 
@@ -369,17 +371,17 @@ Phase 0 (Bootstrap) → Phase 1 (Foundation)
 
 ## Task Summary
 
-**Total Tasks**: 129
+**Total Tasks**: 131
 - Phase 0 (Bootstrap): 13 tasks
 - Phase 1 (Foundation): 12 tasks
-- US1 (Quiz Core): 22 tasks
+- US1 (Quiz Core): 23 tasks
 - US2 (Progress): 9 tasks
-- US4 (Analysis): 11 tasks
+- US4 (Analysis): 12 tasks
 - US3 (Instructor): 17 tasks
 - US5 (Cohort Mgmt): 11 tasks
 - Phase 7 (Polish): 24 tasks
 - Phase 8 (Deploy): 11 tasks
 
-**Parallel Opportunities**: 45 tasks marked with [P]
+**Parallel Opportunities**: 47 tasks marked with [P]
 
 **TDD Tasks**: All implementation tasks preceded by test tasks (following Red-Green-Refactor cycle)
