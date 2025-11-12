@@ -366,6 +366,7 @@ describe.skip('QdStatus Component', () => {
       element.attempted = 5;
       element.correct = 3;
       element.total = 10;
+      element.isLoggedIn = true;
       document.body.appendChild(element);
       await element.updateComplete;
 
@@ -378,11 +379,127 @@ describe.skip('QdStatus Component', () => {
       element.attempted = 10;
       element.correct = 0;
       element.total = 10;
+      element.isLoggedIn = true;
       document.body.appendChild(element);
       await element.updateComplete;
 
       const content = element.shadowRoot?.textContent;
       expect(content).toContain('0');
+    });
+  });
+
+  describe('Login State', () => {
+    it('should show login component when not logged in', async () => {
+      await import('../../../src/components/qd-status');
+      const element = document.createElement('qd-status') as any;
+      element.isLoggedIn = false;
+      element.release = '02-2025';
+      element.docId = 'core-acs';
+      document.body.appendChild(element);
+      await element.updateComplete;
+
+      const shadowContent = element.shadowRoot?.textContent;
+      expect(shadowContent).toContain('Login to view your progress');
+    });
+
+    it('should show status panel when logged in', async () => {
+      await import('../../../src/components/qd-status');
+      const element = document.createElement('qd-status') as any;
+      element.isLoggedIn = true;
+      element.attempted = 5;
+      element.correct = 3;
+      element.total = 10;
+      document.body.appendChild(element);
+      await element.updateComplete;
+
+      const shadowContent = element.shadowRoot?.textContent;
+      expect(shadowContent).toContain('Your Progress');
+    });
+
+    it('should accept isLoggedIn property', async () => {
+      await import('../../../src/components/qd-status');
+      const element = document.createElement('qd-status') as any;
+      element.isLoggedIn = true;
+      document.body.appendChild(element);
+      await element.updateComplete;
+
+      expect(element.isLoggedIn).toBe(true);
+    });
+  });
+
+  describe('Insertion Target Configuration', () => {
+    it('should accept insertAfterSelector property', async () => {
+      await import('../../../src/components/qd-status');
+      const element = document.createElement('qd-status') as any;
+      element.insertAfterSelector = '#test-button';
+      document.body.appendChild(element);
+      await element.updateComplete;
+
+      expect(element.insertAfterSelector).toBe('#test-button');
+    });
+
+    it('should hide component when insertAfterSelector target not found', async () => {
+      await import('../../../src/components/qd-status');
+      const element = document.createElement('qd-status') as any;
+      element.insertAfterSelector = '#nonexistent-element';
+      document.body.appendChild(element);
+      await element.updateComplete;
+
+      // Component should be hidden
+      expect(element.style.display).toBe('none');
+    });
+
+    it('should show component when insertAfterSelector target is found', async () => {
+      await import('../../../src/components/qd-status');
+
+      // Create target element
+      const targetButton = document.createElement('button');
+      targetButton.id = 'test-target-button';
+      document.body.appendChild(targetButton);
+
+      const element = document.createElement('qd-status') as any;
+      element.insertAfterSelector = '#test-target-button';
+      document.body.appendChild(element);
+      await element.updateComplete;
+
+      // Component should be visible
+      expect(element.style.display).toBe('block');
+    });
+  });
+
+  describe('Minimum Width', () => {
+    it('should have minimum width of 400px', async () => {
+      await import('../../../src/components/qd-status');
+      const element = document.createElement('qd-status') as any;
+      element.isLoggedIn = true;
+      document.body.appendChild(element);
+      await element.updateComplete;
+
+      // Check shadow DOM styles
+      const styles = element.shadowRoot?.querySelector('style');
+      expect(styles?.textContent).toContain('min-width: 400px');
+    });
+  });
+
+  describe('Login Properties', () => {
+    it('should accept release property', async () => {
+      await import('../../../src/components/qd-status');
+      const element = document.createElement('qd-status') as any;
+      element.release = '02-2025';
+      document.body.appendChild(element);
+      await element.updateComplete;
+
+      expect(element.release).toBe('02-2025');
+    });
+
+    it('should accept docId property', async () => {
+      await import('../../../src/components/qd-status');
+      const element = document.createElement('qd-status') as any;
+      element.docId = 'core-acs';
+      document.body.appendChild(element);
+      await element.updateComplete;
+
+      expect(element.docId).toBe('core-acs');
     });
   });
 });
