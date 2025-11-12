@@ -28,6 +28,10 @@ interface SonarQuizConfig {
   autoEnhance?: boolean;
   /** Selector for quiz tables */
   quizTableSelector?: string;
+  /** Selector for element to insert login component before (e.g., "#qd-status", ".content") */
+  loginInsertBeforeSelector?: string;
+  /** Title for login component fieldset */
+  loginTitle?: string;
 }
 
 /**
@@ -37,6 +41,8 @@ const DEFAULT_CONFIG: SonarQuizConfig = {
   debug: false,
   autoEnhance: true,
   quizTableSelector: `table.${CSS_CLASSES.QUIZ_TABLE}`,
+  loginInsertBeforeSelector: undefined,
+  loginTitle: 'Core Skills Assessment',
 };
 
 /**
@@ -81,25 +87,47 @@ function injectLoginComponent(doc: Document = document): void {
     return;
   }
 
-  // Look for a suitable container (first heading or start of body)
-  const container = doc.querySelector('main') || doc.querySelector('article') || doc.body;
+  const login = doc.createElement('qd-login');
 
-  if (container) {
-    const login = doc.createElement('qd-login');
+  // Try to extract release and docId from meta tags or document
+  const releaseMeta = doc.querySelector('meta[name="release"]');
+  const docIdMeta = doc.querySelector('meta[name="document-id"]');
 
-    // Try to extract release and docId from meta tags or document
-    const releaseMeta = doc.querySelector('meta[name="release"]');
-    const docIdMeta = doc.querySelector('meta[name="document-id"]');
+  if (releaseMeta) {
+    login.setAttribute('release', releaseMeta.getAttribute('content') || '');
+  }
+  if (docIdMeta) {
+    login.setAttribute('docId', docIdMeta.getAttribute('content') || '');
+  }
 
-    if (releaseMeta) {
-      login.setAttribute('release', releaseMeta.getAttribute('content') || '');
+  // Set title from config
+  if (config.loginTitle) {
+    login.setAttribute('title', config.loginTitle);
+  }
+
+  // Determine insertion point
+  let insertionParent: Element | null = null;
+  let insertionReference: Element | null = null;
+
+  if (config.loginInsertBeforeSelector) {
+    // Try to find the specified element to insert before
+    insertionReference = doc.querySelector(config.loginInsertBeforeSelector);
+    if (insertionReference) {
+      insertionParent = insertionReference.parentElement;
+      log(`Inserting login before element: ${config.loginInsertBeforeSelector}`);
+    } else {
+      log(`Element not found: ${config.loginInsertBeforeSelector}, falling back to default`);
     }
-    if (docIdMeta) {
-      login.setAttribute('docId', docIdMeta.getAttribute('content') || '');
-    }
+  }
 
-    // Insert at the beginning of the container
-    container.insertBefore(login, container.firstChild);
+  // Fallback to default insertion logic
+  if (!insertionParent) {
+    insertionParent = doc.querySelector('main') || doc.querySelector('article') || doc.body;
+    insertionReference = insertionParent?.firstChild as Element | null;
+  }
+
+  if (insertionParent) {
+    insertionParent.insertBefore(login, insertionReference);
     log('Login component injected');
   }
 }
