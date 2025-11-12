@@ -4,7 +4,7 @@
  * Web component for student login. Captures service ID and name,
  * validates inputs, and emits qd:login event on successful submission.
  *
- * Features landscape layout with right-aligned fieldset for discrete appearance.
+ * Features compact vertical stack layout with button to the right.
  *
  * Usage:
  *   <qd-login release="02-2025" docId="core-acs" title="Core Skills Assessment"></qd-login>
@@ -52,59 +52,32 @@ export class QdLogin extends LitElement {
   static styles = css`
     :host {
       display: block;
-      width: 100%;
-      padding: 0.5rem 0;
       font-family:
         -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    }
-
-    fieldset {
-      border: 1px solid #d0d0d0;
-      border-radius: 4px;
-      padding: 0.75rem 1rem;
-      margin: 0 0 1rem auto;
-      max-width: fit-content;
-      background: #fafafa;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    }
-
-    legend {
-      padding: 0 0.5rem;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: #444;
     }
 
     form {
       display: flex;
       flex-direction: row;
-      align-items: center;
-      gap: 1rem;
-      margin: 0;
+      align-items: stretch;
+      gap: 0.75rem;
     }
 
-    .field {
+    .inputs-stack {
       display: flex;
-      flex-direction: row;
-      align-items: center;
+      flex-direction: column;
       gap: 0.5rem;
-    }
-
-    label {
-      font-size: 0.8125rem;
-      font-weight: 500;
-      color: #555;
-      white-space: nowrap;
+      flex: 1;
     }
 
     input {
-      padding: 0.375rem 0.5rem;
+      padding: 0.5rem 0.75rem;
       font-size: 0.875rem;
       border: 1px solid #ccc;
-      border-radius: 3px;
+      border-radius: 4px;
       transition: border-color 0.2s;
       font-family: inherit;
-      min-width: 120px;
+      width: 100%;
     }
 
     input:focus {
@@ -122,17 +95,18 @@ export class QdLogin extends LitElement {
     }
 
     button {
-      padding: 0.375rem 1rem;
+      padding: 0.5rem 1.25rem;
       font-size: 0.875rem;
       font-weight: 500;
       color: #ffffff;
       background-color: #0066cc;
       border: none;
-      border-radius: 3px;
+      border-radius: 4px;
       cursor: pointer;
       transition: background-color 0.2s;
       font-family: inherit;
       white-space: nowrap;
+      align-self: stretch;
     }
 
     button:hover:not(:disabled) {
@@ -148,70 +122,54 @@ export class QdLogin extends LitElement {
       cursor: not-allowed;
     }
 
-    .error {
-      color: #d32f2f;
-      font-size: 0.75rem;
-      margin-top: 0.25rem;
-    }
-
-    @media (max-width: 768px) {
-      fieldset {
-        max-width: 100%;
-      }
-
+    @media (max-width: 480px) {
       form {
-        flex-wrap: wrap;
+        flex-direction: column;
       }
 
-      .field {
-        flex: 1 1 auto;
-        min-width: 200px;
+      button {
+        align-self: stretch;
       }
     }
   `;
 
   render() {
     return html`
-      <fieldset>
-        <legend>${this.title}</legend>
-        <form @submit=${(e: Event) => this._handleSubmit(e)} novalidate>
-          <div class="field">
-            <label for="serviceId">Service ID:</label>
-            <input
-              type="text"
-              id="serviceId"
-              name="serviceId"
-              required
-              minlength="2"
-              maxlength="${LIMITS.MAX_SERVICE_ID_LENGTH}"
-              placeholder="RN2344"
-              autocomplete="username"
-              autofocus
-              pattern="[A-Za-z0-9]+"
-              title="Service ID must be alphanumeric, 2-10 characters"
-            />
-          </div>
+      <form @submit=${(e: Event) => this._handleSubmit(e)} novalidate>
+        <div class="inputs-stack">
+          <input
+            type="text"
+            id="serviceId"
+            name="serviceId"
+            required
+            minlength="2"
+            maxlength="${LIMITS.MAX_SERVICE_ID_LENGTH}"
+            placeholder="Service ID (e.g., RN2344)"
+            autocomplete="username"
+            autofocus
+            pattern="[A-Za-z0-9]+"
+            title="Service ID must be alphanumeric, 2-10 characters"
+            aria-label="Service ID"
+          />
 
-          <div class="field">
-            <label for="name">Name:</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              required
-              minlength="1"
-              maxlength="${LIMITS.MAX_NAME_LENGTH}"
-              placeholder="J Corner"
-              autocomplete="name"
-              title="Name is required (1-100 characters)"
-            />
-          </div>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            required
+            minlength="1"
+            maxlength="${LIMITS.MAX_NAME_LENGTH}"
+            placeholder="Name (e.g., J Corner)"
+            autocomplete="name"
+            title="Name is required (1-100 characters)"
+            aria-label="Name"
+          />
+        </div>
 
-          <button type="submit" ?disabled=${this._isSubmitting}>
-            ${this._isSubmitting ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
-      </fieldset>
+        <button type="submit" ?disabled=${this._isSubmitting}>
+          ${this._isSubmitting ? 'Logging in...' : 'Login'}
+        </button>
+      </form>
     `;
   }
 
