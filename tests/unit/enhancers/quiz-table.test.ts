@@ -83,6 +83,13 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       const answerCell = table.querySelector('tbody tr td:nth-child(2)');
       const revealElement = answerCell?.querySelector('.qd-correct-answer');
 
+      // Diagnostic logging
+      console.log('MCQ Test - Answer Cell HTML:', answerCell?.innerHTML);
+      console.log('MCQ Test - Reveal Element:', revealElement);
+      console.log('MCQ Test - Reveal Element textContent:', revealElement?.textContent);
+      console.log('MCQ Test - Cell classList:', answerCell?.classList.toString());
+      console.log('MCQ Test - Cell data-correct-answer:', answerCell?.getAttribute('data-correct-answer'));
+
       expect(revealElement).toBeDefined();
       expect(revealElement?.textContent).toContain('2');
     });
@@ -102,6 +109,11 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       const answerCell = table.querySelector('tbody tr td:nth-child(2)');
       const revealElement = answerCell?.querySelector('.qd-correct-answer');
 
+      // Diagnostic logging
+      console.log('Numeric Test - Answer Cell HTML:', answerCell?.innerHTML);
+      console.log('Numeric Test - Reveal Element:', revealElement);
+      console.log('Numeric Test - Reveal Element textContent:', revealElement?.textContent);
+
       expect(revealElement).toBeDefined();
       expect(revealElement?.textContent).toContain('24.5');
     });
@@ -120,6 +132,11 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
 
       const answerCell = table.querySelector('tbody tr td:nth-child(2)');
       const toleranceElement = answerCell?.querySelector('.qd-tolerance');
+
+      // Diagnostic logging
+      console.log('Tolerance Test - Answer Cell HTML:', answerCell?.innerHTML);
+      console.log('Tolerance Test - Tolerance Element:', toleranceElement);
+      console.log('Tolerance Test - Tolerance Element textContent:', toleranceElement?.textContent);
 
       expect(toleranceElement).toBeDefined();
       expect(toleranceElement?.textContent).toContain('±0.5');
@@ -160,6 +177,13 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       revealCorrectAnswers(table);
 
       const answerCell = table.querySelector('tbody tr td:nth-child(2)');
+
+      // Diagnostic logging
+      console.log('Visual Indicator Test - Answer Cell:', answerCell);
+      console.log('Visual Indicator Test - Answer Cell HTML:', answerCell?.innerHTML);
+      console.log('Visual Indicator Test - classList:', answerCell?.classList.toString());
+      console.log('Visual Indicator Test - Has qd-answer-revealed:', answerCell?.classList.contains('qd-answer-revealed'));
+
       expect(answerCell?.classList.contains('qd-answer-revealed')).toBe(true);
     });
 
@@ -181,6 +205,12 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       revealCorrectAnswers(table);
 
       const revealElements = table.querySelectorAll('.qd-correct-answer');
+
+      // Diagnostic logging
+      console.log('Multiple Questions Test - Table HTML:', table.innerHTML);
+      console.log('Multiple Questions Test - Reveal Elements found:', revealElements.length);
+      console.log('Multiple Questions Test - All answer cells:', table.querySelectorAll('tbody tr td:nth-child(2)').length);
+
       expect(revealElements.length).toBe(2);
     });
   });
@@ -256,6 +286,14 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       showStudentComparisons(table, students, 'test-page');
 
       const studentCell = table.parentElement?.querySelector('.qd-student-id');
+
+      // Diagnostic logging
+      console.log('Student ID Test - Parent Element:', table.parentElement);
+      console.log('Student ID Test - Parent Element HTML:', table.parentElement?.innerHTML);
+      console.log('Student ID Test - Student Cell:', studentCell);
+      console.log('Student ID Test - Student Cell textContent:', studentCell?.textContent);
+      console.log('Student ID Test - Comparison tables found:', table.parentElement?.querySelectorAll('.qd-student-comparison').length);
+
       expect(studentCell?.textContent).toContain('RN23'); // First 4 chars
     });
 
@@ -292,6 +330,13 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       showStudentComparisons(table, students, 'test-page');
 
       const successCell = table.parentElement?.querySelector('.qd-student-answer.qd-success');
+
+      // Diagnostic logging
+      console.log('Success Color Test - Parent Element:', table.parentElement);
+      console.log('Success Color Test - Success Cell:', successCell);
+      console.log('Success Color Test - Success Cell className:', successCell?.className);
+      console.log('Success Color Test - All student-answer cells:', table.parentElement?.querySelectorAll('.qd-student-answer').length);
+
       expect(successCell).toBeDefined();
     });
 
@@ -328,6 +373,13 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       showStudentComparisons(table, students, 'test-page');
 
       const failureCell = table.parentElement?.querySelector('.qd-student-answer.qd-failure');
+
+      // Diagnostic logging
+      console.log('Failure Color Test - Parent Element:', table.parentElement);
+      console.log('Failure Color Test - Failure Cell:', failureCell);
+      console.log('Failure Color Test - Failure Cell className:', failureCell?.className);
+      console.log('Failure Color Test - All student-answer cells:', table.parentElement?.querySelectorAll('.qd-student-answer').length);
+
       expect(failureCell).toBeDefined();
     });
 
@@ -380,6 +432,12 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       showStudentComparisons(table, students, 'test-page');
 
       const studentRows = table.parentElement?.querySelectorAll('.qd-student-row');
+
+      // Diagnostic logging
+      console.log('Multiple Students Test - Parent Element HTML:', table.parentElement?.innerHTML?.substring(0, 500));
+      console.log('Multiple Students Test - Student Rows found:', studentRows?.length);
+      console.log('Multiple Students Test - Comparison tables:', table.parentElement?.querySelectorAll('.qd-student-comparison').length);
+
       expect(studentRows?.length).toBe(2);
     });
 
