@@ -148,7 +148,7 @@ Content authors must follow these rules (runtime validation enforces):
 
 ### Home Page
 - Status panel: `<div id="qd-status"></div>`
-- Navigation links: Add class `qd-test-link` for R/A/G badges
+- Navigation links: Add class `quizPageBtn` for R/A/G badges
 
 ## Data Model Key Points
 

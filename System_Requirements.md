@@ -83,7 +83,7 @@ Documents are published quarterly and used by individual students. Instructors c
   Cleared when session ends or user logs out.
 
 ### 4.6 Home Page Badges
-- Each button link with `class="qd-test-link"` receives R/A/G badge based on cached state.
+- Each button link with `class="quizPageBtn"` receives R/A/G badge based on cached state.
 - Cache rebuilt automatically after quiz updates or on session reset.
 
 ---

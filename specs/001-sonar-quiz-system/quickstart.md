@@ -67,8 +67,8 @@ Add the status panel placeholder and mark quiz links:
 <div id="qd-status"></div>
 
 <!-- Mark navigation links for badge display -->
-<a href="chapter1.html" class="qd-test-link">Chapter 1: Introduction</a>
-<a href="chapter2.html" class="qd-test-link">Chapter 2: Fundamentals</a>
+<a href="chapter1.html" class="quizPageBtn">Chapter 1: Introduction</a>
+<a href="chapter2.html" class="quizPageBtn">Chapter 2: Fundamentals</a>
 ```
 
 ## For System Integrators

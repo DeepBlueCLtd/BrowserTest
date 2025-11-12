@@ -385,13 +385,13 @@ export const CompleteWorkflow: Story = {
             <p>Select a chapter to begin your training:</p>
 
             <nav id="home-nav">
-              <a href="#" class="nav-link qd-test-link" data-page-id="chapter-1">
+              <a href="#" class="nav-link quizPageBtn" data-page-id="chapter-1">
                 Chapter 1: Introduction to Sonar Systems
               </a>
-              <a href="#" class="nav-link qd-test-link" data-page-id="chapter-2">
+              <a href="#" class="nav-link quizPageBtn" data-page-id="chapter-2">
                 Chapter 2: Operating Principles
               </a>
-              <a href="#" class="nav-link qd-test-link" data-page-id="chapter-3">
+              <a href="#" class="nav-link quizPageBtn" data-page-id="chapter-3">
                 Chapter 3: Signal Processing
               </a>
             </nav>

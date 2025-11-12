@@ -47,12 +47,12 @@ beforeEach(() => {
 });
 
 describe('Home Page Badge Detection', () => {
-  it('should detect links with qd-test-link class', () => {
+  it('should detect links with quizPageBtn class', () => {
     // Arrange
     const container = document.createElement('div');
     container.innerHTML = `
-      <a href="page1.html" class="qd-test-link">Page 1</a>
-      <a href="page2.html" class="qd-test-link">Page 2</a>
+      <a href="page1.html" class="quizPageBtn">Page 1</a>
+      <a href="page2.html" class="quizPageBtn">Page 2</a>
       <a href="page3.html">Page 3 (no badge)</a>
     `;
 
@@ -204,12 +204,12 @@ describe('Badge Element Creation', () => {
 });
 
 describe('Badge Injection', () => {
-  it('should inject badges into all qd-test-link elements', () => {
+  it('should inject badges into all quizPageBtn elements', () => {
     // Arrange
     const container = document.createElement('div');
     container.innerHTML = `
-      <a href="page1.html" class="qd-test-link">Page 1</a>
-      <a href="page2.html" class="qd-test-link">Page 2</a>
+      <a href="page1.html" class="quizPageBtn">Page 1</a>
+      <a href="page2.html" class="quizPageBtn">Page 2</a>
     `;
 
     const cache: SessionCache = {
@@ -234,7 +234,7 @@ describe('Badge Injection', () => {
   it('should not inject duplicate badges', () => {
     // Arrange
     const container = document.createElement('div');
-    container.innerHTML = `<a href="page1.html" class="qd-test-link">Page 1</a>`;
+    container.innerHTML = `<a href="page1.html" class="quizPageBtn">Page 1</a>`;
 
     const cache: SessionCache = {
       totals: { answered: 0, correct: 0 },
@@ -254,7 +254,7 @@ describe('Badge Injection', () => {
   it('should handle missing cache gracefully', () => {
     // Arrange
     const container = document.createElement('div');
-    container.innerHTML = `<a href="page1.html" class="qd-test-link">Page 1</a>`;
+    container.innerHTML = `<a href="page1.html" class="quizPageBtn">Page 1</a>`;
 
     // Act - inject with null cache
     expect(() => injectBadges(container, null)).not.toThrow();
@@ -263,7 +263,7 @@ describe('Badge Injection', () => {
   it('should update existing badges when state changes', () => {
     // Arrange
     const container = document.createElement('div');
-    container.innerHTML = `<a href="page1.html" class="qd-test-link">Page 1</a>`;
+    container.innerHTML = `<a href="page1.html" class="quizPageBtn">Page 1</a>`;
 
     const cache1: SessionCache = {
       totals: { answered: 1, correct: 0 },

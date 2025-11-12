@@ -12,7 +12,7 @@
  * - Interactive Storybook story (stories/tables/home-badges-workflow.stories.ts)
  *
  * To enable these tests, create demo files in /demo directory:
- * - demo/home.html (with qd-test-link navigation)
+ * - demo/home.html (with quizPageBtn navigation)
  * - demo/quiz-page.html (with quiz tables)
  * - demo/page-1.html, page-2.html, etc.
  */
@@ -34,7 +34,7 @@ test.describe.skip('Progress Tracking - Home Page Badges', () => {
     await page.waitForLoadState('domcontentloaded');
 
     // Check for test links with badges
-    const links = page.locator('.qd-test-link');
+    const links = page.locator('.quizPageBtn');
     const count = await links.count();
 
     expect(count).toBeGreaterThan(0);
@@ -90,7 +90,7 @@ test.describe.skip('Progress Tracking - Home Page Badges', () => {
     await page.reload();
 
     // Verify initial red badge
-    const link = page.locator('.qd-test-link[href*="quiz-page"]');
+    const link = page.locator('.quizPageBtn[href*="quiz-page"]');
     await expect(link.locator('.qd-badge')).toHaveClass(/qd-badge--red/);
 
     // Navigate to quiz page
@@ -128,7 +128,7 @@ test.describe.skip('Progress Tracking - Home Page Badges', () => {
     await page.reload();
 
     // Verify initial amber badge
-    const link = page.locator('.qd-test-link[href*="quiz-page"]');
+    const link = page.locator('.quizPageBtn[href*="quiz-page"]');
     await expect(link.locator('.qd-badge')).toHaveClass(/qd-badge--amber/);
 
     // Navigate to quiz page
@@ -172,16 +172,16 @@ test.describe.skip('Progress Tracking - Home Page Badges', () => {
     await page.reload();
 
     // Verify each page has correct badge color
-    await expect(page.locator('.qd-test-link[href*="page-1"] .qd-badge')).toHaveClass(
+    await expect(page.locator('.quizPageBtn[href*="page-1"] .qd-badge')).toHaveClass(
       /qd-badge--green/,
     );
-    await expect(page.locator('.qd-test-link[href*="page-2"] .qd-badge')).toHaveClass(
+    await expect(page.locator('.quizPageBtn[href*="page-2"] .qd-badge')).toHaveClass(
       /qd-badge--amber/,
     );
-    await expect(page.locator('.qd-test-link[href*="page-3"] .qd-badge')).toHaveClass(
+    await expect(page.locator('.quizPageBtn[href*="page-3"] .qd-badge')).toHaveClass(
       /qd-badge--red/,
     );
-    await expect(page.locator('.qd-test-link[href*="page-4"] .qd-badge')).toHaveClass(
+    await expect(page.locator('.quizPageBtn[href*="page-4"] .qd-badge')).toHaveClass(
       /qd-badge--amber/,
     );
   });
@@ -202,7 +202,7 @@ test.describe.skip('Progress Tracking - Home Page Badges', () => {
 
     await page.reload();
 
-    const link = page.locator('.qd-test-link[href*="test-page"]');
+    const link = page.locator('.quizPageBtn[href*="test-page"]');
 
     // Verify initial state (red)
     await expect(link.locator('.qd-badge')).toHaveClass(/qd-badge--red/);
@@ -249,7 +249,7 @@ test.describe.skip('Progress Tracking - Home Page Badges', () => {
     await page.reload();
 
     // Verify badge is green
-    const badge = page.locator('.qd-test-link[href*="page-1"] .qd-badge');
+    const badge = page.locator('.quizPageBtn[href*="page-1"] .qd-badge');
     await expect(badge).toHaveClass(/qd-badge--green/);
 
     // Reload page again
@@ -320,12 +320,12 @@ test.describe.skip('Progress Tracking - Home Page Badges', () => {
     await page.reload();
 
     // Verify page-1 has green badge
-    await expect(page.locator('.qd-test-link[href*="page-1"] .qd-badge')).toHaveClass(
+    await expect(page.locator('.quizPageBtn[href*="page-1"] .qd-badge')).toHaveClass(
       /qd-badge--green/,
     );
 
     // Verify pages not in cache have gray badges
-    await expect(page.locator('.qd-test-link[href*="page-2"] .qd-badge')).toHaveClass(
+    await expect(page.locator('.quizPageBtn[href*="page-2"] .qd-badge')).toHaveClass(
       /qd-badge--gray/,
     );
   });
