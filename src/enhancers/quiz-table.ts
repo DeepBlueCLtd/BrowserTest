@@ -136,8 +136,9 @@ function enhanceMcqCell(
   });
 
   // Clear cell and inject select
-  cell.textContent = '';
-  cell.appendChild(select);
+  // Note: Using replaceChildren() instead of textContent = '' to avoid JSDOM bug
+  // in Node 18 where textContent = '' on table cells removes adjacent cells
+  cell.replaceChildren(select);
 }
 
 /**
@@ -170,8 +171,9 @@ function enhanceNumericCell(
   });
 
   // Clear cell and inject input
-  cell.textContent = '';
-  cell.appendChild(input);
+  // Note: Using replaceChildren() instead of textContent = '' to avoid JSDOM bug
+  // in Node 18 where textContent = '' on table cells removes adjacent cells
+  cell.replaceChildren(input);
 }
 
 /**
