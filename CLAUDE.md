@@ -151,6 +151,9 @@ Content authors must follow these rules (runtime validation enforces):
 - Status panel: Auto-injected as last child of configured navbar container
   - Default: `.wh_top_menu_and_indexterms_link` (Oxygen WebHelp)
   - Configure via `statusPanelContainer` option in `init()` or `data-status-panel-container` attribute
+  - **Not logged in**: Shows login form within status panel
+  - **Logged in**: Shows quiz progress (R/A/G state, counts, percentage)
+  - **Logout**: Button at bottom-right clears sessionStorage and shows login form
 - Navigation links: Add class `quizPageBtn` for R/A/G badges
 
 ## Data Model Key Points

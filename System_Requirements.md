@@ -70,12 +70,17 @@ Documents are published quarterly and used by individual students. Instructors c
 - Auto-injected into configured navbar container as last child:
   - Default container: `.wh_top_menu_and_indexterms_link` (Oxygen WebHelp)
   - Configurable via `statusPanelContainer` option
-  - **Unstarted** – red
-  - **Incomplete** – amber
-  - **Complete** – green
+- **Not logged in**: Displays login form (name + service ID)
+- **Logged in**: Displays progress panel with:
+  - **Unstarted** – red indicator
+  - **Incomplete** – amber indicator
+  - **Complete** – green indicator
+  - Questions attempted / correct counts
+  - Percentage score
+  - Logout button (bottom-right)
 - Styled with `display:inline-block; vertical-align:middle; margin-left:auto;` to align right
-- Shows counts and last attempt time.
 - Updated live after each answer save.
+- Logout clears sessionStorage and returns to login view.
 
 ### 4.5 Page Status (R/A/G)
 - Derived per page:

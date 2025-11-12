@@ -105,14 +105,16 @@ export class QdStatus extends LitElement {
     }
 
     .status-panel {
-      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
       background: white;
-      border: 2px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 1.5rem;
-      padding-bottom: 3rem; /* Make room for logout button */
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      min-width: 400px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 0.5rem 0.75rem;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      min-width: 320px;
+      font-size: 0.75rem;
     }
 
     .login-container {
@@ -132,16 +134,9 @@ export class QdStatus extends LitElement {
       text-align: center;
     }
 
-    .status-header {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      margin-bottom: 1rem;
-    }
-
     .status-indicator {
-      width: 24px;
-      height: 24px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
       flex-shrink: 0;
       transition: background-color 0.3s;
@@ -149,51 +144,53 @@ export class QdStatus extends LitElement {
 
     .status-indicator.unstarted {
       background-color: #d32f2f;
-      box-shadow: 0 0 8px rgba(211, 47, 47, 0.5);
+      box-shadow: 0 0 4px rgba(211, 47, 47, 0.4);
     }
 
     .status-indicator.incomplete {
       background-color: #ff9800;
-      box-shadow: 0 0 8px rgba(255, 152, 0, 0.5);
+      box-shadow: 0 0 4px rgba(255, 152, 0, 0.4);
     }
 
     .status-indicator.complete {
       background-color: #4caf50;
-      box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+      box-shadow: 0 0 4px rgba(76, 175, 80, 0.4);
     }
 
     .status-title {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: #333;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #666;
       margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .status-stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1rem;
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+      flex: 1;
     }
 
     .stat {
-      display: flex;
-      flex-direction: column;
+      display: inline-flex;
+      align-items: baseline;
       gap: 0.25rem;
-    }
-
-    .stat-label {
-      font-size: 0.75rem;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #666;
+      white-space: nowrap;
     }
 
     .stat-value {
-      font-size: 1.5rem;
-      font-weight: 700;
+      font-size: 0.875rem;
+      font-weight: 600;
       color: #333;
+    }
+
+    .stat-label {
+      font-size: 0.625rem;
+      font-weight: 400;
+      color: #666;
+      vertical-align: super;
     }
 
     .stat-value.percentage {
@@ -202,10 +199,11 @@ export class QdStatus extends LitElement {
 
     .progress-bar-container {
       background: #f0f0f0;
-      border-radius: 8px;
-      height: 12px;
+      border-radius: 3px;
+      height: 6px;
       overflow: hidden;
-      margin-bottom: 0.5rem;
+      width: 80px;
+      flex-shrink: 0;
     }
 
     .progress-bar {
@@ -213,7 +211,7 @@ export class QdStatus extends LitElement {
       transition:
         width 0.3s ease,
         background-color 0.3s;
-      border-radius: 8px;
+      border-radius: 3px;
     }
 
     .progress-bar.unstarted {
@@ -229,39 +227,18 @@ export class QdStatus extends LitElement {
       background: linear-gradient(90deg, #4caf50 0%, #66bb6a 100%);
     }
 
-    .status-message {
-      font-size: 0.875rem;
-      color: #666;
-      text-align: center;
-      font-style: italic;
-    }
-
-    .status-message.unstarted {
-      color: #d32f2f;
-    }
-
-    .status-message.incomplete {
-      color: #ff9800;
-    }
-
-    .status-message.complete {
-      color: #4caf50;
-      font-weight: 600;
-    }
-
     .logout-button {
-      position: absolute;
-      bottom: 0.75rem;
-      right: 0.75rem;
-      padding: 0.5rem 1rem;
+      padding: 0.25rem 0.5rem;
       background: #6c757d;
       color: white;
       border: none;
-      border-radius: 4px;
-      font-size: 0.875rem;
+      border-radius: 3px;
+      font-size: 0.625rem;
       font-weight: 500;
       cursor: pointer;
       transition: background 0.2s;
+      white-space: nowrap;
+      margin-left: auto;
     }
 
     .logout-button:hover {
@@ -274,21 +251,21 @@ export class QdStatus extends LitElement {
 
     @media (max-width: 480px) {
       .status-panel {
-        padding: 1rem;
-        padding-bottom: 3rem;
+        min-width: 280px;
+        font-size: 0.625rem;
       }
 
       .status-stats {
-        grid-template-columns: 1fr;
+        gap: 0.5rem;
       }
 
       .stat-value {
-        font-size: 1.25rem;
+        font-size: 0.75rem;
       }
 
       .logout-button {
-        font-size: 0.75rem;
-        padding: 0.4rem 0.8rem;
+        font-size: 0.5625rem;
+        padding: 0.2rem 0.4rem;
       }
     }
   `;
@@ -321,50 +298,30 @@ export class QdStatus extends LitElement {
 
   private _renderStatusView() {
     const percentage = this.calculatePercentage();
-    const statusMessage = this.getStatusMessage();
 
     return html`
       <div class="status-panel" role="region" aria-label="Quiz Progress">
-        <div class="status-header">
-          <div class="status-indicator ${this.state}"></div>
-          <h2 class="status-title">Your Progress</h2>
-        </div>
+        <div class="status-indicator ${this.state}"></div>
+        <span class="status-title">Your Progress</span>
 
         <div class="status-stats">
           <div class="stat">
-            <span class="stat-label">Attempted</span>
             <span class="stat-value">${this.attempted}/${this.total}</span>
+            <span class="stat-label">attempted</span>
           </div>
-
           <div class="stat">
-            <span class="stat-label">Correct</span>
             <span class="stat-value">${this.correct}/${this.total}</span>
+            <span class="stat-label">correct</span>
           </div>
-
           <div class="stat">
-            <span class="stat-label">Score</span>
             <span class="stat-value percentage">${percentage}%</span>
+            <span class="stat-label">score</span>
           </div>
-        </div>
-
-        <div
-          class="progress-bar-container"
-          role="progressbar"
-          aria-valuenow="${percentage}"
-          aria-valuemin="0"
-          aria-valuemax="100"
-          aria-label="Quiz completion progress"
-        >
-          <div class="progress-bar ${this.state}" style="width: ${percentage}%"></div>
-        </div>
-
-        <div class="status-message ${this.state}" aria-live="polite" aria-atomic="true">
-          ${statusMessage}
         </div>
 
         <button
           class="logout-button"
-          @click=${this._handleLogout}
+          @click=${() => this._handleLogout()}
           aria-label="Logout"
           title="Logout"
         >
@@ -430,31 +387,6 @@ export class QdStatus extends LitElement {
       return 0;
     }
     return Math.round((this.correct / this.total) * 100);
-  }
-
-  /**
-   * Get status message based on state
-   */
-  private getStatusMessage(): string {
-    switch (this.state) {
-      case 'unstarted':
-        return 'Start answering questions to track your progress';
-
-      case 'incomplete':
-        if (this.attempted === 0) {
-          return 'No questions answered yet';
-        } else if (this.attempted < this.total) {
-          return `${this.total - this.attempted} question${this.total - this.attempted === 1 ? '' : 's'} remaining`;
-        } else {
-          return 'Review your incorrect answers';
-        }
-
-      case 'complete':
-        return '✓ All questions answered correctly!';
-
-      default:
-        return '';
-    }
   }
 
   /**

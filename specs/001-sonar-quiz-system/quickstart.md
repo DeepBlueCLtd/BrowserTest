@@ -77,6 +77,11 @@ Mark quiz navigation links and ensure navbar structure:
 
 **Note:** Status panel is automatically injected as the last child of the configured navbar container (default: `.wh_top_menu_and_indexterms_link`).
 
+**Status Panel Behavior:**
+- **Not logged in**: Shows login form within status panel
+- **After login**: Shows quiz progress (R/A/G indicator, counts, percentage)
+- **Logout**: Button at bottom-right clears session and returns to login form
+
 ### Configuring Status Panel Container
 
 For custom DITA templates with different navbar structures:
