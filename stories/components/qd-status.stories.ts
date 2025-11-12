@@ -59,11 +59,43 @@ const meta: Meta<QdStatus> = {
         defaultValue: { summary: '0' },
       },
     },
+    isLoggedIn: {
+      control: 'boolean',
+      description: 'Whether the user is logged in',
+      table: {
+        type: { summary: 'boolean' },
+        defaultValue: { summary: 'false' },
+      },
+    },
+    insertAfterSelector: {
+      control: 'text',
+      description: 'CSS selector (id/class) to insert component after. If not found, component will not be displayed.',
+      table: {
+        type: { summary: 'string' },
+        defaultValue: { summary: '' },
+      },
+    },
+    release: {
+      control: 'text',
+      description: 'Release identifier for login component',
+      table: {
+        type: { summary: 'string' },
+        defaultValue: { summary: '' },
+      },
+    },
+    docId: {
+      control: 'text',
+      description: 'Document identifier for login component',
+      table: {
+        type: { summary: 'string' },
+        defaultValue: { summary: '' },
+      },
+    },
   },
   parameters: {
     docs: {
       description: {
-        component: 'Progress status panel with R/A/G color coding for quiz completion tracking.',
+        component: 'Progress status panel with R/A/G color coding for quiz completion tracking. Supports both logged in (progress view) and not logged in (login view) states.',
       },
     },
   },
@@ -81,6 +113,7 @@ export const Unstarted: Story = {
     attempted: 0,
     correct: 0,
     total: 10,
+    isLoggedIn: true,
   },
 };
 
@@ -93,6 +126,7 @@ export const Incomplete: Story = {
     attempted: 5,
     correct: 3,
     total: 10,
+    isLoggedIn: true,
   },
 };
 
@@ -105,6 +139,7 @@ export const Complete: Story = {
     attempted: 10,
     correct: 10,
     total: 10,
+    isLoggedIn: true,
   },
 };
 
@@ -117,6 +152,7 @@ export const EarlyProgress: Story = {
     attempted: 2,
     correct: 2,
     total: 20,
+    isLoggedIn: true,
   },
 };
 
@@ -129,6 +165,7 @@ export const MidProgress: Story = {
     attempted: 10,
     correct: 8,
     total: 20,
+    isLoggedIn: true,
   },
 };
 
@@ -141,6 +178,7 @@ export const LateProgress: Story = {
     attempted: 18,
     correct: 15,
     total: 20,
+    isLoggedIn: true,
   },
 };
 
@@ -153,6 +191,7 @@ export const AllAttemptedWithErrors: Story = {
     attempted: 10,
     correct: 7,
     total: 10,
+    isLoggedIn: true,
   },
 };
 
@@ -165,6 +204,7 @@ export const PoorPerformance: Story = {
     attempted: 10,
     correct: 3,
     total: 10,
+    isLoggedIn: true,
   },
 };
 
@@ -177,6 +217,7 @@ export const PerfectScore: Story = {
     attempted: 50,
     correct: 50,
     total: 50,
+    isLoggedIn: true,
   },
 };
 
@@ -202,6 +243,7 @@ export const InteractiveDemo: Story = {
           attempted="${states[0].attempted}"
           correct="${states[0].correct}"
           total="${states[0].total}"
+          isLoggedIn
         ></qd-status>
 
         <div style="margin-top: 2rem; text-align: center;">
@@ -236,17 +278,17 @@ export const ComparisonView: Story = {
     >
       <div>
         <h3 style="text-align: center; margin-bottom: 1rem;">Not Started</h3>
-        <qd-status state="unstarted" attempted="0" correct="0" total="10"></qd-status>
+        <qd-status state="unstarted" attempted="0" correct="0" total="10" isLoggedIn></qd-status>
       </div>
 
       <div>
         <h3 style="text-align: center; margin-bottom: 1rem;">In Progress</h3>
-        <qd-status state="incomplete" attempted="5" correct="4" total="10"></qd-status>
+        <qd-status state="incomplete" attempted="5" correct="4" total="10" isLoggedIn></qd-status>
       </div>
 
       <div>
         <h3 style="text-align: center; margin-bottom: 1rem;">Completed</h3>
-        <qd-status state="complete" attempted="10" correct="10" total="10"></qd-status>
+        <qd-status state="complete" attempted="10" correct="10" total="10" isLoggedIn></qd-status>
       </div>
     </div>
   `,
@@ -261,6 +303,7 @@ export const LargeQuiz: Story = {
     attempted: 75,
     correct: 68,
     total: 100,
+    isLoggedIn: true,
   },
 };
 
@@ -273,6 +316,7 @@ export const SmallQuiz: Story = {
     attempted: 2,
     correct: 1,
     total: 3,
+    isLoggedIn: true,
   },
 };
 
@@ -284,17 +328,17 @@ export const ResponsiveLayout: Story = {
     <div style="padding: 1rem;">
       <h3>Desktop View (500px)</h3>
       <div style="max-width: 500px; margin-bottom: 2rem;">
-        <qd-status state="incomplete" attempted="7" correct="5" total="10"></qd-status>
+        <qd-status state="incomplete" attempted="7" correct="5" total="10" isLoggedIn></qd-status>
       </div>
 
       <h3>Tablet View (400px)</h3>
       <div style="max-width: 400px; margin-bottom: 2rem;">
-        <qd-status state="incomplete" attempted="7" correct="5" total="10"></qd-status>
+        <qd-status state="incomplete" attempted="7" correct="5" total="10" isLoggedIn></qd-status>
       </div>
 
       <h3>Mobile View (320px)</h3>
       <div style="max-width: 320px;">
-        <qd-status state="incomplete" attempted="7" correct="5" total="10"></qd-status>
+        <qd-status state="incomplete" attempted="7" correct="5" total="10" isLoggedIn></qd-status>
       </div>
     </div>
   `,
@@ -318,6 +362,7 @@ export const RealTimeUpdates: Story = {
           attempted="0"
           correct="0"
           total="10"
+          isLoggedIn
         ></qd-status>
 
         <div
@@ -378,7 +423,7 @@ export const RealTimeUpdates: Story = {
 export const AccessibilityFeatures: Story = {
   render: () => html`
     <div style="max-width: 600px; margin: 0 auto;">
-      <qd-status state="incomplete" attempted="6" correct="4" total="10"></qd-status>
+      <qd-status state="incomplete" attempted="6" correct="4" total="10" isLoggedIn></qd-status>
 
       <div style="margin-top: 2rem; padding: 1rem; background: #f5f5f5; border-radius: 4px;">
         <h3 style="margin-top: 0;">Accessibility Features:</h3>
@@ -392,4 +437,162 @@ export const AccessibilityFeatures: Story = {
       </div>
     </div>
   `,
+};
+
+/**
+ * Not logged in state - Shows login component
+ */
+export const NotLoggedIn: Story = {
+  args: {
+    isLoggedIn: false,
+    release: '02-2025',
+    docId: 'core-acs',
+    state: 'unstarted',
+    attempted: 0,
+    correct: 0,
+    total: 10,
+  },
+};
+
+/**
+ * Header menu nav bar scenario - Status panel appears after last button
+ */
+export const WithHeaderMenuNavBar: Story = {
+  render: () => {
+    let isLoggedIn = false;
+
+    return html`
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <!-- Header Menu Nav Bar (100px tall) -->
+        <nav
+          style="
+            height: 100px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            padding: 0 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+          "
+        >
+          <div style="display: flex; align-items: center; gap: 2rem; width: 100%;">
+            <h1 style="color: white; margin: 0; font-size: 1.5rem; font-weight: 600;">
+              Sonar Quiz System
+            </h1>
+
+            <div style="display: flex; gap: 1rem; margin-left: auto;">
+              <button
+                style="
+                  padding: 0.75rem 1.5rem;
+                  background: rgba(255, 255, 255, 0.2);
+                  color: white;
+                  border: 1px solid rgba(255, 255, 255, 0.3);
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-weight: 500;
+                  transition: background 0.2s;
+                "
+                onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                onmouseout="this.style.background='rgba(255,255,255,0.2)'"
+              >
+                Home
+              </button>
+
+              <button
+                style="
+                  padding: 0.75rem 1.5rem;
+                  background: rgba(255, 255, 255, 0.2);
+                  color: white;
+                  border: 1px solid rgba(255, 255, 255, 0.3);
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-weight: 500;
+                  transition: background 0.2s;
+                "
+                onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                onmouseout="this.style.background='rgba(255,255,255,0.2)'"
+              >
+                Quizzes
+              </button>
+
+              <button
+                id="last-menu-button"
+                style="
+                  padding: 0.75rem 1.5rem;
+                  background: rgba(255, 255, 255, 0.2);
+                  color: white;
+                  border: 1px solid rgba(255, 255, 255, 0.3);
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-weight: 500;
+                  transition: background 0.2s;
+                "
+                onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                onmouseout="this.style.background='rgba(255,255,255,0.2)'"
+              >
+                Analysis
+              </button>
+            </div>
+          </div>
+        </nav>
+
+        <!-- Content Area -->
+        <div style="padding: 2rem;">
+          <!-- Status panel configured to appear after #last-menu-button -->
+          <div style="margin-bottom: 2rem;">
+            <qd-status
+              id="demo-status-panel"
+              .isLoggedIn=${isLoggedIn}
+              insertAfterSelector="#last-menu-button"
+              release="02-2025"
+              docId="core-acs"
+              state="incomplete"
+              attempted="5"
+              correct="3"
+              total="10"
+            ></qd-status>
+          </div>
+
+          <div style="text-align: center; margin-top: 2rem;">
+            <button
+              style="
+                padding: 0.75rem 1.5rem;
+                font-size: 1rem;
+                background: #667eea;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-weight: 500;
+              "
+              @click=${() => {
+                const status = document.getElementById('demo-status-panel') as any;
+                isLoggedIn = !isLoggedIn;
+                status.isLoggedIn = isLoggedIn;
+              }}
+            >
+              Toggle Login State
+            </button>
+            <p style="margin-top: 1rem; color: #666;">
+              Click to toggle between logged in and not logged in states
+            </p>
+          </div>
+
+          <!-- Sample content -->
+          <div style="margin-top: 3rem;">
+            <h2>Sample Quiz Content</h2>
+            <p style="color: #666; line-height: 1.6;">
+              This demonstrates how the status panel integrates with a page that has a header
+              menu navigation bar. The panel is configured to appear after the last button in
+              the menu bar using the <code>insertAfterSelector</code> property.
+            </p>
+            <p style="color: #666; line-height: 1.6;">
+              When not logged in, the panel displays a login form with the header "Login to
+              view your progress". When logged in, it shows the progress panel with R/A/G
+              indicators.
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+  },
 };
