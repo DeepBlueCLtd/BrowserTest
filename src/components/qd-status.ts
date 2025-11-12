@@ -281,7 +281,8 @@ export class QdStatus extends LitElement {
         <qd-login
           release="${this.release}"
           docId="${this.docId}"
-          @qd:login=${(event: CustomEvent<SessionData>) => this._handleLogin(event)}>
+          @qd:login=${(event: CustomEvent<SessionData>) => this._handleLogin(event)}
+        >
         </qd-login>
       </div>
     `;

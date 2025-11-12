@@ -69,7 +69,8 @@ const meta: Meta<QdStatus> = {
     },
     insertAfterSelector: {
       control: 'text',
-      description: 'CSS selector (id/class) to insert component after. If not found, component will not be displayed.',
+      description:
+        'CSS selector (id/class) to insert component after. If not found, component will not be displayed.',
       table: {
         type: { summary: 'string' },
         defaultValue: { summary: '' },
@@ -95,7 +96,8 @@ const meta: Meta<QdStatus> = {
   parameters: {
     docs: {
       description: {
-        component: 'Progress status panel with R/A/G color coding for quiz completion tracking. Supports both logged in (progress view) and not logged in (login view) states.',
+        component:
+          'Progress status panel with R/A/G color coding for quiz completion tracking. Supports both logged in (progress view) and not logged in (login view) states.',
       },
     },
   },
@@ -581,14 +583,13 @@ export const WithHeaderMenuNavBar: Story = {
           <div style="margin-top: 3rem;">
             <h2>Sample Quiz Content</h2>
             <p style="color: #666; line-height: 1.6;">
-              This demonstrates how the status panel integrates with a page that has a header
-              menu navigation bar. The panel is configured to appear after the last button in
-              the menu bar using the <code>insertAfterSelector</code> property.
+              This demonstrates how the status panel integrates with a page that has a header menu
+              navigation bar. The panel is configured to appear after the last button in the menu
+              bar using the <code>insertAfterSelector</code> property.
             </p>
             <p style="color: #666; line-height: 1.6;">
-              When not logged in, the panel displays a login form with the header "Login to
-              view your progress". When logged in, it shows the progress panel with R/A/G
-              indicators.
+              When not logged in, the panel displays a login form with the header "Login to view
+              your progress". When logged in, it shows the progress panel with R/A/G indicators.
             </p>
           </div>
         </div>
