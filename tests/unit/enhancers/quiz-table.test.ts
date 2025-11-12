@@ -33,30 +33,55 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
 
   /**
    * Helper to create a quiz table DOM structure
-   * Note: JSDOM Node 18 bug workaround - we must avoid appending complex elements
-   * (like <ol> with <li> children) to table cells before the table is in the DOM.
-   * Strategy: Use a temporary div with innerHTML, then extract the built table.
+   * Complete workaround for JSDOM bug: Avoid ANY innerHTML, build everything
+   * programmatically after table is in document.
    */
   function createQuizTable(rows: Array<{ question: string; answer: string; detail: string }>) {
-    // Build table HTML as a string
-    const rowsHtml = rows
-      .map((row) => {
-        return `<tr><td>${row.question}</td><td>${row.answer}</td><td>${row.detail}</td></tr>`;
-      })
-      .join('');
+    const table = document.createElement('table');
+    table.className = 'qd-quiz';
 
-    const tableHtml = `<table class="qd-quiz"><tbody>${rowsHtml}</tbody></table>`;
+    const tbody = document.createElement('tbody');
+    table.appendChild(tbody);
 
-    // Create a temporary container div
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = tableHtml;
-
-    // Extract the table from the temp div
-    const table = tempDiv.querySelector('table')!;
-
-    // Remove table from temp div and append to document
-    tempDiv.removeChild(table);
+    // Append table to document FIRST
     document.body.appendChild(table);
+
+    // NOW create rows and cells
+    rows.forEach((row) => {
+      const tr = document.createElement('tr');
+
+      const questionCell = document.createElement('td');
+      const answerCell = document.createElement('td');
+      const detailCell = document.createElement('td');
+
+      // Append empty cells to row
+      tr.appendChild(questionCell);
+      tr.appendChild(answerCell);
+      tr.appendChild(detailCell);
+
+      // Append row to tbody
+      tbody.appendChild(tr);
+
+      // Set content AFTER cells are in DOM - NO innerHTML!
+      questionCell.textContent = row.question;
+      answerCell.textContent = row.answer;
+
+      // Build detail cell content programmatically
+      if (row.detail.includes('<ol>')) {
+        // Build <ol> without innerHTML
+        const ol = document.createElement('ol');
+        const matches = row.detail.matchAll(/<li>(.*?)<\/li>/g);
+        for (const match of matches) {
+          const li = document.createElement('li');
+          li.textContent = match[1];
+          ol.appendChild(li);
+        }
+        detailCell.appendChild(ol);
+      } else {
+        // Plain text (tolerance)
+        detailCell.textContent = row.detail;
+      }
+    });
 
     return table;
   }
