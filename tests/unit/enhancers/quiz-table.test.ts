@@ -33,6 +33,7 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
 
   /**
    * Helper to create a quiz table DOM structure
+   * Note: Avoiding innerHTML on cells to prevent JSDOM bugs in Node 18
    */
   function createQuizTable(rows: Array<{ question: string; answer: string; detail: string }>) {
     const table = document.createElement('table');
@@ -44,15 +45,21 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       const tr = document.createElement('tr');
 
       const questionCell = document.createElement('td');
-      questionCell.innerHTML = row.question;
+      questionCell.textContent = row.question;
       tr.appendChild(questionCell);
 
       const answerCell = document.createElement('td');
-      answerCell.innerHTML = row.answer;
+      answerCell.textContent = row.answer;
       tr.appendChild(answerCell);
 
       const detailCell = document.createElement('td');
-      detailCell.innerHTML = row.detail;
+      // Use a temporary div to parse HTML for the detail cell
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = row.detail;
+      // Move children from div to cell
+      while (tempDiv.firstChild) {
+        detailCell.appendChild(tempDiv.firstChild);
+      }
       tr.appendChild(detailCell);
 
       tbody.appendChild(tr);
