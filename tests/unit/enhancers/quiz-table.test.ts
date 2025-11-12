@@ -33,7 +33,7 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
 
   /**
    * Helper to create a quiz table DOM structure
-   * Note: Avoiding innerHTML on cells to prevent JSDOM bugs in Node 18
+   * Note: Completely avoiding innerHTML to prevent JSDOM bugs in Node 18
    */
   function createQuizTable(rows: Array<{ question: string; answer: string; detail: string }>) {
     const table = document.createElement('table');
@@ -46,20 +46,31 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
 
       const questionCell = document.createElement('td');
       questionCell.textContent = row.question;
-      tr.appendChild(questionCell);
 
       const answerCell = document.createElement('td');
       answerCell.textContent = row.answer;
-      tr.appendChild(answerCell);
 
       const detailCell = document.createElement('td');
-      // Use a temporary div to parse HTML for the detail cell
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = row.detail;
-      // Move children from div to cell
-      while (tempDiv.firstChild) {
-        detailCell.appendChild(tempDiv.firstChild);
+      // Manually create detail content to avoid innerHTML bugs
+      if (row.detail.includes('<ol>')) {
+        // MCQ - create ordered list
+        const ol = document.createElement('ol');
+        // Extract list items from HTML string
+        const matches = row.detail.matchAll(/<li>(.*?)<\/li>/g);
+        for (const match of matches) {
+          const li = document.createElement('li');
+          li.textContent = match[1];
+          ol.appendChild(li);
+        }
+        detailCell.appendChild(ol);
+      } else {
+        // Numeric - just text content (tolerance)
+        detailCell.textContent = row.detail;
       }
+
+      // Append cells to row BEFORE appending row to tbody
+      tr.appendChild(questionCell);
+      tr.appendChild(answerCell);
       tr.appendChild(detailCell);
 
       tbody.appendChild(tr);
