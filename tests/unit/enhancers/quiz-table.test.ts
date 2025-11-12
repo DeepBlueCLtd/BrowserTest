@@ -33,48 +33,30 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
 
   /**
    * Helper to create a quiz table DOM structure
-   * Note: Avoiding complex DOM manipulation that triggers JSDOM Node 18 bugs
-   * Strategy: Build table structure first, then populate with innerHTML on individual cells
+   * Note: JSDOM Node 18 bug workaround - we must avoid appending complex elements
+   * (like <ol> with <li> children) to table cells before the table is in the DOM.
+   * Strategy: Use a temporary div with innerHTML, then extract the built table.
    */
   function createQuizTable(rows: Array<{ question: string; answer: string; detail: string }>) {
-    const table = document.createElement('table');
-    table.className = 'qd-quiz';
+    // Build table HTML as a string
+    const rowsHtml = rows
+      .map((row) => {
+        return `<tr><td>${row.question}</td><td>${row.answer}</td><td>${row.detail}</td></tr>`;
+      })
+      .join('');
 
-    const tbody = document.createElement('tbody');
-    table.appendChild(tbody);
+    const tableHtml = `<table class="qd-quiz"><tbody>${rowsHtml}</tbody></table>`;
 
-    // Append table to document FIRST to ensure stable DOM
+    // Create a temporary container div
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = tableHtml;
+
+    // Extract the table from the temp div
+    const table = tempDiv.querySelector('table')!;
+
+    // Remove table from temp div and append to document
+    tempDiv.removeChild(table);
     document.body.appendChild(table);
-
-    // Now add rows one at a time
-    rows.forEach((row) => {
-      const tr = document.createElement('tr');
-
-      const questionCell = document.createElement('td');
-      const answerCell = document.createElement('td');
-      const detailCell = document.createElement('td');
-
-      // Append empty cells first
-      tr.appendChild(questionCell);
-      tr.appendChild(answerCell);
-      tr.appendChild(detailCell);
-
-      // Append row to tbody
-      tbody.appendChild(tr);
-
-      // NOW set content AFTER cells are in the DOM
-      questionCell.textContent = row.question;
-      answerCell.textContent = row.answer;
-
-      // Set detail content - use innerHTML since cells are already in DOM
-      if (row.detail.includes('<ol>')) {
-        // MCQ - use innerHTML now that cell is in DOM
-        detailCell.innerHTML = row.detail;
-      } else {
-        // Numeric - just text content (tolerance)
-        detailCell.textContent = row.detail;
-      }
-    });
 
     return table;
   }
