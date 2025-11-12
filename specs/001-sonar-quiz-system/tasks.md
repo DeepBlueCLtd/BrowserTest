@@ -192,21 +192,21 @@ Single project structure:
 
 ### Analysis Review
 
-- [ ] T076 [P] [US3] Write tests for analysis cell review in tests/unit/enhancers/analysis-table.test.ts
-- [ ] T077 [US3] Implement student entry display for analysis cells in src/enhancers/analysis-table.ts
-- [ ] T078 [US3] Add 4-char username prefix display in src/enhancers/analysis-table.ts
+- [X] T076 [P] [US3] Write tests for analysis cell review in tests/unit/enhancers/analysis-table.test.ts
+- [X] T077 [US3] Implement student entry display for analysis cells in src/enhancers/analysis-table.ts
+- [X] T078 [US3] Add 4-char username prefix display in src/enhancers/analysis-table.ts
 
 ### Scores Page
 
-- [ ] T079 [P] [US3] Write tests for scores page data aggregation in tests/unit/services/scores.test.ts
-- [ ] T080 [US3] Create scores service to aggregate student data in src/services/scores.ts
-- [ ] T081 [US3] Implement scores page rendering logic in src/components/qd-instructor.ts
-- [ ] T082 [P] [US3] Create Storybook story for instructor view in stories/components/qd-instructor.stories.ts
+- [X] T079 [P] [US3] Write tests for scores page data aggregation in tests/unit/services/scores.test.ts
+- [X] T080 [US3] Create scores service to aggregate student data in src/services/scores.ts
+- [X] T081 [US3] Implement scores page rendering logic in src/components/qd-instructor.ts
+- [X] T082 [P] [US3] Create Storybook story for instructor view in stories/components/qd-instructor.stories.ts
 
 ### Integration
 
-- [ ] T083 [P] [US3] Write E2E test for instructor unlock flow in tests/e2e/workflows/instructor-review.spec.ts
-- [ ] T084 [US3] Verify Phase 3 exit gate: A11y checks pass, events qd:unlock/qd:lock emitted
+- [X] T083 [P] [US3] Write E2E test for instructor unlock flow in tests/e2e/workflows/instructor-review.spec.ts
+- [X] T084 [US3] Verify Phase 3 exit gate: A11y checks pass, events qd:unlock/qd:lock emitted
 
 ---
 
