@@ -213,9 +213,15 @@ export const InsertBeforeDemo: Story = {
       <h2 style="margin-top: 0;">Page Title</h2>
       <p>Some introductory content that appears before the login.</p>
       <qd-login release="02-2025" title="Core Skills Assessment"></qd-login>
-      <div id="content-section" style="margin-top: 2rem; padding: 1rem; background: white; border: 1px solid #ddd;">
+      <div
+        id="content-section"
+        style="margin-top: 2rem; padding: 1rem; background: white; border: 1px solid #ddd;"
+      >
         <h3 style="margin-top: 0;">Main Content Section</h3>
-        <p>This is where the main content would appear. Notice how the login panel is discrete and right-aligned above.</p>
+        <p>
+          This is where the main content would appear. Notice how the login panel is discrete and
+          right-aligned above.
+        </p>
       </div>
     </div>
   `,
