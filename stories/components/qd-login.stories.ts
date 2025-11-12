@@ -12,10 +12,12 @@ import type { QdLogin } from '../../src/components/qd-login';
  * event with session data on successful submission.
  *
  * ## Features
+ * - Landscape layout with right-aligned fieldset for discrete appearance
  * - Service ID validation (2-10 alphanumeric characters)
  * - Name validation (1-100 characters)
+ * - Configurable title displayed as fieldset legend
  * - Shadow DOM for style isolation
- * - Accessible form with labels and hints
+ * - Accessible form with labels
  * - Emits `qd:login` custom event
  */
 const meta: Meta<QdLogin> = {
@@ -39,12 +41,20 @@ const meta: Meta<QdLogin> = {
         defaultValue: { summary: '""' },
       },
     },
+    title: {
+      control: 'text',
+      description: 'Title displayed as fieldset legend',
+      table: {
+        type: { summary: 'string' },
+        defaultValue: { summary: 'Core Skills Assessment' },
+      },
+    },
   },
   parameters: {
     docs: {
       description: {
         component:
-          'Student login component for the Sonar Quiz System. Captures service ID and name with validation.',
+          'Student login component for the Sonar Quiz System. Captures service ID and name with validation. Features a discrete landscape layout with right-aligned fieldset.',
       },
     },
   },
@@ -54,21 +64,47 @@ export default meta;
 type Story = StoryObj<QdLogin>;
 
 /**
- * Default login form appearance
+ * Default login form appearance with landscape layout
  */
 export const Default: Story = {
   render: () => html`
-    <qd-login
-      release="02-2025"
-      docId="core-acs"
-      @qd:login=${(e: CustomEvent) => {
-        console.log('Login event:', e.detail);
-        alert(`Login successful!
+    <div style="padding: 1rem; background: #f5f5f5; min-height: 200px;">
+      <qd-login
+        release="02-2025"
+        docId="core-acs"
+        title="Core Skills Assessment"
+        @qd:login=${(e: CustomEvent) => {
+          console.log('Login event:', e.detail);
+          alert(`Login successful!
 Service ID: ${e.detail.serviceId}
 Name: ${e.detail.name}
 Release: ${e.detail.release}`);
-      }}
-    ></qd-login>
+        }}
+      ></qd-login>
+      <div style="margin-top: 2rem; padding: 1rem; background: white; border: 1px solid #ddd;">
+        <p style="margin: 0; color: #666; font-size: 0.875rem;">
+          Note the discrete, landscape layout with right-aligned fieldset.
+        </p>
+      </div>
+    </div>
+  `,
+};
+
+/**
+ * Custom title demonstration
+ */
+export const CustomTitle: Story = {
+  render: () => html`
+    <div style="padding: 1rem; background: #f5f5f5;">
+      <qd-login
+        release="02-2025"
+        docId="core-acs"
+        title="Advanced Navigation Assessment"
+        @qd:login=${(e: CustomEvent) => {
+          console.log('Login event:', e.detail);
+        }}
+      ></qd-login>
+    </div>
   `,
 };
 
@@ -77,11 +113,13 @@ Release: ${e.detail.release}`);
  */
 export const WithoutReleaseInfo: Story = {
   render: () => html`
-    <qd-login
-      @qd:login=${(e: CustomEvent) => {
-        console.log('Login event (auto-release):', e.detail);
-      }}
-    ></qd-login>
+    <div style="padding: 1rem; background: #f5f5f5;">
+      <qd-login
+        @qd:login=${(e: CustomEvent) => {
+          console.log('Login event (auto-release):', e.detail);
+        }}
+      ></qd-login>
+    </div>
   `,
 };
 
@@ -167,18 +205,40 @@ export const MultipleInstances: Story = {
 };
 
 /**
+ * Positioned before specific element demonstration
+ */
+export const InsertBeforeDemo: Story = {
+  render: () => html`
+    <div style="padding: 1rem; background: #f5f5f5;">
+      <h2 style="margin-top: 0;">Page Title</h2>
+      <p>Some introductory content that appears before the login.</p>
+      <qd-login release="02-2025" title="Core Skills Assessment"></qd-login>
+      <div id="content-section" style="margin-top: 2rem; padding: 1rem; background: white; border: 1px solid #ddd;">
+        <h3 style="margin-top: 0;">Main Content Section</h3>
+        <p>This is where the main content would appear. Notice how the login panel is discrete and right-aligned above.</p>
+      </div>
+    </div>
+  `,
+};
+
+/**
  * Responsive layout test
  */
 export const ResponsiveLayout: Story = {
   render: () => html`
     <div style="padding: 1rem;">
-      <h3>Desktop View (400px+ wide)</h3>
-      <div style="max-width: 1200px; margin: 0 auto 2rem;">
+      <h3>Desktop View (Full width)</h3>
+      <div style="margin: 0 auto 2rem; background: #f5f5f5; padding: 1rem;">
         <qd-login release="02-2025"></qd-login>
       </div>
 
-      <h3>Mobile View (320px wide)</h3>
-      <div style="max-width: 320px; margin: 0 auto;">
+      <h3>Tablet View (768px wide)</h3>
+      <div style="max-width: 768px; margin: 0 auto 2rem; background: #f5f5f5; padding: 1rem;">
+        <qd-login release="02-2025"></qd-login>
+      </div>
+
+      <h3>Mobile View (480px wide)</h3>
+      <div style="max-width: 480px; margin: 0 auto; background: #f5f5f5; padding: 1rem;">
         <qd-login release="02-2025"></qd-login>
       </div>
     </div>
