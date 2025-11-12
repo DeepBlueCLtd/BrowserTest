@@ -86,12 +86,22 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       // Debug: Check table after enhancement
       console.log('MCQ Test - Table after enhance:', {
         hasEnhanced: table.classList.contains('qd-enhanced'),
+        cellCount: table.querySelector('tbody tr')?.querySelectorAll('td').length,
+        detailCellStillExists: !!table.querySelector('tbody tr td:nth-child(3)'),
+        detailHTML: table.querySelector('tbody tr td:nth-child(3)')?.innerHTML?.substring(0, 100),
         answerCellHTML: table
           .querySelector('tbody tr td:nth-child(2)')
           ?.innerHTML?.substring(0, 100),
         hasDataAttr: table
           .querySelector('tbody tr td:nth-child(2)')
           ?.getAttribute('data-correct-answer'),
+      });
+
+      // Debug: Check before reveal
+      const rowsBeforeReveal = Array.from(table.querySelectorAll('tbody tr'));
+      console.log('MCQ Test - Before reveal:', {
+        rowCount: rowsBeforeReveal.length,
+        firstRowCells: rowsBeforeReveal[0]?.querySelectorAll('td').length,
       });
 
       // Then reveal answers
