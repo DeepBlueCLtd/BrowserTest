@@ -88,7 +88,10 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       console.log('MCQ Test - Reveal Element:', revealElement);
       console.log('MCQ Test - Reveal Element textContent:', revealElement?.textContent);
       console.log('MCQ Test - Cell classList:', answerCell?.classList.toString());
-      console.log('MCQ Test - Cell data-correct-answer:', answerCell?.getAttribute('data-correct-answer'));
+      console.log(
+        'MCQ Test - Cell data-correct-answer:',
+        answerCell?.getAttribute('data-correct-answer'),
+      );
 
       expect(revealElement).toBeDefined();
       expect(revealElement?.textContent).toContain('2');
@@ -182,7 +185,10 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       console.log('Visual Indicator Test - Answer Cell:', answerCell);
       console.log('Visual Indicator Test - Answer Cell HTML:', answerCell?.innerHTML);
       console.log('Visual Indicator Test - classList:', answerCell?.classList.toString());
-      console.log('Visual Indicator Test - Has qd-answer-revealed:', answerCell?.classList.contains('qd-answer-revealed'));
+      console.log(
+        'Visual Indicator Test - Has qd-answer-revealed:',
+        answerCell?.classList.contains('qd-answer-revealed'),
+      );
 
       expect(answerCell?.classList.contains('qd-answer-revealed')).toBe(true);
     });
@@ -209,7 +215,10 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       // Diagnostic logging
       console.log('Multiple Questions Test - Table HTML:', table.innerHTML);
       console.log('Multiple Questions Test - Reveal Elements found:', revealElements.length);
-      console.log('Multiple Questions Test - All answer cells:', table.querySelectorAll('tbody tr td:nth-child(2)').length);
+      console.log(
+        'Multiple Questions Test - All answer cells:',
+        table.querySelectorAll('tbody tr td:nth-child(2)').length,
+      );
 
       expect(revealElements.length).toBe(2);
     });
@@ -292,7 +301,10 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       console.log('Student ID Test - Parent Element HTML:', table.parentElement?.innerHTML);
       console.log('Student ID Test - Student Cell:', studentCell);
       console.log('Student ID Test - Student Cell textContent:', studentCell?.textContent);
-      console.log('Student ID Test - Comparison tables found:', table.parentElement?.querySelectorAll('.qd-student-comparison').length);
+      console.log(
+        'Student ID Test - Comparison tables found:',
+        table.parentElement?.querySelectorAll('.qd-student-comparison').length,
+      );
 
       expect(studentCell?.textContent).toContain('RN23'); // First 4 chars
     });
@@ -335,7 +347,10 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       console.log('Success Color Test - Parent Element:', table.parentElement);
       console.log('Success Color Test - Success Cell:', successCell);
       console.log('Success Color Test - Success Cell className:', successCell?.className);
-      console.log('Success Color Test - All student-answer cells:', table.parentElement?.querySelectorAll('.qd-student-answer').length);
+      console.log(
+        'Success Color Test - All student-answer cells:',
+        table.parentElement?.querySelectorAll('.qd-student-answer').length,
+      );
 
       expect(successCell).toBeDefined();
     });
@@ -378,7 +393,10 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       console.log('Failure Color Test - Parent Element:', table.parentElement);
       console.log('Failure Color Test - Failure Cell:', failureCell);
       console.log('Failure Color Test - Failure Cell className:', failureCell?.className);
-      console.log('Failure Color Test - All student-answer cells:', table.parentElement?.querySelectorAll('.qd-student-answer').length);
+      console.log(
+        'Failure Color Test - All student-answer cells:',
+        table.parentElement?.querySelectorAll('.qd-student-answer').length,
+      );
 
       expect(failureCell).toBeDefined();
     });
@@ -434,9 +452,15 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       const studentRows = table.parentElement?.querySelectorAll('.qd-student-row');
 
       // Diagnostic logging
-      console.log('Multiple Students Test - Parent Element HTML:', table.parentElement?.innerHTML?.substring(0, 500));
+      console.log(
+        'Multiple Students Test - Parent Element HTML:',
+        table.parentElement?.innerHTML?.substring(0, 500),
+      );
       console.log('Multiple Students Test - Student Rows found:', studentRows?.length);
-      console.log('Multiple Students Test - Comparison tables:', table.parentElement?.querySelectorAll('.qd-student-comparison').length);
+      console.log(
+        'Multiple Students Test - Comparison tables:',
+        table.parentElement?.querySelectorAll('.qd-student-comparison').length,
+      );
 
       expect(studentRows?.length).toBe(2);
     });
