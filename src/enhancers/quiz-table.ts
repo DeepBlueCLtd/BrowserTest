@@ -79,8 +79,11 @@ export function enhanceQuizTable(
     const answerCell = row.querySelector('td:nth-child(2)');
     if (!answerCell) return;
 
-    // Debug: Count cells before any manipulation
+    // Debug: ALWAYS log to trace cell count changes
     const cellsBeforeSetAttr = row.querySelectorAll('td').length;
+    console.error(
+      `[ENHANCE ROW ${index}] STEP 1 - before setAttribute: ${cellsBeforeSetAttr} cells`,
+    );
 
     // Store correct answer as data attribute before enhancement
     // This allows instructor reveal to work after enhancement
@@ -88,9 +91,15 @@ export function enhanceQuizTable(
 
     // Debug: Count cells after setAttribute
     const cellsAfterSetAttr = row.querySelectorAll('td').length;
+    console.error(`[ENHANCE ROW ${index}] STEP 2 - after setAttribute: ${cellsAfterSetAttr} cells`);
 
     // Get saved answer if available
     const savedAnswer = savedAnswers?.[index];
+
+    // Debug: Before calling enhance function
+    console.error(
+      `[ENHANCE ROW ${index}] STEP 3 - about to call enhance${question.kind === 'mcq' ? 'Mcq' : 'Numeric'}Cell`,
+    );
 
     // Enhance based on question type
     if (question.kind === 'mcq') {
@@ -101,12 +110,13 @@ export function enhanceQuizTable(
 
     // Debug: Count cells after enhancement
     const cellsAfterEnhance = row.querySelectorAll('td').length;
+    console.error(
+      `[ENHANCE ROW ${index}] STEP 4 - after enhance function: ${cellsAfterEnhance} cells`,
+    );
 
-    // Log if cell count changed
-    if (cellsBeforeSetAttr !== 3 || cellsAfterSetAttr !== 3 || cellsAfterEnhance !== 3) {
-      console.error(
-        `JSDOM BUG: Row ${index} cells: before=${cellsBeforeSetAttr}, afterSetAttr=${cellsAfterSetAttr}, afterEnhance=${cellsAfterEnhance}`,
-      );
+    // Final warning if cells were lost
+    if (cellsAfterEnhance !== 3) {
+      console.error(`[ENHANCE ROW ${index}] ERROR: Expected 3 cells, have ${cellsAfterEnhance}`);
     }
   });
 }
@@ -155,10 +165,29 @@ function enhanceMcqCell(
   // Note: Manually removing children to avoid JSDOM bugs in Node 18
   // where replaceChildren(), textContent='', or innerHTML='' on table cells
   // can cause adjacent cells in the same row to be removed
+
+  // Debug: Check cell count before manipulation
+  const row = cell.parentElement;
+  const cellsBefore = row?.querySelectorAll('td').length || 0;
+  console.error(
+    `  [MCQ CELL ${questionIndex}] before removeChild loop: ${cellsBefore} cells in row`,
+  );
+
   while (cell.firstChild) {
     cell.removeChild(cell.firstChild);
   }
+
+  const cellsAfterRemove = row?.querySelectorAll('td').length || 0;
+  console.error(
+    `  [MCQ CELL ${questionIndex}] after removeChild loop: ${cellsAfterRemove} cells in row`,
+  );
+
   cell.appendChild(select);
+
+  const cellsAfterAppend = row?.querySelectorAll('td').length || 0;
+  console.error(
+    `  [MCQ CELL ${questionIndex}] after appendChild: ${cellsAfterAppend} cells in row`,
+  );
 }
 
 /**
@@ -194,10 +223,29 @@ function enhanceNumericCell(
   // Note: Manually removing children to avoid JSDOM bugs in Node 18
   // where replaceChildren(), textContent='', or innerHTML='' on table cells
   // can cause adjacent cells in the same row to be removed
+
+  // Debug: Check cell count before manipulation
+  const row = cell.parentElement;
+  const cellsBefore = row?.querySelectorAll('td').length || 0;
+  console.error(
+    `  [NUMERIC CELL ${questionIndex}] before removeChild loop: ${cellsBefore} cells in row`,
+  );
+
   while (cell.firstChild) {
     cell.removeChild(cell.firstChild);
   }
+
+  const cellsAfterRemove = row?.querySelectorAll('td').length || 0;
+  console.error(
+    `  [NUMERIC CELL ${questionIndex}] after removeChild loop: ${cellsAfterRemove} cells in row`,
+  );
+
   cell.appendChild(input);
+
+  const cellsAfterAppend = row?.querySelectorAll('td').length || 0;
+  console.error(
+    `  [NUMERIC CELL ${questionIndex}] after appendChild: ${cellsAfterAppend} cells in row`,
+  );
 }
 
 /**
@@ -337,11 +385,14 @@ export function revealCorrectAnswers(table: HTMLTableElement | null): void {
     return;
   }
 
-  rows.forEach((row) => {
+  rows.forEach((row, rowIndex) => {
     const cells = Array.from(row.querySelectorAll('td'));
+
+    console.error(`[REVEAL ROW ${rowIndex}] Found ${cells.length} cells`);
 
     // Need all 3 columns
     if (cells.length !== 3) {
+      console.error(`[REVEAL ROW ${rowIndex}] Skipping - expected 3 cells, have ${cells.length}`);
       return;
     }
 

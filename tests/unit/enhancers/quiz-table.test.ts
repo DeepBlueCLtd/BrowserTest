@@ -83,6 +83,8 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
 
   describe('revealCorrectAnswers()', () => {
     it('should display correct answer for MCQ questions', () => {
+      console.error('=== START MCQ TEST ===');
+
       const table = createQuizTable([
         {
           question: 'What is active sonar?',
@@ -91,57 +93,35 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
         },
       ]);
 
-      // Debug: Check table before enhancement
-      console.log('MCQ Test - Table before enhance:', {
-        hasClass: table.classList.contains('qd-quiz'),
-        rowCount: table.querySelectorAll('tbody tr').length,
-        detailHTML: table.querySelector('tbody tr td:nth-child(3)')?.innerHTML,
-      });
+      const row = table.querySelector('tbody tr')!;
+      console.error('STEP 1 - After createQuizTable:', row.querySelectorAll('td').length, 'cells');
 
       // First enhance the table
+      console.error('STEP 2 - About to call enhanceQuizTable');
       enhanceQuizTable(table);
-
-      // Debug: Check table after enhancement
-      console.log('MCQ Test - Table after enhance:', {
-        hasEnhanced: table.classList.contains('qd-enhanced'),
-        cellCount: table.querySelector('tbody tr')?.querySelectorAll('td').length,
-        detailCellStillExists: !!table.querySelector('tbody tr td:nth-child(3)'),
-        detailHTML: table.querySelector('tbody tr td:nth-child(3)')?.innerHTML?.substring(0, 100),
-        answerCellHTML: table
-          .querySelector('tbody tr td:nth-child(2)')
-          ?.innerHTML?.substring(0, 100),
-        hasDataAttr: table
-          .querySelector('tbody tr td:nth-child(2)')
-          ?.getAttribute('data-correct-answer'),
-      });
-
-      // Debug: Check before reveal
-      const rowsBeforeReveal = Array.from(table.querySelectorAll('tbody tr'));
-      console.log('MCQ Test - Before reveal:', {
-        rowCount: rowsBeforeReveal.length,
-        firstRowCells: rowsBeforeReveal[0]?.querySelectorAll('td').length,
-      });
+      console.error(
+        'STEP 3 - After enhanceQuizTable:',
+        row.querySelectorAll('td').length,
+        'cells',
+      );
 
       // Then reveal answers
+      console.error('STEP 4 - About to call revealCorrectAnswers');
       revealCorrectAnswers(table);
+      console.error(
+        'STEP 5 - After revealCorrectAnswers:',
+        row.querySelectorAll('td').length,
+        'cells',
+      );
 
       // Check that correct answer is shown
       const answerCell = table.querySelector('tbody tr td:nth-child(2)');
       const revealElement = answerCell?.querySelector('.qd-correct-answer');
 
-      // Diagnostic logging
-      console.log('MCQ Test - Answer Cell HTML:', answerCell?.innerHTML);
-      console.log('MCQ Test - Reveal Element:', revealElement);
-      console.log('MCQ Test - Reveal Element textContent:', revealElement?.textContent);
-      console.log('MCQ Test - Cell classList:', answerCell?.classList.toString());
-      console.log(
-        'MCQ Test - Cell data-correct-answer:',
-        answerCell?.getAttribute('data-correct-answer'),
-      );
-
       if (!revealElement) {
         const rowCells = table.querySelector('tbody tr')?.querySelectorAll('td').length || 0;
         const detailCell = table.querySelector('tbody tr td:nth-child(3)');
+        console.error('FINAL STATE - cells:', rowCells, 'detail exists:', !!detailCell);
         throw new Error(
           `MCQ: revealElement not found. Row has ${rowCells} cells (expected 3). Detail cell exists: ${!!detailCell}. Detail HTML: "${detailCell?.innerHTML?.substring(0, 80) || 'N/A'}". answerCell HTML: ${answerCell?.innerHTML?.substring(0, 100)}`,
         );
