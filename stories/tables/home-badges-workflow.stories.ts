@@ -543,8 +543,10 @@ export const CompleteWorkflow: Story = {
       const log = container.querySelector('#event-log')!;
       const entry = document.createElement('div');
       entry.className = 'event-entry';
+      // Use fixed timestamp for Chromatic visual regression stability
+      const timestamp = '10:30:00';
       entry.innerHTML = `
-        <div class="event-time">${new Date().toLocaleTimeString()}</div>
+        <div class="event-time">${timestamp}</div>
         <div>${message}</div>
       `;
       log.insertBefore(entry, log.firstChild);
