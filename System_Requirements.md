@@ -67,10 +67,13 @@ Documents are published quarterly and used by individual students. Instructors c
 - Instructor can unlock answers via password. Next to the correct answer will be a compact table showing user’s answer and color coding (green/red) based on success boolean.
 
 ### 4.4 Quiz Page Status Panel
-- A floating panel (`id="qd-status"`) summarizes page state:
+- Auto-injected into configured navbar container as last child:
+  - Default container: `.wh_top_menu_and_indexterms_link` (Oxygen WebHelp)
+  - Configurable via `statusPanelContainer` option
   - **Unstarted** – red
   - **Incomplete** – amber
   - **Complete** – green
+- Styled with `display:inline-block; vertical-align:middle; margin-left:auto;` to align right
 - Shows counts and last attempt time.
 - Updated live after each answer save.
 

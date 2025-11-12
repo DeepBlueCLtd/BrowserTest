@@ -105,10 +105,12 @@ export class QdStatus extends LitElement {
     }
 
     .status-panel {
+      position: relative;
       background: white;
       border: 2px solid #e0e0e0;
       border-radius: 8px;
       padding: 1.5rem;
+      padding-bottom: 3rem; /* Make room for logout button */
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       min-width: 400px;
     }
@@ -247,9 +249,33 @@ export class QdStatus extends LitElement {
       font-weight: 600;
     }
 
+    .logout-button {
+      position: absolute;
+      bottom: 0.75rem;
+      right: 0.75rem;
+      padding: 0.5rem 1rem;
+      background: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .logout-button:hover {
+      background: #5a6268;
+    }
+
+    .logout-button:active {
+      background: #4e555b;
+    }
+
     @media (max-width: 480px) {
       .status-panel {
         padding: 1rem;
+        padding-bottom: 3rem;
       }
 
       .status-stats {
@@ -258,6 +284,11 @@ export class QdStatus extends LitElement {
 
       .stat-value {
         font-size: 1.25rem;
+      }
+
+      .logout-button {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.8rem;
       }
     }
   `;
@@ -330,15 +361,47 @@ export class QdStatus extends LitElement {
         <div class="status-message ${this.state}" aria-live="polite" aria-atomic="true">
           ${statusMessage}
         </div>
+
+        <button
+          class="logout-button"
+          @click=${this._handleLogout}
+          aria-label="Logout"
+          title="Logout"
+        >
+          Logout
+        </button>
       </div>
     `;
   }
 
   private _handleLogin(event: CustomEvent<SessionData>) {
+    // Set logged in state
+    this.isLoggedIn = true;
+
     // Forward the login event
     this.dispatchEvent(
       new CustomEvent<SessionData>('qd:login', {
         detail: event.detail,
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  private _handleLogout() {
+    // Clear session storage
+    sessionStorage.removeItem('qd/session');
+    sessionStorage.removeItem('qd/state');
+
+    // Set logged out state
+    this.isLoggedIn = false;
+
+    // Emit logout event
+    this.dispatchEvent(
+      new CustomEvent('qd:logout', {
+        detail: {
+          timestamp: new Date().toISOString(),
+        },
         bubbles: true,
         composed: true,
       }),

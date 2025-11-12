@@ -148,7 +148,9 @@ Content authors must follow these rules (runtime validation enforces):
 - **Maximum ONE** analysis table per page
 
 ### Home Page
-- Status panel: `<div id="qd-status"></div>`
+- Status panel: Auto-injected as last child of configured navbar container
+  - Default: `.wh_top_menu_and_indexterms_link` (Oxygen WebHelp)
+  - Configure via `statusPanelContainer` option in `init()` or `data-status-panel-container` attribute
 - Navigation links: Add class `quizPageBtn` for R/A/G badges
 
 ## Data Model Key Points

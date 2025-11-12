@@ -315,6 +315,19 @@ export const ELEMENT_IDS = {
   STATUS_PANEL: 'qd-status',
 } as const;
 
+/**
+ * CSS selectors for DOM injection points
+ *
+ * These are default/reference values. Actual selectors are configurable
+ * via SonarQuizConfig.statusPanelContainer option.
+ *
+ * @see SonarQuizConfig in src/index.ts
+ */
+export const INJECTION_SELECTORS = {
+  /** Default navbar container for Oxygen WebHelp templates */
+  NAVBAR_CONTAINER: '.wh_top_menu_and_indexterms_link',
+} as const;
+
 /** Validation limits */
 export const LIMITS = {
   MAX_QUESTIONS_PER_PAGE: 100,

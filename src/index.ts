@@ -32,6 +32,8 @@ interface SonarQuizConfig {
   loginInsertBeforeSelector?: string;
   /** Title for login component fieldset */
   loginTitle?: string;
+  /** CSS selector for navbar container where status panel will be injected as last child (e.g., ".wh_top_menu_and_indexterms_link", ".navbar-nav", "#header-nav") */
+  statusPanelContainer?: string;
 }
 
 /**
@@ -43,6 +45,7 @@ const DEFAULT_CONFIG: SonarQuizConfig = {
   quizTableSelector: `table.${CSS_CLASSES.QUIZ_TABLE}`,
   loginInsertBeforeSelector: undefined,
   loginTitle: 'Core Skills Assessment',
+  statusPanelContainer: '.wh_top_menu_and_indexterms_link', // Oxygen WebHelp default
 };
 
 /**
@@ -136,24 +139,38 @@ function injectLoginComponent(doc: Document = document): void {
  * Inject status panel component
  */
 function injectStatusPanel(doc: Document = document): void {
-  // Check if element with id="qd-status" exists
-  const statusContainer = doc.getElementById(ELEMENT_IDS.STATUS_PANEL);
-
-  if (!statusContainer) {
-    log('No status panel container found (looking for id="qd-status")');
+  // Skip if no container selector configured
+  if (!config.statusPanelContainer) {
+    log('Status panel container selector not configured, skipping injection');
     return;
   }
 
-  // Check if status component already exists
-  if (statusContainer.querySelector('qd-status')) {
+  // Look for navbar container using configured selector
+  const navbarContainer = doc.querySelector(config.statusPanelContainer);
+
+  if (!navbarContainer) {
+    log(`No navbar container found (looking for ${config.statusPanelContainer})`);
+    return;
+  }
+
+  // Check if status panel already exists
+  if (navbarContainer.querySelector('#qd-status')) {
     log('Status panel already present');
     return;
   }
 
+  // Create wrapper div with styling to match navbar items
+  const wrapper = doc.createElement('div');
+  wrapper.id = ELEMENT_IDS.STATUS_PANEL;
+  wrapper.style.cssText = 'display:inline-block; vertical-align:middle; margin-left:auto;';
+
   // Create and inject status component
   const status = doc.createElement('qd-status');
-  statusContainer.appendChild(status);
-  log('Status panel injected');
+  wrapper.appendChild(status);
+
+  // Append as last child of navbar container
+  navbarContainer.appendChild(wrapper);
+  log(`Status panel injected into ${config.statusPanelContainer} as last child`);
 }
 
 /**
@@ -403,6 +420,7 @@ if (typeof window !== 'undefined') {
   const scriptTag = document.querySelector('script[data-sonar-quiz]');
   const debugAttr = scriptTag?.getAttribute('data-debug');
   const autoEnhanceAttr = scriptTag?.getAttribute('data-auto-enhance');
+  const statusPanelContainerAttr = scriptTag?.getAttribute('data-status-panel-container');
 
   const autoConfig: Partial<SonarQuizConfig> = {};
   if (debugAttr !== null) {
@@ -410,6 +428,9 @@ if (typeof window !== 'undefined') {
   }
   if (autoEnhanceAttr !== null) {
     autoConfig.autoEnhance = autoEnhanceAttr !== 'false';
+  }
+  if (statusPanelContainerAttr !== null) {
+    autoConfig.statusPanelContainer = statusPanelContainerAttr;
   }
 
   if (document.readyState === 'loading') {
