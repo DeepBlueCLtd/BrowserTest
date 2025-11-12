@@ -122,8 +122,10 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       );
 
       if (!revealElement) {
+        const rowCells = table.querySelector('tbody tr')?.querySelectorAll('td').length || 0;
+        const detailCell = table.querySelector('tbody tr td:nth-child(3)');
         throw new Error(
-          `revealElement not found. answerCell HTML: ${answerCell?.innerHTML}, classList: ${answerCell?.classList.toString()}`,
+          `MCQ: revealElement not found. Row has ${rowCells} cells (expected 3). Detail cell exists: ${!!detailCell}. Detail HTML: "${detailCell?.innerHTML?.substring(0, 80) || 'N/A'}". answerCell HTML: ${answerCell?.innerHTML?.substring(0, 100)}`,
         );
       }
       expect(revealElement).toBeDefined();
