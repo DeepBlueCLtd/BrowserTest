@@ -99,11 +99,7 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       // First enhance the table
       console.error('STEP 2 - About to call enhanceQuizTable');
       enhanceQuizTable(table);
-      console.error(
-        'STEP 3 - After enhanceQuizTable:',
-        row.querySelectorAll('td').length,
-        'cells',
-      );
+      console.error('STEP 3 - After enhanceQuizTable:', row.querySelectorAll('td').length, 'cells');
 
       // Then reveal answers
       console.error('STEP 4 - About to call revealCorrectAnswers');
