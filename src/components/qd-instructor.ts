@@ -16,8 +16,18 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { getSessionService } from '../services/session';
+import {
+  aggregateStudentScores,
+  sortByServiceId,
+  sortByScore,
+  sortByName,
+  sortByPercentage,
+  type AggregatedScores,
+} from '../services/scores';
+import type { StudentRecord } from '../types/contracts';
 
 type InstructorMode = 'overview' | 'scores' | 'export' | 'manage';
+type SortField = 'serviceId' | 'name' | 'score' | 'percentage';
 
 @customElement('qd-instructor')
 export class QdInstructor extends LitElement {
@@ -70,10 +80,22 @@ export class QdInstructor extends LitElement {
   private _showEraseDialog = false;
 
   /**
-   * Student summaries for scores view
+   * Aggregated scores data from scores service
    */
   @state()
-  private _studentSummaries: import('../types/contracts').StudentSummary[] = [];
+  private _aggregatedScores: AggregatedScores | null = null;
+
+  /**
+   * Current sort field for scores table
+   */
+  @state()
+  private _sortField: SortField = 'serviceId';
+
+  /**
+   * Raw student records (loaded from IndexedDB)
+   */
+  @state()
+  private _studentRecords: StudentRecord[] = [];
 
   static styles = css`
     :host {
@@ -264,6 +286,57 @@ export class QdInstructor extends LitElement {
       background: #fafafa;
     }
 
+    .scores-summary {
+      background: #f9f9f9;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .scores-summary h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.125rem;
+    }
+
+    .scores-summary p {
+      margin: 0;
+      color: #555;
+    }
+
+    .sort-controls {
+      margin-bottom: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .sort-controls label {
+      font-weight: 500;
+      color: #555;
+    }
+
+    .sort-controls button {
+      padding: 0.5rem 1rem;
+      border: 1px solid #ccc;
+      background: #ffffff;
+      color: #333;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.875rem;
+    }
+
+    .sort-controls button:hover {
+      background: #f5f5f5;
+    }
+
+    .sort-controls button.active {
+      background: #0066cc;
+      color: #ffffff;
+      border-color: #0052a3;
+    }
+
     .dialog-overlay {
       position: fixed;
       top: 0;
@@ -420,37 +493,87 @@ export class QdInstructor extends LitElement {
   }
 
   private _renderScoresView() {
-    if (this._studentSummaries.length === 0) {
+    // Load data if not already loaded
+    if (this._aggregatedScores === null && this._studentRecords.length === 0) {
+      // Trigger data loading (will be implemented with IndexedDB)
+      this._loadStudentRecords();
+      return html`<p>Loading student data...</p>`;
+    }
+
+    if (!this._aggregatedScores || this._aggregatedScores.students.length === 0) {
       return html`<p>No student data available. Students will appear here once they log in.</p>`;
     }
 
     return html`
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">Service ID</th>
-            <th scope="col">Name</th>
-            <th scope="col">Attempted</th>
-            <th scope="col">Correct</th>
-            <th scope="col">Percentage</th>
-            <th scope="col">Last Active</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${this._studentSummaries.map(
-            (student) => html`
-              <tr>
-                <td>${student.serviceId}</td>
-                <td>${student.name}</td>
-                <td>${student.attempted}</td>
-                <td>${student.correct}</td>
-                <td>${student.percentage.toFixed(1)}%</td>
-                <td>${new Date(student.lastActive).toLocaleString()}</td>
-              </tr>
-            `,
-          )}
-        </tbody>
-      </table>
+      <div>
+        <!-- Summary Statistics -->
+        <div class="scores-summary">
+          <h3>Overall Statistics</h3>
+          <p>
+            <strong>Total Students:</strong> ${this._aggregatedScores.totalStudents} |
+            <strong>Total Attempted:</strong> ${this._aggregatedScores.totalAttempted} |
+            <strong>Total Correct:</strong> ${this._aggregatedScores.totalCorrect} |
+            <strong>Average:</strong> ${this._aggregatedScores.averagePercentage.toFixed(1)}%
+          </p>
+        </div>
+
+        <!-- Sort Controls -->
+        <div class="sort-controls">
+          <label>Sort by:</label>
+          <button
+            class="${this._sortField === 'serviceId' ? 'active' : ''}"
+            @click=${() => this._handleSortChange('serviceId')}
+          >
+            Service ID
+          </button>
+          <button
+            class="${this._sortField === 'name' ? 'active' : ''}"
+            @click=${() => this._handleSortChange('name')}
+          >
+            Name
+          </button>
+          <button
+            class="${this._sortField === 'score' ? 'active' : ''}"
+            @click=${() => this._handleSortChange('score')}
+          >
+            Score
+          </button>
+          <button
+            class="${this._sortField === 'percentage' ? 'active' : ''}"
+            @click=${() => this._handleSortChange('percentage')}
+          >
+            Percentage
+          </button>
+        </div>
+
+        <!-- Scores Table -->
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Service ID</th>
+              <th scope="col">Name</th>
+              <th scope="col">Attempted</th>
+              <th scope="col">Correct</th>
+              <th scope="col">Percentage</th>
+              <th scope="col">Pages Complete</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${this._aggregatedScores.students.map(
+              (student) => html`
+                <tr>
+                  <td>${student.serviceId}</td>
+                  <td>${student.name}</td>
+                  <td>${student.totalAttempted}</td>
+                  <td>${student.totalCorrect}</td>
+                  <td>${student.percentage.toFixed(1)}%</td>
+                  <td>${student.pagesComplete} / ${student.pagesTotal}</td>
+                </tr>
+              `,
+            )}
+          </tbody>
+        </table>
+      </div>
     `;
   }
 
@@ -617,6 +740,62 @@ export class QdInstructor extends LitElement {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
     return hashHex;
+  }
+
+  /**
+   * Load all student records from IndexedDB
+   * T081: Load student data for scores aggregation
+   */
+  private _loadStudentRecords(): void {
+    // TODO: Implement IndexedDB loading
+    // For now, use empty array as placeholder
+    // In full implementation, this would query IndexedDB for all student records
+    // matching the current release
+    this._studentRecords = [];
+    this._aggregateScores();
+  }
+
+  /**
+   * Aggregate scores from loaded student records
+   * T081: Use scores service to aggregate data
+   */
+  private _aggregateScores(): void {
+    if (this._studentRecords.length === 0) {
+      this._aggregatedScores = null;
+      return;
+    }
+
+    // Sort students based on current sort field
+    const sorted = this._sortStudents([...this._studentRecords]);
+
+    // Aggregate scores
+    this._aggregatedScores = aggregateStudentScores(sorted);
+  }
+
+  /**
+   * Sort students based on selected field
+   */
+  private _sortStudents(students: StudentRecord[]): StudentRecord[] {
+    switch (this._sortField) {
+      case 'serviceId':
+        return students.sort(sortByServiceId);
+      case 'name':
+        return students.sort(sortByName);
+      case 'score':
+        return students.sort(sortByScore);
+      case 'percentage':
+        return students.sort(sortByPercentage);
+      default:
+        return students;
+    }
+  }
+
+  /**
+   * Handle sort field change
+   */
+  private _handleSortChange(field: SortField): void {
+    this._sortField = field;
+    this._aggregateScores();
   }
 }
 
