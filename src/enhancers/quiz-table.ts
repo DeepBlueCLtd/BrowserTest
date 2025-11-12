@@ -79,9 +79,15 @@ export function enhanceQuizTable(
     const answerCell = row.querySelector('td:nth-child(2)');
     if (!answerCell) return;
 
+    // Debug: Count cells before any manipulation
+    const cellsBeforeSetAttr = row.querySelectorAll('td').length;
+
     // Store correct answer as data attribute before enhancement
     // This allows instructor reveal to work after enhancement
     answerCell.setAttribute('data-correct-answer', question.correctAnswer);
+
+    // Debug: Count cells after setAttribute
+    const cellsAfterSetAttr = row.querySelectorAll('td').length;
 
     // Get saved answer if available
     const savedAnswer = savedAnswers?.[index];
@@ -91,6 +97,16 @@ export function enhanceQuizTable(
       enhanceMcqCell(answerCell as HTMLElement, question, index, table, savedAnswer);
     } else {
       enhanceNumericCell(answerCell as HTMLElement, question, index, table, savedAnswer);
+    }
+
+    // Debug: Count cells after enhancement
+    const cellsAfterEnhance = row.querySelectorAll('td').length;
+
+    // Log if cell count changed
+    if (cellsBeforeSetAttr !== 3 || cellsAfterSetAttr !== 3 || cellsAfterEnhance !== 3) {
+      console.error(
+        `JSDOM BUG: Row ${index} cells: before=${cellsBeforeSetAttr}, afterSetAttr=${cellsAfterSetAttr}, afterEnhance=${cellsAfterEnhance}`,
+      );
     }
   });
 }
