@@ -73,8 +73,26 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
         },
       ]);
 
+      // Debug: Check table before enhancement
+      console.log('MCQ Test - Table before enhance:', {
+        hasClass: table.classList.contains('qd-quiz'),
+        rowCount: table.querySelectorAll('tbody tr').length,
+        detailHTML: table.querySelector('tbody tr td:nth-child(3)')?.innerHTML,
+      });
+
       // First enhance the table
       enhanceQuizTable(table);
+
+      // Debug: Check table after enhancement
+      console.log('MCQ Test - Table after enhance:', {
+        hasEnhanced: table.classList.contains('qd-enhanced'),
+        answerCellHTML: table
+          .querySelector('tbody tr td:nth-child(2)')
+          ?.innerHTML?.substring(0, 100),
+        hasDataAttr: table
+          .querySelector('tbody tr td:nth-child(2)')
+          ?.getAttribute('data-correct-answer'),
+      });
 
       // Then reveal answers
       revealCorrectAnswers(table);
@@ -93,8 +111,13 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
         answerCell?.getAttribute('data-correct-answer'),
       );
 
+      if (!revealElement) {
+        throw new Error(
+          `revealElement not found. answerCell HTML: ${answerCell?.innerHTML}, classList: ${answerCell?.classList.toString()}`,
+        );
+      }
       expect(revealElement).toBeDefined();
-      expect(revealElement?.textContent).toContain('2');
+      expect(revealElement.textContent).toContain('2');
     });
 
     it('should display correct answer for numeric questions', () => {
@@ -117,8 +140,13 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       console.log('Numeric Test - Reveal Element:', revealElement);
       console.log('Numeric Test - Reveal Element textContent:', revealElement?.textContent);
 
+      if (!revealElement) {
+        throw new Error(
+          `Numeric: revealElement not found. answerCell HTML: ${answerCell?.innerHTML}`,
+        );
+      }
       expect(revealElement).toBeDefined();
-      expect(revealElement?.textContent).toContain('24.5');
+      expect(revealElement.textContent).toContain('24.5');
     });
 
     it('should show tolerance for numeric questions', () => {
@@ -141,8 +169,13 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       console.log('Tolerance Test - Tolerance Element:', toleranceElement);
       console.log('Tolerance Test - Tolerance Element textContent:', toleranceElement?.textContent);
 
+      if (!toleranceElement) {
+        throw new Error(
+          `Tolerance: toleranceElement not found. answerCell HTML: ${answerCell?.innerHTML}`,
+        );
+      }
       expect(toleranceElement).toBeDefined();
-      expect(toleranceElement?.textContent).toContain('±0.5');
+      expect(toleranceElement.textContent).toContain('±0.5');
     });
 
     it('should not modify student input elements', () => {
@@ -190,7 +223,15 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
         answerCell?.classList.contains('qd-answer-revealed'),
       );
 
-      expect(answerCell?.classList.contains('qd-answer-revealed')).toBe(true);
+      if (!answerCell) {
+        throw new Error('Visual Indicator: answerCell not found');
+      }
+      if (!answerCell.classList.contains('qd-answer-revealed')) {
+        throw new Error(
+          `Visual Indicator: Cell missing 'qd-answer-revealed' class. classList: ${answerCell.classList.toString()}, HTML: ${answerCell.innerHTML?.substring(0, 200)}`,
+        );
+      }
+      expect(answerCell.classList.contains('qd-answer-revealed')).toBe(true);
     });
 
     it('should handle multiple questions correctly', () => {
@@ -220,6 +261,11 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
         table.querySelectorAll('tbody tr td:nth-child(2)').length,
       );
 
+      if (revealElements.length !== 2) {
+        throw new Error(
+          `Multiple Questions: Expected 2 reveal elements, found ${revealElements.length}. Table HTML: ${table.innerHTML?.substring(0, 500)}`,
+        );
+      }
       expect(revealElements.length).toBe(2);
     });
   });
@@ -306,7 +352,12 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
         table.parentElement?.querySelectorAll('.qd-student-comparison').length,
       );
 
-      expect(studentCell?.textContent).toContain('RN23'); // First 4 chars
+      if (!studentCell || !studentCell.textContent?.includes('RN23')) {
+        throw new Error(
+          `Student ID: Expected 'RN23' in student cell. Found: '${studentCell?.textContent}'. Parent HTML: ${table.parentElement?.innerHTML?.substring(0, 500)}`,
+        );
+      }
+      expect(studentCell.textContent).toContain('RN23'); // First 4 chars
     });
 
     it('should apply success color coding to correct student answers', () => {
@@ -352,6 +403,11 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
         table.parentElement?.querySelectorAll('.qd-student-answer').length,
       );
 
+      if (!successCell) {
+        throw new Error(
+          `Success Color: successCell not found. Parent HTML: ${table.parentElement?.innerHTML?.substring(0, 500)}`,
+        );
+      }
       expect(successCell).toBeDefined();
     });
 
@@ -398,6 +454,11 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
         table.parentElement?.querySelectorAll('.qd-student-answer').length,
       );
 
+      if (!failureCell) {
+        throw new Error(
+          `Failure Color: failureCell not found. Parent HTML: ${table.parentElement?.innerHTML?.substring(0, 500)}`,
+        );
+      }
       expect(failureCell).toBeDefined();
     });
 
@@ -462,7 +523,12 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
         table.parentElement?.querySelectorAll('.qd-student-comparison').length,
       );
 
-      expect(studentRows?.length).toBe(2);
+      if (studentRows?.length !== 2) {
+        throw new Error(
+          `Multiple Students: Expected 2 student rows, found ${studentRows?.length}. Parent HTML: ${table.parentElement?.innerHTML?.substring(0, 500)}`,
+        );
+      }
+      expect(studentRows.length).toBe(2);
     });
 
     it('should handle students with no answers for the page', () => {
