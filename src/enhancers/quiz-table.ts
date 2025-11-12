@@ -136,9 +136,13 @@ function enhanceMcqCell(
   });
 
   // Clear cell and inject select
-  // Note: Using replaceChildren() instead of textContent = '' to avoid JSDOM bug
-  // in Node 18 where textContent = '' on table cells removes adjacent cells
-  cell.replaceChildren(select);
+  // Note: Manually removing children to avoid JSDOM bugs in Node 18
+  // where replaceChildren(), textContent='', or innerHTML='' on table cells
+  // can cause adjacent cells in the same row to be removed
+  while (cell.firstChild) {
+    cell.removeChild(cell.firstChild);
+  }
+  cell.appendChild(select);
 }
 
 /**
@@ -171,9 +175,13 @@ function enhanceNumericCell(
   });
 
   // Clear cell and inject input
-  // Note: Using replaceChildren() instead of textContent = '' to avoid JSDOM bug
-  // in Node 18 where textContent = '' on table cells removes adjacent cells
-  cell.replaceChildren(input);
+  // Note: Manually removing children to avoid JSDOM bugs in Node 18
+  // where replaceChildren(), textContent='', or innerHTML='' on table cells
+  // can cause adjacent cells in the same row to be removed
+  while (cell.firstChild) {
+    cell.removeChild(cell.firstChild);
+  }
+  cell.appendChild(input);
 }
 
 /**
