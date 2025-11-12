@@ -95,7 +95,6 @@ export class QdStatus extends LitElement {
   static styles = css`
     :host {
       display: block;
-      min-width: 400px;
       font-family:
         -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     }
@@ -107,13 +106,12 @@ export class QdStatus extends LitElement {
     .status-panel {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.5rem;
       background: white;
       border: 1px solid #ccc;
       border-radius: 4px;
       padding: 0.5rem 0.75rem;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-      min-width: 320px;
       font-size: 0.75rem;
     }
 
@@ -123,7 +121,6 @@ export class QdStatus extends LitElement {
       border-radius: 8px;
       padding: 1.5rem;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      min-width: 400px;
     }
 
     .login-header {
@@ -135,8 +132,8 @@ export class QdStatus extends LitElement {
     }
 
     .status-indicator {
-      width: 12px;
-      height: 12px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
       flex-shrink: 0;
       transition: background-color 0.3s;
@@ -157,27 +154,26 @@ export class QdStatus extends LitElement {
       box-shadow: 0 0 4px rgba(76, 175, 80, 0.4);
     }
 
-    .status-title {
-      font-size: 0.75rem;
-      font-weight: 500;
-      color: #666;
-      margin: 0;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
     .status-stats {
       display: flex;
       align-items: baseline;
-      gap: 0.75rem;
-      flex: 1;
+      gap: 0.5rem;
     }
 
     .stat {
-      display: inline-flex;
-      align-items: baseline;
-      gap: 0.25rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.125rem;
       white-space: nowrap;
+    }
+
+    .stat-label {
+      font-size: 0.5rem;
+      font-weight: 400;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
 
     .stat-value {
@@ -186,45 +182,8 @@ export class QdStatus extends LitElement {
       color: #333;
     }
 
-    .stat-label {
-      font-size: 0.625rem;
-      font-weight: 400;
-      color: #666;
-      vertical-align: super;
-    }
-
     .stat-value.percentage {
       color: #0066cc;
-    }
-
-    .progress-bar-container {
-      background: #f0f0f0;
-      border-radius: 3px;
-      height: 6px;
-      overflow: hidden;
-      width: 80px;
-      flex-shrink: 0;
-    }
-
-    .progress-bar {
-      height: 100%;
-      transition:
-        width 0.3s ease,
-        background-color 0.3s;
-      border-radius: 3px;
-    }
-
-    .progress-bar.unstarted {
-      width: 0%;
-      background-color: #d32f2f;
-    }
-
-    .progress-bar.incomplete {
-      background: linear-gradient(90deg, #ff9800 0%, #ffc107 100%);
-    }
-
-    .progress-bar.complete {
-      background: linear-gradient(90deg, #4caf50 0%, #66bb6a 100%);
     }
 
     .logout-button {
@@ -251,7 +210,6 @@ export class QdStatus extends LitElement {
 
     @media (max-width: 480px) {
       .status-panel {
-        min-width: 280px;
         font-size: 0.625rem;
       }
 
@@ -302,20 +260,19 @@ export class QdStatus extends LitElement {
     return html`
       <div class="status-panel" role="region" aria-label="Quiz Progress">
         <div class="status-indicator ${this.state}"></div>
-        <span class="status-title">Your Progress</span>
 
         <div class="status-stats">
           <div class="stat">
-            <span class="stat-value">${this.attempted}/${this.total}</span>
             <span class="stat-label">attempted</span>
+            <span class="stat-value">${this.attempted}/${this.total}</span>
           </div>
           <div class="stat">
-            <span class="stat-value">${this.correct}/${this.total}</span>
             <span class="stat-label">correct</span>
+            <span class="stat-value">${this.correct}/${this.total}</span>
           </div>
           <div class="stat">
-            <span class="stat-value percentage">${percentage}%</span>
             <span class="stat-label">score</span>
+            <span class="stat-value percentage">${percentage}%</span>
           </div>
         </div>
 
