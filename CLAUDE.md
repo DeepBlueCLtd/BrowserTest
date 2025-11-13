@@ -57,6 +57,33 @@ npm run lint            # TypeScript + ESLint checks
 npm run size-check      # Verify bundle <25KB min+gzip
 ```
 
+## Demo & Manual Testing
+
+The `demo/` directory contains standalone HTML files for manual testing and demonstration:
+
+- **demo/quiz-index.html**: Index page with login UI, status panel, and navigation with R/A/G badges
+- **demo/quiz-examples.html**: Interactive quiz tables (MCQ and numeric questions)
+- **demo/analysis-examples.html**: Editable analysis tables for free-form student work
+
+### Quick Test Workflow
+```bash
+# 1. Build the bundle
+npm run build
+
+# 2. Test via file:// protocol (recommended for offline testing)
+open demo/quiz-index.html
+
+# 3. Or serve via HTTP for full IndexedDB support
+python3 -m http.server 8000
+# Visit: http://localhost:8000/demo/quiz-index.html
+```
+
+All demo files load the built bundle from `dist/sonar-quiz.iife.js` and have debug mode enabled (`data-debug="true"`). See **demo/README.md** for:
+- Detailed test scenarios (login, quiz interaction, analysis tables, session management)
+- Browser DevTools inspection tips (IndexedDB, sessionStorage, custom events)
+- Troubleshooting common issues
+- E2E testing integration guidance
+
 ## Critical Constraints (Constitution)
 
 ### I. Offline-First Architecture
@@ -216,6 +243,7 @@ Enable via `data-qd-debug` attribute on quiz/analysis tables:
 - **Technical_Design.md**: Architecture, packaging, integration patterns
 - **Contracts.md**: Frozen types and interfaces
 - **Delivery_Plan.md**: 8-phase plan with exit gates
+- **demo/README.md**: Demo HTML files, testing workflows, troubleshooting guide
 - **specs/001-sonar-quiz-system/**: Feature spec, plan, data model, contracts
 
 ## Common Patterns
