@@ -29,19 +29,6 @@ export default defineConfig({
         },
       },
     },
-    {
-      name: 'firefox',
-      use: {
-        ...devices['Desktop Firefox'],
-        // Firefox allows file:// access by default
-      },
-    },
-    {
-      name: 'webkit',
-      use: {
-        ...devices['Desktop Safari'],
-      },
-    },
   ],
 
   webServer: undefined, // No web server needed for file:// protocol
