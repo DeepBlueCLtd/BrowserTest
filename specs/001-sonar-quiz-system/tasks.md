@@ -216,23 +216,23 @@ Single project structure:
 
 ### CSV Export
 
-- [ ] T085 [P] [US5] Write tests for CSV generation in tests/unit/services/csv-export.test.ts
-- [ ] T086 [US5] Implement CSV export service (RFC 4180 with BOM) in src/services/csv-export.ts
-- [ ] T087 [US5] Add per-question and per-page export options in src/services/csv-export.ts
-- [ ] T088 [US5] Implement file download trigger in src/components/qd-instructor.ts
+- [X] T085 [P] [US5] Write tests for CSV generation in tests/unit/services/csv-export.test.ts
+- [X] T086 [US5] Implement CSV export service (RFC 4180 with BOM) in src/services/csv-export.ts
+- [X] T087 [US5] Add per-question and per-page export options in src/services/csv-export.ts
+- [X] T088 [US5] Implement file download trigger in src/components/qd-instructor.ts
 
 ### Data Erasure
 
-- [ ] T089 [P] [US5] Write tests for data erasure with confirmation in tests/unit/services/storage/indexeddb.test.ts
-- [ ] T090 [US5] Implement clearAll method in IndexedDB adapter in src/services/storage/indexeddb.ts
-- [ ] T091 [US5] Add "DELETE ALL" typed confirmation UI in src/components/qd-instructor.ts
-- [ ] T092 [US5] Implement cross-tab sync for data erasure in src/services/session.ts
+- [X] T089 [P] [US5] Write tests for data erasure with confirmation in tests/unit/services/storage/indexeddb.test.ts
+- [X] T090 [US5] Implement clearAll method in IndexedDB adapter in src/services/storage/indexeddb.ts
+- [X] T091 [US5] Add "DELETE ALL" typed confirmation UI in src/components/qd-instructor.ts
+- [X] T092 [US5] Implement cross-tab sync for data erasure in src/services/session.ts
 
 ### Integration
 
-- [ ] T093 [P] [US5] Write E2E test for CSV export in tests/e2e/workflows/cohort-management.spec.ts
-- [ ] T094 [P] [US5] Write E2E test for data erasure flow in tests/e2e/workflows/cohort-management.spec.ts
-- [ ] T095 [US5] Verify independent test: system returns to blank state after erasure
+- [X] T093 [P] [US5] Write E2E test for CSV export in tests/e2e/workflows/cohort-management.spec.ts
+- [X] T094 [P] [US5] Write E2E test for data erasure flow in tests/e2e/workflows/cohort-management.spec.ts
+- [X] T095 [US5] Verify independent test: system returns to blank state after erasure
 
 ---
 
