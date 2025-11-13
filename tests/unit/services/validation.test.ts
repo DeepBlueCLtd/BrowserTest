@@ -168,7 +168,8 @@ describe('Table Validation', () => {
 
       const tbody = document.createElement('tbody');
       const row = document.createElement('tr');
-      row.innerHTML = '<td>What is 2+2?</td><td>4</td><td><ol><li>3</li><li>4</li></ol></td>';
+      // Answer "2" means the second option (1-indexed), which is "4"
+      row.innerHTML = '<td>What is 2+2?</td><td>2</td><td><ol><li>3</li><li>4</li></ol></td>';
       tbody.appendChild(row);
       table.appendChild(tbody);
 
@@ -329,6 +330,84 @@ describe('Table Validation', () => {
           row: 1,
         }),
       );
+    });
+
+    it('should fail validation if MCQ answer is 0 (not 1-indexed)', () => {
+      const table = document.createElement('table');
+      table.className = 'qd-quiz';
+
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      headerRow.innerHTML = '<th>Question</th><th>Answer</th><th>Detail</th>';
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      const row = document.createElement('tr');
+      row.innerHTML =
+        '<td>What is 2+2?</td><td>0</td><td><ol><li>3</li><li>4</li><li>5</li></ol></td>';
+      tbody.appendChild(row);
+      table.appendChild(tbody);
+
+      const result = validateQuizTable(table);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({
+          code: 'INVALID_ANSWER_FORMAT',
+          message: expect.stringContaining('1-indexed'),
+          row: 1,
+        }),
+      );
+    });
+
+    it('should fail validation if MCQ answer exceeds option count', () => {
+      const table = document.createElement('table');
+      table.className = 'qd-quiz';
+
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      headerRow.innerHTML = '<th>Question</th><th>Answer</th><th>Detail</th>';
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      const row = document.createElement('tr');
+      row.innerHTML =
+        '<td>What is 2+2?</td><td>5</td><td><ol><li>3</li><li>4</li><li>5</li></ol></td>';
+      tbody.appendChild(row);
+      table.appendChild(tbody);
+
+      const result = validateQuizTable(table);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({
+          code: 'INVALID_ANSWER_FORMAT',
+          message: expect.stringContaining('out of range'),
+          row: 1,
+        }),
+      );
+    });
+
+    it('should pass validation if MCQ answer is within valid 1-indexed range', () => {
+      const table = document.createElement('table');
+      table.className = 'qd-quiz';
+
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      headerRow.innerHTML = '<th>Question</th><th>Answer</th><th>Detail</th>';
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      const row = document.createElement('tr');
+      row.innerHTML =
+        '<td>What is 2+2?</td><td>2</td><td><ol><li>3</li><li>4</li><li>5</li></ol></td>';
+      tbody.appendChild(row);
+      table.appendChild(tbody);
+
+      const result = validateQuizTable(table);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
     });
   });
 
