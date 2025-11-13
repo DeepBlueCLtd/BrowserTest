@@ -54,10 +54,56 @@
     .back-link:hover {
       text-decoration: underline;
     }
+    nav {
+      background-color: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 2rem;
+    }
+    nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    nav li {
+      margin: 0;
+    }
+    nav a {
+      color: #0066cc;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    nav a:hover {
+      background-color: #e9ecef;
+    }
+    nav a.active {
+      background-color: #0066cc;
+      color: white;
+    }
+    #qd-status {
+      margin-bottom: 2rem;
+    }
   </style>
 </head>
 <body>
-  <a href="quiz-index.html" class="back-link">← Back to Index</a>
+  <nav class="qd-nav">
+    <ul>
+      <li><a href="quiz-index.html" class="qd-test-link">Home</a></li>
+      <li><a href="quiz-examples.html" class="qd-test-link active" data-page-id="sonar-basics">Quiz Examples</a></li>
+      <li><a href="analysis-examples.html" class="qd-test-link" data-page-id="contact-analysis">Analysis Examples</a></li>
+    </ul>
+  </nav>
+
+  <!-- Status Panel Container - qd-status component will be injected here -->
+  <div id="qd-status"></div>
+
   <h1>Quiz Table Examples</h1>
   <p>Demonstration of quiz table formats for the Sonar Quiz System.</p>
 
