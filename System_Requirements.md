@@ -132,7 +132,7 @@ Documents are published quarterly and used by individual students. Instructors c
 
 ### 5.3 Analysis Table
 - Authored as `<table class="qd-analysis">`
-- Any `<td>` **with** `class="interactive"` (DITA: `outputClass="interactive"`) is **writable**.
+- Any `<td>` **without** inline `background-color:` is **writable**.
 - Rendered as small text inputs.
 - Each writable cell gets a key `R{row}C{col}#f:{hash}`.
 - Values stored under `page.analysis.cells`.
@@ -190,8 +190,8 @@ Backup/export options:
 
 | Table Type | Class | Author Instructions |
 |-------------|--------|--------------------|
-| Quiz | `qd-quiz` | One per page, 3 columns (question, answer, detail). Use `<ol>` for MCQ options. |
-| Analysis | `qd-analysis` | One per page. Cells with `class="interactive"` become text inputs; others remain static. |
+| Quiz | `qd-quiz qd-page` | One per page, 3 columns (question, answer, detail). Use `<ol>` for MCQ options. |
+| Analysis | `qd-analysis` | One per page. Cells with `background-color:` remain static; others become text inputs. |
 | Status Panel | `#qd-status` | Empty floating div on quiz pages. JS injects status summary. |
 
 Author runtime validation:

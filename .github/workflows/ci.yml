@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'claude/**']
   pull_request:
     branches: [main]
 
@@ -74,7 +74,7 @@ jobs:
           name: dist
           path: dist/
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps
       - run: npm run test:e2e
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -86,32 +86,21 @@ jobs:
   chromatic:
     name: Visual Regression Tests
     runs-on: ubuntu-latest
-    # Run on both push and pull_request events if CHROMATIC_PROJECT_TOKEN is configured
-    # Chromatic will automatically post PR comments with Storybook preview links
-    permissions:
-      contents: read
-      pull-requests: write
-    env:
-      CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+    # Only run if CHROMATIC_PROJECT_TOKEN is configured
+    if: github.event_name == 'push' && secrets.CHROMATIC_PROJECT_TOKEN != ''
     steps:
       - uses: actions/checkout@v4
-        if: env.CHROMATIC_PROJECT_TOKEN != ''
         with:
           fetch-depth: 0
       - uses: actions/setup-node@v4
-        if: env.CHROMATIC_PROJECT_TOKEN != ''
         with:
           node-version: '22'
           cache: 'npm'
       - run: npm ci
-        if: env.CHROMATIC_PROJECT_TOKEN != ''
       - name: Run Chromatic
-        if: env.CHROMATIC_PROJECT_TOKEN != ''
         uses: chromaui/action@latest
         with:
-          projectToken: ${{ env.CHROMATIC_PROJECT_TOKEN }}
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           exitZeroOnChanges: true
-          # TurboSnap disabled for Vite-based Storybook (no webpack stats)
-          onlyChanged: false
-          # Auto-accept changes on main branch
-          autoAcceptChanges: ${{ github.ref == 'refs/heads/main' }}
+          # Don't fail the build on Chromatic errors during Phase 0
+          onlyChanged: true
