@@ -122,7 +122,7 @@ export class StorageMonitor extends LitElement {
 
   private async readIndexedDB(): Promise<IndexedDBEntry[]> {
     try {
-      const dbName = 'sonar-quiz';
+      const dbName = 'SonarQuizDB';
       const db = await this.openDatabase(dbName);
       const entries: IndexedDBEntry[] = [];
 
@@ -202,7 +202,7 @@ export class StorageMonitor extends LitElement {
   private async clearIndexedDB(): Promise<void> {
     if (confirm('Clear all qd-prefixed IndexedDB data?')) {
       try {
-        const db = await this.openDatabase('sonar-quiz');
+        const db = await this.openDatabase('SonarQuizDB');
         const transaction = db.transaction(['students'], 'readwrite');
         const store = transaction.objectStore('students');
 
@@ -248,7 +248,7 @@ export class StorageMonitor extends LitElement {
   private async clearIndexedDBKey(key: string): Promise<void> {
     if (confirm(`Clear IndexedDB key: ${key}?`)) {
       try {
-        const db = await this.openDatabase('sonar-quiz');
+        const db = await this.openDatabase('SonarQuizDB');
         const transaction = db.transaction(['students'], 'readwrite');
         const store = transaction.objectStore('students');
         store.delete(key);
