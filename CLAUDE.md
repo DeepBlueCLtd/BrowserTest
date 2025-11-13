@@ -26,6 +26,8 @@ User Input → DOM Handler → Service Layer → Storage Adapter
 
 **Storage Strategy**:
 - **IndexedDB**: Primary persistence with composite keys `qd/{release}/u{serviceId}`
+  - Database name: `SonarQuizDB` (defined in `src/services/storage/indexeddb.ts`)
+  - Object stores: `students`, `backups`
 - **sessionStorage**: Active session + R/A/G cache (expires 30 min)
 - **No network**: All data remains local, no telemetry/CDN/remote config
 
@@ -34,6 +36,23 @@ User Input → DOM Handler → Service Layer → Storage Adapter
 2. **Service Layer** (`src/services/`): Business logic, state management, event coordination
 3. **Component Layer** (`src/components/`): Lit 3 Web Components with Shadow DOM
 4. **Storage Layer** (`src/services/storage/`): IndexedDB adapter with atomic transactions
+
+### Storage Monitor (Development Tool)
+The `<qd-storage-monitor>` component provides real-time inspection of browser storage during development:
+- **Auto-injected** when `data-debug="true"` is set on the script tag
+- **Configuration**: Set `dbName` attribute to specify the IndexedDB database to monitor
+  - Default: `'quiz-scores'` (generic default for reusability)
+  - Sonar Quiz System: `'SonarQuizDB'` (automatically set when auto-injected)
+- **Usage examples**:
+  ```html
+  <!-- Auto-injected by system (uses SonarQuizDB) -->
+  <script src="sonar-quiz.iife.js" data-sonar-quiz data-debug="true"></script>
+
+  <!-- Manual usage with custom database -->
+  <qd-storage-monitor dbName="MyCustomDB"></qd-storage-monitor>
+  ```
+- **Keyboard shortcut**: `Ctrl+Shift+D` to toggle visibility
+- **Features**: Expand/collapse entries, view nested JSON, clear individual keys or all storage
 
 ## Development Commands
 
