@@ -30,27 +30,27 @@ function createHomePage(cache: SessionCache | null): HTMLElement {
       <nav>
         <ul style="list-style: none; padding: 0;">
           <li style="margin: 1rem 0;">
-            <a href="chapter-1.html" class="qd-test-link" style="display: inline-flex; align-items: center; text-decoration: none; color: #0066cc; font-size: 1.1rem;">
+            <a href="chapter-1.html" class="quizPageBtn" style="display: inline-flex; align-items: center; text-decoration: none; color: #0066cc; font-size: 1.1rem;">
               Chapter 1: Introduction to Sonar Systems
             </a>
           </li>
           <li style="margin: 1rem 0;">
-            <a href="chapter-2.html" class="qd-test-link" style="display: inline-flex; align-items: center; text-decoration: none; color: #0066cc; font-size: 1.1rem;">
+            <a href="chapter-2.html" class="quizPageBtn" style="display: inline-flex; align-items: center; text-decoration: none; color: #0066cc; font-size: 1.1rem;">
               Chapter 2: Operating Principles
             </a>
           </li>
           <li style="margin: 1rem 0;">
-            <a href="chapter-3.html" class="qd-test-link" style="display: inline-flex; align-items: center; text-decoration: none; color: #0066cc; font-size: 1.1rem;">
+            <a href="chapter-3.html" class="quizPageBtn" style="display: inline-flex; align-items: center; text-decoration: none; color: #0066cc; font-size: 1.1rem;">
               Chapter 3: Signal Processing
             </a>
           </li>
           <li style="margin: 1rem 0;">
-            <a href="chapter-4.html" class="qd-test-link" style="display: inline-flex; align-items: center; text-decoration: none; color: #0066cc; font-size: 1.1rem;">
+            <a href="chapter-4.html" class="quizPageBtn" style="display: inline-flex; align-items: center; text-decoration: none; color: #0066cc; font-size: 1.1rem;">
               Chapter 4: Target Classification
             </a>
           </li>
           <li style="margin: 1rem 0;">
-            <a href="chapter-5.html" class="qd-test-link" style="display: inline-flex; align-items: center; text-decoration: none; color: #0066cc; font-size: 1.1rem;">
+            <a href="chapter-5.html" class="quizPageBtn" style="display: inline-flex; align-items: center; text-decoration: none; color: #0066cc; font-size: 1.1rem;">
               Chapter 5: Advanced Techniques
             </a>
           </li>
@@ -205,17 +205,17 @@ export const InteractiveDemo: Story = {
         <nav id="nav-links">
           <ul style="list-style: none; padding: 0;">
             <li style="margin: 1rem 0;">
-              <a href="page-1.html" class="qd-test-link" style="display: inline-flex; align-items: center; text-decoration: none; color: #0066cc; font-size: 1.1rem;">
+              <a href="page-1.html" class="quizPageBtn" style="display: inline-flex; align-items: center; text-decoration: none; color: #0066cc; font-size: 1.1rem;">
                 Test Page 1
               </a>
             </li>
             <li style="margin: 1rem 0;">
-              <a href="page-2.html" class="qd-test-link" style="display: inline-flex; align-items: center; text-decoration: none; color: #0066cc; font-size: 1.1rem;">
+              <a href="page-2.html" class="quizPageBtn" style="display: inline-flex; align-items: center; text-decoration: none; color: #0066cc; font-size: 1.1rem;">
                 Test Page 2
               </a>
             </li>
             <li style="margin: 1rem 0;">
-              <a href="page-3.html" class="qd-test-link" style="display: inline-flex; align-items: center; text-decoration: none; color: #0066cc; font-size: 1.1rem;">
+              <a href="page-3.html" class="quizPageBtn" style="display: inline-flex; align-items: center; text-decoration: none; color: #0066cc; font-size: 1.1rem;">
                 Test Page 3
               </a>
             </li>

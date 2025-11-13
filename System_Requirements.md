@@ -67,12 +67,20 @@ Documents are published quarterly and used by individual students. Instructors c
 - Instructor can unlock answers via password. Next to the correct answer will be a compact table showing user’s answer and color coding (green/red) based on success boolean.
 
 ### 4.4 Quiz Page Status Panel
-- A floating panel (`id="qd-status"`) summarizes page state:
-  - **Unstarted** – red
-  - **Incomplete** – amber
-  - **Complete** – green
-- Shows counts and last attempt time.
+- Auto-injected into configured navbar container as last child:
+  - Default container: `.wh_top_menu_and_indexterms_link` (Oxygen WebHelp)
+  - Configurable via `statusPanelContainer` option
+- **Not logged in**: Displays login form (name + service ID)
+- **Logged in**: Displays progress panel with:
+  - **Unstarted** – red indicator
+  - **Incomplete** – amber indicator
+  - **Complete** – green indicator
+  - Questions attempted / correct counts
+  - Percentage score
+  - Logout button (bottom-right)
+- Styled with `display:inline-block; vertical-align:middle; margin-left:auto;` to align right
 - Updated live after each answer save.
+- Logout clears sessionStorage and returns to login view.
 
 ### 4.5 Page Status (R/A/G)
 - Derived per page:
@@ -83,7 +91,7 @@ Documents are published quarterly and used by individual students. Instructors c
   Cleared when session ends or user logs out.
 
 ### 4.6 Home Page Badges
-- Each button link with `class="qd-test-link"` receives R/A/G badge based on cached state.
+- Each button link with `class="quizPageBtn"` receives R/A/G badge based on cached state.
 - Cache rebuilt automatically after quiz updates or on session reset.
 
 ---

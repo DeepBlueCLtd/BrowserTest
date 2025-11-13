@@ -59,16 +59,51 @@ The Sonar Quiz System enhances DITA-published HTML training documents with inter
 
 ### Home Page Setup
 
-Add the status panel placeholder and mark quiz links:
+Mark quiz navigation links and ensure navbar structure:
 
 ```html
-<!-- Status panel (will be auto-populated) -->
-<div id="qd-status"></div>
-
-<!-- Mark navigation links for badge display -->
-<a href="chapter1.html" class="qd-test-link">Chapter 1: Introduction</a>
-<a href="chapter2.html" class="qd-test-link">Chapter 2: Fundamentals</a>
+<!-- Oxygen WebHelp navbar structure (default) -->
+<div class="wh_top_menu_and_indexterms_link">
+  <nav class="wh_top_menu c-menu">
+    <ul role="menubar">
+      <li><a href="chapter1.html" class="quizPageBtn">Chapter 1: Introduction</a></li>
+      <li><a href="chapter2.html" class="quizPageBtn">Chapter 2: Fundamentals</a></li>
+    </ul>
+  </nav>
+  <!-- Status panel auto-injected here as last child -->
+</div>
 ```
+
+**Note:** Status panel is automatically injected as the last child of the configured navbar container (default: `.wh_top_menu_and_indexterms_link`).
+
+**Status Panel Behavior:**
+- **Not logged in**: Shows login form within status panel
+- **After login**: Shows quiz progress (R/A/G indicator, counts, percentage)
+- **Logout**: Button at bottom-right clears session and returns to login form
+
+### Configuring Status Panel Container
+
+For custom DITA templates with different navbar structures:
+
+**Via Script Tag:**
+```html
+<script src="sonar-quiz.iife.js"
+        data-status-panel-container=".your-navbar-class">
+</script>
+```
+
+**Via JavaScript:**
+```javascript
+window.SonarQuiz.init({
+  statusPanelContainer: '.your-navbar-class'
+});
+```
+
+**Examples:**
+- Oxygen WebHelp: `.wh_top_menu_and_indexterms_link` (default)
+- Custom navbar: `.navbar-nav`
+- By ID: `#header-navigation`
+- Disable injection: `null` or omit option
 
 ## For System Integrators
 

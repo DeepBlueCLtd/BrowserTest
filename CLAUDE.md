@@ -52,10 +52,38 @@ npm run chromatic       # Visual regression tests
 # Building
 npm run build           # Production build (IIFE + ESM)
 npm run lint            # TypeScript + ESLint checks
+npm run format:check    # Prettier formatting verification
 
 # Size verification
 npm run size-check      # Verify bundle <25KB min+gzip
 ```
+
+## Demo & Manual Testing
+
+The `demo/` directory contains standalone HTML files for manual testing and demonstration:
+
+- **demo/quiz-index.html**: Index page with login UI, status panel, and navigation with R/A/G badges
+- **demo/quiz-examples.html**: Interactive quiz tables (MCQ and numeric questions)
+- **demo/analysis-examples.html**: Editable analysis tables for free-form student work
+
+### Quick Test Workflow
+```bash
+# 1. Build the bundle
+npm run build
+
+# 2. Test via file:// protocol (recommended for offline testing)
+open demo/quiz-index.html
+
+# 3. Or serve via HTTP for full IndexedDB support
+python3 -m http.server 8000
+# Visit: http://localhost:8000/demo/quiz-index.html
+```
+
+All demo files load the built bundle from `dist/sonar-quiz.iife.js` and have debug mode enabled (`data-debug="true"`). See **demo/README.md** for:
+- Detailed test scenarios (login, quiz interaction, analysis tables, session management)
+- Browser DevTools inspection tips (IndexedDB, sessionStorage, custom events)
+- Troubleshooting common issues
+- E2E testing integration guidance
 
 ## Definition of Done
 
@@ -181,8 +209,13 @@ Content authors must follow these rules (runtime validation enforces):
 - **Maximum ONE** analysis table per page
 
 ### Home Page
-- Status panel: `<div id="qd-status"></div>`
-- Navigation links: Add class `qd-test-link` for R/A/G badges
+- Status panel: Auto-injected as last child of configured navbar container
+  - Default: `.wh_top_menu_and_indexterms_link` (Oxygen WebHelp)
+  - Configure via `statusPanelContainer` option in `init()` or `data-status-panel-container` attribute
+  - **Not logged in**: Shows login form within status panel
+  - **Logged in**: Shows quiz progress (R/A/G state, counts, percentage)
+  - **Logout**: Button at bottom-right clears sessionStorage and shows login form
+- Navigation links: Add class `quizPageBtn` for R/A/G badges
 
 ## Data Model Key Points
 
@@ -211,6 +244,18 @@ Format: `R{row}C{col}#f:{hash}`
 3. Confirm tests FAIL (red)
 4. Implement minimal code to pass (green)
 5. Refactor while keeping tests green
+6. **Before committing**: Run `npm run format:check` and `npm run lint` to verify code quality
+
+### Definition of Done (Pre-Commit Checklist)
+Before committing any code changes, ALL of the following MUST pass:
+
+1. ✅ **Tests pass**: `npm run test:unit` (and `npm run test:integration` if applicable)
+2. ✅ **Linting passes**: `npm run lint` (fix with `npm run lint:fix` if needed)
+3. ✅ **Formatting passes**: `npm run format:check` (fix with `npm run format` if needed)
+4. ✅ **Build succeeds**: `npm run build` (if modifying source files)
+5. ✅ **Bundle size**: Under 25KB min+gzip (verify with `npm run size-check` if needed)
+
+**Rationale**: CI will fail if any of these checks fail. Running them locally before committing prevents failed CI builds and reduces feedback cycles.
 
 ### Phase Exit Gates
 - **Phase 0**: Contracts published, Storybook renders, CI green
@@ -251,6 +296,7 @@ Enable via `data-qd-debug` attribute on quiz/analysis tables:
 - **Technical_Design.md**: Architecture, packaging, integration patterns
 - **Contracts.md**: Frozen types and interfaces
 - **Delivery_Plan.md**: 8-phase plan with exit gates
+- **demo/README.md**: Demo HTML files, testing workflows, troubleshooting guide
 - **specs/001-sonar-quiz-system/**: Feature spec, plan, data model, contracts
 
 ## Common Patterns

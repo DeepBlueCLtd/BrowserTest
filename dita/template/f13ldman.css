@@ -186,12 +186,12 @@ figure {
 }
 
 .c-nav-bar {
-z-index: unset;
+  z-index: unset;
 }
 
 .c-menu {
-min-width: 710px;
-text-align: start;
+  min-width: fit-content; /* Only as wide as content needs */
+  flex-shrink: 1; /* Allow shrinking if needed */
 }
 
 .c-full-width {

@@ -34,7 +34,7 @@ A student wants to track their learning progress across the entire training docu
 
 **Acceptance Scenarios**:
 
-1. **Given** a student on the home page, **When** they view links with class "qd-test-link", **Then** each link displays a colored badge indicating quiz completion status
+1. **Given** a student on the home page, **When** they view links with class "quizPageBtn", **Then** each link displays a colored badge indicating quiz completion status
 2. **Given** a student has completed some quiz pages, **When** they return to the home page after 5 minutes of activity, **Then** the badges accurately reflect current completion states
 3. **Given** a student's session expires after 30 minutes, **When** they log back in, **Then** the progress badges are rebuilt from stored data
 
@@ -207,5 +207,5 @@ An instructor needs to prepare the system for a new class cohort by exporting pr
 ### Document Structure Dependencies
 - Consistent use of CSS classes (qd-quiz, qd-page, qd-analysis)
 - Presence of element with id="qd-status" for status panel
-- Links with class="qd-test-link" for progress badges
+- Links with class="quizPageBtn" for progress badges
 - Stable page IDs for data association
