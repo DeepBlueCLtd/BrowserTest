@@ -194,8 +194,9 @@ function injectStorageMonitor(doc: Document = document): void {
     return;
   }
 
-  // Create and inject storage monitor
+  // Create and inject storage monitor with Sonar-specific database name
   const monitor = doc.createElement('qd-storage-monitor');
+  monitor.setAttribute('dbName', 'SonarQuizDB');
   doc.body.appendChild(monitor);
   log('Storage monitor injected');
 }
