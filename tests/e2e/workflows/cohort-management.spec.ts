@@ -90,6 +90,13 @@ test.describe('Cohort Management - CSV Export', () => {
     // Wait for status panel to appear with login
     await page.waitForSelector('qd-status');
 
+    // Set up login event listener before clicking submit
+    const loginPromise = page.evaluate(() => {
+      return new Promise<void>((resolve) => {
+        document.addEventListener('qd:login', () => resolve(), { once: true });
+      });
+    });
+
     // Fill in student credentials using shadow DOM access
     await page.evaluate(() => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
@@ -111,6 +118,9 @@ test.describe('Cohort Management - CSV Export', () => {
         submitButton.click();
       }
     });
+
+    // Wait for login event to fire
+    await loginPromise;
 
     // Wait for quiz to be enhanced
     await page.waitForSelector('.qd-quiz-enhanced', { timeout: 5000 });
