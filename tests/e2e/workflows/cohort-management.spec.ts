@@ -8,7 +8,7 @@
  * T095: Verify system returns to blank state after erasure
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -16,6 +16,56 @@ import path from 'path';
 interface TestWindow extends Window {
   dataCleared?: boolean;
   syncReceived?: boolean;
+}
+
+/**
+ * Helper function to unlock instructor mode by entering password in Shadow DOM
+ */
+async function unlockInstructorMode(page: Page): Promise<void> {
+  // Wait for instructor component to be visible
+  await page.waitForSelector('qd-instructor');
+
+  // Set up event listener for unlock
+  const unlockPromise = page.evaluate(() => {
+    return new Promise<void>((resolve) => {
+      document.addEventListener('qd:instructor-unlock', () => resolve(), { once: true });
+    });
+  });
+
+  // Enter password and click unlock in Shadow DOM
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+    const instructor = document.querySelector('qd-instructor') as any;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    const passwordInput = instructor?.shadowRoot?.querySelector(
+      'input[type="password"]',
+    ) as HTMLInputElement;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    const unlockButton = instructor?.shadowRoot?.querySelector(
+      'button.unlock-button',
+    ) as HTMLButtonElement;
+
+    if (passwordInput && unlockButton) {
+      passwordInput.value = 'instructor';
+      unlockButton.click();
+    }
+  });
+
+  // Wait for unlock to complete
+  await unlockPromise;
+}
+
+/**
+ * Helper function to click a button in instructor component Shadow DOM
+ */
+async function clickInstructorButton(page: Page, buttonClass: string): Promise<void> {
+  await page.evaluate((cls) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+    const instructor = document.querySelector('qd-instructor') as any;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    const button = instructor?.shadowRoot?.querySelector(`button.${cls}`) as HTMLButtonElement;
+    button?.click();
+  }, buttonClass);
 }
 
 // Test fixture HTML with quiz table
@@ -182,21 +232,16 @@ test.describe('Cohort Management - CSV Export', () => {
     });
 
     // Unlock instructor mode
-    const instructorComponent = page.locator('qd-instructor');
-    await expect(instructorComponent).toBeVisible();
+    await unlockInstructorMode(page);
 
-    // Enter instructor password
-    await page.fill('input[type="password"]', 'instructor');
-    await page.click('button.unlock-button');
-
-    // Wait for unlock
+    // Wait for controls to be visible
     await expect(page.locator('.controls')).toBeVisible({ timeout: 5000 });
 
     // Setup download listener
     const downloadPromise = page.waitForEvent('download');
 
     // Click export CSV button
-    await page.click('button.export-csv');
+    await clickInstructorButton(page, 'export-csv');
 
     // Wait for download
     const download = await downloadPromise;
@@ -230,8 +275,7 @@ test.describe('Cohort Management - CSV Export', () => {
     // Full implementation would add UI controls for format selection
 
     // Unlock instructor mode
-    await page.fill('input[type="password"]', 'instructor');
-    await page.click('button.unlock-button');
+    await unlockInstructorMode(page);
 
     await expect(page.locator('.controls')).toBeVisible();
 
@@ -293,13 +337,12 @@ test.describe('Cohort Management - Data Erasure', () => {
 
   test('should show erase confirmation dialog with typed confirmation', async ({ page }) => {
     // Unlock instructor mode
-    await page.fill('input[type="password"]', 'instructor');
-    await page.click('button.unlock-button');
+    await unlockInstructorMode(page);
 
     await expect(page.locator('.controls')).toBeVisible();
 
     // Click erase all data button
-    await page.click('button.erase-data');
+    await clickInstructorButton(page, 'erase-data');
 
     // Verify dialog appears
     const dialog = page.locator('.dialog-overlay');
@@ -324,11 +367,10 @@ test.describe('Cohort Management - Data Erasure', () => {
 
   test('should cancel data erasure when cancel button clicked', async ({ page }) => {
     // Unlock instructor mode
-    await page.fill('input[type="password"]', 'instructor');
-    await page.click('button.unlock-button');
+    await unlockInstructorMode(page);
 
     // Click erase button
-    await page.click('button.erase-data');
+    await clickInstructorButton(page, 'erase-data');
 
     // Verify dialog appears
     const dialog = page.locator('.dialog-overlay');
@@ -362,8 +404,7 @@ test.describe('Cohort Management - Data Erasure', () => {
 
   test('T094, T095: should erase all data and return system to blank state', async ({ page }) => {
     // Unlock instructor mode
-    await page.fill('input[type="password"]', 'instructor');
-    await page.click('button.unlock-button');
+    await unlockInstructorMode(page);
 
     // Verify student data exists
     let studentCount = await page.evaluate(async () => {
@@ -385,7 +426,7 @@ test.describe('Cohort Management - Data Erasure', () => {
     expect(studentCount).toBeGreaterThan(0);
 
     // Click erase button
-    await page.click('button.erase-data');
+    await clickInstructorButton(page, 'erase-data');
 
     // Confirm erasure
     const dialog = page.locator('.dialog-overlay');
@@ -423,7 +464,7 @@ test.describe('Cohort Management - Data Erasure', () => {
     expect(sessionCleared).toBe(true);
 
     // 3. Verify instructor can still function (data erasure doesn't break system)
-    await page.click('button.export-csv');
+    await clickInstructorButton(page, 'export-csv');
 
     // Should show error since no data exists
     await expect(page.locator('.error, .status')).toContainText(/no.*data/i, {
@@ -441,11 +482,10 @@ test.describe('Cohort Management - Data Erasure', () => {
     });
 
     // Unlock instructor mode
-    await page.fill('input[type="password"]', 'instructor');
-    await page.click('button.unlock-button');
+    await unlockInstructorMode(page);
 
     // Erase data
-    await page.click('button.erase-data');
+    await clickInstructorButton(page, 'erase-data');
     const dialog = page.locator('.dialog-overlay');
     await dialog.locator('input[type="text"]').fill('DELETE ALL');
     await dialog.locator('button.erase-data').click();
@@ -483,13 +523,9 @@ test.describe('Cross-Tab Synchronization', () => {
       await page1.waitForSelector('qd-instructor');
       await page2.waitForSelector('qd-instructor');
 
-      // Unlock instructor mode in page1
-      await page1.fill('input[type="password"]', 'instructor');
-      await page1.click('button.unlock-button');
-
-      // Unlock instructor mode in page2
-      await page2.fill('input[type="password"]', 'instructor');
-      await page2.click('button.unlock-button');
+      // Unlock instructor mode in both pages
+      await unlockInstructorMode(page1);
+      await unlockInstructorMode(page2);
 
       // Setup event listener in page2 to detect sync
       await page2.evaluate(() => {
@@ -504,7 +540,7 @@ test.describe('Cross-Tab Synchronization', () => {
       });
 
       // Erase data in page1
-      await page1.click('button.erase-data');
+      await clickInstructorButton(page1, 'erase-data');
       const dialog = page1.locator('.dialog-overlay');
       await dialog.locator('input[type="text"]').fill('DELETE ALL');
       await dialog.locator('button.erase-data').click();
