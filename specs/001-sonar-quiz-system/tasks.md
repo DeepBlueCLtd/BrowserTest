@@ -163,7 +163,7 @@ Single project structure:
 ### Home Page Badge Enhancement
 
 - [X] T048 [P] [US2] Write tests for home page badge detection in tests/unit/enhancers/home-badges.test.ts
-- [X] T049 [US2] Implement badge injector for links with qd-test-link class in src/enhancers/home-badges.ts
+- [X] T049 [US2] Implement badge injector for links with quizPageBtn class in src/enhancers/home-badges.ts
 - [X] T050 [US2] Calculate badge color from session cache in src/enhancers/home-badges.ts
 - [X] T051 [US2] Handle cache rebuild after session expiry in src/enhancers/home-badges.ts
 

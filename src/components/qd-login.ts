@@ -145,7 +145,7 @@ export class QdLogin extends LitElement {
             minlength="2"
             maxlength="${LIMITS.MAX_SERVICE_ID_LENGTH}"
             placeholder="Service ID (e.g., RN2344)"
-            autocomplete="username"
+            autocomplete="off"
             autofocus
             pattern="[A-Za-z0-9]+"
             title="Service ID must be alphanumeric, 2-10 characters"
@@ -160,7 +160,7 @@ export class QdLogin extends LitElement {
             minlength="1"
             maxlength="${LIMITS.MAX_NAME_LENGTH}"
             placeholder="Name (e.g., J Corner)"
-            autocomplete="name"
+            autocomplete="off"
             title="Name is required (1-100 characters)"
             aria-label="Name"
           />

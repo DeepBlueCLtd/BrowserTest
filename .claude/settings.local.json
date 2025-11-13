@@ -14,7 +14,8 @@
       "Bash(npm run test:unit:*)",
       "Bash(npm run format:check:*)",
       "Bash(npm run test:e2e:*)",
-      "Bash(test:*)"
+      "Bash(npm test:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

@@ -64,7 +64,8 @@ The system requires exactly one script tag in the DITA template—no configurati
 
 ### Compliance Verification
 - All PRs must verify constitution compliance in review checklist
-- Automated CI checks enforce bundle size, test coverage, and accessibility
+- Automated CI checks enforce bundle size, test coverage, code formatting (Prettier), linting (ESLint), and accessibility
+- **Pre-commit requirements**: Tests pass, lint passes, format:check passes, build succeeds
 - Phase exit gates require documented sign-off before proceeding
 - Quarterly reviews assess adherence and identify improvement areas
 
