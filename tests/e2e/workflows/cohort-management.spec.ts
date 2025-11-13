@@ -74,9 +74,9 @@ const TEST_HTML = `
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Cohort Management Test</title>
   <meta name="release" content="02-2025">
   <meta name="document-id" content="cohort-test">
+  <title>Cohort Management Test</title>
   <script type="module" src="../dist/sonar-quiz.esm.js" data-sonar-quiz></script>
 </head>
 <body>
@@ -107,6 +107,8 @@ const TEST_HTML = `
   </table>
 
   <qd-instructor release="02-2025"></qd-instructor>
+
+  <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true"></script>
 </body>
 </html>
 `;
@@ -122,8 +124,11 @@ test.describe('Cohort Management - CSV Export', () => {
     // Navigate to test file
     await page.goto(`file://${testFile}`);
 
-    // Wait for component to load
-    await page.waitForSelector('qd-instructor');
+    // Wait for system to initialize - check for qd-status or qd-login component
+    await page.waitForSelector('qd-status, qd-login', { timeout: 10000 });
+
+    // Also wait for instructor component to load
+    await page.waitForSelector('qd-instructor', { timeout: 10000 });
   });
 
   test.afterEach(async () => {
