@@ -57,6 +57,41 @@ npm run lint            # TypeScript + ESLint checks
 npm run size-check      # Verify bundle <25KB min+gzip
 ```
 
+## Definition of Done
+
+**CRITICAL**: Before marking ANY task as complete, ALL of the following must pass with ZERO errors:
+
+```bash
+# 1. TypeScript compilation (MUST pass)
+npm run build
+
+# 2. Linter (zero errors required, warnings acceptable with justification)
+npm run lint
+
+# 3. Unit tests (all must pass, zero failures)
+npm run test:unit
+
+# 4. Integration tests (if applicable to the task)
+npm run test:integration
+
+# 5. Format check (code must be properly formatted)
+npm run format:check
+```
+
+**No Exceptions**:
+- If ANY check fails, the task is NOT complete
+- Fix all errors before committing
+- Do not skip tests to achieve project goals (Constitution III)
+- All code must be properly typed (no `any` without eslint-disable comment)
+- All event handlers must use arrow functions or explicit `.bind()` to avoid unbound method errors
+
+**Post-Implementation Checklist**:
+- [ ] All tests passing (green)
+- [ ] Linter clean (zero errors)
+- [ ] Build successful
+- [ ] Bundle size within limits (<25KB gzipped)
+- [ ] Code committed with descriptive message
+
 ## Critical Constraints (Constitution)
 
 ### I. Offline-First Architecture

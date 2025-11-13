@@ -176,35 +176,35 @@ Single project structure:
 
 ### Instructor Component
 
-- [ ] T068 [P] [US3] Write tests for instructor component in tests/unit/components/qd-instructor.test.ts
-- [ ] T069 [US3] Create instructor unlock component in src/components/qd-instructor.ts
-- [ ] T070 [US3] Implement password validation (hashed storage) in src/components/qd-instructor.ts
-- [ ] T071 [US3] Add unlock/lock state management in src/services/session.ts
+- [X] T068 [P] [US3] Write tests for instructor component in tests/unit/components/qd-instructor.test.ts
+- [X] T069 [US3] Create instructor unlock component in src/components/qd-instructor.ts
+- [X] T070 [US3] Implement password validation (hashed storage) in src/components/qd-instructor.ts
+- [X] T071 [US3] Add unlock/lock state management in src/services/session.ts
 
 ### Answer Reveal Logic
 
-- [ ] T072 [P] [US3] Write tests for answer reveal in quiz tables in tests/unit/enhancers/quiz-table.test.ts
-- [ ] T073 [US3] Implement correct answer display in quiz enhancer in src/enhancers/quiz-table.ts
-- [ ] T074 [US3] Implement student answer comparison tables in src/enhancers/quiz-table.ts
-- [ ] T075 [US3] Add success/failure color coding for student answers in src/enhancers/quiz-table.ts
+- [X] T072 [P] [US3] Write tests for answer reveal in quiz tables in tests/unit/enhancers/quiz-table.test.ts
+- [X] T073 [US3] Implement correct answer display in quiz enhancer in src/enhancers/quiz-table.ts
+- [X] T074 [US3] Implement student answer comparison tables in src/enhancers/quiz-table.ts
+- [X] T075 [US3] Add success/failure color coding for student answers in src/enhancers/quiz-table.ts
 
 ### Analysis Review
 
-- [ ] T076 [P] [US3] Write tests for analysis cell review in tests/unit/enhancers/analysis-table.test.ts
-- [ ] T077 [US3] Implement student entry display for analysis cells in src/enhancers/analysis-table.ts
-- [ ] T078 [US3] Add 4-char username prefix display in src/enhancers/analysis-table.ts
+- [X] T076 [P] [US3] Write tests for analysis cell review in tests/unit/enhancers/analysis-table.test.ts
+- [X] T077 [US3] Implement student entry display for analysis cells in src/enhancers/analysis-table.ts
+- [X] T078 [US3] Add 4-char username prefix display in src/enhancers/analysis-table.ts
 
 ### Scores Page
 
-- [ ] T079 [P] [US3] Write tests for scores page data aggregation in tests/unit/services/scores.test.ts
-- [ ] T080 [US3] Create scores service to aggregate student data in src/services/scores.ts
-- [ ] T081 [US3] Implement scores page rendering logic in src/components/qd-instructor.ts
-- [ ] T082 [P] [US3] Create Storybook story for instructor view in stories/components/qd-instructor.stories.ts
+- [X] T079 [P] [US3] Write tests for scores page data aggregation in tests/unit/services/scores.test.ts
+- [X] T080 [US3] Create scores service to aggregate student data in src/services/scores.ts
+- [X] T081 [US3] Implement scores page rendering logic in src/components/qd-instructor.ts
+- [X] T082 [P] [US3] Create Storybook story for instructor view in stories/components/qd-instructor.stories.ts
 
 ### Integration
 
-- [ ] T083 [P] [US3] Write E2E test for instructor unlock flow in tests/e2e/workflows/instructor-review.spec.ts
-- [ ] T084 [US3] Verify Phase 3 exit gate: A11y checks pass, events qd:unlock/qd:lock emitted
+- [X] T083 [P] [US3] Write E2E test for instructor unlock flow in tests/e2e/workflows/instructor-review.spec.ts
+- [X] T084 [US3] Verify Phase 3 exit gate: A11y checks pass, events qd:unlock/qd:lock emitted
 
 ---
 
