@@ -95,6 +95,7 @@ export class QdStatus extends LitElement {
   static styles = css`
     :host {
       display: block;
+      min-width: 400px;
       font-family:
         -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     }
@@ -121,6 +122,24 @@ export class QdStatus extends LitElement {
       border-radius: 8px;
       padding: 1.5rem;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      min-width: 400px;
+    }
+
+    .login-container {
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      min-width: 400px;
+    }
+
+    .login-header {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #333;
+      margin: 0 0 1rem 0;
+      text-align: center;
     }
 
     .login-header {

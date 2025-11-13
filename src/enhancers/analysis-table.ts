@@ -48,13 +48,6 @@ export function enhanceAnalysisTable(
     return;
   }
 
-  // Display validation errors if any
-  if (parsed.errors && parsed.errors.length > 0) {
-    console.warn('Analysis table validation errors:', parsed.errors);
-    // Could show banner here in future
-    return;
-  }
-
   // Store table ID on element for data loading
   if (!table.dataset.tableId) {
     table.dataset.tableId = parsed.tableId;
@@ -237,4 +230,192 @@ export function enhanceAllAnalysisTables(options: EnhancementOptions = {}): void
       enhanceAnalysisTable(table, options);
     }
   });
+}
+
+/**
+ * Show student analysis entries in a comparison table (instructor mode)
+ *
+ * T077: Implements student entry display for analysis cells
+ * T078: Implements 4-char username prefix display
+ *
+ * @param table - The analysis table element
+ * @param students - Array of student records to display
+ * @param pageId - Current page ID to extract analysis data from
+ */
+export function showStudentAnalysisEntries(
+  table: HTMLTableElement | null,
+  students: import('../types/contracts').StudentRecord[],
+  pageId: string,
+): void {
+  if (!table || !students || students.length === 0) {
+    return;
+  }
+
+  // Get table ID (should be set during enhancement)
+  const tableId = table.dataset.tableId;
+  if (!tableId) {
+    console.warn('Analysis table has no tableId - was it enhanced?');
+    return;
+  }
+
+  // Get cell keys from existing inputs (set during enhancement)
+  // This is more reliable than re-parsing after cells have been enhanced
+  const inputs = Array.from(table.querySelectorAll<HTMLInputElement>('input[data-cell-key]'));
+
+  if (inputs.length === 0) {
+    console.warn('No editable cells found in analysis table');
+    return;
+  }
+
+  const cellKeys = inputs.map((input) => input.dataset.cellKey || '');
+
+  // Create comparison table
+  const comparisonTable = document.createElement('table');
+  comparisonTable.className = 'qd-analysis-comparison';
+
+  // Create header row
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+
+  // Student ID column
+  const studentIdHeader = document.createElement('th');
+  studentIdHeader.textContent = 'Student';
+  studentIdHeader.scope = 'col';
+  headerRow.appendChild(studentIdHeader);
+
+  // Cell columns (one for each editable cell)
+  cellKeys.forEach((_, index) => {
+    const cellHeader = document.createElement('th');
+    cellHeader.textContent = `Field ${index + 1}`;
+    cellHeader.scope = 'col';
+    headerRow.appendChild(cellHeader);
+  });
+
+  thead.appendChild(headerRow);
+  comparisonTable.appendChild(thead);
+
+  // Create body rows for each student
+  const tbody = document.createElement('tbody');
+
+  students.forEach((student) => {
+    const row = document.createElement('tr');
+    row.className = 'qd-student-row';
+
+    // T078: Student ID cell (first 4 chars)
+    const studentIdCell = document.createElement('td');
+    studentIdCell.className = 'qd-student-id';
+    studentIdCell.textContent = student.serviceId.substring(0, 4);
+    row.appendChild(studentIdCell);
+
+    // Get student's analysis data for this page
+    const pageData = student.pages[pageId];
+    const analysisData = pageData?.analysis;
+
+    // Check if table IDs match
+    const studentCells = analysisData && analysisData.tableId === tableId ? analysisData.cells : {};
+
+    // Add entry cells for each editable cell
+    cellKeys.forEach((cellKey) => {
+      const entryCell = document.createElement('td');
+      entryCell.className = 'qd-student-entry';
+
+      const entry = studentCells[cellKey];
+
+      if (!entry || entry.trim() === '') {
+        // No entry provided
+        entryCell.textContent = '—';
+        entryCell.classList.add('qd-no-entry');
+      } else {
+        // Show entry
+        entryCell.textContent = entry;
+      }
+
+      row.appendChild(entryCell);
+    });
+
+    tbody.appendChild(row);
+  });
+
+  comparisonTable.appendChild(tbody);
+
+  // Insert comparison table after the analysis table
+  if (table.parentElement) {
+    table.parentElement.insertBefore(comparisonTable, table.nextSibling);
+  }
+}
+
+/**
+ * Inject inline styles for analysis comparison tables
+ */
+export function injectAnalysisStyles(doc: Document = document): void {
+  // Check if styles already injected
+  if (doc.getElementById('qd-analysis-styles')) {
+    return;
+  }
+
+  const style = doc.createElement('style');
+  style.id = 'qd-analysis-styles';
+  style.textContent = `
+    /* Analysis comparison table styling */
+    .qd-analysis-comparison {
+      width: 100%;
+      margin-top: 1rem;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    .qd-analysis-comparison th,
+    .qd-analysis-comparison td {
+      padding: 0.5rem;
+      text-align: left;
+      border: 1px solid #e0e0e0;
+    }
+
+    .qd-analysis-comparison th {
+      background-color: #f5f5f5;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .qd-student-id {
+      font-weight: 500;
+      font-family: monospace;
+      background-color: #fafafa;
+    }
+
+    .qd-student-entry {
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .qd-student-entry.qd-no-entry {
+      color: #999;
+      font-style: italic;
+      text-align: center;
+    }
+
+    .qd-student-row:hover {
+      background-color: #fafafa;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .qd-analysis-comparison {
+        font-size: 0.75rem;
+      }
+
+      .qd-analysis-comparison th,
+      .qd-analysis-comparison td {
+        padding: 0.25rem;
+      }
+
+      .qd-student-entry {
+        max-width: 100px;
+      }
+    }
+  `;
+
+  doc.head.appendChild(style);
 }

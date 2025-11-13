@@ -46,24 +46,24 @@ Single project structure:
 
 ### Storage Layer
 
-- [X] T014 [P] Write tests for Storage Adapter interface in tests/unit/services/storage/adapter.test.ts
-- [X] T015 Create Storage Adapter interface in src/services/storage/adapter.ts
-- [X] T016 [P] Write tests for IndexedDB implementation in tests/unit/services/storage/indexeddb.test.ts
-- [X] T017 Implement IndexedDB storage adapter with atomic transactions in src/services/storage/indexeddb.ts
+- [ ] T014 [P] Write tests for Storage Adapter interface in tests/unit/services/storage/adapter.test.ts
+- [ ] T015 Create Storage Adapter interface in src/services/storage/adapter.ts
+- [ ] T016 [P] Write tests for IndexedDB implementation in tests/unit/services/storage/indexeddb.test.ts
+- [ ] T017 Implement IndexedDB storage adapter with atomic transactions in src/services/storage/indexeddb.ts
 
 ### Session Management
 
-- [X] T018 [P] Write tests for session management in tests/unit/services/session.test.ts
-- [X] T019 Implement session service with 30-minute timeout in src/services/session.ts
-- [X] T020 [P] Write tests for session cache rebuilding in tests/unit/services/session-cache.test.ts
-- [X] T021 Implement session cache logic in src/services/session.ts
+- [ ] T018 [P] Write tests for session management in tests/unit/services/session.test.ts
+- [ ] T019 Implement session service with 30-minute timeout in src/services/session.ts
+- [ ] T020 [P] Write tests for session cache rebuilding in tests/unit/services/session-cache.test.ts
+- [ ] T021 Implement session cache logic in src/services/session.ts
 
 ### Validation & Utilities
 
-- [X] T022 [P] Write tests for table validation rules in tests/unit/services/validation.test.ts
-- [X] T023 Implement table validation service in src/services/validation.ts
-- [X] T024 [P] Write tests for state calculation logic in tests/unit/services/state-calculator.test.ts
-- [X] T025 Implement completion state calculator in src/services/state-calculator.ts
+- [ ] T022 [P] Write tests for table validation rules in tests/unit/services/validation.test.ts
+- [ ] T023 Implement table validation service in src/services/validation.ts
+- [ ] T024 [P] Write tests for state calculation logic in tests/unit/services/state-calculator.test.ts
+- [ ] T025 Implement completion state calculator in src/services/state-calculator.ts
 
 ---
 
@@ -75,39 +75,38 @@ Single project structure:
 
 ### Parsing & Detection
 
-- [X] T026 [P] [US1] Write tests for quiz table parser (MCQ detection) in tests/unit/services/quiz-parser.test.ts
-- [X] T027 [P] [US1] Write tests for quiz table parser (numeric detection) in tests/unit/services/quiz-parser.test.ts
-- [X] T028 [US1] Implement quiz table DOM parser in src/services/quiz-parser.ts
-- [X] T029 [P] [US1] Write tests for answer correctness checking in tests/unit/services/quiz-parser.test.ts
-- [X] T030 [US1] Implement answer validation logic in src/services/quiz-parser.ts
+- [ ] T026 [P] [US1] Write tests for quiz table parser (MCQ detection) in tests/unit/services/quiz-parser.test.ts
+- [ ] T027 [P] [US1] Write tests for quiz table parser (numeric detection) in tests/unit/services/quiz-parser.test.ts
+- [ ] T028 [US1] Implement quiz table DOM parser in src/services/quiz-parser.ts
+- [ ] T029 [P] [US1] Write tests for answer correctness checking in tests/unit/services/quiz-parser.test.ts
+- [ ] T030 [US1] Implement answer validation logic in src/services/quiz-parser.ts
 
 ### Login Component
 
-- [X] T031 [P] [US1] Write tests for login component in tests/unit/components/qd-login.test.ts
-- [X] T032 [US1] Create login web component with service ID + name inputs in src/components/qd-login.ts
-- [X] T033 [P] [US1] Create Storybook story for login component in stories/components/qd-login.stories.ts
-- [X] T034 [US1] Style login component with Shadow DOM in src/components/qd-login.ts
+- [ ] T031 [P] [US1] Write tests for login component in tests/unit/components/qd-login.test.ts
+- [ ] T032 [US1] Create login web component with service ID + name inputs in src/components/qd-login.ts
+- [ ] T033 [P] [US1] Create Storybook story for login component in stories/components/qd-login.stories.ts
+- [ ] T034 [US1] Style login component with Shadow DOM in src/components/qd-login.ts
 
 ### Quiz Table Enhancement
 
-- [X] T035 [P] [US1] Write tests for quiz table DOM upgrades in tests/integration/dom-upgrades/quiz-table.test.ts
-- [X] T036 [US1] Implement quiz table enhancer to inject dropdowns/inputs in src/enhancers/quiz-table.ts
-- [X] T037 [US1] Add event handlers for answer changes in src/enhancers/quiz-table.ts
-- [X] T038 [US1] Implement auto-save on answer change (<200ms) in src/enhancers/quiz-table.ts
+- [ ] T035 [P] [US1] Write tests for quiz table DOM upgrades in tests/integration/dom-upgrades/quiz-table.test.ts
+- [ ] T036 [US1] Implement quiz table enhancer to inject dropdowns/inputs in src/enhancers/quiz-table.ts
+- [ ] T037 [US1] Add event handlers for answer changes in src/enhancers/quiz-table.ts
+- [ ] T038 [US1] Implement auto-save on answer change (<200ms) in src/enhancers/quiz-table.ts
 
 ### Status Panel Component
 
-- [X] T039 [P] [US1] Write tests for status panel component in tests/unit/components/qd-status.test.ts
-- [X] T040 [US1] Create status panel web component in src/components/qd-status.ts
-- [X] T041 [US1] Implement R/A/G color coding logic in src/components/qd-status.ts
-- [X] T042 [US1] Add ARIA live regions for accessibility in src/components/qd-status.ts
-- [X] T043 [P] [US1] Create Storybook stories for status panel states in stories/components/qd-status.stories.ts
-- [X] T043a [P] [US1] Create dynamic transformation story for quiz tables in stories/tables/quiz-transformation.stories.ts
+- [ ] T039 [P] [US1] Write tests for status panel component in tests/unit/components/qd-status.test.ts
+- [ ] T040 [US1] Create status panel web component in src/components/qd-status.ts
+- [ ] T041 [US1] Implement R/A/G color coding logic in src/components/qd-status.ts
+- [ ] T042 [US1] Add ARIA live regions for accessibility in src/components/qd-status.ts
+- [ ] T043 [P] [US1] Create Storybook stories for status panel states in stories/components/qd-status.stories.ts
 
 ### Integration & Entry Point
 
-- [X] T044 [US1] Implement main entry point with auto-init in src/index.ts
-- [X] T045 [US1] Wire up DOMContentLoaded detection and table scanning in src/index.ts
+- [ ] T044 [US1] Implement main entry point with auto-init in src/index.ts
+- [ ] T045 [US1] Wire up DOMContentLoaded detection and table scanning in src/index.ts
 - [ ] T046 [P] [US1] Write E2E test for complete login → answer → save flow in tests/e2e/workflows/student-quiz.spec.ts
 - [ ] T047 [US1] Verify Phase 1 exit gate: Chromatic interactions pass, parsing unit tests green
 
@@ -128,14 +127,14 @@ Single project structure:
 
 ### Cache Management
 
-- [X] T052 [P] [US2] Write tests for cache update after quiz completion in tests/unit/services/session-cache.test.ts
-- [X] T053 [US2] Implement cache synchronization on answer save in src/services/session.ts
-- [X] T054 [P] [US2] Create Storybook story for home page with various badge states in stories/tables/home-badges.stories.ts
+- [ ] T052 [P] [US2] Write tests for cache update after quiz completion in tests/unit/services/session-cache.test.ts
+- [ ] T053 [US2] Implement cache synchronization on answer save in src/services/session.ts
+- [ ] T054 [P] [US2] Create Storybook story for home page with various badge states in stories/tables/home-badges.stories.ts
 
 ### Integration
 
-- [X] T055 [P] [US2] Write E2E test for home page badge updates in tests/e2e/workflows/progress-tracking.spec.ts
-- [X] T056 [US2] Verify independent test: badges reflect quiz completion accurately
+- [ ] T055 [P] [US2] Write E2E test for home page badge updates in tests/e2e/workflows/progress-tracking.spec.ts
+- [ ] T056 [US2] Verify independent test: badges reflect quiz completion accurately
 
 ---
 
@@ -149,24 +148,23 @@ Single project structure:
 
 ### Parsing & Detection
 
-- [X] T057 [P] [US4] Write tests for analysis table parser in tests/unit/services/analysis-parser.test.ts
-- [X] T058 [US4] Implement analysis table DOM parser in src/services/analysis-parser.ts
-- [X] T059 [US4] Implement editable cell detection (class="interactive") in src/services/analysis-parser.ts
-- [X] T060 [US4] Implement cell key generation (R{row}C{col}#f:{hash}) in src/services/analysis-parser.ts
+- [ ] T057 [P] [US4] Write tests for analysis table parser in tests/unit/services/analysis-parser.test.ts
+- [ ] T058 [US4] Implement analysis table DOM parser in src/services/analysis-parser.ts
+- [ ] T059 [US4] Implement editable cell detection (no background-color) in src/services/analysis-parser.ts
+- [ ] T060 [US4] Implement cell key generation (R{row}C{col}#f:{hash}) in src/services/analysis-parser.ts
 
 ### Table Enhancement
 
-- [X] T061 [P] [US4] Write tests for analysis table DOM upgrades in tests/integration/dom-upgrades/analysis-table.test.ts
-- [X] T062 [US4] Implement analysis table enhancer to inject text inputs in src/enhancers/analysis-table.ts
-- [X] T063 [US4] Add event handlers for cell value changes in src/enhancers/analysis-table.ts
-- [X] T064 [US4] Implement auto-save on cell edit in src/enhancers/analysis-table.ts
-- [X] T065 [P] [US4] Create Storybook stories for analysis tables in stories/tables/analysis.stories.ts
-- [X] T065a [P] [US4] Create dynamic transformation story for analysis tables in stories/tables/analysis-transformation.stories.ts
+- [ ] T061 [P] [US4] Write tests for analysis table DOM upgrades in tests/integration/dom-upgrades/analysis-table.test.ts
+- [ ] T062 [US4] Implement analysis table enhancer to inject text inputs in src/enhancers/analysis-table.ts
+- [ ] T063 [US4] Add event handlers for cell value changes in src/enhancers/analysis-table.ts
+- [ ] T064 [US4] Implement auto-save on cell edit in src/enhancers/analysis-table.ts
+- [ ] T065 [P] [US4] Create Storybook stories for analysis tables in stories/tables/analysis.stories.ts
 
 ### Integration
 
-- [X] T066 [P] [US4] Write E2E test for analysis data persistence in tests/e2e/workflows/analysis-capture.spec.ts
-- [X] T067 [US4] Verify Phase 2 exit gate: visual baselines stable, cell mapping tests pass
+- [ ] T066 [P] [US4] Write E2E test for analysis data persistence in tests/e2e/workflows/analysis-capture.spec.ts
+- [ ] T067 [US4] Verify Phase 2 exit gate: visual baselines stable, cell mapping tests pass
 
 ---
 
@@ -178,35 +176,35 @@ Single project structure:
 
 ### Instructor Component
 
-- [ ] T068 [P] [US3] Write tests for instructor component in tests/unit/components/qd-instructor.test.ts
-- [ ] T069 [US3] Create instructor unlock component in src/components/qd-instructor.ts
-- [ ] T070 [US3] Implement password validation (hashed storage) in src/components/qd-instructor.ts
-- [ ] T071 [US3] Add unlock/lock state management in src/services/session.ts
+- [X] T068 [P] [US3] Write tests for instructor component in tests/unit/components/qd-instructor.test.ts
+- [X] T069 [US3] Create instructor unlock component in src/components/qd-instructor.ts
+- [X] T070 [US3] Implement password validation (hashed storage) in src/components/qd-instructor.ts
+- [X] T071 [US3] Add unlock/lock state management in src/services/session.ts
 
 ### Answer Reveal Logic
 
-- [ ] T072 [P] [US3] Write tests for answer reveal in quiz tables in tests/unit/enhancers/quiz-table.test.ts
-- [ ] T073 [US3] Implement correct answer display in quiz enhancer in src/enhancers/quiz-table.ts
-- [ ] T074 [US3] Implement student answer comparison tables in src/enhancers/quiz-table.ts
-- [ ] T075 [US3] Add success/failure color coding for student answers in src/enhancers/quiz-table.ts
+- [X] T072 [P] [US3] Write tests for answer reveal in quiz tables in tests/unit/enhancers/quiz-table.test.ts
+- [X] T073 [US3] Implement correct answer display in quiz enhancer in src/enhancers/quiz-table.ts
+- [X] T074 [US3] Implement student answer comparison tables in src/enhancers/quiz-table.ts
+- [X] T075 [US3] Add success/failure color coding for student answers in src/enhancers/quiz-table.ts
 
 ### Analysis Review
 
-- [ ] T076 [P] [US3] Write tests for analysis cell review in tests/unit/enhancers/analysis-table.test.ts
-- [ ] T077 [US3] Implement student entry display for analysis cells in src/enhancers/analysis-table.ts
-- [ ] T078 [US3] Add 4-char username prefix display in src/enhancers/analysis-table.ts
+- [X] T076 [P] [US3] Write tests for analysis cell review in tests/unit/enhancers/analysis-table.test.ts
+- [X] T077 [US3] Implement student entry display for analysis cells in src/enhancers/analysis-table.ts
+- [X] T078 [US3] Add 4-char username prefix display in src/enhancers/analysis-table.ts
 
 ### Scores Page
 
-- [ ] T079 [P] [US3] Write tests for scores page data aggregation in tests/unit/services/scores.test.ts
-- [ ] T080 [US3] Create scores service to aggregate student data in src/services/scores.ts
-- [ ] T081 [US3] Implement scores page rendering logic in src/components/qd-instructor.ts
-- [ ] T082 [P] [US3] Create Storybook story for instructor view in stories/components/qd-instructor.stories.ts
+- [X] T079 [P] [US3] Write tests for scores page data aggregation in tests/unit/services/scores.test.ts
+- [X] T080 [US3] Create scores service to aggregate student data in src/services/scores.ts
+- [X] T081 [US3] Implement scores page rendering logic in src/components/qd-instructor.ts
+- [X] T082 [P] [US3] Create Storybook story for instructor view in stories/components/qd-instructor.stories.ts
 
 ### Integration
 
-- [ ] T083 [P] [US3] Write E2E test for instructor unlock flow in tests/e2e/workflows/instructor-review.spec.ts
-- [ ] T084 [US3] Verify Phase 3 exit gate: A11y checks pass, events qd:unlock/qd:lock emitted
+- [X] T083 [P] [US3] Write E2E test for instructor unlock flow in tests/e2e/workflows/instructor-review.spec.ts
+- [X] T084 [US3] Verify Phase 3 exit gate: A11y checks pass, events qd:unlock/qd:lock emitted
 
 ---
 
@@ -371,17 +369,17 @@ Phase 0 (Bootstrap) → Phase 1 (Foundation)
 
 ## Task Summary
 
-**Total Tasks**: 131
+**Total Tasks**: 129
 - Phase 0 (Bootstrap): 13 tasks
 - Phase 1 (Foundation): 12 tasks
-- US1 (Quiz Core): 23 tasks
+- US1 (Quiz Core): 22 tasks
 - US2 (Progress): 9 tasks
-- US4 (Analysis): 12 tasks
+- US4 (Analysis): 11 tasks
 - US3 (Instructor): 17 tasks
 - US5 (Cohort Mgmt): 11 tasks
 - Phase 7 (Polish): 24 tasks
 - Phase 8 (Deploy): 11 tasks
 
-**Parallel Opportunities**: 47 tasks marked with [P]
+**Parallel Opportunities**: 45 tasks marked with [P]
 
 **TDD Tasks**: All implementation tasks preceded by test tasks (following Red-Green-Refactor cycle)

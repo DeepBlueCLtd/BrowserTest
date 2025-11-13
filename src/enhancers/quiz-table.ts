@@ -69,12 +69,37 @@ export function enhanceQuizTable(
   // Mark as enhanced
   table.classList.add(CSS_CLASSES.ENHANCED);
 
-  // Remove the detail column (3rd column) - it's only used for metadata during parsing
-  removeDetailColumn(table);
+  // Store question count for instructor review features
+  table.setAttribute('data-question-count', parsed.questions.length.toString());
 
   // Get all answer cells (second column in tbody)
   const rows = Array.from(table.querySelectorAll('tbody tr'));
 
+  // FIRST: Store metadata from all rows BEFORE removing detail column
+  rows.forEach((row, index) => {
+    const question = parsed.questions[index];
+    if (!question) return;
+
+    const answerCell = row.querySelector('td:nth-child(2)');
+    if (!answerCell) return;
+
+    // Store correct answer as data attribute before enhancement
+    // This allows instructor reveal to work after enhancement
+    answerCell.setAttribute('data-correct-answer', question.correctAnswer);
+
+    // Store question type (mcq or numeric) for instructor reveal
+    answerCell.setAttribute('data-question-type', question.kind);
+
+    // Store tolerance for numeric questions
+    if (question.kind === 'numeric' && question.tolerance !== undefined) {
+      answerCell.setAttribute('data-tolerance', question.tolerance.toString());
+    }
+  });
+
+  // Remove the detail column (3rd column) - it's only used for metadata during parsing
+  removeDetailColumn(table);
+
+  // SECOND: Enhance each answer cell with interactive elements
   rows.forEach((row, index) => {
     const question = parsed.questions[index];
     if (!question) return;
@@ -161,7 +186,9 @@ function enhanceMcqCell(
   });
 
   // Clear cell and inject select
-  cell.textContent = '';
+  while (cell.firstChild) {
+    cell.removeChild(cell.firstChild);
+  }
   cell.appendChild(select);
 }
 
@@ -195,7 +222,9 @@ function enhanceNumericCell(
   });
 
   // Clear cell and inject input
-  cell.textContent = '';
+  while (cell.firstChild) {
+    cell.removeChild(cell.firstChild);
+  }
   cell.appendChild(input);
 }
 
@@ -313,6 +342,190 @@ export function enhanceAllQuizTables(
 }
 
 /**
+ * Reveal correct answers in quiz table (instructor mode)
+ *
+ * T073: Implements correct answer display for instructors
+ *
+ * Note: This function reads metadata from data attributes stored during enhancement.
+ * After enhancement, the detail column (3rd column) is removed, so we rely on stored metadata.
+ *
+ * @param table - The quiz table element to reveal answers in
+ */
+export function revealCorrectAnswers(table: HTMLTableElement | null): void {
+  if (!table) {
+    console.warn('Quiz table reveal: No table provided');
+    return;
+  }
+
+  // Get all rows from tbody
+  const rows = Array.from(table.querySelectorAll('tbody tr'));
+
+  if (rows.length === 0) {
+    console.warn('Quiz table reveal: No rows found');
+    return;
+  }
+
+  rows.forEach((row) => {
+    const cells = Array.from(row.querySelectorAll('td'));
+
+    // After enhancement, table has 2 columns (detail column removed)
+    if (cells.length < 2) {
+      return;
+    }
+
+    const answerCell = cells[1]; // Second column is the answer cell
+
+    // Skip if already revealed
+    if (answerCell.classList.contains('qd-answer-revealed')) {
+      return;
+    }
+
+    // Get metadata from data attributes (stored during enhancement)
+    const correctAnswer = answerCell.getAttribute('data-correct-answer');
+    const questionType = answerCell.getAttribute('data-question-type');
+
+    if (!correctAnswer) {
+      return;
+    }
+
+    // Mark cell as having revealed answer
+    answerCell.classList.add('qd-answer-revealed');
+
+    // Create reveal element
+    const revealDiv = document.createElement('div');
+    revealDiv.className = 'qd-correct-answer';
+
+    // Display correct answer based on question type
+    if (questionType === 'mcq') {
+      // MCQ question
+      revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${correctAnswer}`;
+    } else if (questionType === 'numeric') {
+      // Numeric question - get tolerance from data attribute
+      const toleranceAttr = answerCell.getAttribute('data-tolerance');
+      const tolerance = toleranceAttr ? parseFloat(toleranceAttr) : NaN;
+
+      const toleranceSpan = !isNaN(tolerance)
+        ? ` <span class="qd-tolerance">(±${tolerance})</span>`
+        : '';
+      revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${correctAnswer}${toleranceSpan}`;
+    } else {
+      // Unknown question type - show answer without type-specific formatting
+      revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${correctAnswer}`;
+    }
+
+    // Prepend to cell (so it appears above student input)
+    answerCell.insertBefore(revealDiv, answerCell.firstChild);
+  });
+}
+
+/**
+ * Show student answer comparisons in a table (instructor mode)
+ *
+ * T074: Implements student answer comparison display
+ * T075: Implements success/failure color coding
+ *
+ * @param table - The quiz table element
+ * @param students - Array of student records to display
+ * @param pageId - Current page ID to extract answers from
+ */
+export function showStudentComparisons(
+  table: HTMLTableElement | null,
+  students: import('../types/contracts').StudentRecord[],
+  pageId: string,
+): void {
+  if (!table || !students || students.length === 0) {
+    return;
+  }
+
+  // Get question count from stored data attribute (set during enhancement)
+  // After enhancement, the detail column is removed, so we can't re-parse the table
+  const questionCountAttr = table.getAttribute('data-question-count');
+  const questionCount = questionCountAttr ? parseInt(questionCountAttr, 10) : 0;
+
+  if (questionCount === 0) {
+    return;
+  }
+
+  // Create comparison table
+  const comparisonTable = document.createElement('table');
+  comparisonTable.className = 'qd-student-comparison';
+
+  // Create header row
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+
+  // Student ID column
+  const studentIdHeader = document.createElement('th');
+  studentIdHeader.textContent = 'Student';
+  studentIdHeader.scope = 'col';
+  headerRow.appendChild(studentIdHeader);
+
+  // Question columns
+  for (let i = 0; i < questionCount; i++) {
+    const questionHeader = document.createElement('th');
+    questionHeader.textContent = `Q${i + 1}`;
+    questionHeader.scope = 'col';
+    headerRow.appendChild(questionHeader);
+  }
+
+  thead.appendChild(headerRow);
+  comparisonTable.appendChild(thead);
+
+  // Create body rows for each student
+  const tbody = document.createElement('tbody');
+
+  students.forEach((student) => {
+    const row = document.createElement('tr');
+    row.className = 'qd-student-row';
+
+    // Student ID cell (first 4 chars)
+    const studentIdCell = document.createElement('td');
+    studentIdCell.className = 'qd-student-id';
+    studentIdCell.textContent = student.serviceId.substring(0, 4);
+    row.appendChild(studentIdCell);
+
+    // Get student's answers for this page
+    const pageData = student.pages[pageId];
+    const answers = pageData?.answers || [];
+
+    // Add answer cells for each question
+    for (let i = 0; i < questionCount; i++) {
+      const answerCell = document.createElement('td');
+      answerCell.className = 'qd-student-answer';
+
+      const answer = answers[i];
+
+      if (!answer || !answer.answer) {
+        // No answer provided
+        answerCell.textContent = '—';
+        answerCell.classList.add('qd-no-answer');
+      } else {
+        // Show answer with color coding
+        answerCell.textContent = answer.answer;
+
+        // T075: Add success/failure color coding
+        if (answer.success) {
+          answerCell.classList.add('qd-success');
+        } else {
+          answerCell.classList.add('qd-failure');
+        }
+      }
+
+      row.appendChild(answerCell);
+    }
+
+    tbody.appendChild(row);
+  });
+
+  comparisonTable.appendChild(tbody);
+
+  // Insert comparison table after the quiz table
+  if (table.parentElement) {
+    table.parentElement.insertBefore(comparisonTable, table.nextSibling);
+  }
+}
+
+/**
  * Inject inline styles for visual feedback
  * This provides basic styling until full CSS is loaded
  */
@@ -392,6 +605,81 @@ export function injectQuizStyles(doc: Document = document): void {
     /* Enhanced table marker */
     table.qd-enhanced {
       position: relative;
+    }
+
+    /* Instructor answer reveal styling */
+    .qd-correct-answer {
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
+      background-color: #e3f2fd;
+      border: 1px solid #90caf9;
+      border-radius: 4px;
+      font-size: 0.875rem;
+    }
+
+    .qd-correct-answer strong {
+      color: #1976d2;
+    }
+
+    .qd-tolerance {
+      color: #666;
+      font-size: 0.8rem;
+    }
+
+    .qd-answer-revealed {
+      background-color: #fafafa;
+    }
+
+    /* Student comparison table styling */
+    .qd-student-comparison {
+      width: 100%;
+      margin-top: 1rem;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    .qd-student-comparison th,
+    .qd-student-comparison td {
+      padding: 0.5rem;
+      text-align: center;
+      border: 1px solid #e0e0e0;
+    }
+
+    .qd-student-comparison th {
+      background-color: #f5f5f5;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .qd-student-comparison thead th:first-child {
+      text-align: left;
+    }
+
+    .qd-student-id {
+      font-weight: 500;
+      text-align: left !important;
+      font-family: monospace;
+    }
+
+    .qd-student-answer.qd-success {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      font-weight: 600;
+    }
+
+    .qd-student-answer.qd-failure {
+      background-color: #ffebee;
+      color: #c62828;
+      font-weight: 600;
+    }
+
+    .qd-student-answer.qd-no-answer {
+      color: #999;
+      font-style: italic;
+    }
+
+    .qd-student-row:hover {
+      background-color: #fafafa;
     }
   `;
 
