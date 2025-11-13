@@ -458,12 +458,9 @@ export class StorageMonitor extends LitElement {
 
   static styles = css`
     :host {
-      position: fixed;
-      top: 0;
-      right: 0;
+      display: block;
       width: 400px;
       height: 100vh;
-      z-index: 10000;
       font-family: monospace;
       font-size: 12px;
     }
