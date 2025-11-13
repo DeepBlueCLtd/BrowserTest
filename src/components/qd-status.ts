@@ -5,8 +5,24 @@
  * Shows attempted questions, correct answers, and completion percentage.
  * Uses ARIA live regions for accessibility.
  *
+ * Configuration:
+ *   - insertAfterSelector: Specifies id/class to insert after (e.g., "#menu-btn", ".last-button")
+ *   - If insertAfterSelector target is not found, component will not be displayed
+ *   - Minimum width: 400px
+ *
+ * States:
+ *   - Not logged in: Shows login component with header "Login to view your progress"
+ *   - Logged in: Shows progress panel with R/A/G indicators
+ *
  * Usage:
- *   <qd-status state="incomplete" attempted="5" correct="3" total="10"></qd-status>
+ *   <qd-status
+ *     state="incomplete"
+ *     attempted="5"
+ *     correct="3"
+ *     total="10"
+ *     isLoggedIn="true"
+ *     insertAfterSelector="#last-menu-button">
+ *   </qd-status>
  *
  * Color Coding:
  *   - Red: Unstarted (no questions answered)
@@ -16,7 +32,8 @@
 
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import type { CompletionState, SessionCache } from '../types/contracts';
+import type { CompletionState, SessionCache, SessionData } from '../types/contracts';
+import './qd-login';
 
 @customElement('qd-status')
 export class QdStatus extends LitElement {
@@ -50,11 +67,41 @@ export class QdStatus extends LitElement {
   @property({ type: Object })
   sessionCache?: SessionCache;
 
+  /**
+   * Whether the user is logged in
+   */
+  @property({ type: Boolean })
+  isLoggedIn = false;
+
+  /**
+   * CSS selector (id/class) to insert component after
+   * If not found, component will not be displayed
+   */
+  @property({ type: String })
+  insertAfterSelector = '';
+
+  /**
+   * Release identifier for login component
+   */
+  @property({ type: String })
+  release = '';
+
+  /**
+   * Document identifier for login component
+   */
+  @property({ type: String })
+  docId = '';
+
   static styles = css`
     :host {
       display: block;
+      min-width: 400px;
       font-family:
         -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    :host([hidden]) {
+      display: none;
     }
 
     .status-panel {
@@ -63,6 +110,24 @@ export class QdStatus extends LitElement {
       border-radius: 8px;
       padding: 1.5rem;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      min-width: 400px;
+    }
+
+    .login-container {
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      min-width: 400px;
+    }
+
+    .login-header {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #333;
+      margin: 0 0 1rem 0;
+      text-align: center;
     }
 
     .status-header {
@@ -197,7 +262,33 @@ export class QdStatus extends LitElement {
     }
   `;
 
+  connectedCallback() {
+    super.connectedCallback();
+    this._checkInsertionTarget();
+  }
+
   render() {
+    if (!this.isLoggedIn) {
+      return this._renderLoginView();
+    }
+    return this._renderStatusView();
+  }
+
+  private _renderLoginView() {
+    return html`
+      <div class="login-container" role="region" aria-label="Login to view progress">
+        <h2 class="login-header">Login to view your progress</h2>
+        <qd-login
+          release="${this.release}"
+          docId="${this.docId}"
+          @qd:login=${(event: CustomEvent<SessionData>) => this._handleLogin(event)}
+        >
+        </qd-login>
+      </div>
+    `;
+  }
+
+  private _renderStatusView() {
     const percentage = this.calculatePercentage();
     const statusMessage = this.getStatusMessage();
 
@@ -241,6 +332,31 @@ export class QdStatus extends LitElement {
         </div>
       </div>
     `;
+  }
+
+  private _handleLogin(event: CustomEvent<SessionData>) {
+    // Forward the login event
+    this.dispatchEvent(
+      new CustomEvent<SessionData>('qd:login', {
+        detail: event.detail,
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  private _checkInsertionTarget() {
+    // If insertAfterSelector is specified, check if target exists
+    if (this.insertAfterSelector) {
+      const targetElement = document.querySelector(this.insertAfterSelector);
+      if (!targetElement) {
+        // Hide component if target not found
+        this.style.display = 'none';
+      } else {
+        // Ensure component is visible
+        this.style.display = 'block';
+      }
+    }
   }
 
   /**

@@ -69,6 +69,9 @@ export function enhanceQuizTable(
   // Mark as enhanced
   table.classList.add(CSS_CLASSES.ENHANCED);
 
+  // Remove the detail column (3rd column) - it's only used for metadata during parsing
+  removeDetailColumn(table);
+
   // Get all answer cells (second column in tbody)
   const rows = Array.from(table.querySelectorAll('tbody tr'));
 
@@ -91,6 +94,32 @@ export function enhanceQuizTable(
       enhanceMcqCell(answerCell as HTMLElement, question, index, table, savedAnswer);
     } else {
       enhanceNumericCell(answerCell as HTMLElement, question, index, table, savedAnswer);
+    }
+  });
+}
+
+/**
+ * Remove the detail column (3rd column) from the table
+ * The detail column contains metadata used during parsing but should not be visible to users
+ *
+ * @param table - The quiz table element
+ */
+function removeDetailColumn(table: HTMLTableElement): void {
+  // Remove detail column header (3rd th in thead)
+  const headerRow = table.querySelector('thead tr');
+  if (headerRow) {
+    const detailHeader = headerRow.querySelector('th:nth-child(3)');
+    if (detailHeader) {
+      detailHeader.remove();
+    }
+  }
+
+  // Remove detail column cells (3rd td in each tbody row)
+  const bodyRows = table.querySelectorAll('tbody tr');
+  bodyRows.forEach((row) => {
+    const detailCell = row.querySelector('td:nth-child(3)');
+    if (detailCell) {
+      detailCell.remove();
     }
   });
 }

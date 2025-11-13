@@ -42,6 +42,14 @@ export const McqTransformation: Story = {
     // Inject styles
     injectQuizStyles();
 
+    // Schedule enhancement after render
+    setTimeout(() => {
+      const table = document.getElementById('mcq-demo');
+      if (table && !table.classList.contains('qd-enhanced')) {
+        enhanceQuizTable(table as HTMLTableElement);
+      }
+    }, 100);
+
     return html`
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; padding: 1rem;">
         <div>
@@ -108,15 +116,6 @@ export const McqTransformation: Story = {
               </tr>
             </tbody>
           </table>
-          <script>
-            setTimeout(() => {
-              const table = document.getElementById('mcq-demo');
-              if (table && !table.classList.contains('qd-enhanced')) {
-                ${enhanceQuizTable.toString()};
-                enhanceQuizTable(table);
-              }
-            }, 100);
-          </script>
         </div>
       </div>
     `;
@@ -130,6 +129,14 @@ export const McqTransformation: Story = {
 export const NumericTransformation: Story = {
   render: () => {
     injectQuizStyles();
+
+    // Schedule enhancement after render
+    setTimeout(() => {
+      const table = document.getElementById('numeric-demo');
+      if (table && !table.classList.contains('qd-enhanced')) {
+        enhanceQuizTable(table as HTMLTableElement);
+      }
+    }, 100);
 
     return html`
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; padding: 1rem;">
@@ -189,15 +196,6 @@ export const NumericTransformation: Story = {
               </tr>
             </tbody>
           </table>
-          <script>
-            setTimeout(() => {
-              const table = document.getElementById('numeric-demo');
-              if (table && !table.classList.contains('qd-enhanced')) {
-                ${enhanceQuizTable.toString()};
-                enhanceQuizTable(table);
-              }
-            }, 100);
-          </script>
         </div>
       </div>
     `;

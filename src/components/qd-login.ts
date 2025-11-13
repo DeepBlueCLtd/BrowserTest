@@ -4,8 +4,15 @@
  * Web component for student login. Captures service ID and name,
  * validates inputs, and emits qd:login event on successful submission.
  *
+ * Features compact vertical stack layout with button to the right.
+ *
  * Usage:
- *   <qd-login release="02-2025" docId="core-acs"></qd-login>
+ *   <qd-login release="02-2025" docId="core-acs" title="Core Skills Assessment"></qd-login>
+ *
+ * Properties:
+ *   - release: Release identifier (e.g., "02-2025")
+ *   - docId: Document identifier (e.g., "core-acs")
+ *   - title: Fieldset title (default: "Core Skills Assessment")
  *
  * Emits:
  *   qd:login - Custom event with SessionData in detail
@@ -31,6 +38,12 @@ export class QdLogin extends LitElement {
   docId = '';
 
   /**
+   * Title displayed as fieldset legend (e.g., "Core Skills Assessment")
+   */
+  @property({ type: String })
+  title = 'Core Skills Assessment';
+
+  /**
    * Internal state for form validation
    */
   @state()
@@ -39,57 +52,38 @@ export class QdLogin extends LitElement {
   static styles = css`
     :host {
       display: block;
-      max-width: 400px;
-      margin: 0 auto;
-      padding: 2rem;
       font-family:
         -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     }
 
     form {
       display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-      background: #ffffff;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 2rem;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      flex-direction: row;
+      align-items: stretch;
+      gap: 0.75rem;
     }
 
-    h2 {
-      margin: 0 0 1rem 0;
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: #333;
-      text-align: center;
-    }
-
-    .field {
+    .inputs-stack {
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
-    }
-
-    label {
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: #555;
+      flex: 1;
     }
 
     input {
-      padding: 0.75rem;
-      font-size: 1rem;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
       border: 1px solid #ccc;
       border-radius: 4px;
       transition: border-color 0.2s;
       font-family: inherit;
+      width: 100%;
     }
 
     input:focus {
       outline: none;
       border-color: #0066cc;
-      box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
     }
 
     input:invalid:not(:focus) {
@@ -100,16 +94,10 @@ export class QdLogin extends LitElement {
       border-color: #4caf50;
     }
 
-    .hint {
-      font-size: 0.75rem;
-      color: #666;
-      margin-top: -0.25rem;
-    }
-
     button {
-      padding: 0.875rem 1.5rem;
-      font-size: 1rem;
-      font-weight: 600;
+      padding: 0.5rem 1.25rem;
+      font-size: 0.875rem;
+      font-weight: 500;
       color: #ffffff;
       background-color: #0066cc;
       border: none;
@@ -117,6 +105,8 @@ export class QdLogin extends LitElement {
       cursor: pointer;
       transition: background-color 0.2s;
       font-family: inherit;
+      white-space: nowrap;
+      align-self: stretch;
     }
 
     button:hover:not(:disabled) {
@@ -132,19 +122,13 @@ export class QdLogin extends LitElement {
       cursor: not-allowed;
     }
 
-    .error {
-      color: #d32f2f;
-      font-size: 0.875rem;
-      text-align: center;
-    }
-
     @media (max-width: 480px) {
-      :host {
-        padding: 1rem;
+      form {
+        flex-direction: column;
       }
 
-      form {
-        padding: 1.5rem;
+      button {
+        align-self: stretch;
       }
     }
   `;
@@ -152,10 +136,7 @@ export class QdLogin extends LitElement {
   render() {
     return html`
       <form @submit=${(e: Event) => this._handleSubmit(e)} novalidate>
-        <h2>Student Login</h2>
-
-        <div class="field">
-          <label for="serviceId">Service ID</label>
+        <div class="inputs-stack">
           <input
             type="text"
             id="serviceId"
@@ -163,17 +144,14 @@ export class QdLogin extends LitElement {
             required
             minlength="2"
             maxlength="${LIMITS.MAX_SERVICE_ID_LENGTH}"
-            placeholder="e.g., RN2344"
+            placeholder="Service ID (e.g., RN2344)"
             autocomplete="username"
             autofocus
             pattern="[A-Za-z0-9]+"
             title="Service ID must be alphanumeric, 2-10 characters"
+            aria-label="Service ID"
           />
-          <span class="hint">Enter your service ID (2-10 alphanumeric characters)</span>
-        </div>
 
-        <div class="field">
-          <label for="name">Name</label>
           <input
             type="text"
             id="name"
@@ -181,11 +159,11 @@ export class QdLogin extends LitElement {
             required
             minlength="1"
             maxlength="${LIMITS.MAX_NAME_LENGTH}"
-            placeholder="e.g., Smith, J"
+            placeholder="Name (e.g., J Corner)"
             autocomplete="name"
             title="Name is required (1-100 characters)"
+            aria-label="Name"
           />
-          <span class="hint">Enter your name (e.g., Last, First Initial)</span>
         </div>
 
         <button type="submit" ?disabled=${this._isSubmitting}>

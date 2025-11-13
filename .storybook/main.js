@@ -5,14 +5,13 @@ const config = {
     '@storybook/addon-links',
     '@storybook/addon-essentials',
     '@storybook/addon-interactions',
+    '@chromatic-com/storybook'
   ],
   framework: {
     name: '@storybook/web-components-vite',
     options: {},
   },
-  docs: {
-    autodocs: 'tag',
-  },
+  docs: {},
   core: {
     disableTelemetry: true,
   },
