@@ -10,7 +10,7 @@ The Sonar Quiz System enhances DITA-published HTML training documents with inter
 
 1. **Create a quiz table** with exactly 3 columns:
    ```html
-   <table class="qd-quiz">
+   <table class="qd-quiz qd-page">
      <tr>
        <td>Question text</td>
        <td>correct_answer</td>
@@ -36,7 +36,7 @@ The Sonar Quiz System enhances DITA-published HTML training documents with inter
 
 3. **Important rules**:
    - Maximum ONE quiz table per page
-   - Use class `qd-quiz` for quiz tables
+   - Use class `qd-quiz qd-page` for quiz tables
    - MCQ options must be 1-indexed (first option = 1, not 0)
    - Mix MCQ and numeric questions in the same table if needed
 
@@ -46,16 +46,15 @@ The Sonar Quiz System enhances DITA-published HTML training documents with inter
    ```html
    <table class="qd-analysis">
      <tr>
-       <td>Label (read-only)</td>
-       <td class="interactive">Editable cell for student input</td>
+       <td style="background-color: #ccc;">Label (read-only)</td>
+       <td>Editable cell for student input</td>
      </tr>
    </table>
    ```
 
 2. **Rules**:
-   - Cells WITH `class="interactive"` become editable text inputs
-   - Cells WITHOUT `interactive` class remain read-only/unused
-   - Authors can style cells (e.g., shaded backgrounds) independently of editability
+   - Cells WITH `background-color` style are read-only
+   - Cells WITHOUT background color become editable text inputs
    - Maximum ONE analysis table per page
 
 ### Home Page Setup
@@ -208,7 +207,7 @@ npm run build-storybook
 ### Common Issues
 
 **Quiz table not recognized**
-- Verify class names: `qd-quiz`
+- Verify class names: `qd-quiz qd-page`
 - Check for typos in table structure
 - Ensure only one quiz table per page
 
