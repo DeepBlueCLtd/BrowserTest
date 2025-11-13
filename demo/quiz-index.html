@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="release" content="02-2025">
+  <meta name="document-id" content="sonar-basics">
+  <title>Sonar Quiz System - Index Page</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+      line-height: 1.6;
+      background-color: #f5f5f5;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0066cc 0%, #004080 100%);
+      color: white;
+      padding: 2rem;
+      border-radius: 8px;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      margin: 0 0 0.5rem 0;
+      font-size: 2rem;
+    }
+
+    .subtitle {
+      margin: 0;
+      opacity: 0.9;
+      font-size: 1.1rem;
+    }
+
+    main {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .section {
+      margin-bottom: 3rem;
+    }
+
+    .section h2 {
+      color: #0066cc;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .quiz-links {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .quiz-link-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      text-decoration: none;
+      color: #333;
+      transition: all 0.2s;
+      background: white;
+    }
+
+    .quiz-link-card:hover {
+      border-color: #0066cc;
+      box-shadow: 0 4px 8px rgba(0, 102, 204, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .link-content {
+      flex: 1;
+    }
+
+    .link-title {
+      font-weight: 600;
+      font-size: 1.1rem;
+      margin-bottom: 0.25rem;
+      color: #0066cc;
+    }
+
+    .link-description {
+      font-size: 0.875rem;
+      color: #666;
+      margin: 0;
+    }
+
+    .badge-placeholder {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background-color: #e0e0e0;
+      flex-shrink: 0;
+    }
+
+    /* Status panel container */
+    #qd-status {
+      margin-bottom: 2rem;
+    }
+
+    .instructions {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 1rem 1.5rem;
+      margin: 1rem 0;
+      border-radius: 4px;
+    }
+
+    .instructions h3 {
+      margin-top: 0;
+      color: #856404;
+    }
+
+    .instructions ul {
+      margin-bottom: 0;
+    }
+
+    .instructions code {
+      background: rgba(0, 0, 0, 0.05);
+      padding: 0.125rem 0.375rem;
+      border-radius: 3px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 0.875rem;
+    }
+
+    footer {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid #e0e0e0;
+      text-align: center;
+      color: #666;
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Sonar Quiz System</h1>
+    <p class="subtitle">Offline-first Interactive Training Platform</p>
+  </header>
+
+  <main>
+    <!-- Status Panel Container - qd-status component will be injected here -->
+    <div id="qd-status"></div>
+
+    <div class="instructions">
+      <h3>How to Use This System</h3>
+      <ul>
+        <li><strong>Login:</strong> Enter your service ID (e.g., RN2344) and name to begin</li>
+        <li><strong>Navigate:</strong> Click on any quiz page below to start answering questions</li>
+        <li><strong>Track Progress:</strong> Your progress is automatically saved and displayed above</li>
+        <li><strong>Offline:</strong> This system works completely offline - no internet required</li>
+        <li><strong>Color Coding:</strong> Red = Not Started, Amber = In Progress, Green = Complete</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>Chapter 1: Fundamentals</h2>
+      <div class="quiz-links">
+        <a href="quiz-examples.html" class="quiz-link-card qd-test-link" data-page-id="sonar-basics">
+          <span class="badge-placeholder"></span>
+          <div class="link-content">
+            <div class="link-title">Sonar Basics</div>
+            <p class="link-description">Introduction to sonar systems and principles</p>
+          </div>
+        </a>
+
+        <a href="#" class="quiz-link-card qd-test-link" data-page-id="sound-propagation">
+          <span class="badge-placeholder"></span>
+          <div class="link-content">
+            <div class="link-title">Sound Propagation</div>
+            <p class="link-description">Understanding sound waves in water</p>
+          </div>
+        </a>
+
+        <a href="#" class="quiz-link-card qd-test-link" data-page-id="transducers">
+          <span class="badge-placeholder"></span>
+          <div class="link-content">
+            <div class="link-title">Transducers</div>
+            <p class="link-description">Converting electrical signals to sound</p>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Chapter 2: Operations</h2>
+      <div class="quiz-links">
+        <a href="#" class="quiz-link-card qd-test-link" data-page-id="active-sonar">
+          <span class="badge-placeholder"></span>
+          <div class="link-content">
+            <div class="link-title">Active Sonar</div>
+            <p class="link-description">Active detection techniques</p>
+          </div>
+        </a>
+
+        <a href="#" class="quiz-link-card qd-test-link" data-page-id="passive-sonar">
+          <span class="badge-placeholder"></span>
+          <div class="link-content">
+            <div class="link-title">Passive Sonar</div>
+            <p class="link-description">Listening and classification</p>
+          </div>
+        </a>
+
+        <a href="analysis-examples.html" class="quiz-link-card qd-test-link" data-page-id="contact-analysis">
+          <span class="badge-placeholder"></span>
+          <div class="link-content">
+            <div class="link-title">Contact Analysis</div>
+            <p class="link-description">Analyzing and classifying sonar contacts</p>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Chapter 3: Advanced Topics</h2>
+      <div class="quiz-links">
+        <a href="#" class="quiz-link-card qd-test-link" data-page-id="environment">
+          <span class="badge-placeholder"></span>
+          <div class="link-content">
+            <div class="link-title">Environmental Factors</div>
+            <p class="link-description">Temperature, salinity, and pressure effects</p>
+          </div>
+        </a>
+
+        <a href="#" class="quiz-link-card qd-test-link" data-page-id="performance">
+          <span class="badge-placeholder"></span>
+          <div class="link-content">
+            <div class="link-title">Performance Calculations</div>
+            <p class="link-description">Sonar equations and range prediction</p>
+          </div>
+        </a>
+
+        <a href="#" class="quiz-link-card qd-test-link" data-page-id="tactics">
+          <span class="badge-placeholder"></span>
+          <div class="link-content">
+            <div class="link-title">Tactical Applications</div>
+            <p class="link-description">Real-world operational scenarios</p>
+          </div>
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>Sonar Quiz System v0.1.0 | Offline-First Training Platform</p>
+    <p>Data stored locally using IndexedDB | Session timeout: 30 minutes</p>
+  </footer>
+
+  <!-- Load the Sonar Quiz System -->
+  <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true"></script>
+</body>
+</html>
