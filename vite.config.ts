@@ -7,7 +7,13 @@ export default defineConfig(({ command, mode }) => {
   // Storybook sets mode to 'production' but doesn't define build.lib
   const isLibraryBuild = command === 'build' && !process.env.STORYBOOK;
 
+  // Generate build date at build time
+  const buildDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+
   return {
+    define: {
+      __BUILD_DATE__: JSON.stringify(buildDate),
+    },
     plugins: [
       // Only generate declaration files during library build, not Storybook
       ...(isLibraryBuild

@@ -114,6 +114,7 @@ export class QdStatus extends LitElement {
       padding: 0.5rem 0.75rem;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
       font-size: 0.75rem;
+      position: relative;
     }
 
     .login-container {
@@ -227,6 +228,17 @@ export class QdStatus extends LitElement {
       background: #4e555b;
     }
 
+    .build-date {
+      position: absolute;
+      bottom: 2px;
+      right: 4px;
+      font-size: 0.5rem;
+      color: #999;
+      font-family: monospace;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
     @media (max-width: 480px) {
       .status-panel {
         font-size: 0.625rem;
@@ -303,6 +315,8 @@ export class QdStatus extends LitElement {
         >
           Logout
         </button>
+
+        <span class="build-date" title="Build date">${__BUILD_DATE__}</span>
       </div>
     `;
   }
