@@ -77,6 +77,14 @@ test.describe('Cohort Management - CSV Export', () => {
 
     // Also wait for instructor component to load
     await page.waitForSelector('qd-instructor', { timeout: 10000 });
+
+    // Check if quiz table is already enhanced
+    const isEnhanced = await page.evaluate(() => {
+      const table = document.querySelector('table.qd-quiz');
+      return table?.classList.contains('qd-enhanced') || false;
+    });
+
+    console.log('Quiz table enhanced before login:', isEnhanced);
   });
 
   test.afterEach(async () => {
@@ -94,6 +102,14 @@ test.describe('Cohort Management - CSV Export', () => {
     const loginComponent = page.locator('qd-login');
     await expect(loginComponent).toBeVisible();
 
+    // Set up event listener for login event
+    const loginEventPromise = page.evaluate(
+      () =>
+        new Promise((resolve) => {
+          document.addEventListener('qd:login', () => resolve(true), { once: true });
+        }),
+    );
+
     // Fill in student credentials using shadow DOM
     await page.evaluate(() => {
       const login = document.querySelector('qd-login');
@@ -108,7 +124,13 @@ test.describe('Cohort Management - CSV Export', () => {
       }
     });
 
-    // Wait for quiz to be enhanced
+    // Wait for login event
+    await loginEventPromise;
+
+    // Wait a moment for status update
+    await page.waitForTimeout(500);
+
+    // Wait for quiz to be enhanced (or check if it already is)
     await page.waitForSelector('.qd-enhanced', { timeout: 5000 });
 
     // Answer first question (numeric)
