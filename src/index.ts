@@ -11,7 +11,8 @@ import { CSS_CLASSES, ELEMENT_IDS } from './types/contracts';
 import type { AnswerRecord } from './types/contracts';
 import { findQuizTables } from './services/quiz-parser';
 import { enhanceQuizTable, injectQuizStyles } from './enhancers/quiz-table';
-import { getSessionService, updateCacheWithAnswer } from './services/session';
+import { getSessionService } from './services/session';
+import { getStorageAdapter } from './services/storage/indexeddb';
 import { initializeHomeBadges } from './enhancers/home-badges';
 
 // Import components to register custom elements
@@ -88,6 +89,12 @@ function injectLoginComponent(doc: Document = document): void {
   // Check if login component already exists
   if (doc.querySelector('qd-login')) {
     log('Login component already present');
+    return;
+  }
+
+  // Check if status panel exists (which includes its own login view)
+  if (doc.querySelector('qd-status')) {
+    log('Status panel present, skipping standalone login injection');
     return;
   }
 
@@ -252,9 +259,11 @@ function showValidationBanner(table: HTMLTableElement, errors: string[]): void {
 /**
  * Handle answer saved event - update cache and persist
  *
+ * @param questionIndex - Index of the question being answered
  * @param answer - The saved answer record
+ * @param table - The table element containing the quiz
  */
-function handleAnswerSaved(answer: AnswerRecord): void {
+function handleAnswerSaved(questionIndex: number, answer: AnswerRecord, table: HTMLTableElement): void {
   const sessionService = getSessionService();
 
   // Get current cache
@@ -269,36 +278,99 @@ function handleAnswerSaved(answer: AnswerRecord): void {
   }
 
   // Determine current page ID
-  // For now, use a simple approach - look for meta tag or derive from URL
   const pageIdMeta = document.querySelector('meta[name="page-id"]');
   const pageId =
     pageIdMeta?.getAttribute('content') ||
+    table.getAttribute('data-page-id') ||
     document.location.pathname.replace(/^.*\//, '').replace(/\.html?$/, '') ||
     'unknown-page';
 
-  // Update cache with the new answer
-  const updatedCache = updateCacheWithAnswer(cache, pageId, answer.success);
+  // Initialize page data if it doesn't exist
+  if (!cache.pages[pageId]) {
+    cache.pages[pageId] = {
+      answered: 0,
+      correct: 0,
+      state: 'unstarted',
+    };
+  }
 
-  // TODO: Recalculate page state based on total questions vs answered
-  // For now, we'll mark as incomplete if we have any answers
-  if (updatedCache.pages[pageId]) {
-    // Set state based on answers
-    if (updatedCache.pages[pageId].answered === 0) {
-      updatedCache.pages[pageId].state = 'unstarted';
-    } else {
-      // This is simplified - in real implementation we'd check if all questions are answered and correct
-      updatedCache.pages[pageId].state = 'incomplete';
-    }
+  // Store the answer at the question index (add answers array to PageCache)
+  const pageCache = cache.pages[pageId] as any; // Type assertion needed since PageCache interface doesn't have answers yet
+  if (!pageCache.answers) {
+    pageCache.answers = [];
+  }
+  pageCache.answers[questionIndex] = answer;
+
+  // Recalculate totals from all stored answers
+  const pageAnswers = (pageCache.answers as AnswerRecord[]).filter((a: AnswerRecord) => a !== undefined);
+  cache.pages[pageId].answered = pageAnswers.length;
+  cache.pages[pageId].correct = pageAnswers.filter((a: AnswerRecord) => a.success).length;
+
+  // Recalculate global totals from all pages
+  cache.totals.answered = Object.values(cache.pages)
+    .reduce((sum, page) => sum + (page.answered || 0), 0);
+  cache.totals.correct = Object.values(cache.pages)
+    .reduce((sum, page) => sum + (page.correct || 0), 0);
+
+  // Set page state
+  const totalQuestionsOnPage = table.querySelectorAll('tbody tr').length;
+  if (cache.pages[pageId].answered === 0) {
+    cache.pages[pageId].state = 'unstarted';
+  } else if (cache.pages[pageId].answered === totalQuestionsOnPage &&
+             cache.pages[pageId].correct === totalQuestionsOnPage) {
+    cache.pages[pageId].state = 'complete';
+  } else {
+    cache.pages[pageId].state = 'incomplete';
   }
 
   // Save updated cache
-  sessionService.saveCache(updatedCache);
+  sessionService.saveCache(cache);
+
+  // Update status panel with new totals
+  const statusPanel = document.querySelector('qd-status') as import('./components/qd-status').QdStatus;
+  if (statusPanel) {
+    statusPanel.attempted = cache.totals.answered;
+    statusPanel.correct = cache.totals.correct;
+    // Calculate total from cache
+    const totalQuestions = Object.values(cache.pages).reduce((sum, page) => sum + page.answered, 0);
+    statusPanel.total = totalQuestions;
+    log('Status panel updated - attempted:', cache.totals.answered, 'correct:', cache.totals.correct);
+  }
+
+  // Persist to IndexedDB
+  const session = sessionService.getSession();
+  if (session) {
+    const storage = getStorageAdapter();
+    storage.getStudent(session.release, session.serviceId).then(async (record) => {
+      if (record) {
+        // Update record with new totals
+        record.attempted = cache.totals.answered;
+        record.correct = cache.totals.correct;
+        record.updated = new Date().toISOString();
+
+        // Update page data with answers
+        record.pages[pageId] = {
+          answers: (cache.pages[pageId] as any)?.answers || [],
+          state: cache.pages[pageId]?.state || 'incomplete',
+        };
+
+        await storage.saveStudent(record);
+        log('Student record saved to IndexedDB');
+      }
+    }).catch((error) => {
+      console.error('Failed to save to IndexedDB:', error);
+      // In debug mode, re-throw to fail fast
+      if (config.debug) {
+        throw error;
+      }
+    });
+  }
 
   // Emit state-changed event
   const stateChangedEvent = new CustomEvent('qd:state-changed', {
     detail: {
       pageId,
-      state: updatedCache.pages[pageId]?.state || 'unstarted',
+      state: cache.pages[pageId]?.state || 'unstarted',
     },
     bubbles: true,
   });
@@ -311,22 +383,165 @@ function handleAnswerSaved(answer: AnswerRecord): void {
 }
 
 /**
+ * Clear all quiz answers from the current page
+ */
+function clearQuizAnswers(): void {
+  // Find the quiz table
+  const table = document.querySelector('table.qd-quiz') as HTMLTableElement;
+  if (!table) {
+    log('No quiz table found, nothing to clear');
+    return;
+  }
+
+  // Clear all answer cells
+  const rows = table.querySelectorAll('tbody tr') as NodeListOf<HTMLTableRowElement>;
+  rows.forEach((row) => {
+    const answerCell = row.cells[1]; // Answer column
+    if (!answerCell) return;
+
+    // Find and clear input/select elements
+    const input = answerCell.querySelector('input') as HTMLInputElement;
+    const select = answerCell.querySelector('select') as HTMLSelectElement;
+
+    if (input) {
+      input.value = '';
+    } else if (select) {
+      select.value = ''; // Reset to blank option
+    }
+
+    // Remove visual feedback classes
+    answerCell.classList.remove('qd-answer-correct', 'qd-answer-incorrect');
+  });
+
+  log('Quiz answers cleared from current page');
+}
+
+/**
+ * Restore previous answers from session cache
+ */
+function restorePreviousAnswers(): void {
+  const sessionService = getSessionService();
+  const cache = sessionService.getCache();
+
+  if (!cache) {
+    log('No cache found, skipping answer restoration');
+    return;
+  }
+
+  // Determine current page ID
+  const pageIdMeta = document.querySelector('meta[name="page-id"]');
+  const pageId =
+    pageIdMeta?.getAttribute('content') ||
+    document.location.pathname.replace(/^.*\//, '').replace(/\.html?$/, '') ||
+    'unknown-page';
+
+  const pageCache = cache.pages[pageId] as any;
+  if (!pageCache || !pageCache.answers || pageCache.answers.length === 0) {
+    log('No previous answers found for page:', pageId);
+    return;
+  }
+
+  const answers = pageCache.answers as AnswerRecord[];
+  log('Restoring', answers.filter((a: AnswerRecord) => a).length, 'previous answers for page:', pageId);
+
+  // Find the quiz table
+  const table = document.querySelector('table.qd-quiz') as HTMLTableElement;
+  if (!table) {
+    log('No quiz table found, cannot restore answers');
+    return;
+  }
+
+  // Restore each answer
+  answers.forEach((answer: AnswerRecord, questionIndex: number) => {
+    if (!answer) return;
+
+    const row = table.querySelectorAll('tbody tr')[questionIndex] as HTMLTableRowElement;
+    if (!row) return;
+
+    const answerCell = row.cells[1]; // Answer column
+    if (!answerCell) return;
+
+    // Find the input/select element and set its value
+    const input = answerCell.querySelector('input') as HTMLInputElement;
+    const select = answerCell.querySelector('select') as HTMLSelectElement;
+
+    if (input) {
+      input.value = answer.answer;
+    } else if (select) {
+      select.value = answer.answer;
+    }
+
+    // Apply visual feedback (use correct CSS class names)
+    answerCell.classList.remove('qd-answer-correct', 'qd-answer-incorrect');
+    if (answer.success) {
+      answerCell.classList.add('qd-answer-correct');
+    } else {
+      answerCell.classList.add('qd-answer-incorrect');
+    }
+  });
+
+  log('Previous answers restored successfully');
+}
+
+/**
  * Setup event listeners for quiz system
  */
 function setupEventListeners(doc: Document = document): void {
   // Listen for login events
-  doc.addEventListener('qd:login', (e: Event) => {
-    const detail = (e as CustomEvent<unknown>).detail;
-    log('Login event:', detail);
+  doc.addEventListener('qd:login', async (e: Event) => {
+    const sessionData = (e as CustomEvent<import('./types/contracts').SessionData>).detail;
+    log('Login event received:', sessionData);
 
     // Store session in sessionStorage
-    sessionStorage.setItem('qd/session', JSON.stringify(detail));
+    sessionStorage.setItem('qd/session', JSON.stringify(sessionData));
+    log('Session stored in sessionStorage');
+
+    // Initialize student record in IndexedDB if it doesn't exist
+    try {
+      const storage = getStorageAdapter();
+      await storage.init();
+
+      // Try to load existing record, or create new one
+      const existingRecord = await storage.getStudent(sessionData.release, sessionData.serviceId);
+
+      if (!existingRecord) {
+        // Create new student record
+        const docId = doc.querySelector('meta[name="document-id"]')?.getAttribute('content') || 'unknown';
+        const newRecord: import('./types/contracts').StudentRecord = {
+          schema: 1,
+          docId,
+          serviceId: sessionData.serviceId,
+          name: sessionData.name,
+          release: sessionData.release,
+          attempted: 0,
+          correct: 0,
+          updated: new Date().toISOString(),
+          pages: {},
+        };
+        await storage.saveStudent(newRecord);
+        log('Created new student record in IndexedDB');
+      } else {
+        log('Loaded existing student record from IndexedDB');
+      }
+    } catch (error) {
+      console.error('Failed to initialize student record:', error);
+      // In debug mode, re-throw to fail fast
+      if (config.debug) {
+        throw error;
+      }
+    }
 
     // Initialize or update status panel
-    const statusPanel = doc.querySelector('qd-status');
+    const statusPanel = doc.querySelector('qd-status') as import('./components/qd-status').QdStatus;
+    log('Status panel element:', statusPanel);
     if (statusPanel) {
-      // TODO: Update status panel with session data
-      log('Status panel ready for session data');
+      log('Current isLoggedIn state BEFORE update:', statusPanel.isLoggedIn);
+      // Update status panel to show logged-in state
+      statusPanel.isLoggedIn = true;
+      log('Current isLoggedIn state AFTER update:', statusPanel.isLoggedIn);
+      log('Status panel updated with logged-in state');
+    } else {
+      log('WARNING: Status panel not found in DOM');
     }
   });
 
@@ -341,15 +556,34 @@ function setupEventListeners(doc: Document = document): void {
     ).detail;
     log('Answer saved:', detail);
 
-    // Update session cache
-    handleAnswerSaved(detail.answer);
+    // Update session cache with full detail (includes questionIndex)
+    handleAnswerSaved(detail.questionIndex, detail.answer, detail.tableElement);
   });
 
   // Listen for logout events
   doc.addEventListener('qd:logout', (_e: Event) => {
-    log('Logout event');
+    log('Logout event received');
     sessionStorage.removeItem('qd/session');
     sessionStorage.removeItem('qd/state');
+
+    // Clear quiz answers from current page
+    clearQuizAnswers();
+
+    // Update status panel to show logged-out state
+    const statusPanel = doc.querySelector('qd-status') as import('./components/qd-status').QdStatus;
+    log('Status panel element on logout:', statusPanel);
+    if (statusPanel) {
+      log('Current isLoggedIn state BEFORE logout update:', statusPanel.isLoggedIn);
+      statusPanel.isLoggedIn = false;
+      // Reset status panel totals
+      statusPanel.attempted = 0;
+      statusPanel.correct = 0;
+      statusPanel.total = 0;
+      log('Current isLoggedIn state AFTER logout update:', statusPanel.isLoggedIn);
+      log('Status panel updated with logged-out state');
+    } else {
+      log('WARNING: Status panel not found on logout');
+    }
   });
 
   log('Event listeners setup complete');
@@ -380,6 +614,19 @@ function init(userConfig?: Partial<SonarQuizConfig>): void {
 
   log('Quiz tables detected');
 
+  // Initialize IndexedDB early (before storage monitor) to ensure proper schema
+  // This prevents the storage monitor from creating an empty database
+  const storage = getStorageAdapter();
+  storage.init().then(() => {
+    log('IndexedDB initialized successfully');
+  }).catch((error) => {
+    console.error('Failed to initialize IndexedDB:', error);
+    if (config.debug) {
+      // Fail fast in debug mode
+      throw new Error(`IndexedDB initialization failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  });
+
   // Setup event listeners first
   setupEventListeners();
 
@@ -395,6 +642,8 @@ function init(userConfig?: Partial<SonarQuizConfig>): void {
   // Enhance tables if auto-enhance is enabled
   if (config.autoEnhance) {
     enhanceAllTables();
+    // Restore previous answers from session cache if logged in
+    restorePreviousAnswers();
   }
 
   // Initialize home page badges if we're on a home page

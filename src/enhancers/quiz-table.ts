@@ -315,7 +315,8 @@ function emitAnswerSavedEvent(
     composed: true,
   });
 
-  table.dispatchEvent(event);
+  // Dispatch only on document (bubbles: true means it will bubble up from table anyway)
+  // Dispatching on both table and document causes duplicate event handling
   document.dispatchEvent(event);
 }
 

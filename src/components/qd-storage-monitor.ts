@@ -144,6 +144,12 @@ export class StorageMonitor extends LitElement {
       const db = await this.openDatabase(this.dbName);
       const entries: IndexedDBEntry[] = [];
 
+      // Check if 'students' object store exists before trying to read it
+      if (!db.objectStoreNames.contains('students')) {
+        db.close();
+        return []; // Database exists but schema not initialized yet (user not logged in)
+      }
+
       const transaction = db.transaction(['students'], 'readonly');
       const store = transaction.objectStore('students');
       const request = store.openCursor();
@@ -181,10 +187,27 @@ export class StorageMonitor extends LitElement {
 
   private openDatabase(dbName: string): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
+      // Open without specifying version to avoid creating/upgrading the database
+      // This allows us to read from existing database without interfering with initialization
       const request = indexedDB.open(dbName);
-      request.onsuccess = () => resolve(request.result);
+
+      request.onsuccess = () => {
+        const db = request.result;
+        // Check if database has expected object stores
+        // If not, it means the database hasn't been properly initialized yet
+        if (!db.objectStoreNames.contains('students')) {
+          db.close();
+          reject(new Error('Database not initialized - missing students object store'));
+          return;
+        }
+        resolve(db);
+      };
+
       request.onerror = () =>
         reject(new Error(request.error?.message || 'Failed to open database'));
+
+      // Important: Don't add onupgradeneeded handler here
+      // We don't want the storage monitor to create/upgrade the database schema
     });
   }
 
