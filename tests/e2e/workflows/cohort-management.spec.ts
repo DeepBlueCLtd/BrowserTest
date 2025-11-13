@@ -25,7 +25,7 @@ const TEST_HTML = `
 <head>
   <meta charset="UTF-8">
   <title>Cohort Management Test</title>
-  <script type="module" src="/dist/sonar-quiz.esm.js"></script>
+  <script type="module" src="../dist/sonar-quiz.esm.js"></script>
 </head>
 <body>
   <div id="qd-status"></div>
