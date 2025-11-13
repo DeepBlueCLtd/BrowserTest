@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { JSDOM } from 'jsdom';
+import jsdomPackage from 'jsdom/package.json' assert { type: 'json' };
 import {
   enhanceQuizTable,
   revealCorrectAnswers,
@@ -88,9 +89,9 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
 
   describe('FOCUSED TEST - JSDOM Bug Reproduction', () => {
     it('should maintain 3 columns when creating table with <ol> in third cell', () => {
-      console.log('\n=== JSDOM BUG TEST ===');
-      console.log('Node:', process.version);
-      console.log('JSDOM:', require('jsdom/package.json').version);
+      console.error('\n=== JSDOM BUG TEST ===');
+      console.error('Node:', process.version);
+      console.error('JSDOM:', jsdomPackage.version);
 
       const table = createQuizTable([
         {
@@ -103,13 +104,13 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
       const row = table.querySelector('tbody tr')!;
       const cells = row.querySelectorAll('td');
 
-      console.log('After table creation:');
-      console.log('  Cell count:', cells.length);
-      console.log('  Row HTML (first 200 chars):', row.innerHTML.substring(0, 200));
+      console.error('After table creation:');
+      console.error('  Cell count:', cells.length);
+      console.error('  Row HTML (first 200 chars):', row.innerHTML.substring(0, 200));
 
       // Log each cell
       Array.from(cells).forEach((cell, idx) => {
-        console.log(`  Cell ${idx + 1}:`, cell.innerHTML.substring(0, 50));
+        console.error(`  Cell ${idx + 1}:`, cell.innerHTML.substring(0, 50));
       });
 
       // This is the core issue - do we have 3 cells?
@@ -117,8 +118,8 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
 
       // Verify detail cell has <ol>
       const detailCell = row.querySelector('td:nth-child(3)');
-      console.log('Detail cell exists:', !!detailCell);
-      console.log('Detail cell HTML:', detailCell?.innerHTML.substring(0, 100));
+      console.error('Detail cell exists:', !!detailCell);
+      console.error('Detail cell HTML:', detailCell?.innerHTML.substring(0, 100));
 
       expect(detailCell).toBeDefined();
       expect(detailCell?.querySelector('ol')).toBeDefined();
