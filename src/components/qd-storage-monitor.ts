@@ -4,10 +4,22 @@
  * Development tool for monitoring browser storage state in real-time.
  * Displays sessionStorage, IndexedDB entries with qd prefix.
  * Toggle visibility with Ctrl+Shift+D.
+ *
+ * Configuration:
+ * - `dbName` attribute: Set the IndexedDB database name to monitor (default: 'quiz-scores')
+ *
+ * Example usage:
+ * ```html
+ * <!-- Use default database name -->
+ * <qd-storage-monitor></qd-storage-monitor>
+ *
+ * <!-- Specify custom database name -->
+ * <qd-storage-monitor dbName="SonarQuizDB"></qd-storage-monitor>
+ * ```
  */
 
 import { LitElement, html, css } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { customElement, state, property } from 'lit/decorators.js';
 
 interface StorageEntry {
   key: string;
@@ -25,6 +37,13 @@ interface IndexedDBEntry {
 
 @customElement('qd-storage-monitor')
 export class StorageMonitor extends LitElement {
+  /**
+   * IndexedDB database name to monitor
+   * @default 'quiz-scores'
+   */
+  @property({ type: String })
+  dbName = 'quiz-scores';
+
   @state()
   private visible = true;
 
@@ -122,8 +141,7 @@ export class StorageMonitor extends LitElement {
 
   private async readIndexedDB(): Promise<IndexedDBEntry[]> {
     try {
-      const dbName = 'sonar-quiz';
-      const db = await this.openDatabase(dbName);
+      const db = await this.openDatabase(this.dbName);
       const entries: IndexedDBEntry[] = [];
 
       const transaction = db.transaction(['students'], 'readonly');
@@ -202,7 +220,7 @@ export class StorageMonitor extends LitElement {
   private async clearIndexedDB(): Promise<void> {
     if (confirm('Clear all qd-prefixed IndexedDB data?')) {
       try {
-        const db = await this.openDatabase('sonar-quiz');
+        const db = await this.openDatabase(this.dbName);
         const transaction = db.transaction(['students'], 'readwrite');
         const store = transaction.objectStore('students');
 
@@ -248,7 +266,7 @@ export class StorageMonitor extends LitElement {
   private async clearIndexedDBKey(key: string): Promise<void> {
     if (confirm(`Clear IndexedDB key: ${key}?`)) {
       try {
-        const db = await this.openDatabase('sonar-quiz');
+        const db = await this.openDatabase(this.dbName);
         const transaction = db.transaction(['students'], 'readwrite');
         const store = transaction.objectStore('students');
         store.delete(key);

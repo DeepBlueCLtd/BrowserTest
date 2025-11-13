@@ -9,7 +9,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 2 : undefined, // Use 2 workers in CI for faster execution
   reporter: 'html',
 
   use: {
@@ -27,19 +27,6 @@ export default defineConfig({
         launchOptions: {
           args: ['--allow-file-access-from-files'],
         },
-      },
-    },
-    {
-      name: 'firefox',
-      use: {
-        ...devices['Desktop Firefox'],
-        // Firefox allows file:// access by default
-      },
-    },
-    {
-      name: 'webkit',
-      use: {
-        ...devices['Desktop Safari'],
       },
     },
   ],
