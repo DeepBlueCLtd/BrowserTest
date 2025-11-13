@@ -319,6 +319,12 @@ export class QdStatus extends LitElement {
     this._checkInsertionTarget();
   }
 
+  willUpdate(changedProperties: Map<PropertyKey, unknown>) {
+    if (changedProperties.has('isLoggedIn')) {
+      // isLoggedIn property changed
+    }
+  }
+
   render() {
     if (this._showInstructorPanel) {
       return this._renderInstructorView();

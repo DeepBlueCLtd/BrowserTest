@@ -4,10 +4,22 @@
  * Development tool for monitoring browser storage state in real-time.
  * Displays sessionStorage, IndexedDB entries with qd prefix.
  * Toggle visibility with Ctrl+Shift+D.
+ *
+ * Configuration:
+ * - `dbName` attribute: Set the IndexedDB database name to monitor (default: 'quiz-scores')
+ *
+ * Example usage:
+ * ```html
+ * <!-- Use default database name -->
+ * <qd-storage-monitor></qd-storage-monitor>
+ *
+ * <!-- Specify custom database name -->
+ * <qd-storage-monitor dbName="SonarQuizDB"></qd-storage-monitor>
+ * ```
  */
 
 import { LitElement, html, css } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { customElement, state, property } from 'lit/decorators.js';
 
 interface StorageEntry {
   key: string;
@@ -25,6 +37,13 @@ interface IndexedDBEntry {
 
 @customElement('qd-storage-monitor')
 export class StorageMonitor extends LitElement {
+  /**
+   * IndexedDB database name to monitor
+   * @default 'quiz-scores'
+   */
+  @property({ type: String })
+  dbName = 'quiz-scores';
+
   @state()
   private visible = true;
 
@@ -122,9 +141,14 @@ export class StorageMonitor extends LitElement {
 
   private async readIndexedDB(): Promise<IndexedDBEntry[]> {
     try {
-      const dbName = 'sonar-quiz';
-      const db = await this.openDatabase(dbName);
+      const db = await this.openDatabase(this.dbName);
       const entries: IndexedDBEntry[] = [];
+
+      // Check if 'students' object store exists before trying to read it
+      if (!db.objectStoreNames.contains('students')) {
+        db.close();
+        return []; // Database exists but schema not initialized yet (user not logged in)
+      }
 
       const transaction = db.transaction(['students'], 'readonly');
       const store = transaction.objectStore('students');
@@ -163,10 +187,27 @@ export class StorageMonitor extends LitElement {
 
   private openDatabase(dbName: string): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
+      // Open without specifying version to avoid creating/upgrading the database
+      // This allows us to read from existing database without interfering with initialization
       const request = indexedDB.open(dbName);
-      request.onsuccess = () => resolve(request.result);
+
+      request.onsuccess = () => {
+        const db = request.result;
+        // Check if database has expected object stores
+        // If not, it means the database hasn't been properly initialized yet
+        if (!db.objectStoreNames.contains('students')) {
+          db.close();
+          reject(new Error('Database not initialized - missing students object store'));
+          return;
+        }
+        resolve(db);
+      };
+
       request.onerror = () =>
         reject(new Error(request.error?.message || 'Failed to open database'));
+
+      // Important: Don't add onupgradeneeded handler here
+      // We don't want the storage monitor to create/upgrade the database schema
     });
   }
 
@@ -202,7 +243,7 @@ export class StorageMonitor extends LitElement {
   private async clearIndexedDB(): Promise<void> {
     if (confirm('Clear all qd-prefixed IndexedDB data?')) {
       try {
-        const db = await this.openDatabase('sonar-quiz');
+        const db = await this.openDatabase(this.dbName);
         const transaction = db.transaction(['students'], 'readwrite');
         const store = transaction.objectStore('students');
 
@@ -248,7 +289,7 @@ export class StorageMonitor extends LitElement {
   private async clearIndexedDBKey(key: string): Promise<void> {
     if (confirm(`Clear IndexedDB key: ${key}?`)) {
       try {
-        const db = await this.openDatabase('sonar-quiz');
+        const db = await this.openDatabase(this.dbName);
         const transaction = db.transaction(['students'], 'readwrite');
         const store = transaction.objectStore('students');
         store.delete(key);

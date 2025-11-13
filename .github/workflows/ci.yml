@@ -74,7 +74,7 @@ jobs:
           name: dist
           path: dist/
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install chromium --with-deps
       - run: npm run test:e2e
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -99,6 +99,8 @@ jobs:
       - run: npm ci
       - name: Run Chromatic
         uses: chromaui/action@latest
+        # Don't fail if CHROMATIC_PROJECT_TOKEN is not configured
+        continue-on-error: true
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           exitZeroOnChanges: true
