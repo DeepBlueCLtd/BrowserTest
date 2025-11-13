@@ -218,7 +218,9 @@ test.describe('Cohort Management - CSV Export', () => {
       if (login?.shadowRoot) {
         const serviceIdInput = login.shadowRoot.querySelector('#serviceId') as HTMLInputElement;
         const nameInput = login.shadowRoot.querySelector('#name') as HTMLInputElement;
-        const submitButton = login.shadowRoot.querySelector('button[type="submit"]') as HTMLButtonElement;
+        const submitButton = login.shadowRoot.querySelector(
+          'button[type="submit"]',
+        ) as HTMLButtonElement;
 
         if (serviceIdInput) serviceIdInput.value = 'TEST001';
         if (nameInput) nameInput.value = 'Test Student';
@@ -648,7 +650,9 @@ test.describe('Cohort Management - Data Erasure', () => {
     // Test passed - dialog was cancelled and closed successfully
   });
 
-  test.skip('T094, T095: should erase all data and return system to blank state', async ({ page }) => {
+  test.skip('T094, T095: should erase all data and return system to blank state', async ({
+    page,
+  }) => {
     // Unlock instructor mode
     await unlockInstructorMode(page);
 

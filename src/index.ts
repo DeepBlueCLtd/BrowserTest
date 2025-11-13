@@ -10,7 +10,13 @@
 import { CSS_CLASSES, ELEMENT_IDS } from './types/contracts';
 import type { AnswerRecord } from './types/contracts';
 import { findQuizTables } from './services/quiz-parser';
-import { enhanceQuizTable, injectQuizStyles } from './enhancers/quiz-table';
+import {
+  enhanceQuizTable,
+  prepareAllQuizTables,
+  activateAllQuizTables,
+  injectQuizStyles,
+} from './enhancers/quiz-table';
+import { enhanceAllAnalysisTables } from './enhancers/analysis-table';
 import { getSessionService } from './services/session';
 import { getStorageAdapter } from './services/storage/indexeddb';
 import { initializeHomeBadges } from './enhancers/home-badges';
@@ -209,9 +215,9 @@ function injectStorageMonitor(doc: Document = document): void {
 }
 
 /**
- * Enhance all quiz tables on the page
+ * Prepare all quiz tables on the page (hide metadata, pre-login)
  */
-function enhanceAllTables(doc: Document = document): void {
+function prepareAllTables(doc: Document = document): void {
   const parsedTables = findQuizTables(doc);
 
   log(`Found ${parsedTables.length} quiz tables`);
@@ -225,12 +231,17 @@ function enhanceAllTables(doc: Document = document): void {
       }
     }
 
-    // Enhance even if there are errors (partial enhancement)
+    // Prepare even if there are errors (partial preparation)
     if (parsed.questions.length > 0) {
-      enhanceQuizTable(parsed.element);
-      log(`Enhanced table ${index + 1} with ${parsed.questions.length} questions`);
+      log(
+        `Preparing table ${index + 1} with ${parsed.questions.length} questions (hiding metadata)`,
+      );
     }
   });
+
+  // Prepare all quiz tables (hide metadata only)
+  prepareAllQuizTables(doc);
+  log('All quiz tables prepared (metadata hidden)');
 }
 
 /**
@@ -263,7 +274,11 @@ function showValidationBanner(table: HTMLTableElement, errors: string[]): void {
  * @param answer - The saved answer record
  * @param table - The table element containing the quiz
  */
-function handleAnswerSaved(questionIndex: number, answer: AnswerRecord, table: HTMLTableElement): void {
+function handleAnswerSaved(
+  questionIndex: number,
+  answer: AnswerRecord,
+  table: HTMLTableElement,
+): void {
   const sessionService = getSessionService();
 
   // Get current cache
@@ -295,29 +310,42 @@ function handleAnswerSaved(questionIndex: number, answer: AnswerRecord, table: H
   }
 
   // Store the answer at the question index (add answers array to PageCache)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
   const pageCache = cache.pages[pageId] as any; // Type assertion needed since PageCache interface doesn't have answers yet
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   if (!pageCache.answers) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     pageCache.answers = [];
   }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   pageCache.answers[questionIndex] = answer;
 
   // Recalculate totals from all stored answers
-  const pageAnswers = (pageCache.answers as AnswerRecord[]).filter((a: AnswerRecord) => a !== undefined);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const pageAnswers = (pageCache.answers as AnswerRecord[]).filter(
+    (a: AnswerRecord) => a !== undefined,
+  );
   cache.pages[pageId].answered = pageAnswers.length;
   cache.pages[pageId].correct = pageAnswers.filter((a: AnswerRecord) => a.success).length;
 
   // Recalculate global totals from all pages
-  cache.totals.answered = Object.values(cache.pages)
-    .reduce((sum, page) => sum + (page.answered || 0), 0);
-  cache.totals.correct = Object.values(cache.pages)
-    .reduce((sum, page) => sum + (page.correct || 0), 0);
+  cache.totals.answered = Object.values(cache.pages).reduce(
+    (sum, page) => sum + (page.answered || 0),
+    0,
+  );
+  cache.totals.correct = Object.values(cache.pages).reduce(
+    (sum, page) => sum + (page.correct || 0),
+    0,
+  );
 
   // Set page state
   const totalQuestionsOnPage = table.querySelectorAll('tbody tr').length;
   if (cache.pages[pageId].answered === 0) {
     cache.pages[pageId].state = 'unstarted';
-  } else if (cache.pages[pageId].answered === totalQuestionsOnPage &&
-             cache.pages[pageId].correct === totalQuestionsOnPage) {
+  } else if (
+    cache.pages[pageId].answered === totalQuestionsOnPage &&
+    cache.pages[pageId].correct === totalQuestionsOnPage
+  ) {
     cache.pages[pageId].state = 'complete';
   } else {
     cache.pages[pageId].state = 'incomplete';
@@ -327,43 +355,56 @@ function handleAnswerSaved(questionIndex: number, answer: AnswerRecord, table: H
   sessionService.saveCache(cache);
 
   // Update status panel with new totals
-  const statusPanel = document.querySelector('qd-status') as import('./components/qd-status').QdStatus;
+  const statusPanel = document.querySelector(
+    'qd-status',
+  ) as import('./components/qd-status').QdStatus;
   if (statusPanel) {
     statusPanel.attempted = cache.totals.answered;
     statusPanel.correct = cache.totals.correct;
     // Calculate total from cache
     const totalQuestions = Object.values(cache.pages).reduce((sum, page) => sum + page.answered, 0);
     statusPanel.total = totalQuestions;
-    log('Status panel updated - attempted:', cache.totals.answered, 'correct:', cache.totals.correct);
+    log(
+      'Status panel updated - attempted:',
+      cache.totals.answered,
+      'correct:',
+      cache.totals.correct,
+    );
   }
 
   // Persist to IndexedDB
   const session = sessionService.getSession();
   if (session) {
     const storage = getStorageAdapter();
-    storage.getStudent(session.release, session.serviceId).then(async (record) => {
-      if (record) {
-        // Update record with new totals
-        record.attempted = cache.totals.answered;
-        record.correct = cache.totals.correct;
-        record.updated = new Date().toISOString();
+    storage
+      .getStudent(session.release, session.serviceId)
+      .then(async (record) => {
+        if (record) {
+          // Update record with new totals
+          record.attempted = cache.totals.answered;
+          record.correct = cache.totals.correct;
+          record.updated = new Date().toISOString();
 
-        // Update page data with answers
-        record.pages[pageId] = {
-          answers: (cache.pages[pageId] as any)?.answers || [],
-          state: cache.pages[pageId]?.state || 'incomplete',
-        };
+          // Update page data with answers
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+          const pageAnswers = (cache.pages[pageId] as any)?.answers || [];
+          record.pages[pageId] = {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            answers: pageAnswers,
+            state: cache.pages[pageId]?.state || 'incomplete',
+          };
 
-        await storage.saveStudent(record);
-        log('Student record saved to IndexedDB');
-      }
-    }).catch((error) => {
-      console.error('Failed to save to IndexedDB:', error);
-      // In debug mode, re-throw to fail fast
-      if (config.debug) {
-        throw error;
-      }
-    });
+          await storage.saveStudent(record);
+          log('Student record saved to IndexedDB');
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to save to IndexedDB:', error);
+        // In debug mode, re-throw to fail fast
+        if (config.debug) {
+          throw error;
+        }
+      });
   }
 
   // Emit state-changed event
@@ -394,14 +435,15 @@ function clearQuizAnswers(): void {
   }
 
   // Clear all answer cells
-  const rows = table.querySelectorAll('tbody tr') as NodeListOf<HTMLTableRowElement>;
+  const rows = table.querySelectorAll('tbody tr');
   rows.forEach((row) => {
-    const answerCell = row.cells[1]; // Answer column
+    const tableRow = row as HTMLTableRowElement;
+    const answerCell = tableRow.cells[1]; // Answer column
     if (!answerCell) return;
 
     // Find and clear input/select elements
-    const input = answerCell.querySelector('input') as HTMLInputElement;
-    const select = answerCell.querySelector('select') as HTMLSelectElement;
+    const input = answerCell.querySelector('input');
+    const select = answerCell.querySelector('select');
 
     if (input) {
       input.value = '';
@@ -435,14 +477,22 @@ function restorePreviousAnswers(): void {
     document.location.pathname.replace(/^.*\//, '').replace(/\.html?$/, '') ||
     'unknown-page';
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
   const pageCache = cache.pages[pageId] as any;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   if (!pageCache || !pageCache.answers || pageCache.answers.length === 0) {
     log('No previous answers found for page:', pageId);
     return;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const answers = pageCache.answers as AnswerRecord[];
-  log('Restoring', answers.filter((a: AnswerRecord) => a).length, 'previous answers for page:', pageId);
+  log(
+    'Restoring',
+    answers.filter((a: AnswerRecord) => a).length,
+    'previous answers for page:',
+    pageId,
+  );
 
   // Find the quiz table
   const table = document.querySelector('table.qd-quiz') as HTMLTableElement;
@@ -455,15 +505,16 @@ function restorePreviousAnswers(): void {
   answers.forEach((answer: AnswerRecord, questionIndex: number) => {
     if (!answer) return;
 
-    const row = table.querySelectorAll('tbody tr')[questionIndex] as HTMLTableRowElement;
+    const allRows = table.querySelectorAll('tbody tr');
+    const row = allRows[questionIndex] as HTMLTableRowElement | undefined;
     if (!row) return;
 
     const answerCell = row.cells[1]; // Answer column
     if (!answerCell) return;
 
     // Find the input/select element and set its value
-    const input = answerCell.querySelector('input') as HTMLInputElement;
-    const select = answerCell.querySelector('select') as HTMLSelectElement;
+    const input = answerCell.querySelector('input');
+    const select = answerCell.querySelector('select');
 
     if (input) {
       input.value = answer.answer;
@@ -488,7 +539,7 @@ function restorePreviousAnswers(): void {
  */
 function setupEventListeners(doc: Document = document): void {
   // Listen for login events
-  doc.addEventListener('qd:login', async (e: Event) => {
+  doc.addEventListener('qd:login', (e: Event) => {
     const sessionData = (e as CustomEvent<import('./types/contracts').SessionData>).detail;
     log('Login event received:', sessionData);
 
@@ -497,39 +548,54 @@ function setupEventListeners(doc: Document = document): void {
     log('Session stored in sessionStorage');
 
     // Initialize student record in IndexedDB if it doesn't exist
-    try {
-      const storage = getStorageAdapter();
-      await storage.init();
+    // Note: Using void to explicitly discard the Promise return value
+    void (async () => {
+      try {
+        const storage = getStorageAdapter();
+        await storage.init();
 
-      // Try to load existing record, or create new one
-      const existingRecord = await storage.getStudent(sessionData.release, sessionData.serviceId);
+        // Try to load existing record, or create new one
+        const existingRecord = await storage.getStudent(sessionData.release, sessionData.serviceId);
 
-      if (!existingRecord) {
-        // Create new student record
-        const docId = doc.querySelector('meta[name="document-id"]')?.getAttribute('content') || 'unknown';
-        const newRecord: import('./types/contracts').StudentRecord = {
-          schema: 1,
-          docId,
-          serviceId: sessionData.serviceId,
-          name: sessionData.name,
-          release: sessionData.release,
-          attempted: 0,
-          correct: 0,
-          updated: new Date().toISOString(),
-          pages: {},
-        };
-        await storage.saveStudent(newRecord);
-        log('Created new student record in IndexedDB');
-      } else {
-        log('Loaded existing student record from IndexedDB');
+        if (!existingRecord) {
+          // Create new student record
+          const docId =
+            doc.querySelector('meta[name="document-id"]')?.getAttribute('content') || 'unknown';
+          const newRecord: import('./types/contracts').StudentRecord = {
+            schema: 1,
+            docId,
+            serviceId: sessionData.serviceId,
+            name: sessionData.name,
+            release: sessionData.release,
+            attempted: 0,
+            correct: 0,
+            updated: new Date().toISOString(),
+            pages: {},
+          };
+          await storage.saveStudent(newRecord);
+          log('Created new student record in IndexedDB');
+        } else {
+          log('Loaded existing student record from IndexedDB');
+        }
+      } catch (error) {
+        console.error('Failed to initialize student record:', error);
+        // In debug mode, re-throw to fail fast
+        if (config.debug) {
+          throw error;
+        }
       }
-    } catch (error) {
-      console.error('Failed to initialize student record:', error);
-      // In debug mode, re-throw to fail fast
-      if (config.debug) {
-        throw error;
-      }
-    }
+    })();
+
+    // Activate quiz tables (inject interactive controls)
+    activateAllQuizTables(doc);
+    log('Quiz tables activated (interactive controls injected)');
+
+    // Restore previous answers from session cache if logged in
+    restorePreviousAnswers();
+
+    // Enhance analysis tables (inject input fields)
+    enhanceAllAnalysisTables();
+    log('Analysis tables enhanced (input fields injected)');
 
     // Initialize or update status panel
     const statusPanel = doc.querySelector('qd-status') as import('./components/qd-status').QdStatus;
@@ -617,15 +683,20 @@ function init(userConfig?: Partial<SonarQuizConfig>): void {
   // Initialize IndexedDB early (before storage monitor) to ensure proper schema
   // This prevents the storage monitor from creating an empty database
   const storage = getStorageAdapter();
-  storage.init().then(() => {
-    log('IndexedDB initialized successfully');
-  }).catch((error) => {
-    console.error('Failed to initialize IndexedDB:', error);
-    if (config.debug) {
-      // Fail fast in debug mode
-      throw new Error(`IndexedDB initialization failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  });
+  storage
+    .init()
+    .then(() => {
+      log('IndexedDB initialized successfully');
+    })
+    .catch((error) => {
+      console.error('Failed to initialize IndexedDB:', error);
+      if (config.debug) {
+        // Fail fast in debug mode
+        throw new Error(
+          `IndexedDB initialization failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    });
 
   // Setup event listeners first
   setupEventListeners();
@@ -639,11 +710,9 @@ function init(userConfig?: Partial<SonarQuizConfig>): void {
   // Inject storage monitor (development tool)
   injectStorageMonitor();
 
-  // Enhance tables if auto-enhance is enabled
+  // Prepare tables if auto-enhance is enabled (hide metadata pre-login)
   if (config.autoEnhance) {
-    enhanceAllTables();
-    // Restore previous answers from session cache if logged in
-    restorePreviousAnswers();
+    prepareAllTables();
   }
 
   // Initialize home page badges if we're on a home page

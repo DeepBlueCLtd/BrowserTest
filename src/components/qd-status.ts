@@ -317,25 +317,21 @@ export class QdStatus extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this._checkInsertionTarget();
-    console.log('[qd-status] connectedCallback - isLoggedIn:', this.isLoggedIn);
   }
 
   willUpdate(changedProperties: Map<PropertyKey, unknown>) {
     if (changedProperties.has('isLoggedIn')) {
-      console.log('[qd-status] willUpdate - isLoggedIn changed from', changedProperties.get('isLoggedIn'), 'to', this.isLoggedIn);
+      // isLoggedIn property changed
     }
   }
 
   render() {
-    console.log('[qd-status] render() called - isLoggedIn:', this.isLoggedIn, 'showInstructor:', this._showInstructorPanel);
     if (this._showInstructorPanel) {
       return this._renderInstructorView();
     }
     if (!this.isLoggedIn) {
-      console.log('[qd-status] Rendering login view');
       return this._renderLoginView();
     }
-    console.log('[qd-status] Rendering status view');
     return this._renderStatusView();
   }
 
@@ -355,7 +351,6 @@ export class QdStatus extends LitElement {
 
   private _renderStatusView() {
     const percentage = this.calculatePercentage();
-    console.log('[qd-status] _renderStatusView - state:', this.state, 'attempted:', this.attempted, 'correct:', this.correct, 'total:', this.total, 'percentage:', percentage);
 
     return html`
       <div class="status-panel" role="region" aria-label="Quiz Progress">
@@ -416,13 +411,8 @@ export class QdStatus extends LitElement {
   }
 
   private _handleLogin(event: CustomEvent<SessionData>) {
-    console.log('[qd-status] _handleLogin called with event:', event.detail);
-    console.log('[qd-status] isLoggedIn BEFORE setting to true:', this.isLoggedIn);
-
     // Set logged in state
     this.isLoggedIn = true;
-
-    console.log('[qd-status] isLoggedIn AFTER setting to true:', this.isLoggedIn);
 
     // Forward the login event
     this.dispatchEvent(
@@ -432,21 +422,15 @@ export class QdStatus extends LitElement {
         composed: true,
       }),
     );
-    console.log('[qd-status] Login event forwarded');
   }
 
   private _handleLogout() {
-    console.log('[qd-status] _handleLogout called');
-    console.log('[qd-status] isLoggedIn BEFORE setting to false:', this.isLoggedIn);
-
     // Clear session storage
     sessionStorage.removeItem('qd/session');
     sessionStorage.removeItem('qd/state');
 
     // Set logged out state
     this.isLoggedIn = false;
-
-    console.log('[qd-status] isLoggedIn AFTER setting to false:', this.isLoggedIn);
 
     // Emit logout event
     this.dispatchEvent(
@@ -458,7 +442,6 @@ export class QdStatus extends LitElement {
         composed: true,
       }),
     );
-    console.log('[qd-status] Logout event dispatched');
   }
 
   private _handleShowInstructor() {
