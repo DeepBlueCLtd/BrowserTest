@@ -143,6 +143,41 @@
       color: #666;
       font-size: 0.875rem;
     }
+
+    nav {
+      background-color: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    nav li {
+      margin: 0;
+    }
+    nav a {
+      color: #0066cc;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    nav a:hover {
+      background-color: #e9ecef;
+    }
+    nav a.active {
+      background-color: #0066cc;
+      color: white;
+    }
   </style>
 </head>
 <body>
@@ -150,6 +185,14 @@
     <h1>Sonar Quiz System</h1>
     <p class="subtitle">Offline-first Interactive Training Platform</p>
   </header>
+
+  <nav class="qd-nav">
+    <ul>
+      <li><a href="quiz-index.html" class="qd-test-link active">Home</a></li>
+      <li><a href="quiz-examples.html" class="qd-test-link" data-page-id="sonar-basics">Quiz Examples</a></li>
+      <li><a href="analysis-examples.html" class="qd-test-link" data-page-id="contact-analysis">Analysis Examples</a></li>
+    </ul>
+  </nav>
 
   <main>
     <!-- Status Panel Container - qd-status component will be injected here -->

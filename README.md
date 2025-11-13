@@ -51,6 +51,30 @@ npm test
 npm run build
 ```
 
+## Demo Files
+
+The `demo/` directory contains standalone HTML test files that demonstrate the system's functionality:
+
+- **quiz-index.html** – Index page with login UI and navigation
+- **quiz-examples.html** – Interactive quiz tables (MCQ and numeric questions)
+- **analysis-examples.html** – Editable analysis tables for student work
+
+To test the demo files:
+
+```bash
+# Build the project first
+npm run build
+
+# Option 1: Open directly in browser (file:// protocol)
+open demo/quiz-index.html
+
+# Option 2: Serve via HTTP for full functionality
+python3 -m http.server 8000
+# Then visit: http://localhost:8000/demo/quiz-index.html
+```
+
+See [demo/README.md](./demo/README.md) for detailed testing instructions, workflow guides, and troubleshooting tips.
+
 ## Project Documentation
 
 | Document | Description |
