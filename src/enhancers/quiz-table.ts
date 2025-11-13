@@ -35,23 +35,25 @@ const CSS_CLASSES = {
 const debounceTimers = new WeakMap<HTMLElement, number>();
 
 /**
- * Enhance a quiz table with interactive elements
+ * Phase 1: Prepare quiz table by hiding metadata (always runs, pre-login)
+ * - Parses the table
+ * - Stores metadata in data attributes
+ * - Removes detail column to hide correct answers
  *
- * @param table - The quiz table element to enhance
- * @param savedAnswers - Optional array of previously saved answers
+ * @param table - The quiz table element to prepare
+ * @returns Parsed quiz data or null if preparation failed
  */
-export function enhanceQuizTable(
+export function prepareQuizTable(
   table: HTMLTableElement | null,
-  savedAnswers?: AnswerRecord[],
-): void {
+): ReturnType<typeof parseQuizTable> | null {
   if (!table) {
-    console.warn('Quiz table enhancer: No table provided');
-    return;
+    console.warn('Quiz table preparer: No table provided');
+    return null;
   }
 
-  // Skip if already enhanced
-  if (table.classList.contains(CSS_CLASSES.ENHANCED)) {
-    return;
+  // Skip if already prepared
+  if (table.classList.contains('qd-prepared')) {
+    return null;
   }
 
   // Parse the table
@@ -60,14 +62,14 @@ export function enhanceQuizTable(
   // Check for parsing errors
   if (parsed.errors && parsed.errors.length > 0) {
     console.warn('Quiz table has validation errors:', parsed.errors);
-    // Continue with partial enhancement if possible
+    // Continue with partial preparation if possible
     if (parsed.questions.length === 0) {
-      return;
+      return null;
     }
   }
 
-  // Mark as enhanced
-  table.classList.add(CSS_CLASSES.ENHANCED);
+  // Mark as prepared
+  table.classList.add('qd-prepared');
 
   // Store question count for instructor review features
   table.setAttribute('data-question-count', parsed.questions.length.toString());
@@ -75,7 +77,7 @@ export function enhanceQuizTable(
   // Get all answer cells (second column in tbody)
   const rows = Array.from(table.querySelectorAll('tbody tr'));
 
-  // FIRST: Store metadata from all rows BEFORE removing detail column
+  // Store metadata from all rows BEFORE removing detail column
   rows.forEach((row, index) => {
     const question = parsed.questions[index];
     if (!question) return;
@@ -83,12 +85,17 @@ export function enhanceQuizTable(
     const answerCell = row.querySelector('td:nth-child(2)');
     if (!answerCell) return;
 
-    // Store correct answer as data attribute before enhancement
+    // Store correct answer as data attribute
     // This allows instructor reveal to work after enhancement
     answerCell.setAttribute('data-correct-answer', question.correctAnswer);
 
     // Store question type (mcq or numeric) for instructor reveal
     answerCell.setAttribute('data-question-type', question.kind);
+
+    // Store options for MCQ questions (needed for activation phase)
+    if (question.kind === 'mcq' && question.options) {
+      answerCell.setAttribute('data-options', JSON.stringify(question.options));
+    }
 
     // Store tolerance for numeric questions
     if (question.kind === 'numeric' && question.tolerance !== undefined) {
@@ -99,13 +106,99 @@ export function enhanceQuizTable(
   // Remove the detail column (3rd column) - it's only used for metadata during parsing
   removeDetailColumn(table);
 
-  // SECOND: Enhance each answer cell with interactive elements
+  return parsed;
+}
+
+/**
+ * Phase 2: Activate quiz table by injecting interactive controls (only after login)
+ * - Injects dropdown selects for MCQ questions
+ * - Injects numeric inputs for numeric questions
+ * - Restores saved answers if provided
+ *
+ * @param table - The quiz table element to activate
+ * @param savedAnswers - Optional array of previously saved answers
+ */
+export function activateQuizTable(
+  table: HTMLTableElement | null,
+  savedAnswers?: AnswerRecord[],
+): void {
+  if (!table) {
+    console.warn('Quiz table activator: No table provided');
+    return;
+  }
+
+  // Skip if not prepared yet
+  if (!table.classList.contains('qd-prepared')) {
+    console.warn('Quiz table must be prepared before activation');
+    return;
+  }
+
+  // Skip if already activated
+  if (table.classList.contains(CSS_CLASSES.ENHANCED)) {
+    return;
+  }
+
+  // Mark as enhanced (activated)
+  table.classList.add(CSS_CLASSES.ENHANCED);
+
+  // Get question count from stored attribute
+  const questionCount = parseInt(table.getAttribute('data-question-count') || '0', 10);
+
+  if (questionCount === 0) {
+    console.warn('No questions found in prepared table');
+    return;
+  }
+
+  // Get all answer cells (second column in tbody) - detail column already removed
+  const rows = Array.from(table.querySelectorAll('tbody tr'));
+
+  // Enhance each answer cell with interactive elements
   rows.forEach((row, index) => {
-    const question = parsed.questions[index];
-    if (!question) return;
+    if (index >= questionCount) return;
 
     const answerCell = row.querySelector('td:nth-child(2)');
     if (!answerCell) return;
+
+    // Reconstruct question data from stored metadata
+    const questionType = answerCell.getAttribute('data-question-type') as 'mcq' | 'numeric';
+    const correctAnswer = answerCell.getAttribute('data-correct-answer') || '';
+    const toleranceStr = answerCell.getAttribute('data-tolerance');
+    const tolerance = toleranceStr ? parseFloat(toleranceStr) : undefined;
+
+    if (!questionType || !correctAnswer) {
+      console.warn(`Missing metadata for question ${index + 1}`);
+      return;
+    }
+
+    // For MCQ questions, we need to reconstruct the options
+    // Options were stored in the detail column which is now removed
+    // We'll need to get them from the question cell's data attribute if available
+    // For now, we'll handle this by storing options during preparation
+    let options: string[] | undefined;
+    if (questionType === 'mcq') {
+      const optionsJson = answerCell.getAttribute('data-options');
+      if (optionsJson) {
+        try {
+          options = JSON.parse(optionsJson) as string[];
+        } catch {
+          // Failed to parse options JSON
+          console.warn(`Failed to parse options for question ${index + 1}`);
+          return;
+        }
+      } else {
+        console.warn(`No options stored for MCQ question ${index + 1}`);
+        return;
+      }
+    }
+
+    // Reconstruct question object
+    const question: QuizQuestion = {
+      text: '', // Not needed for enhancement
+      kind: questionType,
+      correctAnswer,
+      ...(questionType === 'mcq' && { options }),
+      ...(questionType === 'numeric' && tolerance !== undefined && { tolerance }),
+    };
 
     // Get saved answer if available
     const savedAnswer = savedAnswers?.[index];
@@ -117,6 +210,21 @@ export function enhanceQuizTable(
       enhanceNumericCell(answerCell as HTMLElement, question, index, table, savedAnswer);
     }
   });
+}
+
+/**
+ * Enhance a quiz table with interactive elements (legacy convenience function)
+ * Calls both prepareQuizTable and activateQuizTable in sequence.
+ *
+ * @param table - The quiz table element to enhance
+ * @param savedAnswers - Optional array of previously saved answers
+ */
+export function enhanceQuizTable(
+  table: HTMLTableElement | null,
+  savedAnswers?: AnswerRecord[],
+): void {
+  prepareQuizTable(table);
+  activateQuizTable(table, savedAnswers);
 }
 
 /**
@@ -320,7 +428,41 @@ function emitAnswerSavedEvent(
 }
 
 /**
- * Find and enhance all quiz tables in document
+ * Prepare all quiz tables in document (hide metadata)
+ *
+ * @param doc - Document to search (defaults to global document)
+ */
+export function prepareAllQuizTables(doc: Document = document): void {
+  const tables = doc.querySelectorAll<HTMLTableElement>('table.qd-quiz');
+
+  tables.forEach((table) => {
+    prepareQuizTable(table);
+  });
+}
+
+/**
+ * Activate all quiz tables in document (inject interactive controls)
+ *
+ * @param doc - Document to search (defaults to global document)
+ * @param answersByPage - Map of pageId to saved answers
+ */
+export function activateAllQuizTables(
+  doc: Document = document,
+  answersByPage?: Map<string, AnswerRecord[]>,
+): void {
+  const tables = doc.querySelectorAll<HTMLTableElement>('table.qd-quiz');
+
+  tables.forEach((table) => {
+    // Try to determine pageId for answer restoration
+    const pageId = table.getAttribute('data-page-id') || '';
+    const savedAnswers = answersByPage?.get(pageId);
+
+    activateQuizTable(table, savedAnswers);
+  });
+}
+
+/**
+ * Find and enhance all quiz tables in document (legacy convenience function)
  *
  * @param doc - Document to search (defaults to global document)
  * @param answersByPage - Map of pageId to saved answers
