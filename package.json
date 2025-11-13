@@ -51,6 +51,7 @@
     "@storybook/web-components": "8.6.14",
     "@storybook/web-components-vite": "8.6.14",
     "@testing-library/dom": "^10.4.1",
+    "@types/jsdom": "^27.0.0",
     "chromatic": "^13.3.3",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
