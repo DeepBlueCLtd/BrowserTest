@@ -31,9 +31,10 @@
  */
 
 import { LitElement, html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 import type { CompletionState, SessionCache, SessionData } from '../types/contracts';
 import './qd-login';
+import './qd-instructor';
 
 @customElement('qd-status')
 export class QdStatus extends LitElement {
@@ -91,6 +92,12 @@ export class QdStatus extends LitElement {
    */
   @property({ type: String })
   docId = '';
+
+  /**
+   * Whether instructor panel is currently shown
+   */
+  @state()
+  private _showInstructorPanel = false;
 
   static styles = css`
     :host {
@@ -247,6 +254,51 @@ export class QdStatus extends LitElement {
       font-weight: 600;
     }
 
+    .instructor-access {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid #e0e0e0;
+      text-align: center;
+    }
+
+    .instructor-button {
+      background: none;
+      border: none;
+      color: #0066cc;
+      font-size: 0.875rem;
+      cursor: pointer;
+      padding: 0.5rem 1rem;
+      text-decoration: underline;
+      font-family: inherit;
+      transition: color 0.2s;
+    }
+
+    .instructor-button:hover {
+      color: #0052a3;
+    }
+
+    .instructor-button:focus {
+      outline: 2px solid #0066cc;
+      outline-offset: 2px;
+    }
+
+    .back-button {
+      background: #f0f0f0;
+      border: 1px solid #ccc;
+      color: #333;
+      font-size: 0.875rem;
+      cursor: pointer;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      font-family: inherit;
+      transition: background-color 0.2s;
+      margin-bottom: 1rem;
+    }
+
+    .back-button:hover {
+      background: #e0e0e0;
+    }
+
     @media (max-width: 480px) {
       .status-panel {
         padding: 1rem;
@@ -268,6 +320,9 @@ export class QdStatus extends LitElement {
   }
 
   render() {
+    if (this._showInstructorPanel) {
+      return this._renderInstructorView();
+    }
     if (!this.isLoggedIn) {
       return this._renderLoginView();
     }
@@ -330,6 +385,33 @@ export class QdStatus extends LitElement {
         <div class="status-message ${this.state}" aria-live="polite" aria-atomic="true">
           ${statusMessage}
         </div>
+
+        <div class="instructor-access">
+          <button
+            type="button"
+            class="instructor-button"
+            @click=${() => this._handleShowInstructor()}
+            aria-label="Access instructor features"
+          >
+            Instructor Access
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  private _renderInstructorView() {
+    return html`
+      <div class="status-panel" role="region" aria-label="Instructor Dashboard">
+        <button
+          type="button"
+          class="back-button"
+          @click=${() => this._handleHideInstructor()}
+          aria-label="Back to progress view"
+        >
+          ← Back to Progress
+        </button>
+        <qd-instructor release="${this.release}"></qd-instructor>
       </div>
     `;
   }
@@ -343,6 +425,14 @@ export class QdStatus extends LitElement {
         composed: true,
       }),
     );
+  }
+
+  private _handleShowInstructor() {
+    this._showInstructorPanel = true;
+  }
+
+  private _handleHideInstructor() {
+    this._showInstructorPanel = false;
   }
 
   private _checkInsertionTarget() {
