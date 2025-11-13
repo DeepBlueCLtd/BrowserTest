@@ -141,7 +141,7 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
     });
   });
 
-  describe.skip('revealCorrectAnswers()', () => {
+  describe('revealCorrectAnswers()', () => {
     it('should display correct answer for MCQ questions', () => {
       const table = createQuizTable([
         {
@@ -265,7 +265,7 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
     });
   });
 
-  describe.skip('showStudentComparisons()', () => {
+  describe('showStudentComparisons()', () => {
     it('should display student answers alongside correct answers', () => {
       const table = createQuizTable([
         {
@@ -532,7 +532,7 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
     });
   });
 
-  describe.skip('Color Coding', () => {
+  describe('Color Coding', () => {
     it('should use green for correct answers', () => {
       const table = createQuizTable([
         {
@@ -609,7 +609,7 @@ describe('Quiz Table Enhancer - Answer Reveal', () => {
     });
   });
 
-  describe.skip('Integration with Existing Enhancement', () => {
+  describe('Integration with Existing Enhancement', () => {
     it('should not break existing student interaction after reveal', () => {
       const table = createQuizTable([
         {

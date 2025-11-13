@@ -69,12 +69,13 @@ export function enhanceQuizTable(
   // Mark as enhanced
   table.classList.add(CSS_CLASSES.ENHANCED);
 
-  // Remove the detail column (3rd column) - it's only used for metadata during parsing
-  removeDetailColumn(table);
+  // Store question count for instructor review features
+  table.setAttribute('data-question-count', parsed.questions.length.toString());
 
   // Get all answer cells (second column in tbody)
   const rows = Array.from(table.querySelectorAll('tbody tr'));
 
+  // FIRST: Store metadata from all rows BEFORE removing detail column
   rows.forEach((row, index) => {
     const question = parsed.questions[index];
     if (!question) return;
@@ -85,6 +86,26 @@ export function enhanceQuizTable(
     // Store correct answer as data attribute before enhancement
     // This allows instructor reveal to work after enhancement
     answerCell.setAttribute('data-correct-answer', question.correctAnswer);
+
+    // Store question type (mcq or numeric) for instructor reveal
+    answerCell.setAttribute('data-question-type', question.kind);
+
+    // Store tolerance for numeric questions
+    if (question.kind === 'numeric' && question.tolerance !== undefined) {
+      answerCell.setAttribute('data-tolerance', question.tolerance.toString());
+    }
+  });
+
+  // Remove the detail column (3rd column) - it's only used for metadata during parsing
+  removeDetailColumn(table);
+
+  // SECOND: Enhance each answer cell with interactive elements
+  rows.forEach((row, index) => {
+    const question = parsed.questions[index];
+    if (!question) return;
+
+    const answerCell = row.querySelector('td:nth-child(2)');
+    if (!answerCell) return;
 
     // Get saved answer if available
     const savedAnswer = savedAnswers?.[index];
@@ -325,8 +346,8 @@ export function enhanceAllQuizTables(
  *
  * T073: Implements correct answer display for instructors
  *
- * Note: This function parses the ORIGINAL table structure from the detail column (3rd column)
- * rather than trying to re-parse already-enhanced answer cells.
+ * Note: This function reads metadata from data attributes stored during enhancement.
+ * After enhancement, the detail column (3rd column) is removed, so we rely on stored metadata.
  *
  * @param table - The quiz table element to reveal answers in
  */
@@ -347,26 +368,21 @@ export function revealCorrectAnswers(table: HTMLTableElement | null): void {
   rows.forEach((row) => {
     const cells = Array.from(row.querySelectorAll('td'));
 
-    // Need all 3 columns
-    if (cells.length !== 3) {
+    // After enhancement, table has 2 columns (detail column removed)
+    if (cells.length < 2) {
       return;
     }
 
-    const [, answerCell, detailCell] = cells;
+    const answerCell = cells[1]; // Second column is the answer cell
 
     // Skip if already revealed
     if (answerCell.classList.contains('qd-answer-revealed')) {
       return;
     }
 
-    // Extract correct answer from original cell data attribute or parse detail column
-    // The answer cell's original text content is in the 2nd column before enhancement
-    // We need to determine question type from detail column (3rd column)
-    const olElement = detailCell.querySelector('ol');
-
-    // Get correct answer from data attribute if set, otherwise from text
-    const correctAnswer =
-      answerCell.getAttribute('data-correct-answer') || answerCell.textContent?.trim() || '';
+    // Get metadata from data attributes (stored during enhancement)
+    const correctAnswer = answerCell.getAttribute('data-correct-answer');
+    const questionType = answerCell.getAttribute('data-question-type');
 
     if (!correctAnswer) {
       return;
@@ -380,18 +396,21 @@ export function revealCorrectAnswers(table: HTMLTableElement | null): void {
     revealDiv.className = 'qd-correct-answer';
 
     // Display correct answer based on question type
-    if (olElement) {
+    if (questionType === 'mcq') {
       // MCQ question
       revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${correctAnswer}`;
-    } else {
-      // Numeric question - extract tolerance from detail cell
-      const toleranceText = detailCell.textContent?.trim() || '';
-      const tolerance = parseFloat(toleranceText);
+    } else if (questionType === 'numeric') {
+      // Numeric question - get tolerance from data attribute
+      const toleranceAttr = answerCell.getAttribute('data-tolerance');
+      const tolerance = toleranceAttr ? parseFloat(toleranceAttr) : NaN;
 
       const toleranceSpan = !isNaN(tolerance)
         ? ` <span class="qd-tolerance">(±${tolerance})</span>`
         : '';
       revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${correctAnswer}${toleranceSpan}`;
+    } else {
+      // Unknown question type - show answer without type-specific formatting
+      revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${correctAnswer}`;
     }
 
     // Prepend to cell (so it appears above student input)
@@ -418,9 +437,10 @@ export function showStudentComparisons(
     return;
   }
 
-  // Parse the table to get question count
-  const parsed = parseQuizTable(table);
-  const questionCount = parsed.questions.length;
+  // Get question count from stored data attribute (set during enhancement)
+  // After enhancement, the detail column is removed, so we can't re-parse the table
+  const questionCountAttr = table.getAttribute('data-question-count');
+  const questionCount = questionCountAttr ? parseInt(questionCountAttr, 10) : 0;
 
   if (questionCount === 0) {
     return;
