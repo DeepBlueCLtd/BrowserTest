@@ -10,7 +10,13 @@
 import { CSS_CLASSES, ELEMENT_IDS } from './types/contracts';
 import type { AnswerRecord } from './types/contracts';
 import { findQuizTables } from './services/quiz-parser';
-import { enhanceQuizTable, injectQuizStyles } from './enhancers/quiz-table';
+import {
+  enhanceQuizTable,
+  prepareAllQuizTables,
+  activateAllQuizTables,
+  injectQuizStyles,
+} from './enhancers/quiz-table';
+import { enhanceAllAnalysisTables } from './enhancers/analysis-table';
 import { getSessionService, updateCacheWithAnswer } from './services/session';
 import { initializeHomeBadges } from './enhancers/home-badges';
 
@@ -202,9 +208,9 @@ function injectStorageMonitor(doc: Document = document): void {
 }
 
 /**
- * Enhance all quiz tables on the page
+ * Prepare all quiz tables on the page (hide metadata, pre-login)
  */
-function enhanceAllTables(doc: Document = document): void {
+function prepareAllTables(doc: Document = document): void {
   const parsedTables = findQuizTables(doc);
 
   log(`Found ${parsedTables.length} quiz tables`);
@@ -218,12 +224,17 @@ function enhanceAllTables(doc: Document = document): void {
       }
     }
 
-    // Enhance even if there are errors (partial enhancement)
+    // Prepare even if there are errors (partial preparation)
     if (parsed.questions.length > 0) {
-      enhanceQuizTable(parsed.element);
-      log(`Enhanced table ${index + 1} with ${parsed.questions.length} questions`);
+      log(
+        `Preparing table ${index + 1} with ${parsed.questions.length} questions (hiding metadata)`,
+      );
     }
   });
+
+  // Prepare all quiz tables (hide metadata only)
+  prepareAllQuizTables(doc);
+  log('All quiz tables prepared (metadata hidden)');
 }
 
 /**
@@ -322,6 +333,14 @@ function setupEventListeners(doc: Document = document): void {
     // Store session in sessionStorage
     sessionStorage.setItem('qd/session', JSON.stringify(detail));
 
+    // Activate quiz tables (inject interactive controls)
+    activateAllQuizTables(doc);
+    log('Quiz tables activated (interactive controls injected)');
+
+    // Enhance analysis tables (inject input fields)
+    enhanceAllAnalysisTables();
+    log('Analysis tables enhanced (input fields injected)');
+
     // Initialize or update status panel
     const statusPanel = doc.querySelector('qd-status');
     if (statusPanel) {
@@ -392,9 +411,9 @@ function init(userConfig?: Partial<SonarQuizConfig>): void {
   // Inject storage monitor (development tool)
   injectStorageMonitor();
 
-  // Enhance tables if auto-enhance is enabled
+  // Prepare tables if auto-enhance is enabled (hide metadata pre-login)
   if (config.autoEnhance) {
-    enhanceAllTables();
+    prepareAllTables();
   }
 
   // Initialize home page badges if we're on a home page
