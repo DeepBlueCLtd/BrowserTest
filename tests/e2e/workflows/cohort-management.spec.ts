@@ -25,10 +25,12 @@ const TEST_HTML = `
 <head>
   <meta charset="UTF-8">
   <title>Cohort Management Test</title>
-  <script type="module" src="../dist/sonar-quiz.esm.js"></script>
+  <meta name="release" content="02-2025">
+  <meta name="document-id" content="cohort-test">
+  <script type="module" src="../dist/sonar-quiz.esm.js" data-sonar-quiz></script>
 </head>
 <body>
-  <div id="qd-status"></div>
+  <qd-status release="02-2025" docId="cohort-test"></qd-status>
 
   <h1>Test Quiz Page</h1>
 
@@ -85,14 +87,30 @@ test.describe('Cohort Management - CSV Export', () => {
   });
 
   test('should login as student and create data for export', async ({ page }) => {
-    // Wait for login component to appear
-    const loginComponent = page.locator('qd-login');
-    await expect(loginComponent).toBeVisible();
+    // Wait for status panel to appear with login
+    await page.waitForSelector('qd-status');
 
-    // Fill in student credentials
-    await page.fill('#service-id', 'TEST001');
-    await page.fill('#student-name', 'Test Student');
-    await page.click('button[type="submit"]');
+    // Fill in student credentials using shadow DOM access
+    await page.evaluate(() => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+      const status = document.querySelector('qd-status') as any;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      const login = status?.shadowRoot?.querySelector('qd-login') as any;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      const serviceIdInput = login?.shadowRoot?.querySelector('#service-id') as HTMLInputElement;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      const nameInput = login?.shadowRoot?.querySelector('#student-name') as HTMLInputElement;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      const submitButton = login?.shadowRoot?.querySelector(
+        'button[type="submit"]',
+      ) as HTMLButtonElement;
+
+      if (serviceIdInput && nameInput && submitButton) {
+        serviceIdInput.value = 'TEST001';
+        nameInput.value = 'Test Student';
+        submitButton.click();
+      }
+    });
 
     // Wait for quiz to be enhanced
     await page.waitForSelector('.qd-quiz-enhanced', { timeout: 5000 });
