@@ -23,13 +23,13 @@ import { CSS_CLASSES, LIMITS } from '../types/contracts';
 export function parseAnalysisTable(
   table: HTMLTableElement | null | undefined,
 ): ParsedAnalysisTable | null {
-  // Validate input
-  if (!table || !(table instanceof HTMLTableElement)) {
+  // Validate input - use duck typing for JSDOM compatibility
+  if (!table || table.tagName !== 'TABLE') {
     return null;
   }
 
   // Check for qd-analysis class
-  if (!table.classList.contains(CSS_CLASSES.ANALYSIS_TABLE)) {
+  if (!table.classList?.contains(CSS_CLASSES.ANALYSIS_TABLE)) {
     return null;
   }
 
