@@ -6,8 +6,8 @@
 
 import type { Meta, StoryObj } from '@storybook/web-components';
 import { html } from 'lit';
-import './qd-storage-monitor';
-import { STORAGE_KEYS } from '../types/contracts';
+import '../../src/components/qd-storage-monitor';
+import { STORAGE_KEYS } from '../../src/types/contracts';
 
 const meta: Meta = {
   title: 'Development/Storage Monitor',
