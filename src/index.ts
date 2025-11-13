@@ -17,6 +17,7 @@ import { initializeHomeBadges } from './enhancers/home-badges';
 // Import components to register custom elements
 import './components/qd-login';
 import './components/qd-status';
+import './components/qd-storage-monitor';
 
 /**
  * Configuration for the quiz system
@@ -154,6 +155,22 @@ function injectStatusPanel(doc: Document = document): void {
   const status = doc.createElement('qd-status');
   statusContainer.appendChild(status);
   log('Status panel injected');
+}
+
+/**
+ * Inject storage monitor component (development tool)
+ */
+function injectStorageMonitor(doc: Document = document): void {
+  // Check if storage monitor already exists
+  if (doc.querySelector('qd-storage-monitor')) {
+    log('Storage monitor already present');
+    return;
+  }
+
+  // Create and inject storage monitor
+  const monitor = doc.createElement('qd-storage-monitor');
+  doc.body.appendChild(monitor);
+  log('Storage monitor injected');
 }
 
 /**
@@ -343,6 +360,9 @@ function init(userConfig?: Partial<SonarQuizConfig>): void {
 
   // Inject status panel
   injectStatusPanel();
+
+  // Inject storage monitor (development tool)
+  injectStorageMonitor();
 
   // Enhance tables if auto-enhance is enabled
   if (config.autoEnhance) {
