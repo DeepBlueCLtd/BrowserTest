@@ -24,6 +24,14 @@ import {
   sortByPercentage,
   type AggregatedScores,
 } from '../services/scores';
+import {
+  exportStudentSummary,
+  exportDetailedAnswers,
+  downloadCSV,
+  generateFilename,
+  type ExportFormat,
+} from '../services/csv-export';
+import { getStorageAdapter } from '../services/storage/indexeddb';
 import type { StudentRecord } from '../types/contracts';
 
 type InstructorMode = 'overview' | 'scores' | 'export' | 'manage';
@@ -96,6 +104,12 @@ export class QdInstructor extends LitElement {
    */
   @state()
   private _studentRecords: StudentRecord[] = [];
+
+  /**
+   * Export format selection
+   */
+  @state()
+  private _exportFormat: ExportFormat = 'summary';
 
   static styles = css`
     :host {
@@ -388,11 +402,49 @@ export class QdInstructor extends LitElement {
     }
   `;
 
+  private _broadcastChannel: BroadcastChannel | null = null;
+
   connectedCallback() {
     super.connectedCallback();
     // Check session for existing unlock status
     const session = getSessionService();
     this.unlocked = session.isInstructorUnlocked();
+
+    // Setup cross-tab sync listener
+    this._setupCrossTabSync();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    // Clean up broadcast channel
+    if (this._broadcastChannel) {
+      this._broadcastChannel.close();
+      this._broadcastChannel = null;
+    }
+  }
+
+  /**
+   * Setup cross-tab synchronization for data erasure
+   * T092: Listen for data-cleared events from other tabs
+   */
+  private _setupCrossTabSync(): void {
+    try {
+      this._broadcastChannel = new BroadcastChannel('qd-system');
+
+      this._broadcastChannel.onmessage = (event) => {
+        const data = event.data as { type: string; timestamp?: string };
+        if (data.type === 'data-cleared') {
+          // Another tab cleared all data - reset our state
+          this._studentRecords = [];
+          this._aggregatedScores = null;
+          this._statusMessage = 'Data was cleared in another window';
+          this.requestUpdate();
+        }
+      };
+    } catch (error) {
+      // BroadcastChannel might not be supported
+      console.warn('Cross-tab sync not available:', error);
+    }
   }
 
   render() {
@@ -495,8 +547,8 @@ export class QdInstructor extends LitElement {
   private _renderScoresView() {
     // Load data if not already loaded
     if (this._aggregatedScores === null && this._studentRecords.length === 0) {
-      // Trigger data loading (will be implemented with IndexedDB)
-      this._loadStudentRecords();
+      // Trigger data loading - intentionally not awaited as this is in render
+      void this._loadStudentRecords();
       return html`<p>Loading student data...</p>`;
     }
 
@@ -665,9 +717,50 @@ export class QdInstructor extends LitElement {
     );
   }
 
-  private _handleExport() {
-    this._statusMessage = 'CSV export functionality coming soon';
-    // Full implementation in T086-T088
+  private async _handleExport() {
+    // Ensure data is loaded
+    if (this._studentRecords.length === 0) {
+      await this._loadStudentRecords();
+    }
+
+    if (this._studentRecords.length === 0) {
+      this._errorMessage = 'No student data to export';
+      return;
+    }
+
+    try {
+      // Generate CSV based on selected format
+      let csvContent: string;
+
+      switch (this._exportFormat) {
+        case 'summary':
+          csvContent = exportStudentSummary(this._studentRecords, this.release);
+          break;
+
+        case 'detailed':
+          csvContent = exportDetailedAnswers(this._studentRecords, this.release);
+          break;
+
+        case 'per-page':
+          // For per-page, we'll export all pages for now
+          // In future, could add page selection UI
+          csvContent = exportDetailedAnswers(this._studentRecords, this.release);
+          break;
+
+        default:
+          csvContent = exportStudentSummary(this._studentRecords, this.release);
+      }
+
+      // Generate filename and trigger download
+      const filename = generateFilename(`sonar-quiz-${this._exportFormat}-${this.release}`);
+      downloadCSV(csvContent, filename);
+
+      this._statusMessage = `CSV exported successfully: ${filename}`;
+      this._errorMessage = '';
+    } catch (error) {
+      this._errorMessage = `Failed to export CSV: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      this._statusMessage = '';
+    }
   }
 
   private _handleEraseRequest() {
@@ -680,24 +773,69 @@ export class QdInstructor extends LitElement {
     this._confirmText = '';
   }
 
-  private _handleConfirmErase() {
+  private async _handleConfirmErase() {
     if (this._confirmText !== 'DELETE ALL') {
       return;
     }
 
-    // Full implementation in T089-T092
-    this._showEraseDialog = false;
-    this._confirmText = '';
-    this._statusMessage = 'Data erasure functionality coming soon';
+    try {
+      // Clear IndexedDB
+      const storage = getStorageAdapter();
+      await storage.init();
+      await storage.clearAll();
 
-    // Emit data cleared event
-    this.dispatchEvent(
-      new CustomEvent('qd:data-cleared', {
-        detail: { timestamp: new Date().toISOString() },
-        bubbles: true,
-        composed: true,
-      }),
-    );
+      // Clear sessionStorage
+      const session = getSessionService();
+      session.clearSession();
+      session.clearCache();
+
+      // Clear instructor password
+      sessionStorage.removeItem('qd/instructor');
+
+      // T092: Broadcast erasure to other tabs via BroadcastChannel
+      this._broadcastDataCleared();
+
+      // Reset local state
+      this._studentRecords = [];
+      this._aggregatedScores = null;
+      this._showEraseDialog = false;
+      this._confirmText = '';
+      this._statusMessage = 'All data has been permanently erased';
+      this._errorMessage = '';
+
+      // Emit data cleared event
+      this.dispatchEvent(
+        new CustomEvent('qd:data-cleared', {
+          detail: { timestamp: new Date().toISOString() },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    } catch (error) {
+      this._errorMessage = `Failed to erase data: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      this._statusMessage = '';
+      this._showEraseDialog = false;
+      this._confirmText = '';
+    }
+  }
+
+  /**
+   * Broadcast data cleared event to other tabs
+   * T092: Implement cross-tab sync for data erasure
+   */
+  private _broadcastDataCleared(): void {
+    try {
+      // Use BroadcastChannel for cross-tab communication
+      const channel = new BroadcastChannel('qd-system');
+      channel.postMessage({
+        type: 'data-cleared',
+        timestamp: new Date().toISOString(),
+      });
+      channel.close();
+    } catch (error) {
+      // BroadcastChannel might not be supported in all browsers
+      console.warn('Failed to broadcast data cleared event:', error);
+    }
   }
 
   /**
@@ -746,13 +884,33 @@ export class QdInstructor extends LitElement {
    * Load all student records from IndexedDB
    * T081: Load student data for scores aggregation
    */
-  private _loadStudentRecords(): void {
-    // TODO: Implement IndexedDB loading
-    // For now, use empty array as placeholder
-    // In full implementation, this would query IndexedDB for all student records
-    // matching the current release
-    this._studentRecords = [];
-    this._aggregateScores();
+  private async _loadStudentRecords(): Promise<void> {
+    try {
+      const storage = getStorageAdapter();
+      await storage.init();
+
+      // Load all students for the current release
+      if (this.release) {
+        this._studentRecords = await storage.getStudentsByRelease(this.release);
+      } else {
+        // If no release specified, try to get from session
+        const session = getSessionService();
+        const sessionData = session.getSession();
+
+        if (sessionData?.release) {
+          this._studentRecords = await storage.getStudentsByRelease(sessionData.release);
+        } else {
+          this._studentRecords = [];
+        }
+      }
+
+      this._aggregateScores();
+      this.requestUpdate(); // Force re-render
+    } catch (error) {
+      console.error('Failed to load student records:', error);
+      this._errorMessage = 'Failed to load student data';
+      this._studentRecords = [];
+    }
   }
 
   /**
