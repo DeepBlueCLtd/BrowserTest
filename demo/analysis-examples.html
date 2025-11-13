@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="release" content="02-2025">
+  <meta name="document-id" content="contact-analysis">
+  <meta name="page-id" content="contact-analysis">
   <title>Analysis Table Examples - Sonar Quiz System</title>
   <style>
     body {
@@ -61,9 +64,20 @@
       height: 20px;
       border: 1px solid #ddd;
     }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 1rem;
+      color: #0066cc;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .back-link:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
+  <a href="quiz-index.html" class="back-link">← Back to Index</a>
   <h1>Analysis Table Examples</h1>
   <p>Demonstration of analysis table formats for the Sonar Quiz System.</p>
 
@@ -284,9 +298,7 @@
     </ul>
   </div>
 
-  <script>
-    // Placeholder for sonar-quiz.iife.js
-    console.log('Demo page loaded. Add <script src="sonar-quiz.iife.js"><\/script> to activate analysis functionality.');
-  </script>
+  <!-- Load the Sonar Quiz System IIFE bundle -->
+  <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true"></script>
 </body>
 </html>
