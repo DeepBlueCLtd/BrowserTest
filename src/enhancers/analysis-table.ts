@@ -48,13 +48,6 @@ export function enhanceAnalysisTable(
     return;
   }
 
-  // Display validation errors if any
-  if (parsed.errors && parsed.errors.length > 0) {
-    console.warn('Analysis table validation errors:', parsed.errors);
-    // Could show banner here in future
-    return;
-  }
-
   // Store table ID on element for data loading
   if (!table.dataset.tableId) {
     table.dataset.tableId = parsed.tableId;
