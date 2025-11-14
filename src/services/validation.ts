@@ -196,8 +196,26 @@ export function validateQuizTable(table: HTMLTableElement): ValidationResult {
     const isMCQ = hasOrderedList(detailCell);
 
     if (isMCQ) {
-      // MCQ validation: ensure <ol> exists
-      // (Already checked by hasOrderedList)
+      // MCQ validation: ensure answer is 1-indexed and within range
+      const answerNum = parseInt(answerText, 10);
+      const olElement = detailCell.querySelector('ol');
+      const optionCount = olElement ? olElement.querySelectorAll('li').length : 0;
+
+      if (answerNum < 1) {
+        errors.push({
+          code: 'INVALID_ANSWER_FORMAT',
+          message: `MCQ answer must be 1-indexed (>= 1), got ${answerNum} (row ${index + 1})`,
+          row: index + 1,
+          element: answerCell,
+        });
+      } else if (answerNum > optionCount) {
+        errors.push({
+          code: 'INVALID_ANSWER_FORMAT',
+          message: `MCQ answer ${answerNum} is out of range (1-${optionCount}) (row ${index + 1})`,
+          row: index + 1,
+          element: answerCell,
+        });
+      }
     } else {
       // No <ol> means this is a numeric question
       // Numeric question must have a numeric tolerance in detail column
