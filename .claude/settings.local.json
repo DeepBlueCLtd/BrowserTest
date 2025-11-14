@@ -17,7 +17,7 @@
       "Bash(npm test:*)",
       "Bash(git checkout:*)",
       "Bash(cat:*)",
-      "Bash(npm run format:*)"
+      "Bash(npm run format:*)",
     ],
     "deny": [],
     "ask": []

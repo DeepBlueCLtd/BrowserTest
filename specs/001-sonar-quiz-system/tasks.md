@@ -242,26 +242,26 @@ Single project structure:
 
 ### Author Validation
 
-- [ ] T096 [P] Write tests for authoring constraint validation in tests/unit/services/validation.test.ts
-- [ ] T097 Implement one-quiz-per-page validation in src/services/validation.ts
-- [ ] T098 Implement one-analysis-per-page validation in src/services/validation.ts
-- [ ] T099 Implement MCQ 1-indexed validation in src/services/validation.ts
-- [ ] T100 Create error banner component for validation failures in src/components/qd-error-banner.ts
+- [X] T096 [P] Write tests for authoring constraint validation in tests/unit/services/validation.test.ts
+- [X] T097 Implement one-quiz-per-page validation in src/services/validation.ts
+- [X] T098 Implement one-analysis-per-page validation in src/services/validation.ts
+- [X] T099 Implement MCQ 1-indexed validation in src/services/validation.ts
+- [X] T100 Create error banner component for validation failures in src/components/qd-error-banner.ts
 
 ### Accessibility
 
-- [ ] T101 [P] Write tests for keyboard navigation in tests/unit/components/qd-login.test.ts
-- [ ] T102 Add keyboard focus management to all components in src/components/
-- [ ] T103 Implement screen reader announcements for status changes in src/components/qd-status.ts
+- [X] T101 [P] Write tests for keyboard navigation in tests/unit/components/qd-login.test.ts
+- [X] T102 Add keyboard focus management to all components in src/components/
+- [X] T103 Implement screen reader announcements for status changes in src/components/qd-status.ts
 - [ ] T104 Add WCAG 2.1 AA color contrast verification in stories/
 - [ ] T105 [P] Run accessibility audit with axe-core in tests/e2e/a11y.spec.ts
 
 ### Performance
 
-- [ ] T106 [P] Implement bundle size check (<25KB gzipped) in package.json scripts
-- [ ] T107 Optimize Lit imports with tree-shaking in src/index.ts
-- [ ] T108 Add debouncing to auto-save operations (200ms) in src/enhancers/
-- [ ] T109 Implement batch IndexedDB writes in src/services/storage/indexeddb.ts
+- [X] T106 [P] Implement bundle size check (<25KB gzipped) in package.json scripts
+- [X] T107 Optimize Lit imports with tree-shaking in src/index.ts
+- [X] T108 Add debouncing to auto-save operations (200ms) in src/enhancers/
+- [X] T109 Implement batch IndexedDB writes in src/services/storage/indexeddb.ts
 - [ ] T110 [P] Write performance smoke tests for page load (<2s) in tests/e2e/performance.spec.ts
 
 ### Documentation
@@ -272,9 +272,9 @@ Single project structure:
 
 ### Exit Gate Verification
 
-- [ ] T114 Run full test suite and verify all tests pass
+- [X] T114 Run full test suite and verify all tests pass
 - [ ] T115 Run Chromatic visual regression tests
-- [ ] T116 Verify bundle size <25KB min+gzip
+- [X] T116 Verify bundle size <25KB min+gzip
 - [ ] T117 Verify performance goals: <200ms saves, <2s page loads
 - [ ] T118 Verify Phase 6 exit gate: perf and a11y green, size budget met
 

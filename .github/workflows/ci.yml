@@ -86,8 +86,8 @@ jobs:
   chromatic:
     name: Visual Regression Tests
     runs-on: ubuntu-latest
-    # Only run on push to main
-    if: github.event_name == 'push'
+    # Only run on push events to main branch
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
         with:

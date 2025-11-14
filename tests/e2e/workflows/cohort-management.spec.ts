@@ -290,9 +290,9 @@ test.describe('Cohort Management - CSV Export', () => {
     // Wait for auto-save
     await page.waitForTimeout(300);
 
-    // Verify answers are saved
+    // Verify answers are saved - status panel shows attempted/correct stats
     const statusPanel = page.locator('qd-status');
-    await expect(statusPanel).toContainText(/answered|progress/i);
+    await expect(statusPanel).toContainText(/attempted|correct|score/i);
   });
 
   test.skip('should unlock instructor mode and export CSV', async ({ page }) => {
