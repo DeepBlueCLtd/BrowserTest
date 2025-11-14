@@ -68,6 +68,70 @@ async function clickInstructorButton(page: Page, buttonClass: string): Promise<v
   }, buttonClass);
 }
 
+/**
+ * Helper function to create student data in IndexedDB
+ * This initializes the database and creates test student records
+ */
+async function createStudentData(page: Page, students: Array<{ serviceId: string; name: string; answered: number; correct: number }>): Promise<void> {
+  await page.evaluate((studentList) => {
+    return new Promise<void>((resolve, reject) => {
+      const request = indexedDB.open('SonarQuizDB', 1);
+
+      request.onerror = () => reject(new Error('Failed to open IndexedDB'));
+
+      request.onupgradeneeded = (event) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+        const db = (event.target as any).result;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        if (!db.objectStoreNames.contains('students')) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+          db.createObjectStore('students');
+        }
+      };
+
+      request.onsuccess = () => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        const db = request.result;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        const transaction = db.transaction(['students'], 'readwrite');
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        const store = transaction.objectStore('students');
+
+        studentList.forEach((student: { serviceId: string; name: string; answered: number; correct: number }) => {
+          const record = {
+            schema: 1,
+            docId: 'cohort-test',
+            release: '02-2025',
+            serviceId: student.serviceId,
+            name: student.name,
+            attempted: student.answered,
+            correct: student.correct,
+            updated: new Date().toISOString(),
+            pages: {
+              'test-page-1': {
+                answers: Array(student.answered).fill({
+                  answer: 'test',
+                  success: true,
+                  timestamp: new Date().toISOString(),
+                }),
+                state: student.answered === student.correct ? 'complete' : 'incomplete',
+              },
+            },
+          };
+
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+          store.put(record, `qd/02-2025/u${student.serviceId}`);
+        });
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        transaction.oncomplete = () => resolve();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        transaction.onerror = () => reject(new Error('Transaction failed'));
+      };
+    });
+  }, students);
+}
+
 // Test fixture HTML with quiz table
 const TEST_HTML = `
 <!DOCTYPE html>
@@ -295,38 +359,15 @@ test.describe('Cohort Management - CSV Export', () => {
     await expect(statusPanel).toContainText(/attempted|correct|score/i);
   });
 
-  test.skip('should unlock instructor mode and export CSV', async ({ page }) => {
-    // TODO: This test requires proper IndexedDB 'students' object store initialization
-    // The DB schema needs to be set up before data can be exported
-    // First, create student data by logging in and answering questions
-    // This ensures IndexedDB is properly initialized
-    await page.evaluate(() => {
-      const login = document.querySelector('qd-login');
-      if (login?.shadowRoot) {
-        const serviceIdInput = login.shadowRoot.querySelector('#serviceId') as HTMLInputElement;
-        const nameInput = login.shadowRoot.querySelector('#name') as HTMLInputElement;
-        const submitButton = login.shadowRoot.querySelector(
-          'button[type="submit"]',
-        ) as HTMLButtonElement;
+  test('should unlock instructor mode and export CSV', async ({ page }) => {
+    // Create test student data in IndexedDB
+    await createStudentData(page, [
+      { serviceId: 'TEST001', name: 'Test Student', answered: 2, correct: 2 },
+      { serviceId: 'TEST002', name: 'Another Student', answered: 2, correct: 1 },
+    ]);
 
-        if (serviceIdInput) serviceIdInput.value = 'TEST001';
-        if (nameInput) nameInput.value = 'Test Student';
-        if (submitButton) submitButton.click();
-      }
-    });
-
-    // Wait for quiz to be ready
-    await page.waitForTimeout(1000);
-
-    // Answer questions to create data
-    const numericInput = page.locator('input[type="number"]').first();
-    await numericInput.fill('4');
-    await numericInput.blur();
-    await page.waitForTimeout(300);
-
-    const mcqSelect = page.locator('select').first();
-    await mcqSelect.selectOption('2');
-    await page.waitForTimeout(300);
+    // Wait for data to be ready
+    await page.waitForTimeout(500);
 
     // Unlock instructor mode
     await unlockInstructorMode(page);
@@ -373,22 +414,42 @@ test.describe('Cohort Management - CSV Export', () => {
     // Verify CSV contains student data
     expect(csvContent).toContain('TEST001');
     expect(csvContent).toContain('Test Student');
+    expect(csvContent).toContain('TEST002');
+    expect(csvContent).toContain('Another Student');
   });
 
-  test.skip('should allow selecting different export formats', async ({ page }) => {
-    // TODO: Same as above - requires IndexedDB setup
-    // This test verifies UI for export format selection exists
-    // Full implementation would add UI controls for format selection
+  test('should allow selecting different export formats', async ({ page }) => {
+    // Create test student data in IndexedDB
+    await createStudentData(page, [
+      { serviceId: 'TEST001', name: 'Test Student', answered: 2, correct: 2 },
+    ]);
+
+    // Wait for data to be ready
+    await page.waitForTimeout(500);
 
     // Unlock instructor mode
     await unlockInstructorMode(page);
 
-    await expect(page.locator('.controls')).toBeVisible();
+    // Wait for controls to be visible
+    await page.waitForFunction(
+      () => {
+        const instructor = document.querySelector('qd-instructor');
+        if (!instructor?.shadowRoot) return false;
+        const controls = instructor.shadowRoot.querySelector('.controls');
+        return controls !== null && getComputedStyle(controls).display !== 'none';
+      },
+      { timeout: 5000 },
+    );
 
-    // Verify export button exists
-    const exportButton = page.locator('button.export-csv');
-    await expect(exportButton).toBeVisible();
-    await expect(exportButton).toBeEnabled();
+    // Verify export button exists in shadow DOM
+    const exportButtonExists = await page.evaluate(() => {
+      const instructor = document.querySelector('qd-instructor');
+      if (!instructor?.shadowRoot) return false;
+      const exportButton = instructor.shadowRoot.querySelector('button.export-csv');
+      return exportButton !== null && getComputedStyle(exportButton).display !== 'none';
+    });
+
+    expect(exportButtonExists).toBe(true);
   });
 });
 
@@ -722,67 +783,71 @@ test.describe('Cohort Management - Data Erasure', () => {
     });
   });
 
-  test.skip('should emit qd:data-cleared event', async ({ page }) => {
-    // TODO: Event timing issue - setTimeout in button click causes race condition
-    // Setup event listener
+  test('should emit qd:data-cleared event', async ({ page }) => {
+    // Setup event listener BEFORE any actions
     const eventPromise = page.evaluate(
       () =>
-        new Promise((resolve) => {
+        new Promise<boolean>((resolve) => {
           window.addEventListener('qd:data-cleared', () => resolve(true), { once: true });
         }),
     );
 
-    // Unlock instructor mode via shadow DOM
-    await page.evaluate(() => {
-      const instructor = document.querySelector('qd-instructor');
-      if (instructor?.shadowRoot) {
-        const passwordInput = instructor.shadowRoot.querySelector(
-          'input[type="password"]',
-        ) as HTMLInputElement;
-        const unlockButton = instructor.shadowRoot.querySelector(
-          'button[type="submit"]',
-        ) as HTMLButtonElement;
+    // Unlock instructor mode using helper function
+    await unlockInstructorMode(page);
 
-        if (passwordInput && unlockButton) {
-          passwordInput.value = 'instructor';
-          unlockButton.click();
-        }
-      }
-    });
+    // Wait for controls to be visible
+    await page.waitForFunction(
+      () => {
+        const instructor = document.querySelector('qd-instructor');
+        if (!instructor?.shadowRoot) return false;
+        const controls = instructor.shadowRoot.querySelector('.controls');
+        return controls !== null && getComputedStyle(controls).display !== 'none';
+      },
+      { timeout: 5000 },
+    );
 
-    // Wait for unlock
-    await page.waitForTimeout(500);
+    // Click erase data button
+    await clickInstructorButton(page, 'erase-data');
 
-    // Erase data via shadow DOM
-    await page.evaluate(() => {
-      const instructor = document.querySelector('qd-instructor');
-      if (instructor?.shadowRoot) {
-        const eraseButton = instructor.shadowRoot.querySelector(
-          'button.erase-data',
-        ) as HTMLButtonElement;
-        if (eraseButton) eraseButton.click();
-      }
-    });
+    // Wait for dialog to appear
+    await page.waitForFunction(
+      () => {
+        const instructor = document.querySelector('qd-instructor');
+        if (!instructor?.shadowRoot) return false;
+        const dialog = instructor.shadowRoot.querySelector('.dialog');
+        return dialog !== null && getComputedStyle(dialog).display !== 'none';
+      },
+      { timeout: 2000 },
+    );
 
-    // Wait for dialog
-    await page.waitForTimeout(200);
-
-    // Confirm erasure via shadow DOM
+    // Enter confirmation text and click confirm button
     await page.evaluate(() => {
       const instructor = document.querySelector('qd-instructor');
       if (instructor?.shadowRoot) {
         const input = instructor.shadowRoot.querySelector(
           '.dialog input[type="text"]',
         ) as HTMLInputElement;
+
+        if (input) {
+          input.value = 'DELETE ALL';
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+    });
+
+    // Wait for button to be enabled (reactivity delay)
+    await page.waitForTimeout(100);
+
+    // Click confirm button WITHOUT setTimeout to avoid race condition
+    await page.evaluate(() => {
+      const instructor = document.querySelector('qd-instructor');
+      if (instructor?.shadowRoot) {
         const confirmButton = instructor.shadowRoot.querySelector(
           '.dialog button.erase-data',
         ) as HTMLButtonElement;
 
-        if (input && confirmButton) {
-          input.value = 'DELETE ALL';
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-          // Small delay for button to enable
-          setTimeout(() => confirmButton.click(), 100);
+        if (confirmButton) {
+          confirmButton.click();
         }
       }
     });

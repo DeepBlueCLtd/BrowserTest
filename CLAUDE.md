@@ -335,6 +335,408 @@ function getStorageKey(release: ReleaseId, serviceId: ServiceId): string {
 ### Session Timeout
 30 minutes from lastActivity timestamp, checked on every user interaction
 
+---
+
+## Code Examples
+
+### Using Utility Modules
+
+#### Storage Helpers
+
+```typescript
+import { getSessionJSON, setSessionJSON, getLocalJSON } from './utils/storage-helpers';
+
+// Get typed data from sessionStorage
+const session = getSessionJSON<SessionData>('qd/session');
+if (session) {
+  console.log('Service ID:', session.serviceId);
+}
+
+// Save data to sessionStorage
+setSessionJSON('qd/session', {
+  serviceId: 'RN2344',
+  name: 'John Doe',
+  release: '02-2025',
+  loginTime: new Date().toISOString(),
+  // ...
+});
+
+// Get data from localStorage
+const settings = getLocalJSON<UserSettings>('app/settings');
+```
+
+#### Debouncing
+
+```typescript
+import { Debouncer } from './utils/debouncer';
+
+// Create debouncer instance
+const debouncer = new Debouncer();
+
+// Debounce auto-save (waits 200ms after last change)
+input.addEventListener('input', () => {
+  debouncer.debounce('auto-save', () => {
+    saveDataToIndexedDB();
+  }, 200);
+});
+
+// Functional approach for single-use
+import { debounce } from './utils/debouncer';
+
+const debouncedSave = debounce(() => {
+  saveDataToIndexedDB();
+}, 200);
+
+input.addEventListener('input', debouncedSave);
+```
+
+#### DOM Helpers
+
+```typescript
+import {
+  queryAll,
+  createElementWithText,
+  getTableRows,
+  getCellText
+} from './utils/dom-helpers';
+
+// Get all quiz tables
+const tables = queryAll<HTMLTableElement>('table.qd-quiz');
+
+// Get table rows
+tables.forEach(table => {
+  const rows = getTableRows(table);
+  rows.forEach(row => {
+    const text = getCellText(row.cells[0]);
+    console.log('Question:', text);
+  });
+});
+
+// Create safe DOM elements (XSS-proof)
+const header = createElementWithText('h2', 'Quiz Results', 'results-header');
+const paragraph = createElementWithText('p', userInput); // Safe - no XSS
+container.appendChild(header);
+container.appendChild(paragraph);
+```
+
+#### Custom Events
+
+```typescript
+import {
+  emitLogin,
+  emitAnswerSaved,
+  onEvent,
+  QD_EVENTS
+} from './utils/event-helpers';
+
+// Emit login event
+emitLogin({
+  serviceId: 'RN2344',
+  name: 'John Doe',
+  release: '02-2025',
+  timestamp: new Date().toISOString(),
+});
+
+// Listen for login events
+const cleanup = onEvent<QdLoginEvent>(QD_EVENTS.LOGIN, (event) => {
+  console.log('User logged in:', event.detail.serviceId);
+  // Handle login...
+});
+
+// Later: cleanup(); to remove listener
+
+// Emit answer saved event
+emitAnswerSaved({
+  questionIndex: 0,
+  answer: { answer: 'A', success: true, timestamp: new Date().toISOString() },
+  tableElement: table,
+});
+```
+
+### Working with IndexedDB
+
+```typescript
+import { getStorageAdapter } from './services/storage/indexeddb';
+
+// Get singleton instance
+const storage = getStorageAdapter();
+
+// Initialize database
+await storage.init();
+
+// Save student record
+const record: StudentRecord = {
+  schema: 1,
+  docId: 'core-acs',
+  serviceId: 'RN2344',
+  name: 'John Doe',
+  release: '02-2025',
+  attempted: 5,
+  correct: 4,
+  updated: new Date().toISOString(),
+  pages: {
+    'gram-1': {
+      answers: [
+        { answer: 'A', success: true, timestamp: new Date().toISOString() },
+        { answer: 'B', success: false, timestamp: new Date().toISOString() },
+      ],
+      state: 'incomplete',
+    },
+  },
+};
+
+await storage.saveStudent(record);
+
+// Retrieve student record
+const loaded = await storage.getStudent('02-2025', 'RN2344');
+console.log('Loaded:', loaded);
+
+// Get all students in a cohort
+const cohort = await storage.getAllStudents('02-2025');
+console.log('Cohort size:', cohort.length);
+
+// Delete student data
+await storage.deleteStudent('02-2025', 'RN2344');
+```
+
+### Creating Lit Components
+
+```typescript
+import { LitElement, html, css } from 'lit';
+import { customElement, property, state } from 'lit/decorators.js';
+
+@customElement('my-component')
+export class MyComponent extends LitElement {
+  // Public property (attribute)
+  @property({ type: String }) title = 'Default Title';
+
+  // Private state
+  @state() private _count = 0;
+
+  // CRITICAL: Use arrow function for event handlers (avoids unbound method errors)
+  private _handleClick = () => {
+    this._count++;
+    this.dispatchEvent(new CustomEvent('count-changed', {
+      detail: { count: this._count },
+      bubbles: true,
+      composed: true,
+    }));
+  };
+
+  render() {
+    return html`
+      <h2>${this.title}</h2>
+      <p>Count: ${this._count}</p>
+      <button @click=${this._handleClick}>Increment</button>
+    `;
+  }
+
+  static styles = css`
+    :host {
+      display: block;
+      padding: 1rem;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background: #0066cc;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+    }
+  `;
+}
+```
+
+### Security Patterns
+
+#### XSS Prevention
+
+```typescript
+// ✅ SAFE: Always use createElement + textContent
+const div = document.createElement('div');
+const strong = document.createElement('strong');
+strong.textContent = userInput; // Automatically escapes
+div.appendChild(strong);
+
+// ✅ SAFE: Use createElementWithText helper
+import { createElementWithText } from './utils/dom-helpers';
+const para = createElementWithText('p', userInput, 'user-content');
+
+// ❌ DANGEROUS: Never use innerHTML with user data
+div.innerHTML = `<strong>${userInput}</strong>`; // XSS VULNERABILITY!
+```
+
+#### Secure Logging
+
+```typescript
+import { debug, error } from './utils/logger';
+
+// Automatically sanitizes PII (service IDs, names, passwords)
+debug('User logged in:', {
+  serviceId: 'RN2344',  // Logged as: RN****
+  name: 'John Doe',     // Logged as: J***
+  password: 'secret',   // Logged as: [REDACTED]
+});
+
+// Always log errors (even in production)
+error('Failed to save:', err);
+```
+
+### Session Management
+
+```typescript
+import { getSessionService } from './services/session';
+
+const sessionService = getSessionService();
+
+// Create session on login
+const session = sessionService.createSession('RN2344', 'John Doe', '02-2025');
+
+// Get current session
+const currentSession = sessionService.getSession();
+if (currentSession) {
+  console.log('Logged in as:', currentSession.name);
+}
+
+// Update activity (extends session timeout)
+sessionService.updateActivity();
+
+// Check if session expired
+if (sessionService.isExpired()) {
+  console.log('Session expired, please log in again');
+  sessionService.clearSession();
+}
+
+// Instructor mode
+sessionService.unlockInstructor();
+if (sessionService.isInstructorUnlocked()) {
+  console.log('Instructor mode active');
+}
+```
+
+### Cache Management
+
+```typescript
+import { getSessionService } from './services/session';
+import { buildCacheFromRecord } from './services/session';
+
+const sessionService = getSessionService();
+
+// Get cache
+const cache = sessionService.getCache();
+if (cache) {
+  console.log('Total answered:', cache.totals.answered);
+  console.log('Total correct:', cache.totals.correct);
+  console.log('Page states:', cache.pages);
+}
+
+// Build cache from student record (after loading from IndexedDB)
+const storage = getStorageAdapter();
+const record = await storage.getStudent('02-2025', 'RN2344');
+if (record) {
+  const cache = buildCacheFromRecord(record);
+  sessionService.saveCache(cache);
+}
+
+// Update cache manually
+if (cache) {
+  cache.totals.answered++;
+  cache.totals.correct++;
+  cache.pages['gram-1'] = {
+    state: 'complete',
+    answered: 10,
+    correct: 10,
+  };
+  sessionService.saveCache(cache);
+}
+```
+
+### Common Workflows
+
+#### Complete Login-to-Answer Flow
+
+```typescript
+// 1. User submits login form (in qd-login component)
+const sessionData: SessionData = {
+  serviceId: inputServiceId.value,
+  name: inputName.value,
+  release: this.release,
+  loginTime: new Date().toISOString(),
+  lastActivity: new Date().toISOString(),
+  expiresAt: new Date(Date.now() + SESSION_TIMEOUT_MS).toISOString(),
+  instructorUnlocked: false,
+};
+
+this.dispatchEvent(new CustomEvent('qd:login', {
+  detail: sessionData,
+  bubbles: true,
+  composed: true,
+}));
+
+// 2. index.ts receives qd:login event
+document.addEventListener('qd:login', async (e: Event) => {
+  const session = (e as CustomEvent<SessionData>).detail;
+
+  // Store session
+  setSessionJSON('qd/session', session);
+
+  // Initialize IndexedDB record
+  const storage = getStorageAdapter();
+  await storage.init();
+
+  let record = await storage.getStudent(session.release, session.serviceId);
+  if (!record) {
+    record = {
+      schema: 1,
+      docId: 'core-acs',
+      serviceId: session.serviceId,
+      name: session.name,
+      release: session.release,
+      attempted: 0,
+      correct: 0,
+      updated: new Date().toISOString(),
+      pages: {},
+    };
+    await storage.saveStudent(record);
+  }
+
+  // Build cache
+  const cache = buildCacheFromRecord(record);
+  sessionService.saveCache(cache);
+
+  // Activate quiz tables
+  activateAllQuizTables();
+});
+
+// 3. User answers question (quiz-table.ts emits event)
+document.addEventListener('qd:answer-saved', async (e: Event) => {
+  const detail = (e as CustomEvent<QdAnswerSavedEvent>).detail;
+
+  // Update cache
+  let cache = sessionService.getCache();
+  // ... update cache logic ...
+  sessionService.saveCache(cache);
+
+  // Update IndexedDB
+  const session = sessionService.getSession();
+  if (session) {
+    const record = await storage.getStudent(session.release, session.serviceId);
+    if (record) {
+      record.attempted = cache.totals.answered;
+      record.correct = cache.totals.correct;
+      await storage.saveStudent(record);
+    }
+  }
+
+  // Emit state changed
+  document.dispatchEvent(new CustomEvent('qd:state-changed', {
+    detail: { pageId: 'gram-1', state: 'incomplete' },
+  }));
+});
+```
+
 ## Build Output
 
 - **IIFE**: `dist/sonar-quiz.iife.js` (global `window.SonarQuiz`, auto-init)
