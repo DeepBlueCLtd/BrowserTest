@@ -18,6 +18,7 @@ export default tseslint.config(
       'playwright-report/**',
       'test-results/**',
       'dita/**',
+      'tests/e2e/**', // E2E tests excluded from main TS compilation (optional dependencies)
     ],
   },
 

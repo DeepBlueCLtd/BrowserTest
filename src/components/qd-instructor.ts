@@ -111,6 +111,13 @@ export class QdInstructor extends LitElement {
   @state()
   private _exportFormat: ExportFormat = 'summary';
 
+  /**
+   * Track cross-tab sync receipt (for testing and UI feedback)
+   * Set to true when data-cleared message received from another tab
+   */
+  @property({ type: Boolean, attribute: 'cross-tab-sync-received' })
+  crossTabSyncReceived = false;
+
   static styles = css`
     :host {
       display: block;
@@ -438,6 +445,7 @@ export class QdInstructor extends LitElement {
           this._studentRecords = [];
           this._aggregatedScores = null;
           this._statusMessage = 'Data was cleared in another window';
+          this.crossTabSyncReceived = true;
           this.requestUpdate();
         }
       };
@@ -631,10 +639,21 @@ export class QdInstructor extends LitElement {
 
   private _renderEraseDialog() {
     return html`
-      <div class="dialog-overlay" @click=${() => this._handleCancelErase()}>
-        <div class="dialog" @click=${(e: Event) => e.stopPropagation()}>
-          <h3>⚠️ Erase All Data</h3>
-          <div class="warning">
+      <div
+        class="dialog-overlay"
+        data-testid="erase-dialog-overlay"
+        @click=${() => this._handleCancelErase()}
+      >
+        <div
+          class="dialog"
+          role="dialog"
+          aria-labelledby="erase-dialog-title"
+          aria-describedby="erase-dialog-warning"
+          data-testid="erase-dialog"
+          @click=${(e: Event) => e.stopPropagation()}
+        >
+          <h3 id="erase-dialog-title">⚠️ Erase All Data</h3>
+          <div class="warning" id="erase-dialog-warning">
             This action will permanently delete all student records, quiz answers, and analysis
             data. This cannot be undone.
           </div>
@@ -645,14 +664,23 @@ export class QdInstructor extends LitElement {
               .value=${this._confirmText}
               @input=${(e: Event) => (this._confirmText = (e.target as HTMLInputElement).value)}
               placeholder="DELETE ALL"
+              aria-label="Type DELETE ALL to confirm data erasure"
+              data-testid="erase-confirm-input"
               autofocus
             />
           </div>
           <div class="dialog-actions">
-            <button type="button" @click=${() => this._handleCancelErase()}>Cancel</button>
+            <button
+              type="button"
+              data-testid="erase-cancel-button"
+              @click=${() => this._handleCancelErase()}
+            >
+              Cancel
+            </button>
             <button
               type="button"
               class="erase-data"
+              data-testid="erase-confirm-button"
               ?disabled=${this._confirmText !== 'DELETE ALL'}
               @click=${() => this._handleConfirmErase()}
             >
