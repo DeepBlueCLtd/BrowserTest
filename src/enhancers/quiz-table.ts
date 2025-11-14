@@ -539,21 +539,33 @@ export function revealCorrectAnswers(table: HTMLTableElement | null): void {
     revealDiv.className = 'qd-correct-answer';
 
     // Display correct answer based on question type
+    // SECURITY: Use createElement/textContent to prevent XSS (never innerHTML with user data)
+    const strong = document.createElement('strong');
+    strong.textContent = 'Correct Answer:';
+    revealDiv.appendChild(strong);
+
     if (questionType === 'mcq') {
       // MCQ question
-      revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${correctAnswer}`;
+      const answerText = document.createTextNode(` ${correctAnswer}`);
+      revealDiv.appendChild(answerText);
     } else if (questionType === 'numeric') {
       // Numeric question - get tolerance from data attribute
       const toleranceAttr = answerCell.getAttribute('data-tolerance');
       const tolerance = toleranceAttr ? parseFloat(toleranceAttr) : NaN;
 
-      const toleranceSpan = !isNaN(tolerance)
-        ? ` <span class="qd-tolerance">(±${tolerance})</span>`
-        : '';
-      revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${correctAnswer}${toleranceSpan}`;
+      const answerText = document.createTextNode(` ${correctAnswer}`);
+      revealDiv.appendChild(answerText);
+
+      if (!isNaN(tolerance)) {
+        const toleranceSpan = document.createElement('span');
+        toleranceSpan.className = 'qd-tolerance';
+        toleranceSpan.textContent = ` (±${tolerance})`;
+        revealDiv.appendChild(toleranceSpan);
+      }
     } else {
       // Unknown question type - show answer without type-specific formatting
-      revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${correctAnswer}`;
+      const answerText = document.createTextNode(` ${correctAnswer}`);
+      revealDiv.appendChild(answerText);
     }
 
     // Prepend to cell (so it appears above student input)

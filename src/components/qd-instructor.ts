@@ -789,9 +789,6 @@ export class QdInstructor extends LitElement {
       session.clearSession();
       session.clearCache();
 
-      // Clear instructor password
-      sessionStorage.removeItem('qd/instructor');
-
       // T092: Broadcast erasure to other tabs via BroadcastChannel
       this._broadcastDataCleared();
 
@@ -839,45 +836,86 @@ export class QdInstructor extends LitElement {
   }
 
   /**
-   * Validate instructor password using SHA-256 hash
+   * Validate instructor password against hash from Oxygen-published HTML
    *
-   * T070: Implements password validation with hashed storage
+   * Reads the expected hash from a hidden span element that is injected
+   * by the Oxygen XSL template during DITA publishing. The hash is set
+   * by document authors via the Oxygen publishing parameter:
+   * instructor.password.hash
+   *
+   * @param password - Password entered by instructor
+   * @returns True if password matches configured hash
    */
   private async _validatePassword(password: string): Promise<boolean> {
-    // Hash the input password
+    // Hash the password entered by instructor
     const hash = await this._hashPassword(password);
 
-    // Get stored hash from sessionStorage
-    const storedHash = sessionStorage.getItem('qd/instructor');
+    // Get expected hash from hidden span (injected by Oxygen XSL template)
+    const span = document.querySelector('#instructor-password-hash');
+    const expectedHash = span?.textContent?.trim();
 
-    if (!storedHash) {
-      // First time - set the password
-      // In production, this should be configured differently
-      // For now, we'll use a default password "instructor" for demo
-      const defaultHash = await this._hashPassword('instructor');
-
-      if (hash === defaultHash) {
-        sessionStorage.setItem('qd/instructor', hash);
-        return true;
-      }
+    // Check if hash is configured
+    if (!expectedHash) {
+      this._errorMessage = 'Instructor password not configured. Contact your course administrator.';
+      console.error(
+        '[Sonar Quiz] No instructor password hash found in HTML. Expected <span id="instructor-password-hash">.',
+      );
       return false;
     }
 
-    // Compare hashes
-    return hash === storedHash;
+    // Validate hash format (16 characters, base64url)
+    if (expectedHash.length !== 16) {
+      this._errorMessage = 'Invalid password configuration. Contact your administrator.';
+      console.error(
+        `[Sonar Quiz] Invalid hash length: ${expectedHash.length} (expected 16 characters)`,
+      );
+      return false;
+    }
+
+    if (!/^[A-Za-z0-9_-]{16}$/.test(expectedHash)) {
+      this._errorMessage = 'Invalid password configuration. Contact your administrator.';
+      console.error('[Sonar Quiz] Invalid hash format (expected base64url: A-Za-z0-9_-)');
+      return false;
+    }
+
+    // Compare hashes (constant-time comparison would be ideal, but this is acceptable)
+    const isValid = hash === expectedHash;
+
+    if (!isValid) {
+      console.warn('[Sonar Quiz] Password validation failed');
+    }
+
+    return isValid;
   }
 
   /**
-   * Hash password using SHA-256
+   * Hash password using SHA-256 with 96-bit truncation
+   *
+   * Generates a compact 16-character base64url hash for easier
+   * configuration by document authors in Oxygen parameters.
+   *
+   * Security: 96-bit hash (2^96 combinations = 79 octillion)
+   *
+   * @param password - Password to hash
+   * @returns 16-character base64url hash
    */
   private async _hashPassword(password: string): Promise<string> {
-    // Use Web Crypto API for hashing
+    // Use Web Crypto API for SHA-256 hashing
     const encoder = new TextEncoder();
     const data = encoder.encode(password);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-    return hashHex;
+
+    // Take first 12 bytes (96 bits) for compact 16-character hash
+    const hashArray = new Uint8Array(hashBuffer, 0, 12);
+
+    // Convert to base64url (URL-safe, no padding)
+    // Standard base64: +/=  → base64url: -_  (no padding)
+    const base64url = btoa(String.fromCharCode(...hashArray))
+      .replace(/\+/g, '-') // Replace + with -
+      .replace(/\//g, '_') // Replace / with _
+      .replace(/=/g, ''); // Remove = padding
+
+    return base64url;
   }
 
   /**

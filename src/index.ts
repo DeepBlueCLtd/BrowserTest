@@ -246,6 +246,7 @@ function prepareAllTables(doc: Document = document): void {
 
 /**
  * Show validation banner for debug mode
+ * SECURITY: Uses createElement/textContent to prevent XSS from error messages
  */
 function showValidationBanner(table: HTMLTableElement, errors: string[]): void {
   const banner = document.createElement('div');
@@ -257,13 +258,23 @@ function showValidationBanner(table: HTMLTableElement, errors: string[]): void {
     margin-bottom: 1rem;
     color: #856404;
   `;
-  banner.innerHTML = `
-    <strong>⚠️ Quiz Table Validation Errors:</strong>
-    <ul style="margin: 0.5rem 0 0 1.5rem;">
-      ${errors.map((err) => `<li>${err}</li>`).join('')}
-    </ul>
-  `;
 
+  // Create header
+  const strong = document.createElement('strong');
+  strong.textContent = '⚠️ Quiz Table Validation Errors:';
+  banner.appendChild(strong);
+
+  // Create error list
+  const ul = document.createElement('ul');
+  ul.style.cssText = 'margin: 0.5rem 0 0 1.5rem;';
+
+  errors.forEach((err) => {
+    const li = document.createElement('li');
+    li.textContent = err; // Safe - no HTML injection
+    ul.appendChild(li);
+  });
+
+  banner.appendChild(ul);
   table.parentNode?.insertBefore(banner, table);
 }
 
