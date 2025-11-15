@@ -817,14 +817,15 @@ async function init(userConfig?: Partial<SonarQuizConfig>): Promise<void> {
     log('Home page badges initialized');
   }
 
-  // Check for quiz tables and prepare them if present
+  // ALWAYS prepare quiz tables to hide answers (security requirement)
+  // This must run on every page load regardless of login state
   if (hasQuizTables()) {
     log('Quiz tables detected');
 
-    // Prepare tables if auto-enhance is enabled (hide metadata pre-login)
-    if (config.autoEnhance) {
-      prepareAllTables();
-    }
+    // CRITICAL: Always prepare tables to hide correct answers from students
+    // This is a security requirement and must not be conditional
+    prepareAllTables();
+    log('Quiz tables prepared (answers hidden)');
   } else {
     log('No quiz tables found on this page');
   }
