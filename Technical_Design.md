@@ -42,6 +42,7 @@
 
 ## 7. Data and Session Model
 - **Record key:** `qd/{release}/u{serviceId}`.
+- **Release detection**: The entire `document.title` value is used as the release ID (no parsing or meta tag checking)
 - **Page object:** `answers[]`, `firstAttempted`, `lastAttempted`, `state`, optional `analysis{cells, firstEdited, lastEdited}`.
 - **Persistence:** IndexedDB atomic read‑modify‑write per save.
 - **Session:** `sessionStorage` holds active user + instructor unlock + per‑session R/A/G cache (`qd/state`).

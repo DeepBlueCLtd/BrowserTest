@@ -43,10 +43,21 @@ Documents are published quarterly and used by individual students. Instructors c
 ### 4.1 Login and Session
 - On first access, prompt for *Name* and *Service ID*.
 - Session stored in `sessionStorage` for 30 minutes of inactivity.
-- All user data stored by composite key:  
+- All user data stored by composite key:
   `qd/{release}/u{serviceId}`.
 - On logout or expiry, both session data and cached page state are cleared.
 - Next session rebuilds cache from IndexedDB after login.
+
+#### 4.1.1 Release Detection
+- **Release identifier**: The entire `document.title` value is used as the release ID
+- **No parsing**: The system does NOT extract or parse portions of the title
+- **No meta tags**: The system does NOT read release from `<meta>` tags
+- **Source**: The `<title>` element in the DITA map becomes the HTML `<title>`
+- **Warning**: If `document.title` is empty, a warning banner is shown on login
+- **Author responsibility**: Ensure each DITA map has a unique `<title>` to differentiate releases
+- **Examples**:
+  - `<title>TRV Connectors Autumn 2025</title>` → Release: `"TRV Connectors Autumn 2025"`
+  - `<title>Sonar Training v2.1</title>` → Release: `"Sonar Training v2.1"`
 
 ### 4.2 Quiz Tables
 - Each page may contain one table: `table.qd-quiz.qd-page`.
@@ -103,7 +114,7 @@ Documents are published quarterly and used by individual students. Instructors c
 {
   "schema": 3,
   "docId": "core-acs",
-  "release": "02-2025",
+  "release": "TRV Connectors Autumn 2025",
   "serviceId": "RN2344",
   "name": "Smith, J",
   "attempted": 5,

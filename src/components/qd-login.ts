@@ -160,9 +160,9 @@ export class QdLogin extends LitElement {
         ? html`
             <div class="warning" role="alert">
               <strong>⚠️ Release Version Not Found</strong>
-              No release version could be detected from the document title or meta tags. User data
-              may not be stored correctly. Please ensure the document title includes a release
-              identifier (e.g., "Document Name Autumn 2025").
+              No document title found. The document <code>&lt;title&gt;</code> element is used as
+              the release identifier. User data may not be stored correctly. Please ensure the DITA
+              map has a <code>&lt;title&gt;</code> element.
             </div>
           `
         : ''}
@@ -279,7 +279,7 @@ export class QdLogin extends LitElement {
 
   /**
    * Lifecycle hook - runs when component is added to DOM
-   * Detects release version and sets warning flag if not found
+   * Detects release version from document title
    */
   connectedCallback() {
     super.connectedCallback();
@@ -287,8 +287,8 @@ export class QdLogin extends LitElement {
   }
 
   /**
-   * Detect release from meta tag or document title
-   * Sets internal flags for warning display
+   * Detect release from document title
+   * Uses the ENTIRE document.title as the release ID (no parsing)
    */
   private _detectRelease(): void {
     // If release is already provided as a property, skip detection
@@ -297,25 +297,13 @@ export class QdLogin extends LitElement {
       return;
     }
 
-    // Try to get from meta tag first
-    const releaseMeta = document.querySelector('meta[name="release"]');
-    if (releaseMeta) {
-      const metaRelease = releaseMeta.getAttribute('content');
-      if (metaRelease && metaRelease.trim()) {
-        this.release = metaRelease.trim();
-        this._releaseDetectionFailed = false;
-        return;
-      }
-    }
-
-    // Try to infer from document title
-    const inferredRelease = this._inferReleaseFromTitle();
-    if (inferredRelease) {
-      this.release = inferredRelease;
-      // Check if we fell back to current date (detection failed)
-      this._releaseDetectionFailed = this._isCurrentDateFallback(inferredRelease);
+    // Use the entire document title as the release ID
+    const docTitle = document.title;
+    if (docTitle && docTitle.trim()) {
+      this.release = docTitle.trim();
+      this._releaseDetectionFailed = false;
     } else {
-      // Complete failure - use current date and show warning
+      // No title found - show warning and use fallback
       const now = new Date();
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const year = now.getFullYear();
@@ -324,72 +312,14 @@ export class QdLogin extends LitElement {
     }
   }
 
-  /**
-   * Check if a release string is the current date fallback
-   */
-  private _isCurrentDateFallback(release: string): boolean {
-    const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear();
-    return release === `${month}-${year}`;
-  }
-
-  /**
-   * Infer release from document title
-   * Returns null if no pattern matches (before fallback)
-   */
-  private _inferReleaseFromTitle(): string | null {
-    // Try to infer release from document title
-    // Supports patterns like:
-    // - "TRV Connectors Autumn 2025" → "Autumn 2025"
-    // - "Document Name Spring 2024" → "Spring 2024"
-    // - "Document Name 02-2025" → "02-2025"
-
-    const docTitle = document.title;
-
-    // Pattern 1: Season Year (e.g., "Autumn 2025", "Spring 2024")
-    // Matches: {any text} {Season} {4-digit year}
-    const seasonPattern = /\b(Spring|Summer|Autumn|Fall|Winter)\s+(\d{4})\s*$/i;
-    const seasonMatch = docTitle.match(seasonPattern);
-    if (seasonMatch) {
-      const season = seasonMatch[1].charAt(0).toUpperCase() + seasonMatch[1].slice(1).toLowerCase();
-      const year = seasonMatch[2];
-      return `${season} ${year}`;
-    }
-
-    // Pattern 2: MM-YYYY format (e.g., "02-2025")
-    // Matches: {any text} {MM-YYYY}
-    const mmyyyyPattern = /\b(\d{2})-(\d{4})\s*$/;
-    const mmyyyyMatch = docTitle.match(mmyyyyPattern);
-    if (mmyyyyMatch) {
-      return `${mmyyyyMatch[1]}-${mmyyyyMatch[2]}`;
-    }
-
-    // Pattern 3: Month Year (e.g., "February 2025")
-    // Matches: {any text} {Month name} {4-digit year}
-    const monthPattern =
-      /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\s*$/i;
-    const monthMatch = docTitle.match(monthPattern);
-    if (monthMatch) {
-      const monthName =
-        monthMatch[1].charAt(0).toUpperCase() + monthMatch[1].slice(1).toLowerCase();
-      const year = monthMatch[2];
-      return `${monthName} ${year}`;
-    }
-
-    // No pattern matched - return null to indicate detection failed
-    return null;
-  }
-
   private _inferRelease(): string {
-    // This method is kept for backward compatibility
-    // It's called during form submission if release is still empty
-    const inferred = this._inferReleaseFromTitle();
-    if (inferred) {
-      return inferred;
+    // Fallback method - uses document title or current date
+    const docTitle = document.title;
+    if (docTitle && docTitle.trim()) {
+      return docTitle.trim();
     }
 
-    // Default: current month-year if no pattern matches
+    // Default: current month-year if title is empty
     const now = new Date();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const year = now.getFullYear();

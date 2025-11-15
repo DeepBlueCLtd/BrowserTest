@@ -176,6 +176,22 @@ npm run format:check
 - Auto-init on DOMContentLoaded
 - No setup, no config, no dependencies
 
+## Release Detection
+
+**The document `<title>` element is used as the release identifier.**
+
+- The system reads the **entire** `document.title` value as the release ID
+- **No parsing or extraction** is performed on the title
+- **No meta tags** are checked for release information
+- The `<title>` element in the DITA map becomes the release identifier
+- **Warning displayed** on login if `document.title` is empty or not found
+- Examples:
+  - `<title>TRV Connectors Autumn 2025</title>` → Release ID: `"TRV Connectors Autumn 2025"`
+  - `<title>Core Skills 02-2025</title>` → Release ID: `"Core Skills 02-2025"`
+  - `<title>Sonar Training</title>` → Release ID: `"Sonar Training"`
+
+**Author requirement**: Ensure each DITA map has a unique `<title>` element to differentiate between document releases.
+
 ## Frozen Contracts (src/types/contracts.ts)
 
 **DO NOT MODIFY** without version bump and migration strategy.
@@ -183,7 +199,7 @@ npm run format:check
 ### Key Types
 ```typescript
 // Identity
-type ReleaseId = string;      // "MM-YYYY"
+type ReleaseId = string;      // Full document title (e.g., "TRV Connectors Autumn 2025")
 type ServiceId = string;      // e.g. "RN2344"
 type PageId = string;         // e.g. "gram-1"
 type CellKey = string;        // "R{row}C{col}#f:{hash}"
