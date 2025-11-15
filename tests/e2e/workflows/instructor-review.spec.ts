@@ -357,7 +357,7 @@ test.describe.skip('Instructor Review - Student Comparisons', () => {
         {
           schema: 1,
           docId: 'test-doc',
-          release: '02-2025',
+          release: 'Instructor Review Test - November 2025',
           serviceId: 'RN2344',
           name: 'Smith, J',
           attempted: 10,
@@ -376,7 +376,7 @@ test.describe.skip('Instructor Review - Student Comparisons', () => {
         {
           schema: 1,
           docId: 'test-doc',
-          release: '02-2025',
+          release: 'Instructor Review Test - November 2025',
           serviceId: 'RN5678',
           name: 'Jones, A',
           attempted: 10,

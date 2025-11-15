@@ -74,9 +74,8 @@ const TEST_HTML = `
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="release" content="02-2025">
   <meta name="document-id" content="cohort-test">
-  <title>Cohort Management Test</title>
+  <title>Cohort Management Test - November 2025</title>
 </head>
 <body>
   <!-- Status panel container (required for qd-status injection) -->
@@ -108,7 +107,7 @@ const TEST_HTML = `
     </tbody>
   </table>
 
-  <qd-instructor release="02-2025"></qd-instructor>
+  <qd-instructor release="Cohort Management Test - November 2025"></qd-instructor>
 
   <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true"></script>
 </body>
@@ -417,7 +416,7 @@ test.describe('Cohort Management - Data Erasure', () => {
         const testRecord = {
           schema: 1,
           docId: 'test-doc',
-          release: '02-2025',
+          release: 'Cohort Management Test - November 2025',
           serviceId: 'TEST001',
           name: 'Test Student',
           attempted: 2,
@@ -426,7 +425,7 @@ test.describe('Cohort Management - Data Erasure', () => {
           pages: {},
         };
 
-        store.put(testRecord, 'qd/02-2025/uTEST001');
+        store.put(testRecord, 'qd/Cohort Management Test - November 2025/uTEST001');
       };
     });
   });

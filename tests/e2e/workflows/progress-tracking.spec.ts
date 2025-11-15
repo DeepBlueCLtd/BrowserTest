@@ -267,7 +267,7 @@ test.describe.skip('Progress Tracking - Home Page Badges', () => {
       const session = {
         serviceId: 'TEST001',
         name: 'Test Student',
-        release: '01-2025',
+        release: 'Progress Tracking Test - November 2025',
         loginTime: new Date().toISOString(),
         lastActivity: new Date().toISOString(),
         expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
