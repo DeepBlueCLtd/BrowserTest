@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="release" content="02-2025">
+  <meta name="document-id" content="analysis-environmental">
+  <meta name="page-id" content="analysis-environmental">
+  <title>Environmental Analysis - Sonar Quiz System</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      line-height: 1.6;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 2rem 0;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 0.75rem;
+      text-align: left;
+    }
+    th {
+      background-color: #f5f5f5;
+      font-weight: bold;
+    }
+    .note {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+    .legend {
+      display: flex;
+      gap: 2rem;
+      margin: 1rem 0;
+      padding: 1rem;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .legend-box {
+      width: 30px;
+      height: 20px;
+      border: 1px solid #ddd;
+    }
+    .readonly {
+      background-color: #e9ecef;
+    }
+    .editable {
+      background-color: #ffffff;
+    }
+    nav {
+      background-color: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 2rem;
+    }
+    nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    nav li {
+      margin: 0;
+    }
+    nav a {
+      color: #0066cc;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    nav a:hover {
+      background-color: #e9ecef;
+    }
+    nav a.active {
+      background-color: #0066cc;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <nav class="wh_top_menu_and_indexterms_link">
+    <ul>
+      <li><a href="quiz-index.html">Home</a></li>
+      <li><a href="seven-questions.html">Seven Questions</a></li>
+      <li><a href="dev-with-storage-monitor.html">Dev Monitor</a></li>
+    </ul>
+  </nav>
+
+  <h1>Environmental Analysis</h1>
+  <p>Combination of pre-filled environmental data and student-calculated values.</p>
+
+  <div class="note">
+    <strong>Demo:</strong> Calculate sound speed and identify layer types based on depth and temperature.
+    This demonstrates mixing read-only reference data with student calculations.
+  </div>
+
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box readonly"></div>
+      <span>Read-only (has background-color style)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box editable"></div>
+      <span>Editable (no background-color)</span>
+    </div>
+  </div>
+
+  <table class="qd-analysis">
+    <thead>
+      <tr>
+        <th style="background-color: #e9ecef;">Depth (m)</th>
+        <th style="background-color: #e9ecef;">Temperature (°C)</th>
+        <th style="background-color: #e9ecef;">Sound Speed (m/s)</th>
+        <th style="background-color: #e9ecef;">Layer Type</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="background-color: #e9ecef;">0</td>
+        <td style="background-color: #e9ecef;">20</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td style="background-color: #e9ecef;">50</td>
+        <td style="background-color: #e9ecef;">18</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td style="background-color: #e9ecef;">100</td>
+        <td style="background-color: #e9ecef;">12</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td style="background-color: #e9ecef;">200</td>
+        <td style="background-color: #e9ecef;">8</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td style="background-color: #e9ecef;">500</td>
+        <td style="background-color: #e9ecef;">5</td>
+        <td></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Load the Sonar Quiz System IIFE bundle -->
+  <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true" data-status-panel-container=".wh_top_menu_and_indexterms_link"></script>
+</body>
+</html>

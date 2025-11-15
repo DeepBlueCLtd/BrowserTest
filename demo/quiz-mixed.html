@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="release" content="02-2025">
+  <meta name="document-id" content="quiz-mixed">
+  <meta name="page-id" content="quiz-mixed">
+  <title>Mixed Quiz - Sonar Quiz System</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      line-height: 1.6;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 2rem 0;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 0.75rem;
+      text-align: left;
+    }
+    th {
+      background-color: #f5f5f5;
+      font-weight: bold;
+    }
+    ol {
+      margin: 0;
+      padding-left: 1.5rem;
+    }
+    .note {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+    nav {
+      background-color: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 2rem;
+    }
+    nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    nav li {
+      margin: 0;
+    }
+    nav a {
+      color: #0066cc;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    nav a:hover {
+      background-color: #e9ecef;
+    }
+    nav a.active {
+      background-color: #0066cc;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <nav class="wh_top_menu_and_indexterms_link">
+    <ul>
+      <li><a href="quiz-index.html">Home</a></li>
+      <li><a href="seven-questions.html">Seven Questions</a></li>
+      <li><a href="dev-with-storage-monitor.html">Dev Monitor</a></li>
+    </ul>
+  </nav>
+
+  <h1>Mixed MCQ and Numeric Questions</h1>
+  <p>This quiz demonstrates a mix of multiple-choice questions (with ordered lists) and numeric questions (with tolerance values).</p>
+
+  <div class="note">
+    <strong>Demo:</strong> This table will be automatically enhanced when you log in.
+    Answer the questions to see how the system tracks MCQ and numeric responses.
+  </div>
+
+  <table class="qd-quiz qd-page">
+    <thead>
+      <tr>
+        <th>Question</th>
+        <th>Answer</th>
+        <th>Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>What is the primary function of a sonar system?</td>
+        <td>3</td>
+        <td>
+          <ol>
+            <li>To navigate using stars</li>
+            <li>To communicate with other vessels</li>
+            <li>To detect underwater objects using sound waves</li>
+            <li>To measure water depth only</li>
+          </ol>
+        </td>
+      </tr>
+      <tr>
+        <td>At what frequency (in kHz) does a typical hull-mounted sonar operate?</td>
+        <td>5</td>
+        <td>0.5</td>
+      </tr>
+      <tr>
+        <td>Which type of sonar uses reflections to detect objects?</td>
+        <td>1</td>
+        <td>
+          <ol>
+            <li>Active sonar</li>
+            <li>Passive sonar</li>
+            <li>Side-scan sonar</li>
+            <li>Doppler sonar</li>
+          </ol>
+        </td>
+      </tr>
+      <tr>
+        <td>What is the speed of sound in seawater (in m/s)?</td>
+        <td>1500</td>
+        <td>50</td>
+      </tr>
+      <tr>
+        <td>Which component converts electrical signals into sound waves?</td>
+        <td>2</td>
+        <td>
+          <ol>
+            <li>Receiver</li>
+            <li>Transducer</li>
+            <li>Display</li>
+            <li>Amplifier</li>
+          </ol>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Load the Sonar Quiz System IIFE bundle -->
+  <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true" data-status-panel-container=".wh_top_menu_and_indexterms_link"></script>
+</body>
+</html>
