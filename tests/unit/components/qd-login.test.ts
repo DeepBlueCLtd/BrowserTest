@@ -285,3 +285,182 @@ describe.skip('QdLogin Component', () => {
     });
   });
 });
+
+/**
+ * Tests for Release Inference Logic
+ *
+ * Tests the _inferRelease() method which extracts release information
+ * from the document title. Supports multiple patterns:
+ * - Season Year (e.g., "Autumn 2025")
+ * - MM-YYYY format (e.g., "02-2025")
+ * - Month Year (e.g., "February 2025")
+ *
+ * NOTE: These tests are skipped because JSDOM has limited support for
+ * Custom Elements. The release inference functionality is tested in
+ * Storybook and E2E tests where real browsers are used.
+ */
+describe.skip('QdLogin - Release Inference', () => {
+  let dom: JSDOM;
+  let document: Document;
+
+  beforeEach(() => {
+    dom = new JSDOM('<!DOCTYPE html><html><head><title></title></head><body></body></html>');
+    document = dom.window.document;
+    global.document = document as unknown as Document;
+    global.window = dom.window as unknown as Window & typeof globalThis;
+    global.customElements = dom.window.customElements;
+  });
+
+  describe('Season Year Pattern', () => {
+    it('should extract "Autumn 2025" from "TRV Connectors Autumn 2025"', async () => {
+      const { QdLogin } = await import('../../../src/components/qd-login');
+      document.title = 'TRV Connectors Autumn 2025';
+
+      const element = new QdLogin() as any;
+      const release = element._inferRelease();
+
+      expect(release).toBe('Autumn 2025');
+    });
+
+    it('should extract "Spring 2024" from "Document Name Spring 2024"', async () => {
+      const { QdLogin } = await import('../../../src/components/qd-login');
+      document.title = 'Document Name Spring 2024';
+
+      const element = new QdLogin() as any;
+      const release = element._inferRelease();
+
+      expect(release).toBe('Spring 2024');
+    });
+
+    it('should extract "Summer 2026" from "Training Materials Summer 2026"', async () => {
+      const { QdLogin } = await import('../../../src/components/qd-login');
+      document.title = 'Training Materials Summer 2026';
+
+      const element = new QdLogin() as any;
+      const release = element._inferRelease();
+
+      expect(release).toBe('Summer 2026');
+    });
+
+    it('should extract "Winter 2023" from "Course Winter 2023"', async () => {
+      const { QdLogin } = await import('../../../src/components/qd-login');
+      document.title = 'Course Winter 2023';
+
+      const element = new QdLogin() as any;
+      const release = element._inferRelease();
+
+      expect(release).toBe('Winter 2023');
+    });
+
+    it('should extract "Fall 2025" from "Guide Fall 2025"', async () => {
+      const { QdLogin } = await import('../../../src/components/qd-login');
+      document.title = 'Guide Fall 2025';
+
+      const element = new QdLogin() as any;
+      const release = element._inferRelease();
+
+      expect(release).toBe('Fall 2025');
+    });
+
+    it('should handle case-insensitive season names', async () => {
+      const { QdLogin } = await import('../../../src/components/qd-login');
+      document.title = 'Document AUTUMN 2025';
+
+      const element = new QdLogin() as any;
+      const release = element._inferRelease();
+
+      expect(release).toBe('Autumn 2025');
+    });
+  });
+
+  describe('MM-YYYY Pattern', () => {
+    it('should extract "02-2025" from "Document Name 02-2025"', async () => {
+      const { QdLogin } = await import('../../../src/components/qd-login');
+      document.title = 'Document Name 02-2025';
+
+      const element = new QdLogin() as any;
+      const release = element._inferRelease();
+
+      expect(release).toBe('02-2025');
+    });
+
+    it('should extract "12-2024" from "Training 12-2024"', async () => {
+      const { QdLogin } = await import('../../../src/components/qd-login');
+      document.title = 'Training 12-2024';
+
+      const element = new QdLogin() as any;
+      const release = element._inferRelease();
+
+      expect(release).toBe('12-2024');
+    });
+  });
+
+  describe('Month Year Pattern', () => {
+    it('should extract "February 2025" from "Document Name February 2025"', async () => {
+      const { QdLogin } = await import('../../../src/components/qd-login');
+      document.title = 'Document Name February 2025';
+
+      const element = new QdLogin() as any;
+      const release = element._inferRelease();
+
+      expect(release).toBe('February 2025');
+    });
+
+    it('should extract "December 2024" from "Training December 2024"', async () => {
+      const { QdLogin } = await import('../../../src/components/qd-login');
+      document.title = 'Training December 2024';
+
+      const element = new QdLogin() as any;
+      const release = element._inferRelease();
+
+      expect(release).toBe('December 2024');
+    });
+
+    it('should handle case-insensitive month names', async () => {
+      const { QdLogin } = await import('../../../src/components/qd-login');
+      document.title = 'Course JANUARY 2026';
+
+      const element = new QdLogin() as any;
+      const release = element._inferRelease();
+
+      expect(release).toBe('January 2026');
+    });
+  });
+
+  describe('Fallback Behavior', () => {
+    it('should return current MM-YYYY when no pattern matches', async () => {
+      const { QdLogin } = await import('../../../src/components/qd-login');
+      document.title = 'Generic Document Title';
+
+      const element = new QdLogin() as any;
+      const release = element._inferRelease();
+
+      // Should match MM-YYYY format
+      expect(release).toMatch(/^\d{2}-\d{4}$/);
+    });
+
+    it('should return current MM-YYYY for empty title', async () => {
+      const { QdLogin } = await import('../../../src/components/qd-login');
+      document.title = '';
+
+      const element = new QdLogin() as any;
+      const release = element._inferRelease();
+
+      // Should match MM-YYYY format
+      expect(release).toMatch(/^\d{2}-\d{4}$/);
+    });
+  });
+
+  describe('Pattern Priority', () => {
+    it('should prefer Season Year over other patterns', async () => {
+      const { QdLogin } = await import('../../../src/components/qd-login');
+      // Title has both MM-YYYY and Season Year, Season should win
+      document.title = 'Document 02-2025 Spring 2025';
+
+      const element = new QdLogin() as any;
+      const release = element._inferRelease();
+
+      expect(release).toBe('Spring 2025');
+    });
+  });
+});

@@ -49,6 +49,12 @@ export class QdLogin extends LitElement {
   @state()
   private _isSubmitting = false;
 
+  /**
+   * Internal state tracking if release detection failed
+   */
+  @state()
+  private _releaseDetectionFailed = false;
+
   static styles = css`
     :host {
       display: block;
@@ -122,6 +128,21 @@ export class QdLogin extends LitElement {
       cursor: not-allowed;
     }
 
+    .warning {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 0.75rem;
+      margin-bottom: 0.75rem;
+      border-radius: 4px;
+      color: #856404;
+      font-size: 0.875rem;
+    }
+
+    .warning strong {
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
     @media (max-width: 480px) {
       form {
         flex-direction: column;
@@ -135,6 +156,16 @@ export class QdLogin extends LitElement {
 
   render() {
     return html`
+      ${this._releaseDetectionFailed
+        ? html`
+            <div class="warning" role="alert">
+              <strong>⚠️ Release Version Not Found</strong>
+              No release version could be detected from the document title or meta tags. User data
+              may not be stored correctly. Please ensure the document title includes a release
+              identifier (e.g., "Document Name Autumn 2025").
+            </div>
+          `
+        : ''}
       <form @submit=${(e: Event) => this._handleSubmit(e)} novalidate>
         <div class="inputs-stack">
           <input
@@ -246,9 +277,119 @@ export class QdLogin extends LitElement {
     console.warn('Login validation error:', message);
   }
 
+  /**
+   * Lifecycle hook - runs when component is added to DOM
+   * Detects release version and sets warning flag if not found
+   */
+  connectedCallback() {
+    super.connectedCallback();
+    this._detectRelease();
+  }
+
+  /**
+   * Detect release from meta tag or document title
+   * Sets internal flags for warning display
+   */
+  private _detectRelease(): void {
+    // If release is already provided as a property, skip detection
+    if (this.release) {
+      this._releaseDetectionFailed = false;
+      return;
+    }
+
+    // Try to get from meta tag first
+    const releaseMeta = document.querySelector('meta[name="release"]');
+    if (releaseMeta) {
+      const metaRelease = releaseMeta.getAttribute('content');
+      if (metaRelease && metaRelease.trim()) {
+        this.release = metaRelease.trim();
+        this._releaseDetectionFailed = false;
+        return;
+      }
+    }
+
+    // Try to infer from document title
+    const inferredRelease = this._inferReleaseFromTitle();
+    if (inferredRelease) {
+      this.release = inferredRelease;
+      // Check if we fell back to current date (detection failed)
+      this._releaseDetectionFailed = this._isCurrentDateFallback(inferredRelease);
+    } else {
+      // Complete failure - use current date and show warning
+      const now = new Date();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const year = now.getFullYear();
+      this.release = `${month}-${year}`;
+      this._releaseDetectionFailed = true;
+    }
+  }
+
+  /**
+   * Check if a release string is the current date fallback
+   */
+  private _isCurrentDateFallback(release: string): boolean {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    return release === `${month}-${year}`;
+  }
+
+  /**
+   * Infer release from document title
+   * Returns null if no pattern matches (before fallback)
+   */
+  private _inferReleaseFromTitle(): string | null {
+    // Try to infer release from document title
+    // Supports patterns like:
+    // - "TRV Connectors Autumn 2025" → "Autumn 2025"
+    // - "Document Name Spring 2024" → "Spring 2024"
+    // - "Document Name 02-2025" → "02-2025"
+
+    const docTitle = document.title;
+
+    // Pattern 1: Season Year (e.g., "Autumn 2025", "Spring 2024")
+    // Matches: {any text} {Season} {4-digit year}
+    const seasonPattern = /\b(Spring|Summer|Autumn|Fall|Winter)\s+(\d{4})\s*$/i;
+    const seasonMatch = docTitle.match(seasonPattern);
+    if (seasonMatch) {
+      const season = seasonMatch[1].charAt(0).toUpperCase() + seasonMatch[1].slice(1).toLowerCase();
+      const year = seasonMatch[2];
+      return `${season} ${year}`;
+    }
+
+    // Pattern 2: MM-YYYY format (e.g., "02-2025")
+    // Matches: {any text} {MM-YYYY}
+    const mmyyyyPattern = /\b(\d{2})-(\d{4})\s*$/;
+    const mmyyyyMatch = docTitle.match(mmyyyyPattern);
+    if (mmyyyyMatch) {
+      return `${mmyyyyMatch[1]}-${mmyyyyMatch[2]}`;
+    }
+
+    // Pattern 3: Month Year (e.g., "February 2025")
+    // Matches: {any text} {Month name} {4-digit year}
+    const monthPattern =
+      /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\s*$/i;
+    const monthMatch = docTitle.match(monthPattern);
+    if (monthMatch) {
+      const monthName =
+        monthMatch[1].charAt(0).toUpperCase() + monthMatch[1].slice(1).toLowerCase();
+      const year = monthMatch[2];
+      return `${monthName} ${year}`;
+    }
+
+    // No pattern matched - return null to indicate detection failed
+    return null;
+  }
+
   private _inferRelease(): string {
-    // Try to infer release from document title or filename
-    // Default to current month-year if not found
+    // This method is kept for backward compatibility
+    // It's called during form submission if release is still empty
+    const inferred = this._inferReleaseFromTitle();
+    if (inferred) {
+      return inferred;
+    }
+
+    // Default: current month-year if no pattern matches
     const now = new Date();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const year = now.getFullYear();
