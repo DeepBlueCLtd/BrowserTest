@@ -61,7 +61,8 @@ export default defineConfig(({ command, mode }) => {
       minify: 'terser',
       terserOptions: {
         compress: {
-          drop_console: false, // Keep console for debugging
+          // Drop console.* calls in production, keep in development
+          drop_console: mode === 'production',
           drop_debugger: true,
         },
         mangle: {
