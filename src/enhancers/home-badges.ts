@@ -7,6 +7,7 @@
 
 import type { SessionCache, CompletionState } from '../types/contracts';
 import { CSS_CLASSES, STORAGE_KEYS } from '../types/contracts';
+import { getJSON } from '../utils/storage-helpers';
 
 /**
  * Extract page ID from link href
@@ -133,12 +134,7 @@ export function injectBadges(container: HTMLElement, cache: SessionCache | null)
  */
 export function loadCacheFromStorage(): SessionCache | null {
   try {
-    const cacheData = sessionStorage.getItem(STORAGE_KEYS.CACHE);
-    if (!cacheData) {
-      return null;
-    }
-
-    return JSON.parse(cacheData) as SessionCache;
+    return getJSON<SessionCache>(STORAGE_KEYS.CACHE);
   } catch (error) {
     console.error('Failed to load cache from storage:', error);
     return null;
