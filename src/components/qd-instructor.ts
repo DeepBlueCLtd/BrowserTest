@@ -33,6 +33,8 @@ import {
 } from '../services/csv-export';
 import { getStorageAdapter } from '../services/storage/indexeddb';
 import type { StudentRecord } from '../types/contracts';
+import { constantTimeCompare } from '../utils/security';
+import { RateLimiter } from '../utils/rate-limiter';
 
 type InstructorMode = 'overview' | 'scores' | 'export' | 'manage';
 type SortField = 'serviceId' | 'name' | 'score' | 'percentage';
@@ -110,6 +112,32 @@ export class QdInstructor extends LitElement {
    */
   @state()
   private _exportFormat: ExportFormat = 'summary';
+
+  /**
+   * Rate limiter for authentication attempts
+   */
+  private _rateLimiter: RateLimiter;
+
+  /**
+   * Lockout time remaining in seconds
+   */
+  @state()
+  private _lockoutSecondsRemaining = 0;
+
+  /**
+   * Lockout timer interval ID
+   */
+  private _lockoutTimer: number | null = null;
+
+  constructor() {
+    super();
+    this._rateLimiter = new RateLimiter('instructor-auth', {
+      maxAttempts: 5,
+      windowMs: 30000,
+      baseDelayMs: 2000,
+      maxDelayMs: 30000,
+    });
+  }
 
   static styles = css`
     :host {
@@ -421,6 +449,11 @@ export class QdInstructor extends LitElement {
       this._broadcastChannel.close();
       this._broadcastChannel = null;
     }
+    // Clean up lockout timer
+    if (this._lockoutTimer !== null) {
+      clearInterval(this._lockoutTimer);
+      this._lockoutTimer = null;
+    }
   }
 
   /**
@@ -458,6 +491,8 @@ export class QdInstructor extends LitElement {
   }
 
   private _renderLockedView() {
+    const isLockedOut = this._lockoutSecondsRemaining > 0;
+
     return html`
       <h2>Instructor Access</h2>
       <p>Enter the instructor password to unlock advanced features.</p>
@@ -472,15 +507,27 @@ export class QdInstructor extends LitElement {
             required
             .value=${this._password}
             @input=${(e: Event) => (this._password = (e.target as HTMLInputElement).value)}
+            ?disabled=${isLockedOut}
             autofocus
             autocomplete="current-password"
           />
         </div>
 
-        <button type="submit" class="unlock-button">Unlock Instructor Mode</button>
+        <button type="submit" class="unlock-button" ?disabled=${isLockedOut}>
+          ${isLockedOut
+            ? `Locked (${this._lockoutSecondsRemaining}s remaining)`
+            : 'Unlock Instructor Mode'}
+        </button>
       </form>
 
       ${this._errorMessage ? html`<div class="error">${this._errorMessage}</div>` : ''}
+      ${isLockedOut
+        ? html`<div class="warning">
+            Account temporarily locked due to multiple failed attempts. Please wait
+            ${this._lockoutSecondsRemaining} second${this._lockoutSecondsRemaining === 1 ? '' : 's'}
+            before trying again.
+          </div>`
+        : ''}
     `;
   }
 
@@ -673,8 +720,21 @@ export class QdInstructor extends LitElement {
       return;
     }
 
+    // Check rate limiting
+    if (!this._rateLimiter.isAllowed()) {
+      const remainingMs = this._rateLimiter.getLockoutTimeRemaining();
+      this._startLockoutTimer(remainingMs);
+      const seconds = Math.ceil(remainingMs / 1000);
+      this._errorMessage = `Too many failed attempts. Please wait ${seconds} seconds before trying again.`;
+      this._password = '';
+      return;
+    }
+
     // Validate password with hash
     const isValid = await this._validatePassword(this._password);
+
+    // Record attempt with rate limiter
+    this._rateLimiter.recordAttempt(isValid);
 
     if (isValid) {
       this.unlocked = true;
@@ -684,6 +744,13 @@ export class QdInstructor extends LitElement {
       // Clear password from memory
       this._password = '';
       this._statusMessage = 'Instructor mode unlocked';
+      this._lockoutSecondsRemaining = 0;
+
+      // Clear any lockout timer
+      if (this._lockoutTimer !== null) {
+        clearInterval(this._lockoutTimer);
+        this._lockoutTimer = null;
+      }
 
       // Emit unlock event
       this.dispatchEvent(
@@ -694,9 +761,45 @@ export class QdInstructor extends LitElement {
         }),
       );
     } else {
-      this._errorMessage = 'Incorrect password. Please try again.';
+      const attemptCount = this._rateLimiter.getAttemptCount();
+      const maxAttempts = 5;
+      const remaining = maxAttempts - attemptCount;
+
+      if (remaining > 0) {
+        this._errorMessage = `Incorrect password. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`;
+      } else {
+        // Start lockout timer
+        const lockoutMs = this._rateLimiter.getLockoutTimeRemaining();
+        this._startLockoutTimer(lockoutMs);
+        const seconds = Math.ceil(lockoutMs / 1000);
+        this._errorMessage = `Too many failed attempts. Locked out for ${seconds} seconds.`;
+      }
+
       this._password = '';
     }
+  }
+
+  /**
+   * Start lockout countdown timer
+   */
+  private _startLockoutTimer(remainingMs: number): void {
+    this._lockoutSecondsRemaining = Math.ceil(remainingMs / 1000);
+
+    if (this._lockoutTimer !== null) {
+      clearInterval(this._lockoutTimer);
+    }
+
+    this._lockoutTimer = window.setInterval(() => {
+      this._lockoutSecondsRemaining--;
+
+      if (this._lockoutSecondsRemaining <= 0) {
+        if (this._lockoutTimer !== null) {
+          clearInterval(this._lockoutTimer);
+          this._lockoutTimer = null;
+        }
+        this._errorMessage = '';
+      }
+    }, 1000);
   }
 
   private _handleLock() {
@@ -841,30 +944,30 @@ export class QdInstructor extends LitElement {
   /**
    * Validate instructor password using SHA-256 hash
    *
-   * T070: Implements password validation with hashed storage
+   * Security: Uses environment variable for password hash and constant-time comparison
+   * to prevent timing attacks. No hardcoded passwords.
    */
   private async _validatePassword(password: string): Promise<boolean> {
     // Hash the input password
     const hash = await this._hashPassword(password);
 
-    // Get stored hash from sessionStorage
-    const storedHash = sessionStorage.getItem('qd/instructor');
+    // Get configured password hash from environment variable
+    const configuredHash = import.meta.env.VITE_INSTRUCTOR_PASSWORD_HASH;
 
-    if (!storedHash) {
-      // First time - set the password
-      // In production, this should be configured differently
-      // For now, we'll use a default password "instructor" for demo
-      const defaultHash = await this._hashPassword('instructor');
-
-      if (hash === defaultHash) {
-        sessionStorage.setItem('qd/instructor', hash);
-        return true;
-      }
+    if (!configuredHash || configuredHash.length === 0) {
+      console.error('VITE_INSTRUCTOR_PASSWORD_HASH not configured');
       return false;
     }
 
-    // Compare hashes
-    return hash === storedHash;
+    // Use constant-time comparison to prevent timing attacks
+    const isValid = constantTimeCompare(hash, configuredHash);
+
+    if (isValid) {
+      // Store the hash in sessionStorage for this session
+      sessionStorage.setItem('qd/instructor', hash);
+    }
+
+    return isValid;
   }
 
   /**

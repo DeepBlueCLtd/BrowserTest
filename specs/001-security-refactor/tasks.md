@@ -69,16 +69,16 @@ Task breakdown for security remediation organized by user story priority. Each s
 ### Tasks
 
 - [ ] T018 [US1] Write E2E test for environment variable password configuration in tests/e2e/security/authentication.spec.ts
-- [ ] T019 [US1] Write unit test for password validation without hardcoded default in tests/security/authentication.test.ts
-- [ ] T020 [US1] Remove hardcoded 'instructor' password from src/components/qd-instructor.ts:854-857
-- [ ] T021 [US1] Update password validation to use import.meta.env.VITE_INSTRUCTOR_PASSWORD_HASH in src/components/qd-instructor.ts
-- [ ] T022 [US1] Replace string comparison with constantTimeCompare in src/components/qd-instructor.ts:867
-- [ ] T023 [P] [US1] Write failing test for rate limiting in tests/security/rate-limiter.test.ts
-- [ ] T024 [US1] Implement RateLimiter class with exponential backoff in src/utils/rate-limiter.ts
-- [ ] T025 [US1] Integrate RateLimiter with instructor unlock in src/components/qd-instructor.ts
-- [ ] T026 [US1] Add lockout UI feedback in src/components/qd-instructor.ts template
+- [X] T019 [US1] Write unit test for password validation without hardcoded default in tests/security/authentication.test.ts
+- [X] T020 [US1] Remove hardcoded 'instructor' password from src/components/qd-instructor.ts:854-857
+- [X] T021 [US1] Update password validation to use import.meta.env.VITE_INSTRUCTOR_PASSWORD_HASH in src/components/qd-instructor.ts
+- [X] T022 [US1] Replace string comparison with constantTimeCompare in src/components/qd-instructor.ts:867
+- [X] T023 [P] [US1] Write failing test for rate limiting in tests/security/rate-limiter.test.ts
+- [X] T024 [US1] Implement RateLimiter class with exponential backoff in src/utils/rate-limiter.ts
+- [X] T025 [US1] Integrate RateLimiter with instructor unlock in src/components/qd-instructor.ts
+- [X] T026 [US1] Add lockout UI feedback in src/components/qd-instructor.ts template
 - [ ] T027 [US1] Write E2E test for rate limiting behavior in tests/e2e/security/rate-limiting.spec.ts
-- [ ] T028 [US1] Verify all US1 authentication tests pass
+- [X] T028 [US1] Verify all US1 authentication tests pass
 
 ---
 
