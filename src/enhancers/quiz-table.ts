@@ -13,6 +13,7 @@
 import { parseQuizTable, validateAnswer } from '../services/quiz-parser';
 import type { AnswerRecord, QuizQuestion } from '../types/contracts';
 import { sanitizeInput } from '../utils/dom-sanitizer';
+import { buildComparisonTable } from '../utils/comparison-table-builder';
 
 /**
  * Debounce timeout for auto-save (milliseconds)
@@ -606,78 +607,34 @@ export function showStudentComparisons(
     return;
   }
 
-  // Create comparison table
-  const comparisonTable = document.createElement('table');
-  comparisonTable.className = 'qd-student-comparison';
+  // Build column configurations for questions
+  const columns = Array.from({ length: questionCount }, (_, i) => ({
+    key: String(i),
+    label: `Q${i + 1}`,
+  }));
 
-  // Create header row
-  const thead = document.createElement('thead');
-  const headerRow = document.createElement('tr');
-
-  // Student ID column
-  const studentIdHeader = document.createElement('th');
-  studentIdHeader.textContent = 'Student';
-  studentIdHeader.scope = 'col';
-  headerRow.appendChild(studentIdHeader);
-
-  // Question columns
-  for (let i = 0; i < questionCount; i++) {
-    const questionHeader = document.createElement('th');
-    questionHeader.textContent = `Q${i + 1}`;
-    questionHeader.scope = 'col';
-    headerRow.appendChild(questionHeader);
-  }
-
-  thead.appendChild(headerRow);
-  comparisonTable.appendChild(thead);
-
-  // Create body rows for each student
-  const tbody = document.createElement('tbody');
-
-  students.forEach((student) => {
-    const row = document.createElement('tr');
-    row.className = 'qd-student-row';
-
-    // Student ID cell (first 4 chars)
-    const studentIdCell = document.createElement('td');
-    studentIdCell.className = 'qd-student-id';
-    studentIdCell.textContent = student.serviceId.substring(0, 4);
-    row.appendChild(studentIdCell);
-
-    // Get student's answers for this page
-    const pageData = student.pages[pageId];
-    const answers = pageData?.answers || [];
-
-    // Add answer cells for each question
-    for (let i = 0; i < questionCount; i++) {
-      const answerCell = document.createElement('td');
-      answerCell.className = 'qd-student-answer';
-
-      const answer = answers[i];
+  // Build comparison table using generic builder
+  const comparisonTable = buildComparisonTable({
+    students,
+    pageId,
+    columns,
+    className: 'qd-student-comparison',
+    getCellValue: (student, pageId, columnKey) => {
+      const questionIndex = parseInt(columnKey, 10);
+      const pageData = student.pages[pageId];
+      const answer = pageData?.answers[questionIndex];
 
       if (!answer || !answer.answer) {
-        // No answer provided
-        answerCell.textContent = '—';
-        answerCell.classList.add('qd-no-answer');
-      } else {
-        // Show answer with color coding
-        answerCell.textContent = answer.answer;
-
-        // T075: Add success/failure color coding
-        if (answer.success) {
-          answerCell.classList.add('qd-success');
-        } else {
-          answerCell.classList.add('qd-failure');
-        }
+        return null;
       }
 
-      row.appendChild(answerCell);
-    }
-
-    tbody.appendChild(row);
+      // T075: Apply success/failure color coding
+      return {
+        value: answer.answer,
+        cssClass: answer.success ? 'qd-success' : 'qd-failure',
+      };
+    },
   });
-
-  comparisonTable.appendChild(tbody);
 
   // Insert comparison table after the quiz table
   if (table.parentElement) {

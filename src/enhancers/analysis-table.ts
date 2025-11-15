@@ -14,6 +14,7 @@
 import type { AnalysisData, CellKey, PageId } from '../types/contracts';
 import { parseAnalysisTable } from '../services/analysis-parser';
 import { STORAGE_KEYS, LIMITS } from '../types/contracts';
+import { buildComparisonTable } from '../utils/comparison-table-builder';
 
 /**
  * Enhancement options
@@ -269,74 +270,48 @@ export function showStudentAnalysisEntries(
 
   const cellKeys = inputs.map((input) => input.dataset.cellKey || '');
 
-  // Create comparison table
-  const comparisonTable = document.createElement('table');
-  comparisonTable.className = 'qd-analysis-comparison';
+  // Build column configurations for analysis fields
+  const columns = cellKeys.map((cellKey, index) => ({
+    key: cellKey,
+    label: `Field ${index + 1}`,
+  }));
 
-  // Create header row
-  const thead = document.createElement('thead');
-  const headerRow = document.createElement('tr');
+  // Build comparison table using generic builder
+  const comparisonTable = buildComparisonTable({
+    students,
+    pageId,
+    columns,
+    className: 'qd-analysis-comparison',
+    getCellValue: (student, pageId, columnKey) => {
+      const pageData = student.pages[pageId];
+      const analysisData = pageData?.analysis;
 
-  // Student ID column
-  const studentIdHeader = document.createElement('th');
-  studentIdHeader.textContent = 'Student';
-  studentIdHeader.scope = 'col';
-  headerRow.appendChild(studentIdHeader);
-
-  // Cell columns (one for each editable cell)
-  cellKeys.forEach((_, index) => {
-    const cellHeader = document.createElement('th');
-    cellHeader.textContent = `Field ${index + 1}`;
-    cellHeader.scope = 'col';
-    headerRow.appendChild(cellHeader);
-  });
-
-  thead.appendChild(headerRow);
-  comparisonTable.appendChild(thead);
-
-  // Create body rows for each student
-  const tbody = document.createElement('tbody');
-
-  students.forEach((student) => {
-    const row = document.createElement('tr');
-    row.className = 'qd-student-row';
-
-    // T078: Student ID cell (first 4 chars)
-    const studentIdCell = document.createElement('td');
-    studentIdCell.className = 'qd-student-id';
-    studentIdCell.textContent = student.serviceId.substring(0, 4);
-    row.appendChild(studentIdCell);
-
-    // Get student's analysis data for this page
-    const pageData = student.pages[pageId];
-    const analysisData = pageData?.analysis;
-
-    // Check if table IDs match
-    const studentCells = analysisData && analysisData.tableId === tableId ? analysisData.cells : {};
-
-    // Add entry cells for each editable cell
-    cellKeys.forEach((cellKey) => {
-      const entryCell = document.createElement('td');
-      entryCell.className = 'qd-student-entry';
-
-      const entry = studentCells[cellKey];
-
-      if (!entry || entry.trim() === '') {
-        // No entry provided
-        entryCell.textContent = '—';
-        entryCell.classList.add('qd-no-entry');
-      } else {
-        // Show entry
-        entryCell.textContent = entry;
+      // Check if table IDs match
+      if (!analysisData || analysisData.tableId !== tableId) {
+        return null;
       }
 
-      row.appendChild(entryCell);
-    });
+      const entry = analysisData.cells[columnKey];
 
-    tbody.appendChild(row);
+      if (!entry || entry.trim() === '') {
+        return null;
+      }
+
+      return { value: entry };
+    },
   });
 
-  comparisonTable.appendChild(tbody);
+  // Update cell class to use 'qd-student-entry' for analysis cells
+  const cells = comparisonTable.querySelectorAll('td.qd-student-answer');
+  cells.forEach((cell) => {
+    cell.classList.remove('qd-student-answer');
+    cell.classList.add('qd-student-entry');
+    // Update the empty cell class too
+    if (cell.classList.contains('qd-no-answer')) {
+      cell.classList.remove('qd-no-answer');
+      cell.classList.add('qd-no-entry');
+    }
+  });
 
   // Insert comparison table after the analysis table
   if (table.parentElement) {
