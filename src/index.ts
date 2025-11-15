@@ -459,6 +459,91 @@ function clearQuizAnswers(): void {
 }
 
 /**
+ * Restore an existing session on page load
+ * This allows users to navigate between pages without re-logging in
+ *
+ * @param session - The session data to restore
+ */
+async function restoreSession(session: import('./types/contracts').SessionData): Promise<void> {
+  const sessionService = getSessionService();
+
+  try {
+    // Load student record from IndexedDB
+    const storage = getStorageAdapter();
+    const studentRecord = await storage.getStudent(session.release, session.serviceId);
+
+    if (!studentRecord) {
+      log('No student record found, session cannot be fully restored');
+      return;
+    }
+
+    // Rebuild session cache from student record
+    const cache: import('./types/contracts').SessionCache = {
+      totals: {
+        answered: studentRecord.attempted,
+        correct: studentRecord.correct,
+      },
+      pages: {},
+    };
+
+    // Populate cache with page data
+    Object.entries(studentRecord.pages).forEach(([pageId, pageData]) => {
+      const answers = pageData.answers || [];
+      cache.pages[pageId] = {
+        answered: answers.filter((a: import('./types/contracts').AnswerRecord) => a).length,
+        correct: answers.filter((a: import('./types/contracts').AnswerRecord) => a && a.success)
+          .length,
+        state: pageData.state || 'unstarted',
+      };
+    });
+
+    // Save cache to sessionStorage
+    sessionService.saveCache(cache);
+    log('Session cache restored from IndexedDB');
+
+    // Update status panel to show logged-in state
+    const statusPanel = document.querySelector(
+      'qd-status',
+    ) as import('./components/qd-status').QdStatus;
+    if (statusPanel) {
+      statusPanel.isLoggedIn = true;
+      statusPanel.attempted = cache.totals.answered;
+      statusPanel.correct = cache.totals.correct;
+      statusPanel.total = cache.totals.answered; // Total questions attempted
+      log('Status panel updated with restored session');
+    }
+
+    // Activate quiz tables if present on this page
+    if (hasQuizTables()) {
+      activateAllQuizTables(document);
+      log('Quiz tables activated from restored session');
+
+      // Restore previous answers for current page
+      restorePreviousAnswers();
+    }
+
+    // Enhance analysis tables if present
+    enhanceAllAnalysisTables();
+    log('Analysis tables enhanced from restored session');
+
+    // Update home badges if on home page
+    const hasTestLinks = document.querySelectorAll(`.${CSS_CLASSES.TEST_LINK}`).length > 0;
+    if (hasTestLinks) {
+      // Re-initialize badges with restored cache
+      initializeHomeBadges();
+      log('Home badges updated with restored session');
+    }
+
+    // Update activity time
+    sessionService.updateActivity();
+  } catch (error) {
+    console.error('Failed to restore session:', error);
+    // Clear invalid session
+    sessionService.clearSession();
+  }
+}
+
+/**
  * Restore previous answers from session cache
  */
 function restorePreviousAnswers(): void {
@@ -720,6 +805,19 @@ function init(userConfig?: Partial<SonarQuizConfig>): void {
     }
   } else {
     log('No quiz tables found on this page');
+  }
+
+  // Restore existing session if present and not expired
+  const sessionService = getSessionService();
+  const existingSession = sessionService.getSession();
+  if (existingSession && !sessionService.isExpired()) {
+    log('Restoring existing session for:', existingSession.name);
+
+    // Restore session by triggering the same logic as login
+    void restoreSession(existingSession);
+  } else if (existingSession && sessionService.isExpired()) {
+    log('Session expired, clearing session data');
+    sessionService.clearSession();
   }
 
   log('Initialization complete');
