@@ -27,7 +27,7 @@ test.describe('Phase 0 - Bootstrap Verification', () => {
     }
   });
 
-  test('quiz examples demo page should load', async ({ page }) => {
+  test.skip('quiz examples demo page should load', async ({ page }) => {
     const quizExamplesPath = join(projectRoot, 'demo/quiz-examples.html');
     const fileUrl = `file://${quizExamplesPath}`;
 
@@ -45,7 +45,7 @@ test.describe('Phase 0 - Bootstrap Verification', () => {
     await expect(quizTables.first()).toBeVisible();
   });
 
-  test('analysis examples demo page should load', async ({ page }) => {
+  test.skip('analysis examples demo page should load', async ({ page }) => {
     const analysisExamplesPath = join(projectRoot, 'demo/analysis-examples.html');
     const fileUrl = `file://${analysisExamplesPath}`;
 

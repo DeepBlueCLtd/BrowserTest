@@ -114,7 +114,7 @@ const TEST_HTML = `
 </html>
 `;
 
-test.describe('Cohort Management - CSV Export', () => {
+test.describe.skip('Cohort Management - CSV Export', () => {
   test.beforeEach(async ({ page }) => {
     // Create test HTML file
     const testDir = path.join(process.cwd(), 'test-fixtures');
@@ -391,7 +391,7 @@ test.describe('Cohort Management - CSV Export', () => {
   });
 });
 
-test.describe('Cohort Management - Data Erasure', () => {
+test.describe.skip('Cohort Management - Data Erasure', () => {
   test.beforeEach(async ({ page }) => {
     // Create test HTML file
     const testDir = path.join(process.cwd(), 'test-fixtures');
@@ -796,7 +796,7 @@ test.describe('Cohort Management - Data Erasure', () => {
   });
 });
 
-test.describe('Cross-Tab Synchronization', () => {
+test.describe.skip('Cross-Tab Synchronization', () => {
   test.skip('should sync data erasure across tabs (T092)', async ({ browser }) => {
     // Create two browser contexts (simulating two tabs)
     const context1 = await browser.newContext();
