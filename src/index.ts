@@ -652,8 +652,7 @@ function setupEventListeners(doc: Document = document): void {
     sessionStorage.setItem('qd/session', JSON.stringify(sessionData));
     log('Session stored in sessionStorage');
 
-    // Initialize student record in IndexedDB if it doesn't exist
-    // Note: Using void to explicitly discard the Promise return value
+    // Handle login asynchronously to load student record and restore state
     void (async () => {
       try {
         const storage = getStorageAdapter();
@@ -662,11 +661,13 @@ function setupEventListeners(doc: Document = document): void {
         // Try to load existing record, or create new one
         const existingRecord = await storage.getStudent(sessionData.release, sessionData.serviceId);
 
+        let studentRecord: import('./types/contracts').StudentRecord;
+
         if (!existingRecord) {
           // Create new student record
           const docId =
             doc.querySelector('meta[name="document-id"]')?.getAttribute('content') || 'unknown';
-          const newRecord: import('./types/contracts').StudentRecord = {
+          studentRecord = {
             schema: 1,
             docId,
             serviceId: sessionData.serviceId,
@@ -677,10 +678,80 @@ function setupEventListeners(doc: Document = document): void {
             updated: new Date().toISOString(),
             pages: {},
           };
-          await storage.saveStudent(newRecord);
+          await storage.saveStudent(studentRecord);
           log('Created new student record in IndexedDB');
         } else {
+          studentRecord = existingRecord;
           log('Loaded existing student record from IndexedDB');
+
+          // Rebuild cache from student record for answer restoration
+          const sessionService = getSessionService();
+          const cache: import('./types/contracts').SessionCache = {
+            totals: {
+              answered: studentRecord.attempted,
+              correct: studentRecord.correct,
+            },
+            pages: {},
+          };
+
+          // Populate cache with page data including answers
+          Object.entries(studentRecord.pages).forEach(([pageId, pageData]) => {
+            const answers = pageData.answers || [];
+            const validAnswers = answers.filter(
+              (a: import('./types/contracts').AnswerRecord) => a !== null && a !== undefined,
+            );
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const pageCache: any = {
+              answered: validAnswers.length,
+              correct: validAnswers.filter(
+                (a: import('./types/contracts').AnswerRecord) => a.success,
+              ).length,
+              state: pageData.state || 'unstarted',
+              answers: pageData.answers || [],
+            };
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            cache.pages[pageId] = pageCache;
+          });
+
+          // Save cache to sessionStorage
+          sessionService.saveCache(cache);
+          log('Session cache rebuilt from existing student record');
+        }
+
+        // Activate quiz tables (inject interactive controls)
+        activateAllQuizTables(doc);
+        log('Quiz tables activated (interactive controls injected)');
+
+        // Restore previous answers from session cache (now populated)
+        restorePreviousAnswers();
+
+        // Enhance analysis tables (inject input fields)
+        const analysisTables = doc.querySelectorAll('table.qd-analysis');
+        log(`Found ${analysisTables.length} analysis tables to enhance`);
+        if (analysisTables.length > 0) {
+          enhanceAllAnalysisTables();
+          log(`Analysis tables enhanced (${analysisTables.length} tables)`);
+        }
+
+        // Initialize or update status panel
+        const statusPanel = doc.querySelector(
+          'qd-status',
+        ) as import('./components/qd-status').QdStatus;
+        log('Status panel element:', statusPanel);
+        if (statusPanel) {
+          log('Current isLoggedIn state BEFORE update:', statusPanel.isLoggedIn);
+          // Update status panel to show logged-in state
+          statusPanel.isLoggedIn = true;
+          // Update with totals from cache
+          if (existingRecord) {
+            statusPanel.attempted = studentRecord.attempted;
+            statusPanel.correct = studentRecord.correct;
+            statusPanel.total = studentRecord.attempted;
+          }
+          log('Current isLoggedIn state AFTER update:', statusPanel.isLoggedIn);
+          log('Status panel updated with logged-in state');
+        } else {
+          log('WARNING: Status panel not found in DOM');
         }
       } catch (error) {
         console.error('Failed to initialize student record:', error);
@@ -690,30 +761,6 @@ function setupEventListeners(doc: Document = document): void {
         }
       }
     })();
-
-    // Activate quiz tables (inject interactive controls)
-    activateAllQuizTables(doc);
-    log('Quiz tables activated (interactive controls injected)');
-
-    // Restore previous answers from session cache if logged in
-    restorePreviousAnswers();
-
-    // Enhance analysis tables (inject input fields)
-    enhanceAllAnalysisTables();
-    log('Analysis tables enhanced (input fields injected)');
-
-    // Initialize or update status panel
-    const statusPanel = doc.querySelector('qd-status') as import('./components/qd-status').QdStatus;
-    log('Status panel element:', statusPanel);
-    if (statusPanel) {
-      log('Current isLoggedIn state BEFORE update:', statusPanel.isLoggedIn);
-      // Update status panel to show logged-in state
-      statusPanel.isLoggedIn = true;
-      log('Current isLoggedIn state AFTER update:', statusPanel.isLoggedIn);
-      log('Status panel updated with logged-in state');
-    } else {
-      log('WARNING: Status panel not found in DOM');
-    }
   });
 
   // Listen for answer-saved events
