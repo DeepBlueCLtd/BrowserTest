@@ -358,3 +358,10 @@ function getStorageKey(release: ReleaseId, serviceId: ServiceId): string {
 - **Size limit**: ≤25KB min+gzip for IIFE
 - **Source maps**: Generated for debugging
 - **TypeScript definitions**: For ESM consumers
+
+## Active Technologies
+- TypeScript 5.x / JavaScript ES2020+ + Lit 3.0 (Web Components), Vite 5.x (build), Vitest (testing) (001-security-refactor)
+- IndexedDB (primary), sessionStorage (active session) (001-security-refactor)
+
+## Recent Changes
+- 001-security-refactor: Added TypeScript 5.x / JavaScript ES2020+ + Lit 3.0 (Web Components), Vite 5.x (build), Vitest (testing)
