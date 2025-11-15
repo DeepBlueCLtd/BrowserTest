@@ -9,15 +9,11 @@
  * - Screen reader compatibility
  * - Color contrast
  * - ARIA attributes
- *
- * Note: Install @axe-core/playwright:
- * npm install --save-dev @axe-core/playwright
  */
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
- 
 
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
