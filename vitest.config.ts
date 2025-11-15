@@ -21,7 +21,7 @@ export default defineConfig({
         statements: 80,
       },
     },
-    include: ['tests/unit/**/*.test.ts'],
+    include: ['tests/unit/**/*.test.ts', 'tests/security/**/*.test.ts'],
     exclude: ['node_modules', 'dist', '.storybook'],
   },
 });

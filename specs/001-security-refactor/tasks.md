@@ -29,11 +29,11 @@ Task breakdown for security remediation organized by user story priority. Each s
 
 ### Tasks
 
-- [ ] T001 Create .env file with VITE_INSTRUCTOR_PASSWORD_HASH variable in project root
-- [ ] T002 Update .gitignore to exclude .env files
-- [ ] T003 [P] Configure vite.config.ts to inject environment variables at build time
-- [ ] T004 [P] Create src/utils/ directory structure for new utilities
-- [ ] T005 [P] Create tests/security/ directory for security test suites
+- [X] T001 Create .env file with VITE_INSTRUCTOR_PASSWORD_HASH variable in project root
+- [X] T002 Update .gitignore to exclude .env files
+- [X] T003 [P] Configure vite.config.ts to inject environment variables at build time
+- [X] T004 [P] Create src/utils/ directory structure for new utilities
+- [X] T005 [P] Create tests/security/ directory for security test suites
 
 ---
 
@@ -45,18 +45,18 @@ Task breakdown for security remediation organized by user story priority. Each s
 
 ### Tasks
 
-- [ ] T006 Write failing test for constant-time comparison in tests/security/timing-safe.test.ts
-- [ ] T007 Implement constantTimeCompare function in src/utils/security.ts
-- [ ] T008 [P] Write failing test for Web Crypto key derivation in tests/security/crypto.test.ts
-- [ ] T009 Implement deriveKey function in src/utils/crypto.ts
-- [ ] T010 [P] Write failing test for AES-GCM encryption in tests/security/crypto.test.ts
-- [ ] T011 Implement encrypt/decrypt functions in src/utils/crypto.ts
-- [ ] T012 [P] Write failing test for DOM sanitization in tests/security/sanitizer.test.ts
-- [ ] T013 Implement sanitizeInput function in src/utils/dom-sanitizer.ts
-- [ ] T014 [P] Write failing test for secure storage helpers in tests/unit/utils/storage.test.ts
-- [ ] T015 Implement getJSON/setJSON functions in src/utils/storage-helpers.ts
-- [ ] T016 [P] Create security logger interface in src/utils/logger.ts
-- [ ] T017 Verify all foundational utility tests pass
+- [X] T006 Write failing test for constant-time comparison in tests/security/timing-safe.test.ts
+- [X] T007 Implement constantTimeCompare function in src/utils/security.ts
+- [X] T008 [P] Write failing test for Web Crypto key derivation in tests/security/crypto.test.ts
+- [X] T009 Implement deriveKey function in src/utils/crypto.ts
+- [X] T010 [P] Write failing test for AES-GCM encryption in tests/security/crypto.test.ts
+- [X] T011 Implement encrypt/decrypt functions in src/utils/crypto.ts
+- [X] T012 [P] Write failing test for DOM sanitization in tests/security/sanitizer.test.ts
+- [X] T013 Implement sanitizeInput function in src/utils/dom-sanitizer.ts
+- [X] T014 [P] Write failing test for secure storage helpers in tests/unit/utils/storage.test.ts
+- [X] T015 Implement getJSON/setJSON functions in src/utils/storage-helpers.ts
+- [X] T016 [P] Create security logger interface in src/utils/logger.ts
+- [X] T017 Verify all foundational utility tests pass
 
 ---
 

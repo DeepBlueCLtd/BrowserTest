@@ -13,6 +13,19 @@ export default defineConfig(({ command, mode }) => {
   return {
     define: {
       __BUILD_DATE__: JSON.stringify(buildDate),
+      // Security configuration from environment variables
+      'import.meta.env.VITE_INSTRUCTOR_PASSWORD_HASH': JSON.stringify(
+        process.env.VITE_INSTRUCTOR_PASSWORD_HASH || ''
+      ),
+      'import.meta.env.VITE_ENABLE_ENCRYPTION': JSON.stringify(
+        process.env.VITE_ENABLE_ENCRYPTION !== 'false'
+      ),
+      'import.meta.env.VITE_ENABLE_RATE_LIMIT': JSON.stringify(
+        process.env.VITE_ENABLE_RATE_LIMIT !== 'false'
+      ),
+      'import.meta.env.VITE_ENABLE_SECURITY_LOGS': JSON.stringify(
+        process.env.VITE_ENABLE_SECURITY_LOGS === 'true'
+      ),
     },
     plugins: [
       // Only generate declaration files during library build, not Storybook
