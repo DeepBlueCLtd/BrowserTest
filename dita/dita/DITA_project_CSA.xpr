@@ -7176,7 +7176,7 @@ ${caret}</String>
                                             <cssFile-array>
                                                 <cssFile>
                                                     <field name="href">
-                                                        <String>file:/C:/git/BrowserTest/dita/template/f13ldman_author_mode.css</String>
+                                                        <String>file:/Users/ian/git/BrowserTest/dita/template/f13ldman_author_mode.css</String>
                                                     </field>
                                                     <field name="title">
                                                         <String></String>
@@ -16792,7 +16792,7 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                                 <field name="publishingTemplateDataPO">
                                     <publishingTemplate>
                                         <field name="templateRoot">
-                                            <String>C:/git/BrowserTest/dita/template/</String>
+                                            <String>/Users/ian/git/BrowserTest/dita/template/</String>
                                         </field>
                                         <field name="descriptorRelativePath">
                                             <String>f13ldMan-p10.opt</String>
