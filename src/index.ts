@@ -672,14 +672,6 @@ function init(userConfig?: Partial<SonarQuizConfig>): void {
   injectQuizStyles();
   log('Quiz styles injected');
 
-  // Check for quiz tables
-  if (!hasQuizTables()) {
-    log('No quiz tables found on this page');
-    return;
-  }
-
-  log('Quiz tables detected');
-
   // Initialize IndexedDB early (before storage monitor) to ensure proper schema
   // This prevents the storage monitor from creating an empty database
   const storage = getStorageAdapter();
@@ -701,25 +693,33 @@ function init(userConfig?: Partial<SonarQuizConfig>): void {
   // Setup event listeners first
   setupEventListeners();
 
-  // Inject login component
-  injectLoginComponent();
-
-  // Inject status panel
+  // Inject status panel first (if navbar exists)
+  // This prevents duplicate login forms
   injectStatusPanel();
+
+  // Inject standalone login component only if status panel wasn't injected
+  injectLoginComponent();
 
   // Inject storage monitor (development tool)
   injectStorageMonitor();
-
-  // Prepare tables if auto-enhance is enabled (hide metadata pre-login)
-  if (config.autoEnhance) {
-    prepareAllTables();
-  }
 
   // Initialize home page badges if we're on a home page
   const hasTestLinks = document.querySelectorAll(`.${CSS_CLASSES.TEST_LINK}`).length > 0;
   if (hasTestLinks) {
     initializeHomeBadges();
     log('Home page badges initialized');
+  }
+
+  // Check for quiz tables and prepare them if present
+  if (hasQuizTables()) {
+    log('Quiz tables detected');
+
+    // Prepare tables if auto-enhance is enabled (hide metadata pre-login)
+    if (config.autoEnhance) {
+      prepareAllTables();
+    }
+  } else {
+    log('No quiz tables found on this page');
   }
 
   log('Initialization complete');
