@@ -14,6 +14,7 @@ import { parseQuizTable, validateAnswer } from '../services/quiz-parser';
 import type { AnswerRecord, QuizQuestion } from '../types/contracts';
 import { sanitizeInput } from '../utils/dom-sanitizer';
 import { buildComparisonTable } from '../utils/comparison-table-builder';
+import { Debouncer } from '../utils/debouncer';
 
 /**
  * Debounce timeout for auto-save (milliseconds)
@@ -32,9 +33,9 @@ const CSS_CLASSES = {
 } as const;
 
 /**
- * Debounce timer storage
+ * Debouncer instance for auto-save operations
  */
-const debounceTimers = new WeakMap<HTMLElement, number>();
+const debouncer = new Debouncer(AUTOSAVE_DEBOUNCE_MS);
 
 /**
  * Phase 1: Prepare quiz table by hiding metadata (always runs, pre-login)
@@ -385,18 +386,13 @@ function handleAnswerChangeDebounced(
   table: HTMLTableElement,
   cell: HTMLElement,
 ): void {
-  // Clear existing timer
-  const existingTimer = debounceTimers.get(element);
-  if (existingTimer) {
-    clearTimeout(existingTimer);
-  }
+  // Generate unique key based on element name (e.g., "q0", "q1")
+  const key = element.name || `q${questionIndex}`;
 
-  // Set new timer
-  const timer = window.setTimeout(() => {
+  // Debounce the callback
+  debouncer.debounce(key, () => {
     handleAnswerChange(element, question, questionIndex, table, cell);
-  }, AUTOSAVE_DEBOUNCE_MS);
-
-  debounceTimers.set(element, timer);
+  });
 }
 
 /**

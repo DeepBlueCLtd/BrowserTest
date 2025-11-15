@@ -15,6 +15,7 @@ import type { AnalysisData, CellKey, PageId } from '../types/contracts';
 import { parseAnalysisTable } from '../services/analysis-parser';
 import { STORAGE_KEYS, LIMITS } from '../types/contracts';
 import { buildComparisonTable } from '../utils/comparison-table-builder';
+import { Debouncer } from '../utils/debouncer';
 
 /**
  * Enhancement options
@@ -27,9 +28,9 @@ interface EnhancementOptions {
 }
 
 /**
- * Debounce timer map for inputs
+ * Debouncer instance for auto-save operations
  */
-const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const debouncer = new Debouncer(200);
 
 /**
  * Enhance an analysis table with interactive inputs
@@ -133,19 +134,14 @@ function handleInputChange(
 ): void {
   const debounceMs = options.debounceMs ?? 200;
 
-  // Clear existing timer for this input
-  const existingTimer = debounceTimers.get(cellKey);
-  if (existingTimer) {
-    clearTimeout(existingTimer);
-  }
-
-  // Set new timer
-  const timer = setTimeout(() => {
-    saveAnalysisData(tableId, cellKey, input.value, options);
-    debounceTimers.delete(cellKey);
-  }, debounceMs);
-
-  debounceTimers.set(cellKey, timer);
+  // Debounce the save operation
+  debouncer.debounce(
+    cellKey,
+    () => {
+      saveAnalysisData(tableId, cellKey, input.value, options);
+    },
+    debounceMs,
+  );
 }
 
 /**
