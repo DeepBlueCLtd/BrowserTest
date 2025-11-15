@@ -501,6 +501,9 @@ async function restoreSession(session: import('./types/contracts').SessionData):
     sessionService.saveCache(cache);
     log('Session cache restored from IndexedDB');
 
+    // Wait for qd-status component to be defined before updating it
+    await customElements.whenDefined('qd-status');
+
     // Update status panel to show logged-in state
     const statusPanel = document.querySelector(
       'qd-status',
@@ -511,6 +514,8 @@ async function restoreSession(session: import('./types/contracts').SessionData):
       statusPanel.correct = cache.totals.correct;
       statusPanel.total = cache.totals.answered; // Total questions attempted
       log('Status panel updated with restored session');
+    } else {
+      log('WARNING: Status panel not found after component definition');
     }
 
     // Activate quiz tables if present on this page
@@ -523,8 +528,11 @@ async function restoreSession(session: import('./types/contracts').SessionData):
     }
 
     // Enhance analysis tables if present
-    enhanceAllAnalysisTables();
-    log('Analysis tables enhanced from restored session');
+    const analysisTables = document.querySelectorAll('table.qd-analysis');
+    if (analysisTables.length > 0) {
+      enhanceAllAnalysisTables();
+      log(`Analysis tables enhanced from restored session (${analysisTables.length} tables)`);
+    }
 
     // Update home badges if on home page
     const hasTestLinks = document.querySelectorAll(`.${CSS_CLASSES.TEST_LINK}`).length > 0;
@@ -811,13 +819,23 @@ function init(userConfig?: Partial<SonarQuizConfig>): void {
   const sessionService = getSessionService();
   const existingSession = sessionService.getSession();
   if (existingSession && !sessionService.isExpired()) {
-    log('Restoring existing session for:', existingSession.name);
+    log(
+      'Restoring existing session for:',
+      existingSession.name,
+      'ServiceID:',
+      existingSession.serviceId,
+    );
 
     // Restore session by triggering the same logic as login
-    void restoreSession(existingSession);
+    restoreSession(existingSession).catch((error) => {
+      console.error('Failed to restore session on init:', error);
+      sessionService.clearSession();
+    });
   } else if (existingSession && sessionService.isExpired()) {
     log('Session expired, clearing session data');
     sessionService.clearSession();
+  } else {
+    log('No existing session found or session not valid');
   }
 
   log('Initialization complete');
