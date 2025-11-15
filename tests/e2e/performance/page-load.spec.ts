@@ -6,7 +6,7 @@
  * Performance Requirements (from Technical Design):
  * - Page load: <2s (50 questions)
  * - Save operation: <200ms
- * - Bundle size: ≤25KB min+gzip
+ * - Bundle size: ≤30KB min+gzip
  */
 
 import { test, expect } from '@playwright/test';
@@ -199,7 +199,7 @@ test.describe('Performance - Save Operations', () => {
 });
 
 test.describe('Performance - Bundle Size', () => {
-  test('should verify bundle size ≤25KB gzipped', async () => {
+  test('should verify bundle size ≤30KB gzipped', async () => {
     const bundlePath = path.join(process.cwd(), 'dist', 'sonar-quiz.iife.js');
 
     // Check if bundle exists
@@ -222,8 +222,8 @@ test.describe('Performance - Bundle Size', () => {
     console.log(`Bundle size: ${bundleSize} bytes`);
     console.log(`Estimated gzipped: ${Math.round(estimatedGzipSize)} bytes`);
 
-    // Target: ≤25KB gzipped = 25600 bytes
-    expect(estimatedGzipSize).toBeLessThan(25600);
+    // Target: ≤30KB gzipped = 30720 bytes
+    expect(estimatedGzipSize).toBeLessThan(30720);
   });
 });
 

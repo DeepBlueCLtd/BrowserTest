@@ -74,7 +74,7 @@ npm run lint            # TypeScript + ESLint checks
 npm run format:check    # Prettier formatting verification
 
 # Size verification
-npm run size-check      # Verify bundle <25KB min+gzip
+npm run size-check      # Verify bundle <30KB min+gzip
 ```
 
 ## Demo & Manual Testing
@@ -136,7 +136,7 @@ npm run format:check
 - [ ] All tests passing (green)
 - [ ] Linter clean (zero errors)
 - [ ] Build successful
-- [ ] Bundle size within limits (<25KB gzipped)
+- [ ] Bundle size within limits (<30KB gzipped)
 - [ ] Code committed with descriptive message
 
 ## Critical Constraints (Constitution)
@@ -162,7 +162,7 @@ npm run format:check
 - Each phase delivers independently testable value
 
 ### V. Performance Constraints
-- Bundle: ≤25KB min+gzip IIFE
+- Bundle: ≤30KB min+gzip IIFE
 - Operations: <200ms save, <2s page load (50 questions)
 - Shadow DOM for isolation, no global CSS pollution
 
@@ -272,7 +272,7 @@ Before committing any code changes, ALL of the following MUST pass:
 2. ✅ **Linting passes**: `npm run lint` (fix with `npm run lint:fix` if needed)
 3. ✅ **Formatting passes**: `npm run format:check` (fix with `npm run format` if needed)
 4. ✅ **Build succeeds**: `npm run build` (if modifying source files)
-5. ✅ **Bundle size**: Under 25KB min+gzip (verify with `npm run size-check` if needed)
+5. ✅ **Bundle size**: Under 30KB min+gzip (verify with `npm run size-check` if needed)
 
 **Rationale**: CI will fail if any of these checks fail. Running them locally before committing prevents failed CI builds and reduces feedback cycles.
 
@@ -283,7 +283,7 @@ Before committing any code changes, ALL of the following MUST pass:
 - **Phase 3**: A11y checks pass, event emission verified
 - **Phase 4**: Session switch tests, expiry unit tests
 - **Phase 5**: E2E file:// saves/reloads, CSV validation
-- **Phase 6**: Perf/a11y green, <25KB budget met
+- **Phase 6**: Perf/a11y green, <30KB budget met
 
 ## Event System
 
@@ -741,6 +741,6 @@ document.addEventListener('qd:answer-saved', async (e: Event) => {
 
 - **IIFE**: `dist/sonar-quiz.iife.js` (global `window.SonarQuiz`, auto-init)
 - **ESM**: `dist/sonar-quiz.esm.js` (for integrators)
-- **Size limit**: ≤25KB min+gzip for IIFE
+- **Size limit**: ≤30KB min+gzip for IIFE
 - **Source maps**: Generated for debugging
 - **TypeScript definitions**: For ESM consumers

@@ -103,7 +103,7 @@ See [Delivery_Plan.md](./Delivery_Plan.md) for detailed phase descriptions and e
 
 ## Architecture
 
-- **Runtime:** Single JavaScript bundle (IIFE ≤25 KB gzipped) that progressively enhances DITA-published HTML
+- **Runtime:** Single JavaScript bundle (IIFE ≤30 KB gzipped) that progressively enhances DITA-published HTML
 - **Pattern:** DOM upgrades for tables + Lit 3 custom elements for UI overlays
 - **Data flow:** User actions → sessionStorage cache → IndexedDB persistence
 - **Isolation:** Shadow DOM for components, scoped CSS for upgraded tables
