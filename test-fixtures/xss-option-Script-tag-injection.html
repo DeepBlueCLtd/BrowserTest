@@ -1,0 +1,44 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="release" content="02-2025">
+  <meta name="document-id" content="xss-test">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self';
+                 script-src 'self';
+                 style-src 'self' 'unsafe-inline';
+                 img-src 'self' data:;
+                 connect-src 'none';
+                 object-src 'none';">
+  <title>XSS Prevention Test</title>
+</head>
+<body>
+  <h1>Security Test Page</h1>
+
+  <table class="qd-quiz qd-page" data-page-id="xss-test">
+    <thead>
+      <tr>
+        <th>Question</th>
+        <th>Answer</th>
+        <th>Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Safe question text</td>
+        <td>4</td>
+        <td>0.1</td>
+      </tr>
+      <tr>
+        <td>Select option:</td>
+        <td>1</td>
+        <td><ol><li><script>window.XSS_EXECUTED = true;</script></li><li>Option B</li></ol></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true"></script>
+</body>
+</html>

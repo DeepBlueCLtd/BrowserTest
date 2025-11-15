@@ -24,7 +24,7 @@ import { initializeHomeBadges } from './enhancers/home-badges';
 // Import components to register custom elements
 import './components/qd-login';
 import './components/qd-status';
-import './components/qd-storage-monitor';
+import './components/qd-storage-monitor'; // Temporarily disabled for debugging
 
 /**
  * Configuration for the quiz system

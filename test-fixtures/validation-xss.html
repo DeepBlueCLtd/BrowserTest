@@ -1,0 +1,30 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="release" content="02-2025">
+  <title>Validation XSS Test</title>
+</head>
+<body>
+  <h1>Validation Error Test</h1>
+
+  <!-- Invalid quiz table (missing required columns) -->
+  <table class="qd-quiz qd-page">
+    <thead>
+      <tr>
+        <th>Question<script>window.XSS_EXECUTED = true;</script></th>
+        <th>Answer</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>What is 2+2?</td>
+        <td>4</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true"></script>
+</body>
+</html>

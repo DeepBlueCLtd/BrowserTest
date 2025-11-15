@@ -1,0 +1,23 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="release" content="02-2025">
+  <title>Answer XSS Test</title>
+</head>
+<body>
+  <qd-login release="02-2025" docId="test"></qd-login>
+
+  <table class="qd-quiz qd-page" data-page-id="test">
+    <thead>
+      <tr><th>Question</th><th>Answer</th><th>Detail</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Enter number:</td><td>4</td><td>0.1</td></tr>
+    </tbody>
+  </table>
+
+  <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true"></script>
+</body>
+</html>
