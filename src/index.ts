@@ -21,6 +21,7 @@ import { getSessionService } from './services/session';
 import { getStorageAdapter } from './services/storage/indexeddb';
 import { initializeHomeBadges } from './enhancers/home-badges';
 import { sanitizeInput } from './utils/dom-sanitizer';
+import { logger } from './utils/logger';
 
 // Import components to register custom elements
 import './components/qd-login';
@@ -67,8 +68,9 @@ let config: SonarQuizConfig = { ...DEFAULT_CONFIG };
  */
 function log(...args: unknown[]): void {
   if (config.debug) {
-    // eslint-disable-next-line no-console
-    console.log('[SonarQuiz]', ...args);
+    const message = args.length > 0 ? String(args[0]) : '';
+    const metadata = args.length > 1 ? { details: args.slice(1) } : undefined;
+    logger.debug(message, metadata);
   }
 }
 
@@ -76,7 +78,9 @@ function log(...args: unknown[]): void {
  * Error logger (always logs)
  */
 function error(...args: unknown[]): void {
-  console.error('[SonarQuiz]', ...args);
+  const message = args.length > 0 ? String(args[0]) : '';
+  const metadata = args.length > 1 ? { details: args.slice(1) } : undefined;
+  logger.error(message, metadata);
 }
 
 /**

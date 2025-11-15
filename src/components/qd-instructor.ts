@@ -35,6 +35,7 @@ import { getStorageAdapter } from '../services/storage/indexeddb';
 import type { StudentRecord } from '../types/contracts';
 import { constantTimeCompare } from '../utils/security';
 import { RateLimiter } from '../utils/rate-limiter';
+import { logger, SecurityEventType } from '../utils/logger';
 
 type InstructorMode = 'overview' | 'scores' | 'export' | 'manage';
 type SortField = 'serviceId' | 'name' | 'score' | 'percentage';
@@ -722,6 +723,9 @@ export class QdInstructor extends LitElement {
       return;
     }
 
+    // Log authentication attempt
+    logger.logSecurityEvent(SecurityEventType.AUTH_ATTEMPT);
+
     // Check rate limiting
     if (!this._rateLimiter.isAllowed()) {
       const remainingMs = this._rateLimiter.getLockoutTimeRemaining();
@@ -729,6 +733,12 @@ export class QdInstructor extends LitElement {
       const seconds = Math.ceil(remainingMs / 1000);
       this._errorMessage = `Too many failed attempts. Please wait ${seconds} seconds before trying again.`;
       this._password = '';
+
+      // Log lockout event
+      logger.logSecurityEvent(SecurityEventType.AUTH_LOCKOUT, {
+        remainingTime: remainingMs
+      });
+
       return;
     }
 
@@ -739,6 +749,8 @@ export class QdInstructor extends LitElement {
     this._rateLimiter.recordAttempt(isValid);
 
     if (isValid) {
+      // Log successful authentication
+      logger.logSecurityEvent(SecurityEventType.AUTH_SUCCESS);
       this.unlocked = true;
       const session = getSessionService();
       await session.unlockInstructor();
@@ -763,7 +775,12 @@ export class QdInstructor extends LitElement {
         }),
       );
     } else {
+      // Log failed authentication
       const attemptCount = this._rateLimiter.getAttemptCount();
+      logger.logSecurityEvent(SecurityEventType.AUTH_FAILURE, {
+        attemptCount
+      });
+
       const maxAttempts = 5;
       const remaining = maxAttempts - attemptCount;
 
@@ -775,6 +792,11 @@ export class QdInstructor extends LitElement {
         this._startLockoutTimer(lockoutMs);
         const seconds = Math.ceil(lockoutMs / 1000);
         this._errorMessage = `Too many failed attempts. Locked out for ${seconds} seconds.`;
+
+        // Log lockout event
+        logger.logSecurityEvent(SecurityEventType.AUTH_LOCKOUT, {
+          remainingTime: lockoutMs
+        });
       }
 
       this._password = '';
