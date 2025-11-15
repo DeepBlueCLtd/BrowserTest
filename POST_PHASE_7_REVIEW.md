@@ -62,7 +62,7 @@ const defaultHash = await this._hashPassword('instructor');
 4. **Security:** Use bcrypt/scrypt instead of SHA-256 for password hashing
 
 **Strategy:**
-Implement 16 char hash-code, and documented here: [docs/INSTRUCTOR_PASSWORD_IMPLEMENTATION.md]
+Implement 16 char hash-code, and documented here: [docs/INSTRUCTOR_PASSWORD_IMPLEMENTATION.md](docs/INSTRUCTOR_PASSWORD_IMPLEMENTATION.md)
 
 **Estimated Effort:** 4-6 hours
 **Assigned To:** Security team review required
