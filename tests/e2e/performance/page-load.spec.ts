@@ -9,7 +9,7 @@
  * - Bundle size: ≤25KB min+gzip
  */
 
-/* eslint-disable no-console */
+ 
 
 import { test, expect } from '@playwright/test';
 import { promises as fs } from 'fs';

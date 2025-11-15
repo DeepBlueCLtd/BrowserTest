@@ -24,6 +24,6 @@
     "experimentalDecorators": true,
     "useDefineForClassFields": false
   },
-  "include": ["src/**/*", "tests/**/*", "stories/**/*"],
-  "exclude": ["node_modules", "dist", "specs/**/*", "tests/e2e/**/*"]
+  "include": ["src/**/*", "tests/unit/**/*", "stories/**/*"],
+  "exclude": ["node_modules", "dist", "specs/**/*"]
 }

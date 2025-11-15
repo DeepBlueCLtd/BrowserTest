@@ -18,7 +18,6 @@ export default tseslint.config(
       'playwright-report/**',
       'test-results/**',
       'dita/**',
-      'tests/e2e/**', // E2E tests excluded from main TS compilation (optional dependencies)
     ],
   },
 
@@ -65,9 +64,31 @@ export default tseslint.config(
     },
   },
 
-  // Test files
+  // E2E test files (use separate tsconfig)
   {
-    files: ['tests/**/*.ts'],
+    files: ['tests/e2e/**/*.ts'],
+    extends: [...tseslint.configs.recommendedTypeChecked],
+    languageOptions: {
+      parserOptions: {
+        projectService: {
+          allowDefaultProject: ['*.js'],
+          defaultProject: 'tsconfig.e2e.json',
+        },
+        tsconfigRootDir: import.meta.dirname,
+      },
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'warn',
+      'no-console': 'off', // Allow console in E2E tests for debugging
+    },
+  },
+
+  // Unit test files
+  {
+    files: ['tests/unit/**/*.ts'],
     languageOptions: {
       globals: {
         ...globals.node,

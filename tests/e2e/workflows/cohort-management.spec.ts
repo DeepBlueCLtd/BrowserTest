@@ -12,11 +12,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { promises as fs } from 'fs';
 import path from 'path';
 
-// Extend window for test flags
-interface TestWindow extends Window {
-  dataCleared?: boolean;
-  syncReceived?: boolean;
-}
+// Test window interface removed - now using observable component properties instead
 
 /**
  * Helper function to unlock instructor mode by entering password in Shadow DOM
@@ -90,11 +86,11 @@ async function createStudentData(page: Page, students: Array<{ serviceId: string
       };
 
       request.onsuccess = () => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+         
         const db = request.result;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+         
         const transaction = db.transaction(['students'], 'readwrite');
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+         
         const store = transaction.objectStore('students');
 
         studentList.forEach((student: { serviceId: string; name: string; answered: number; correct: number }) => {
@@ -119,13 +115,13 @@ async function createStudentData(page: Page, students: Array<{ serviceId: string
             },
           };
 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+           
           store.put(record, `qd/02-2025/u${student.serviceId}`);
         });
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+         
         transaction.oncomplete = () => resolve();
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+         
         transaction.onerror = () => reject(new Error('Transaction failed'));
       };
     });
@@ -241,15 +237,15 @@ test.describe('Cohort Management - CSV Export', () => {
       };
     });
 
-    // eslint-disable-next-line no-console
+     
     console.log('=== ENHANCED DEBUG INFO ===');
-    // eslint-disable-next-line no-console
+     
     console.log(JSON.stringify(debugInfo, null, 2));
 
     // Capture console messages
-    // eslint-disable-next-line no-console
+     
     page.on('console', (msg) => console.log('BROWSER:', msg.text()));
-    // eslint-disable-next-line no-console
+     
     page.on('pageerror', (err) => console.log('PAGE ERROR:', err.message));
   });
 
@@ -295,7 +291,7 @@ test.describe('Cohort Management - CSV Export', () => {
     // Wait for login event
     await loginEventPromise;
 
-    // eslint-disable-next-line no-console
+     
     console.log('Login event fired, checking table enhancement...');
 
     // Wait a moment for status update
@@ -307,20 +303,20 @@ test.describe('Cohort Management - CSV Export', () => {
       const isEnhanced = table?.classList.contains('qd-enhanced');
 
       if (!isEnhanced) {
-        // eslint-disable-next-line no-console
+         
         console.log('Table not enhanced, attempting manual enhancement...');
 
         // Try to manually enhance tables
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           if ((window as any).SonarQuiz?.enhanceTables) {
-            // eslint-disable-next-line no-console
+             
             console.log('Calling SonarQuiz.enhanceTables()...');
             // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
             (window as any).SonarQuiz.enhanceTables();
             return { manually: true, success: true };
           } else {
-            // eslint-disable-next-line no-console
+             
             console.log('SonarQuiz.enhanceTables not available');
             return { manually: false, success: false, error: 'enhanceTables not available' };
           }
@@ -333,7 +329,7 @@ test.describe('Cohort Management - CSV Export', () => {
       return { manually: false, success: true };
     });
 
-    // eslint-disable-next-line no-console
+     
     console.log('Enhancement result:', enhancementResult);
 
     // Wait for quiz to be enhanced

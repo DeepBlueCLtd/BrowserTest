@@ -17,7 +17,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable no-console */
+ 
 
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
@@ -349,8 +349,8 @@ test.describe('Accessibility - Color Contrast', () => {
       .analyze();
 
     // Filter for color contrast violations
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const contrastViolations = accessibilityScanResults.violations.filter(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (v: any) => v.id === 'color-contrast',
     );
 
