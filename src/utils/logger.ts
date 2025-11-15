@@ -139,17 +139,17 @@ export class Logger implements ILogger {
     switch (level) {
       case LogLevel.DEBUG:
         // eslint-disable-next-line no-console
-        console.debug(`[${entry.timestamp}] ${message}`, metadata || '');
+        console.debug(`[${entry.timestamp}] ${message}`, entry.metadata || '');
         break;
       case LogLevel.INFO:
         // eslint-disable-next-line no-console
-        console.info(`[${entry.timestamp}] ${message}`, metadata || '');
+        console.info(`[${entry.timestamp}] ${message}`, entry.metadata || '');
         break;
       case LogLevel.WARN:
-        console.warn(`[${entry.timestamp}] ${message}`, metadata || '');
+        console.warn(`[${entry.timestamp}] ${message}`, entry.metadata || '');
         break;
       case LogLevel.ERROR:
-        console.error(`[${entry.timestamp}] ${message}`, metadata || '');
+        console.error(`[${entry.timestamp}] ${message}`, entry.metadata || '');
         break;
     }
   }

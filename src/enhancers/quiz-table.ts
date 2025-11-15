@@ -15,6 +15,8 @@ import type { AnswerRecord, QuizQuestion } from '../types/contracts';
 import { sanitizeInput } from '../utils/dom-sanitizer';
 import { buildComparisonTable } from '../utils/comparison-table-builder';
 import { Debouncer } from '../utils/debouncer';
+import { logger } from '../utils/logger';
+import { ERROR_CODES } from '../constants/error-codes';
 
 /**
  * Debounce timeout for auto-save (milliseconds)
@@ -50,7 +52,7 @@ export function prepareQuizTable(
   table: HTMLTableElement | null,
 ): ReturnType<typeof parseQuizTable> | null {
   if (!table) {
-    console.warn('Quiz table preparer: No table provided');
+    logger.warn('Quiz table initialization failed', { code: ERROR_CODES.QT_INIT_NO_TABLE });
     return null;
   }
 
@@ -64,7 +66,10 @@ export function prepareQuizTable(
 
   // Check for parsing errors
   if (parsed.errors && parsed.errors.length > 0) {
-    console.warn('Quiz table has validation errors:', parsed.errors);
+    logger.warn('Quiz table validation failed', {
+      code: ERROR_CODES.QT_VAL_ERRORS,
+      errorCount: parsed.errors.length
+    });
     // Continue with partial preparation if possible
     if (parsed.questions.length === 0) {
       return null;
@@ -126,13 +131,13 @@ export function activateQuizTable(
   savedAnswers?: AnswerRecord[],
 ): void {
   if (!table) {
-    console.warn('Quiz table activator: No table provided');
+    logger.warn('Quiz table initialization failed', { code: ERROR_CODES.QT_INIT_NO_TABLE });
     return;
   }
 
   // Skip if not prepared yet
   if (!table.classList.contains('qd-prepared')) {
-    console.warn('Quiz table must be prepared before activation');
+    logger.warn('Quiz table initialization failed', { code: ERROR_CODES.QT_INIT_NOT_PREPARED });
     return;
   }
 
@@ -148,7 +153,7 @@ export function activateQuizTable(
   const questionCount = parseInt(table.getAttribute('data-question-count') || '0', 10);
 
   if (questionCount === 0) {
-    console.warn('No questions found in prepared table');
+    logger.warn('Quiz table initialization failed', { code: ERROR_CODES.QT_INIT_NO_QUESTIONS });
     return;
   }
 
@@ -169,7 +174,10 @@ export function activateQuizTable(
     const tolerance = toleranceStr ? parseFloat(toleranceStr) : undefined;
 
     if (!questionType || !correctAnswer) {
-      console.warn(`Missing metadata for question ${index + 1}`);
+      logger.warn('Quiz table validation failed', {
+        code: ERROR_CODES.QT_VAL_MISSING_METADATA,
+        questionIndex: index
+      });
       return;
     }
 
@@ -185,11 +193,17 @@ export function activateQuizTable(
           options = JSON.parse(optionsJson) as string[];
         } catch {
           // Failed to parse options JSON
-          console.warn(`Failed to parse options for question ${index + 1}`);
+          logger.warn('Quiz table validation failed', {
+            code: ERROR_CODES.QT_VAL_PARSE_OPTIONS,
+            questionIndex: index
+          });
           return;
         }
       } else {
-        console.warn(`No options stored for MCQ question ${index + 1}`);
+        logger.warn('Quiz table validation failed', {
+          code: ERROR_CODES.QT_VAL_NO_OPTIONS,
+          questionIndex: index
+        });
         return;
       }
     }
@@ -494,7 +508,7 @@ export function enhanceAllQuizTables(
  */
 export function revealCorrectAnswers(table: HTMLTableElement | null): void {
   if (!table) {
-    console.warn('Quiz table reveal: No table provided');
+    logger.warn('Quiz table operation failed', { code: ERROR_CODES.QT_OP_REVEAL_NO_TABLE });
     return;
   }
 
@@ -502,7 +516,7 @@ export function revealCorrectAnswers(table: HTMLTableElement | null): void {
   const rows = Array.from(table.querySelectorAll('tbody tr'));
 
   if (rows.length === 0) {
-    console.warn('Quiz table reveal: No rows found');
+    logger.warn('Quiz table operation failed', { code: ERROR_CODES.QT_OP_REVEAL_NO_ROWS });
     return;
   }
 
