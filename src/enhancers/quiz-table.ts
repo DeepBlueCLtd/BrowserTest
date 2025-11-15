@@ -12,6 +12,7 @@
 
 import { parseQuizTable, validateAnswer } from '../services/quiz-parser';
 import type { AnswerRecord, QuizQuestion } from '../types/contracts';
+import { sanitizeInput } from '../utils/dom-sanitizer';
 
 /**
  * Debounce timeout for auto-save (milliseconds)
@@ -539,21 +540,37 @@ export function revealCorrectAnswers(table: HTMLTableElement | null): void {
     revealDiv.className = 'qd-correct-answer';
 
     // Display correct answer based on question type
+    // Security: Use safe DOM manipulation instead of innerHTML to prevent XSS
+    const strong = document.createElement('strong');
+    strong.textContent = 'Correct Answer:';
+    revealDiv.appendChild(strong);
+    revealDiv.appendChild(document.createTextNode(' '));
+
     if (questionType === 'mcq') {
-      // MCQ question
-      revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${correctAnswer}`;
+      // MCQ question - sanitize the answer to prevent XSS
+      const answerText = document.createTextNode(sanitizeInput(correctAnswer));
+      revealDiv.appendChild(answerText);
     } else if (questionType === 'numeric') {
       // Numeric question - get tolerance from data attribute
       const toleranceAttr = answerCell.getAttribute('data-tolerance');
       const tolerance = toleranceAttr ? parseFloat(toleranceAttr) : NaN;
 
-      const toleranceSpan = !isNaN(tolerance)
-        ? ` <span class="qd-tolerance">(±${tolerance})</span>`
-        : '';
-      revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${correctAnswer}${toleranceSpan}`;
+      // Add sanitized answer
+      const answerText = document.createTextNode(sanitizeInput(correctAnswer));
+      revealDiv.appendChild(answerText);
+
+      // Add tolerance if present
+      if (!isNaN(tolerance)) {
+        revealDiv.appendChild(document.createTextNode(' '));
+        const toleranceSpan = document.createElement('span');
+        toleranceSpan.className = 'qd-tolerance';
+        toleranceSpan.textContent = `(±${tolerance})`;
+        revealDiv.appendChild(toleranceSpan);
+      }
     } else {
       // Unknown question type - show answer without type-specific formatting
-      revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${correctAnswer}`;
+      const answerText = document.createTextNode(sanitizeInput(correctAnswer));
+      revealDiv.appendChild(answerText);
     }
 
     // Prepend to cell (so it appears above student input)

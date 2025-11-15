@@ -90,17 +90,17 @@ Task breakdown for security remediation organized by user story priority. Each s
 
 ### Tasks
 
-- [ ] T029 [US2] Write test for XSS prevention in quiz content in tests/security/xss.test.ts
-- [ ] T030 [US2] Write test for XSS prevention in validation errors in tests/security/xss.test.ts
-- [ ] T031 [US2] Replace innerHTML with textContent for correct answer reveal in src/enhancers/quiz-table.ts:544
-- [ ] T032 [US2] Replace innerHTML with createElement for answer options in src/enhancers/quiz-table.ts:553
-- [ ] T033 [US2] Replace innerHTML with createElement for answer detail in src/enhancers/quiz-table.ts:556
-- [ ] T034 [US2] Replace innerHTML with createElement for validation banner in src/index.ts:260
-- [ ] T035 [P] [US2] Create safe banner creation utility in src/utils/dom-helpers.ts
-- [ ] T036 [US2] Update all error message displays to use sanitizeInput in src/enhancers/quiz-table.ts
-- [ ] T037 [US2] Update all user content displays to use sanitizeInput in src/enhancers/analysis-table.ts
+- [X] T029 [US2] Write test for XSS prevention in quiz content in tests/security/xss.test.ts
+- [X] T030 [US2] Write test for XSS prevention in validation errors in tests/security/xss.test.ts
+- [X] T031 [US2] Replace innerHTML with textContent for correct answer reveal in src/enhancers/quiz-table.ts:544
+- [X] T032 [US2] Replace innerHTML with createElement for answer options in src/enhancers/quiz-table.ts:553
+- [X] T033 [US2] Replace innerHTML with createElement for answer detail in src/enhancers/quiz-table.ts:556
+- [X] T034 [US2] Replace innerHTML with createElement for validation banner in src/index.ts:260
+- [X] T035 [P] [US2] Create safe banner creation utility in src/utils/dom-helpers.ts
+- [X] T036 [US2] Update all error message displays to use sanitizeInput in src/enhancers/quiz-table.ts
+- [X] T037 [US2] Update all user content displays to use sanitizeInput in src/enhancers/analysis-table.ts
 - [ ] T038 [US2] Write E2E test for XSS prevention in tests/e2e/security/xss-prevention.spec.ts
-- [ ] T039 [US2] Verify all US2 XSS prevention tests pass
+- [X] T039 [US2] Verify all US2 XSS prevention tests pass
 
 ---
 

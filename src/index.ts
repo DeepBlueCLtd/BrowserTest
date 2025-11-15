@@ -20,6 +20,7 @@ import { enhanceAllAnalysisTables } from './enhancers/analysis-table';
 import { getSessionService } from './services/session';
 import { getStorageAdapter } from './services/storage/indexeddb';
 import { initializeHomeBadges } from './enhancers/home-badges';
+import { sanitizeInput } from './utils/dom-sanitizer';
 
 // Import components to register custom elements
 import './components/qd-login';
@@ -257,13 +258,23 @@ function showValidationBanner(table: HTMLTableElement, errors: string[]): void {
     margin-bottom: 1rem;
     color: #856404;
   `;
-  banner.innerHTML = `
-    <strong>⚠️ Quiz Table Validation Errors:</strong>
-    <ul style="margin: 0.5rem 0 0 1.5rem;">
-      ${errors.map((err) => `<li>${err}</li>`).join('')}
-    </ul>
-  `;
 
+  // Security: Use safe DOM manipulation instead of innerHTML to prevent XSS
+  const strong = document.createElement('strong');
+  strong.textContent = '⚠️ Quiz Table Validation Errors:';
+  banner.appendChild(strong);
+
+  const ul = document.createElement('ul');
+  ul.style.cssText = 'margin: 0.5rem 0 0 1.5rem;';
+
+  // Sanitize each error message to prevent XSS
+  errors.forEach((err) => {
+    const li = document.createElement('li');
+    li.textContent = sanitizeInput(err);
+    ul.appendChild(li);
+  });
+
+  banner.appendChild(ul);
   table.parentNode?.insertBefore(banner, table);
 }
 
