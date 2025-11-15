@@ -2,15 +2,39 @@
  * Session Management Service
  *
  * Handles user session lifecycle, timeout management, and instructor mode.
+ * All session data is encrypted in sessionStorage to protect PII.
  */
 
 import type { SessionData, SessionCache, ServiceId, ReleaseId } from '../types/contracts';
 import { STORAGE_KEYS, SESSION_TIMEOUT_MS } from '../types/contracts';
+import { getEncryptedJSON, setEncryptedJSON } from '../utils/storage-helpers';
+import { generateEncryptionKey } from '../utils/crypto';
 
 /**
  * Session Service for managing user sessions
  */
 export class SessionService {
+  /**
+   * Get or generate the encryption key for this session
+   *
+   * The key is stored in sessionStorage and used to encrypt/decrypt
+   * all session data to protect PII.
+   *
+   * @returns Encryption key
+   */
+  private async getOrCreateEncryptionKey(): Promise<string> {
+    // Try to get existing key from sessionStorage
+    const storedKey = sessionStorage.getItem(STORAGE_KEYS.ENCRYPTION_KEY);
+    if (storedKey) {
+      return Promise.resolve(storedKey);
+    }
+
+    // Generate new key if none exists
+    const newKey = generateEncryptionKey();
+    sessionStorage.setItem(STORAGE_KEYS.ENCRYPTION_KEY, newKey);
+    return Promise.resolve(newKey);
+  }
+
   /**
    * Create a new session
    *
@@ -19,7 +43,7 @@ export class SessionService {
    * @param release - Current release ID
    * @returns Created session data
    */
-  createSession(serviceId: ServiceId, name: string, release: ReleaseId): SessionData {
+  async createSession(serviceId: ServiceId, name: string, release: ReleaseId): Promise<SessionData> {
     const now = new Date();
     const loginTime = now.toISOString();
     const expiresAt = new Date(now.getTime() + SESSION_TIMEOUT_MS).toISOString();
@@ -34,22 +58,47 @@ export class SessionService {
       instructorUnlocked: false,
     };
 
-    this.saveSession(session);
+    await this.saveSession(session);
     return session;
   }
 
   /**
    * Get the current session
    *
+   * Attempts to decrypt encrypted session data. If decryption fails,
+   * tries to parse as plaintext (for migration), then re-encrypts.
+   *
    * @returns Session data or null if no session exists
    */
-  getSession(): SessionData | null {
+  async getSession(): Promise<SessionData | null> {
     try {
       const sessionData = sessionStorage.getItem(STORAGE_KEYS.SESSION);
       if (!sessionData) {
         return null;
       }
 
+      // Try to decrypt if encryption is enabled
+      if (import.meta.env.VITE_ENABLE_ENCRYPTION !== false) {
+        const encryptionKey = await this.getOrCreateEncryptionKey();
+        const decryptedSession = await getEncryptedJSON<SessionData>(
+          STORAGE_KEYS.SESSION,
+          encryptionKey,
+        );
+
+        if (decryptedSession) {
+          // Validate required fields
+          if (!decryptedSession.serviceId || !decryptedSession.release || !decryptedSession.expiresAt) {
+            console.warn('Invalid session data, missing required fields');
+            return null;
+          }
+          return decryptedSession;
+        }
+
+        // Decryption failed - try plaintext migration
+        console.warn('Attempting plaintext session migration...');
+      }
+
+      // Try parsing as plaintext (for migration or if encryption disabled)
       const session = JSON.parse(sessionData) as SessionData;
 
       // Validate required fields
@@ -58,9 +107,15 @@ export class SessionService {
         return null;
       }
 
+      // Re-encrypt plaintext session if encryption is enabled
+      if (import.meta.env.VITE_ENABLE_ENCRYPTION !== false) {
+        console.warn('Migrating plaintext session to encrypted format...');
+        await this.saveSession(session);
+      }
+
       return session;
     } catch (error) {
-      console.error('Failed to parse session data:', error);
+      console.error('Failed to get session data:', error);
       return null;
     }
   }
@@ -68,8 +123,8 @@ export class SessionService {
   /**
    * Update last activity time and extend session expiry
    */
-  updateActivity(): void {
-    const session = this.getSession();
+  async updateActivity(): Promise<void> {
+    const session = await this.getSession();
     if (!session) {
       return;
     }
@@ -78,7 +133,7 @@ export class SessionService {
     session.lastActivity = now.toISOString();
     session.expiresAt = new Date(now.getTime() + SESSION_TIMEOUT_MS).toISOString();
 
-    this.saveSession(session);
+    await this.saveSession(session);
   }
 
   /**
@@ -86,8 +141,8 @@ export class SessionService {
    *
    * @returns True if session is expired or doesn't exist
    */
-  isExpired(): boolean {
-    const session = this.getSession();
+  async isExpired(): Promise<boolean> {
+    const session = await this.getSession();
     if (!session) {
       return true;
     }
@@ -104,13 +159,14 @@ export class SessionService {
   clearSession(): void {
     sessionStorage.removeItem(STORAGE_KEYS.SESSION);
     sessionStorage.removeItem(STORAGE_KEYS.CACHE);
+    sessionStorage.removeItem(STORAGE_KEYS.ENCRYPTION_KEY);
   }
 
   /**
    * Unlock instructor mode
    */
-  unlockInstructor(): void {
-    const session = this.getSession();
+  async unlockInstructor(): Promise<void> {
+    const session = await this.getSession();
     if (!session) {
       return;
     }
@@ -118,7 +174,7 @@ export class SessionService {
     session.instructorUnlocked = true;
     session.unlockTime = new Date().toISOString();
 
-    this.saveSession(session);
+    await this.saveSession(session);
 
     // Emit custom event
     this.emitEvent('qd:instructor-unlock', { timestamp: session.unlockTime });
@@ -127,8 +183,8 @@ export class SessionService {
   /**
    * Lock instructor mode
    */
-  lockInstructor(): void {
-    const session = this.getSession();
+  async lockInstructor(): Promise<void> {
+    const session = await this.getSession();
     if (!session) {
       return;
     }
@@ -136,7 +192,7 @@ export class SessionService {
     session.instructorUnlocked = false;
     delete session.unlockTime;
 
-    this.saveSession(session);
+    await this.saveSession(session);
 
     // Emit custom event
     this.emitEvent('qd:instructor-lock', { timestamp: new Date().toISOString() });
@@ -147,26 +203,54 @@ export class SessionService {
    *
    * @returns True if instructor mode is unlocked
    */
-  isInstructorUnlocked(): boolean {
-    const session = this.getSession();
+  async isInstructorUnlocked(): Promise<boolean> {
+    const session = await this.getSession();
     return session?.instructorUnlocked === true;
   }
 
   /**
    * Get session cache from sessionStorage
    *
+   * Attempts to decrypt encrypted cache data. If decryption fails,
+   * tries to parse as plaintext (for migration), then re-encrypts.
+   *
    * @returns Session cache or null if not found
    */
-  getCache(): SessionCache | null {
+  async getCache(): Promise<SessionCache | null> {
     try {
       const cacheData = sessionStorage.getItem(STORAGE_KEYS.CACHE);
       if (!cacheData) {
         return null;
       }
 
-      return JSON.parse(cacheData) as SessionCache;
+      // Try to decrypt if encryption is enabled
+      if (import.meta.env.VITE_ENABLE_ENCRYPTION !== false) {
+        const encryptionKey = await this.getOrCreateEncryptionKey();
+        const decryptedCache = await getEncryptedJSON<SessionCache>(
+          STORAGE_KEYS.CACHE,
+          encryptionKey,
+        );
+
+        if (decryptedCache) {
+          return decryptedCache;
+        }
+
+        // Decryption failed - try plaintext migration
+        console.warn('Attempting plaintext cache migration...');
+      }
+
+      // Try parsing as plaintext (for migration or if encryption disabled)
+      const cache = JSON.parse(cacheData) as SessionCache;
+
+      // Re-encrypt plaintext cache if encryption is enabled
+      if (import.meta.env.VITE_ENABLE_ENCRYPTION !== false) {
+        console.warn('Migrating plaintext cache to encrypted format...');
+        await this.saveCache(cache);
+      }
+
+      return cache;
     } catch (error) {
-      console.error('Failed to parse cache data:', error);
+      console.error('Failed to get cache data:', error);
       return null;
     }
   }
@@ -176,9 +260,16 @@ export class SessionService {
    *
    * @param cache - Cache data to save
    */
-  saveCache(cache: SessionCache): void {
+  async saveCache(cache: SessionCache): Promise<void> {
     try {
-      sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
+      // Encrypt if enabled
+      if (import.meta.env.VITE_ENABLE_ENCRYPTION !== false) {
+        const encryptionKey = await this.getOrCreateEncryptionKey();
+        await setEncryptedJSON(STORAGE_KEYS.CACHE, cache, encryptionKey);
+      } else {
+        // Fallback to plaintext if encryption disabled
+        sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
+      }
     } catch (error) {
       console.error('Failed to save cache:', error);
     }
@@ -196,9 +287,16 @@ export class SessionService {
    *
    * @param session - Session data to save
    */
-  private saveSession(session: SessionData): void {
+  private async saveSession(session: SessionData): Promise<void> {
     try {
-      sessionStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(session));
+      // Encrypt if enabled
+      if (import.meta.env.VITE_ENABLE_ENCRYPTION !== false) {
+        const encryptionKey = await this.getOrCreateEncryptionKey();
+        await setEncryptedJSON(STORAGE_KEYS.SESSION, session, encryptionKey);
+      } else {
+        // Fallback to plaintext if encryption disabled
+        sessionStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(session));
+      }
     } catch (error) {
       console.error('Failed to save session:', error);
     }

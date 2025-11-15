@@ -302,6 +302,7 @@ export const STORAGE_KEYS = {
   SESSION: 'qd/session',
   CACHE: 'qd/state',
   INSTRUCTOR: 'qd/instructor',
+  ENCRYPTION_KEY: 'qd/session-key',
 } as const;
 
 /** CSS classes for DOM selection */

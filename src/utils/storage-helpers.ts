@@ -2,8 +2,10 @@
  * Storage helper functions for safe JSON operations
  *
  * Provides type-safe wrapper functions for browser storage APIs
- * with automatic JSON serialization/deserialization.
+ * with automatic JSON serialization/deserialization and encryption support.
  */
+
+import { encrypt, decrypt, type EncryptedData } from './crypto';
 
 /**
  * Retrieves and parses JSON data from storage
@@ -127,4 +129,92 @@ export function getAllKeys(storage: Storage = sessionStorage): string[] {
  */
 export function hasKey(key: string, storage: Storage = sessionStorage): boolean {
   return storage.getItem(key) !== null;
+}
+
+/**
+ * Retrieves, decrypts, and parses encrypted JSON data from storage
+ *
+ * @param key - Storage key
+ * @param password - Password for decryption
+ * @param storage - Storage instance (default: sessionStorage)
+ * @returns Parsed object or null if not found/invalid/decryption failed
+ *
+ * @example
+ * ```typescript
+ * const session = await getEncryptedJSON<SessionData>('qd/session', sessionKey);
+ * if (session) {
+ *   console.log(session.serviceId); // Decrypted
+ * }
+ * ```
+ */
+export async function getEncryptedJSON<T = unknown>(
+  key: string,
+  password: string,
+  storage: Storage = sessionStorage
+): Promise<T | null> {
+  try {
+    const item = storage.getItem(key);
+    if (item === null) {
+      return null;
+    }
+
+    // Parse the encrypted envelope
+    const encryptedData = JSON.parse(item) as EncryptedData;
+
+    // Decrypt the data
+    const decrypted = await decrypt(encryptedData, password);
+    return decrypted as T;
+  } catch {
+    // Decryption failed, corrupted data, or invalid JSON
+    return null;
+  }
+}
+
+/**
+ * Encrypts, stringifies, and stores JSON data
+ *
+ * @param key - Storage key
+ * @param value - Value to encrypt and store
+ * @param password - Password for encryption
+ * @param storage - Storage instance (default: sessionStorage)
+ *
+ * @example
+ * ```typescript
+ * await setEncryptedJSON('qd/session', { serviceId: 'RN2344', name: 'John' }, sessionKey);
+ * ```
+ */
+export async function setEncryptedJSON(
+  key: string,
+  value: unknown,
+  password: string,
+  storage: Storage = sessionStorage
+): Promise<void> {
+  try {
+    // Encrypt the data
+    const encryptedData = await encrypt(value, password);
+
+    // Store the encrypted envelope as JSON
+    const json = JSON.stringify(encryptedData);
+    storage.setItem(key, json);
+  } catch (error) {
+    // Encryption or storage error
+    throw new Error(
+      `Failed to save encrypted data: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
+}
+
+/**
+ * Removes an encrypted item from storage
+ *
+ * @param key - Storage key
+ * @param storage - Storage instance (default: sessionStorage)
+ *
+ * @example
+ * ```typescript
+ * removeEncryptedItem('qd/session');
+ * ```
+ */
+export function removeEncryptedItem(key: string, storage: Storage = sessionStorage): void {
+  storage.removeItem(key);
 }

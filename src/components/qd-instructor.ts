@@ -436,7 +436,9 @@ export class QdInstructor extends LitElement {
     super.connectedCallback();
     // Check session for existing unlock status
     const session = getSessionService();
-    this.unlocked = session.isInstructorUnlocked();
+    void session.isInstructorUnlocked().then(unlocked => {
+      this.unlocked = unlocked;
+    });
 
     // Setup cross-tab sync listener
     this._setupCrossTabSync();
@@ -739,7 +741,7 @@ export class QdInstructor extends LitElement {
     if (isValid) {
       this.unlocked = true;
       const session = getSessionService();
-      session.unlockInstructor();
+      await session.unlockInstructor();
 
       // Clear password from memory
       this._password = '';
@@ -802,10 +804,10 @@ export class QdInstructor extends LitElement {
     }, 1000);
   }
 
-  private _handleLock() {
+  private async _handleLock() {
     this.unlocked = false;
     const session = getSessionService();
-    session.lockInstructor();
+    await session.lockInstructor();
 
     this._statusMessage = 'Instructor mode locked';
     this.mode = 'overview';
@@ -998,7 +1000,7 @@ export class QdInstructor extends LitElement {
       } else {
         // If no release specified, try to get from session
         const session = getSessionService();
-        const sessionData = session.getSession();
+        const sessionData = await session.getSession();
 
         if (sessionData?.release) {
           this._studentRecords = await storage.getStudentsByRelease(sessionData.release);

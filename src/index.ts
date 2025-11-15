@@ -285,15 +285,15 @@ function showValidationBanner(table: HTMLTableElement, errors: string[]): void {
  * @param answer - The saved answer record
  * @param table - The table element containing the quiz
  */
-function handleAnswerSaved(
+async function handleAnswerSaved(
   questionIndex: number,
   answer: AnswerRecord,
   table: HTMLTableElement,
-): void {
+): Promise<void> {
   const sessionService = getSessionService();
 
   // Get current cache
-  let cache = sessionService.getCache();
+  let cache = await sessionService.getCache();
 
   if (!cache) {
     log('No cache found, creating new one');
@@ -363,7 +363,7 @@ function handleAnswerSaved(
   }
 
   // Save updated cache
-  sessionService.saveCache(cache);
+  await sessionService.saveCache(cache);
 
   // Update status panel with new totals
   const statusPanel = document.querySelector(
@@ -384,7 +384,7 @@ function handleAnswerSaved(
   }
 
   // Persist to IndexedDB
-  const session = sessionService.getSession();
+  const session = await sessionService.getSession();
   if (session) {
     const storage = getStorageAdapter();
     storage
@@ -431,7 +431,7 @@ function handleAnswerSaved(
   log('Cache updated and state-changed event emitted');
 
   // Update session activity
-  sessionService.updateActivity();
+  await sessionService.updateActivity();
 }
 
 /**
@@ -472,9 +472,9 @@ function clearQuizAnswers(): void {
 /**
  * Restore previous answers from session cache
  */
-function restorePreviousAnswers(): void {
+async function restorePreviousAnswers(): Promise<void> {
   const sessionService = getSessionService();
-  const cache = sessionService.getCache();
+  const cache = await sessionService.getCache();
 
   if (!cache) {
     log('No cache found, skipping answer restoration');
@@ -602,7 +602,7 @@ function setupEventListeners(doc: Document = document): void {
     log('Quiz tables activated (interactive controls injected)');
 
     // Restore previous answers from session cache if logged in
-    restorePreviousAnswers();
+    void restorePreviousAnswers();
 
     // Enhance analysis tables (inject input fields)
     enhanceAllAnalysisTables();
@@ -634,7 +634,8 @@ function setupEventListeners(doc: Document = document): void {
     log('Answer saved:', detail);
 
     // Update session cache with full detail (includes questionIndex)
-    handleAnswerSaved(detail.questionIndex, detail.answer, detail.tableElement);
+    // Fire-and-forget async operation
+    void handleAnswerSaved(detail.questionIndex, detail.answer, detail.tableElement);
   });
 
   // Listen for logout events
