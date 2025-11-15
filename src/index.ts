@@ -754,7 +754,7 @@ function setupEventListeners(doc: Document = document): void {
  *
  * @param userConfig - Optional configuration overrides
  */
-function init(userConfig?: Partial<SonarQuizConfig>): void {
+async function init(userConfig?: Partial<SonarQuizConfig>): Promise<void> {
   // Merge user config with defaults
   config = { ...DEFAULT_CONFIG, ...userConfig };
 
@@ -768,20 +768,22 @@ function init(userConfig?: Partial<SonarQuizConfig>): void {
   // Initialize IndexedDB early (before storage monitor) to ensure proper schema
   // This prevents the storage monitor from creating an empty database
   const storage = getStorageAdapter();
-  storage
-    .init()
-    .then(() => {
-      log('IndexedDB initialized successfully');
-    })
-    .catch((error) => {
-      console.error('Failed to initialize IndexedDB:', error);
-      if (config.debug) {
-        // Fail fast in debug mode
-        throw new Error(
-          `IndexedDB initialization failed: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-    });
+
+  // Wait for IndexedDB to be ready before proceeding with session restoration
+  try {
+    await storage.init();
+    log('IndexedDB initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize IndexedDB:', error);
+    if (config.debug) {
+      // Fail fast in debug mode
+      throw new Error(
+        `IndexedDB initialization failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    // In production, continue without storage (session won't persist)
+    log('Continuing without persistent storage');
+  }
 
   // Setup event listeners first
   setupEventListeners();
@@ -827,10 +829,13 @@ function init(userConfig?: Partial<SonarQuizConfig>): void {
     );
 
     // Restore session by triggering the same logic as login
-    restoreSession(existingSession).catch((error) => {
+    try {
+      await restoreSession(existingSession);
+      log('Session restoration complete');
+    } catch (error) {
       console.error('Failed to restore session on init:', error);
       sessionService.clearSession();
-    });
+    }
   } else if (existingSession && sessionService.isExpired()) {
     log('Session expired, clearing session data');
     sessionService.clearSession();
@@ -899,9 +904,15 @@ if (typeof window !== 'undefined') {
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => init(autoConfig));
+    document.addEventListener('DOMContentLoaded', () => {
+      init(autoConfig).catch((error) => {
+        console.error('[SonarQuiz] Initialization failed:', error);
+      });
+    });
   } else {
-    init(autoConfig);
+    init(autoConfig).catch((error) => {
+      console.error('[SonarQuiz] Initialization failed:', error);
+    });
   }
 }
 
