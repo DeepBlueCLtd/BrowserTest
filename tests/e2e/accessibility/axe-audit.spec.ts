@@ -11,7 +11,6 @@
  * - ARIA attributes
  */
 
- 
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
@@ -242,8 +241,7 @@ test.describe('Accessibility - Keyboard Navigation', () => {
     // Check if input is focused
     const inputFocused = await page.evaluate(() => {
       return (
-        document.activeElement?.tagName === 'INPUT' ||
-        document.activeElement?.tagName === 'SELECT'
+        document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'SELECT'
       );
     });
 

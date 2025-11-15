@@ -95,11 +95,7 @@ export function getAttributeOrDefault(
  * const maxScore = getNumberAttribute(cell, 'data-max-score', 100);
  * ```
  */
-export function getNumberAttribute(
-  element: Element,
-  name: string,
-  defaultValue: number,
-): number {
+export function getNumberAttribute(element: Element, name: string, defaultValue: number): number {
   const value = element.getAttribute(name);
   if (value === null) {
     return defaultValue;
@@ -193,10 +189,7 @@ export function createElementWithAttributes<K extends keyof HTMLElementTagNameMa
  * const inputs = queryAll<HTMLInputElement>('input[type="text"]', form);
  * ```
  */
-export function queryAll<T extends Element>(
-  selector: string,
-  parent: ParentNode = document,
-): T[] {
+export function queryAll<T extends Element>(selector: string, parent: ParentNode = document): T[] {
   return Array.from(parent.querySelectorAll<T>(selector));
 }
 

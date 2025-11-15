@@ -68,7 +68,10 @@ async function clickInstructorButton(page: Page, buttonClass: string): Promise<v
  * Helper function to create student data in IndexedDB
  * This initializes the database and creates test student records
  */
-async function createStudentData(page: Page, students: Array<{ serviceId: string; name: string; answered: number; correct: number }>): Promise<void> {
+async function createStudentData(
+  page: Page,
+  students: Array<{ serviceId: string; name: string; answered: number; correct: number }>,
+): Promise<void> {
   await page.evaluate((studentList) => {
     return new Promise<void>((resolve, reject) => {
       const request = indexedDB.open('SonarQuizDB', 1);
@@ -86,42 +89,41 @@ async function createStudentData(page: Page, students: Array<{ serviceId: string
       };
 
       request.onsuccess = () => {
-         
         const db = request.result;
-         
+
         const transaction = db.transaction(['students'], 'readwrite');
-         
+
         const store = transaction.objectStore('students');
 
-        studentList.forEach((student: { serviceId: string; name: string; answered: number; correct: number }) => {
-          const record = {
-            schema: 1,
-            docId: 'cohort-test',
-            release: '02-2025',
-            serviceId: student.serviceId,
-            name: student.name,
-            attempted: student.answered,
-            correct: student.correct,
-            updated: new Date().toISOString(),
-            pages: {
-              'test-page-1': {
-                answers: Array(student.answered).fill({
-                  answer: 'test',
-                  success: true,
-                  timestamp: new Date().toISOString(),
-                }),
-                state: student.answered === student.correct ? 'complete' : 'incomplete',
+        studentList.forEach(
+          (student: { serviceId: string; name: string; answered: number; correct: number }) => {
+            const record = {
+              schema: 1,
+              docId: 'cohort-test',
+              release: '02-2025',
+              serviceId: student.serviceId,
+              name: student.name,
+              attempted: student.answered,
+              correct: student.correct,
+              updated: new Date().toISOString(),
+              pages: {
+                'test-page-1': {
+                  answers: Array(student.answered).fill({
+                    answer: 'test',
+                    success: true,
+                    timestamp: new Date().toISOString(),
+                  }),
+                  state: student.answered === student.correct ? 'complete' : 'incomplete',
+                },
               },
-            },
-          };
+            };
 
-           
-          store.put(record, `qd/02-2025/u${student.serviceId}`);
-        });
+            store.put(record, `qd/02-2025/u${student.serviceId}`);
+          },
+        );
 
-         
         transaction.oncomplete = () => resolve();
-         
+
         transaction.onerror = () => reject(new Error('Transaction failed'));
       };
     });
@@ -237,15 +239,14 @@ test.describe('Cohort Management - CSV Export', () => {
       };
     });
 
-     
     console.log('=== ENHANCED DEBUG INFO ===');
-     
+
     console.log(JSON.stringify(debugInfo, null, 2));
 
     // Capture console messages
-     
+
     page.on('console', (msg) => console.log('BROWSER:', msg.text()));
-     
+
     page.on('pageerror', (err) => console.log('PAGE ERROR:', err.message));
   });
 
@@ -291,7 +292,6 @@ test.describe('Cohort Management - CSV Export', () => {
     // Wait for login event
     await loginEventPromise;
 
-     
     console.log('Login event fired, checking table enhancement...');
 
     // Wait a moment for status update
@@ -303,20 +303,17 @@ test.describe('Cohort Management - CSV Export', () => {
       const isEnhanced = table?.classList.contains('qd-enhanced');
 
       if (!isEnhanced) {
-         
         console.log('Table not enhanced, attempting manual enhancement...');
 
         // Try to manually enhance tables
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           if ((window as any).SonarQuiz?.enhanceTables) {
-             
             console.log('Calling SonarQuiz.enhanceTables()...');
             // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
             (window as any).SonarQuiz.enhanceTables();
             return { manually: true, success: true };
           } else {
-             
             console.log('SonarQuiz.enhanceTables not available');
             return { manually: false, success: false, error: 'enhanceTables not available' };
           }
@@ -329,7 +326,6 @@ test.describe('Cohort Management - CSV Export', () => {
       return { manually: false, success: true };
     });
 
-     
     console.log('Enhancement result:', enhancementResult);
 
     // Wait for quiz to be enhanced
@@ -707,9 +703,7 @@ test.describe('Cohort Management - Data Erasure', () => {
     // Test passed - dialog was cancelled and closed successfully
   });
 
-  test('T094, T095: should erase all data and return system to blank state', async ({
-    page,
-  }) => {
+  test('T094, T095: should erase all data and return system to blank state', async ({ page }) => {
     // Unlock instructor mode
     await unlockInstructorMode(page);
 

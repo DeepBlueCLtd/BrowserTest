@@ -9,8 +9,6 @@
  * - Bundle size: ≤25KB min+gzip
  */
 
- 
-
 import { test, expect } from '@playwright/test';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -19,13 +17,16 @@ import path from 'path';
  * Create test HTML with specified number of questions
  */
 function createTestHTML(numQuestions: number): string {
-  const questions = Array.from({ length: numQuestions }, (_, i) => `
+  const questions = Array.from(
+    { length: numQuestions },
+    (_, i) => `
       <tr>
         <td>Question ${i + 1}: What is ${i + 1} + ${i + 1}?</td>
         <td>${(i + 1) * 2}</td>
         <td>0.1</td>
       </tr>
-  `).join('\n');
+  `,
+  ).join('\n');
 
   return `
 <!DOCTYPE html>
