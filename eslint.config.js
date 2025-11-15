@@ -17,8 +17,7 @@ export default tseslint.config(
       'specs/**',
       'playwright-report/**',
       'test-results/**',
-      'dita/template/resources/**',
-      'dita/out/**',
+      'dita/**',
     ],
   },
 

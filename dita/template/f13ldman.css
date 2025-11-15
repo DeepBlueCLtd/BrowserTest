@@ -558,6 +558,17 @@ tr.match_harmonic {
   font-family: sans-serif;
 }
 
+/* Make navbar children participate in flex layout horizontally */
+.wh_logo_and_publication_title_container,
+.wh_top_menu_and_indexterms_link {
+  display: flex !important;
+  flex: 0 1 auto;
+}
+.wh_header_flex_container {
+  flex-wrap: nowrap !important;
+  flex-direction: row !important;
+}
+
 /*
 * ==============================================
 * Style changes for Fi3ldMan project above this block

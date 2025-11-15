@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="release" content="02-2025">
+  <meta name="document-id" content="sonar-basics">
+  <meta name="page-id" content="sonar-basics">
   <title>Quiz Table Examples - Sonar Quiz System</title>
   <style>
     body {
@@ -41,15 +44,72 @@
       padding: 1rem;
       margin: 1rem 0;
     }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 1rem;
+      color: #0066cc;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .back-link:hover {
+      text-decoration: underline;
+    }
+    nav {
+      background-color: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 2rem;
+    }
+    nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    nav li {
+      margin: 0;
+    }
+    nav a {
+      color: #0066cc;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    nav a:hover {
+      background-color: #e9ecef;
+    }
+    nav a.active {
+      background-color: #0066cc;
+      color: white;
+    }
+    #qd-status {
+      margin-bottom: 2rem;
+    }
   </style>
 </head>
 <body>
+  <nav class="qd-nav">
+    <ul>
+      <li><a href="quiz-index.html" class="qd-test-link">Home</a></li>
+      <li><a href="quiz-examples.html" class="qd-test-link active" data-page-id="sonar-basics">Quiz Examples</a></li>
+      <li><a href="analysis-examples.html" class="qd-test-link" data-page-id="contact-analysis">Analysis Examples</a></li>
+    </ul>
+  </nav>
+
+  <!-- Status Panel Container - qd-status component will be injected here -->
+  <div id="qd-status"></div>
+
   <h1>Quiz Table Examples</h1>
   <p>Demonstration of quiz table formats for the Sonar Quiz System.</p>
 
   <div class="note">
     <strong>Note:</strong> These tables will be automatically enhanced when the Sonar Quiz System script is loaded.
-    The system detects tables with class <code>qd-quiz</code> and adds interactive elements.
+    The system detects tables with class <code>qd-quiz qd-page</code> and adds interactive elements.
   </div>
 
   <!-- Example 1: Mixed MCQ and Numeric Questions -->
@@ -57,7 +117,7 @@
     <h2>Example 1: Mixed MCQ and Numeric Questions</h2>
     <p>This table demonstrates a mix of multiple-choice questions (with ordered lists) and numeric questions (with tolerance values).</p>
 
-    <table class="qd-quiz">
+    <table class="qd-quiz qd-page">
       <thead>
         <tr>
           <th>Question</th>
@@ -121,7 +181,7 @@
     <h2>Example 2: MCQ Questions Only</h2>
     <p>This table contains only multiple-choice questions.</p>
 
-    <table class="qd-quiz">
+    <table class="qd-quiz qd-page">
       <thead>
         <tr>
           <th>Question</th>
@@ -175,7 +235,7 @@
     <h2>Example 3: Numeric Questions Only</h2>
     <p>This table contains only numeric questions with tolerance values.</p>
 
-    <table class="qd-quiz">
+    <table class="qd-quiz qd-page">
       <thead>
         <tr>
           <th>Question</th>
@@ -221,9 +281,7 @@
     </ul>
   </div>
 
-  <script>
-    // Placeholder for sonar-quiz.iife.js
-    console.log('Demo page loaded. Add <script src="sonar-quiz.iife.js"><\/script> to activate quiz functionality.');
-  </script>
+  <!-- Load the Sonar Quiz System IIFE bundle -->
+  <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true"></script>
 </body>
 </html>

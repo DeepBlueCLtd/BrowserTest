@@ -7176,7 +7176,7 @@ ${caret}</String>
                                             <cssFile-array>
                                                 <cssFile>
                                                     <field name="href">
-                                                        <String>file:/Users/ian/git/Fi3ldMan/template/f13ldman_author_mode.css</String>
+                                                        <String>file:/C:/git/BrowserTest/dita/template/f13ldman_author_mode.css</String>
                                                     </field>
                                                     <field name="title">
                                                         <String></String>
@@ -16538,6 +16538,10 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                         <Boolean>true</Boolean>
                     </entry>
                     <entry>
+                        <String>key.editor.format.css.option.pane</String>
+                        <Boolean>true</Boolean>
+                    </entry>
+                    <entry>
                         <String>key.publishing.option.pane</String>
                         <Boolean>true</Boolean>
                     </entry>
@@ -16556,7 +16560,7 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                                 </field>
                                 <field name="scenarioIds">
                                     <list>
-                                        <String>FieldMan DITA Map WebHelp Responsive</String>
+                                        <String>CSA Scheme DITA Map WebHelp Responsive</String>
                                     </list>
                                 </field>
                                 <field name="scenarioTypes">
@@ -16576,7 +16580,7 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                                 </field>
                                 <field name="scenarioIds">
                                     <list>
-                                        <String>FieldMan DITA Map WebHelp Responsive</String>
+                                        <String>CSA Scheme DITA Map WebHelp Responsive</String>
                                     </list>
                                 </field>
                                 <field name="scenarioTypes">
@@ -16596,7 +16600,7 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                                 </field>
                                 <field name="scenarioIds">
                                     <list>
-                                        <String>FieldMan DITA Map WebHelp Responsive</String>
+                                        <String>CSA Scheme DITA Map WebHelp Responsive</String>
                                     </list>
                                 </field>
                                 <field name="scenarioTypes">
@@ -16616,7 +16620,7 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                                 </field>
                                 <field name="scenarioIds">
                                     <list>
-                                        <String>FieldMan DITA Map WebHelp Responsive</String>
+                                        <String>CSA Scheme DITA Map WebHelp Responsive</String>
                                     </list>
                                 </field>
                                 <field name="scenarioTypes">
@@ -16636,7 +16640,7 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                                 </field>
                                 <field name="scenarioIds">
                                     <list>
-                                        <String>FieldMan DITA Map WebHelp Responsive</String>
+                                        <String>CSA Scheme DITA Map WebHelp Responsive</String>
                                     </list>
                                 </field>
                                 <field name="scenarioTypes">
@@ -16656,7 +16660,7 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                                 </field>
                                 <field name="scenarioIds">
                                     <list>
-                                        <String>FieldMan DITA Map WebHelp Responsive</String>
+                                        <String>CSA Scheme DITA Map WebHelp Responsive</String>
                                     </list>
                                 </field>
                                 <field name="scenarioTypes">
@@ -16676,7 +16680,7 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                                 </field>
                                 <field name="scenarioIds">
                                     <list>
-                                        <String>FieldMan DITA Map WebHelp Responsive</String>
+                                        <String>CSA Scheme DITA Map WebHelp Responsive</String>
                                     </list>
                                 </field>
                                 <field name="scenarioTypes">
@@ -16696,7 +16700,7 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                                 </field>
                                 <field name="scenarioIds">
                                     <list>
-                                        <String>FieldMan DITA Map WebHelp Responsive</String>
+                                        <String>CSA Scheme DITA Map WebHelp Responsive</String>
                                     </list>
                                 </field>
                                 <field name="scenarioTypes">
@@ -16716,7 +16720,7 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                                 </field>
                                 <field name="scenarioIds">
                                     <list>
-                                        <String>FieldMan DITA Map WebHelp Responsive</String>
+                                        <String>CSA Scheme DITA Map WebHelp Responsive</String>
                                     </list>
                                 </field>
                                 <field name="scenarioTypes">
@@ -16772,16 +16776,7 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                                             <null/>
                                         </field>
                                         <field name="simpleFiltersList">
-                                            <list>
-                                                <ditavalSimpleFilter>
-                                                    <field name="attrName">
-                                                        <String>audience</String>
-                                                    </field>
-                                                    <field name="attrValue">
-                                                        <String>-traineeNot</String>
-                                                    </field>
-                                                </ditavalSimpleFilter>
-                                            </list>
+                                            <list/>
                                         </field>
                                     </ditavalFilters>
                                 </field>
@@ -16797,7 +16792,7 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                                 <field name="publishingTemplateDataPO">
                                     <publishingTemplate>
                                         <field name="templateRoot">
-                                            <String>/Users/ian/git/BrowserTest/dita/template/</String>
+                                            <String>C:/git/BrowserTest/dita/template/</String>
                                         </field>
                                         <field name="descriptorRelativePath">
                                             <String>f13ldMan-p10.opt</String>
@@ -17161,7 +17156,7 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                                     <null/>
                                 </field>
                                 <field name="name">
-                                    <String>FieldMan DITA Map WebHelp Responsive</String>
+                                    <String>CSA Scheme DITA Map WebHelp Responsive</String>
                                 </field>
                                 <field name="baseURL">
                                     <null/>

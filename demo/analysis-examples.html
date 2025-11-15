@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="release" content="02-2025">
+  <meta name="document-id" content="contact-analysis">
+  <meta name="page-id" content="contact-analysis">
   <title>Analysis Table Examples - Sonar Quiz System</title>
   <style>
     body {
@@ -61,25 +64,82 @@
       height: 20px;
       border: 1px solid #ddd;
     }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 1rem;
+      color: #0066cc;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .back-link:hover {
+      text-decoration: underline;
+    }
+    nav {
+      background-color: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 2rem;
+    }
+    nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    nav li {
+      margin: 0;
+    }
+    nav a {
+      color: #0066cc;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    nav a:hover {
+      background-color: #e9ecef;
+    }
+    nav a.active {
+      background-color: #0066cc;
+      color: white;
+    }
+    #qd-status {
+      margin-bottom: 2rem;
+    }
   </style>
 </head>
 <body>
+  <nav class="qd-nav">
+    <ul>
+      <li><a href="quiz-index.html" class="qd-test-link">Home</a></li>
+      <li><a href="quiz-examples.html" class="qd-test-link" data-page-id="sonar-basics">Quiz Examples</a></li>
+      <li><a href="analysis-examples.html" class="qd-test-link active" data-page-id="contact-analysis">Analysis Examples</a></li>
+    </ul>
+  </nav>
+
+  <!-- Status Panel Container - qd-status component will be injected here -->
+  <div id="qd-status"></div>
+
   <h1>Analysis Table Examples</h1>
   <p>Demonstration of analysis table formats for the Sonar Quiz System.</p>
 
   <div class="note">
     <strong>Note:</strong> These tables will be automatically enhanced when the Sonar Quiz System script is loaded.
-    The system detects tables with class <code>qd-analysis</code> and makes cells with <code>class="interactive"</code> editable.
+    The system detects tables with class <code>qd-analysis</code> and makes cells without background-color editable.
   </div>
 
   <div class="legend">
     <div class="legend-item">
       <div class="legend-box readonly"></div>
-      <span>Read-only (no interactive class)</span>
+      <span>Read-only (has background-color style)</span>
     </div>
     <div class="legend-item">
       <div class="legend-box editable"></div>
-      <span>Editable (has class="interactive")</span>
+      <span>Editable (no background-color)</span>
     </div>
   </div>
 
@@ -102,30 +162,30 @@
         <tr>
           <td style="background-color: #e9ecef;">C-001</td>
           <td style="background-color: #e9ecef;">045</td>
-          <td class="interactive"></td>
-          <td class="interactive"></td>
-          <td class="interactive"></td>
+          <td></td>
+          <td></td>
+          <td></td>
         </tr>
         <tr>
           <td style="background-color: #e9ecef;">C-002</td>
           <td style="background-color: #e9ecef;">120</td>
-          <td class="interactive"></td>
-          <td class="interactive"></td>
-          <td class="interactive"></td>
+          <td></td>
+          <td></td>
+          <td></td>
         </tr>
         <tr>
           <td style="background-color: #e9ecef;">C-003</td>
           <td style="background-color: #e9ecef;">270</td>
-          <td class="interactive"></td>
-          <td class="interactive"></td>
-          <td class="interactive"></td>
+          <td></td>
+          <td></td>
+          <td></td>
         </tr>
         <tr>
           <td style="background-color: #e9ecef;">C-004</td>
           <td style="background-color: #e9ecef;">315</td>
-          <td class="interactive"></td>
-          <td class="interactive"></td>
-          <td class="interactive"></td>
+          <td></td>
+          <td></td>
+          <td></td>
         </tr>
       </tbody>
     </table>
@@ -149,38 +209,38 @@
         <tr>
           <td style="background-color: #e9ecef;">Source Level (SL)</td>
           <td style="background-color: #e9ecef;">220 dB</td>
-          <td class="interactive"></td>
-          <td class="interactive"></td>
+          <td></td>
+          <td></td>
         </tr>
         <tr>
           <td style="background-color: #e9ecef;">Transmission Loss (TL)</td>
           <td style="background-color: #e9ecef;">80 dB</td>
-          <td class="interactive"></td>
-          <td class="interactive"></td>
+          <td></td>
+          <td></td>
         </tr>
         <tr>
           <td style="background-color: #e9ecef;">Target Strength (TS)</td>
           <td style="background-color: #e9ecef;">15 dB</td>
-          <td class="interactive"></td>
-          <td class="interactive"></td>
+          <td></td>
+          <td></td>
         </tr>
         <tr>
           <td style="background-color: #e9ecef;">Noise Level (NL)</td>
           <td style="background-color: #e9ecef;">60 dB</td>
-          <td class="interactive"></td>
-          <td class="interactive"></td>
+          <td></td>
+          <td></td>
         </tr>
         <tr>
           <td style="background-color: #e9ecef;">Detection Threshold (DT)</td>
           <td style="background-color: #e9ecef;">10 dB</td>
-          <td class="interactive"></td>
-          <td class="interactive"></td>
+          <td></td>
+          <td></td>
         </tr>
         <tr>
           <td style="background-color: #e9ecef;">Signal Excess (SE)</td>
           <td style="background-color: #e9ecef;">-</td>
-          <td class="interactive"></td>
-          <td class="interactive"></td>
+          <td></td>
+          <td></td>
         </tr>
       </tbody>
     </table>
@@ -195,27 +255,27 @@
       <tbody>
         <tr>
           <td style="background-color: #e9ecef; width: 30%;">Threat Assessment:</td>
-          <td class="interactive"></td>
+          <td></td>
         </tr>
         <tr>
           <td style="background-color: #e9ecef;">Recommended Action:</td>
-          <td class="interactive"></td>
+          <td></td>
         </tr>
         <tr>
           <td style="background-color: #e9ecef;">Course Change (if any):</td>
-          <td class="interactive"></td>
+          <td></td>
         </tr>
         <tr>
           <td style="background-color: #e9ecef;">Speed Change (if any):</td>
-          <td class="interactive"></td>
+          <td></td>
         </tr>
         <tr>
           <td style="background-color: #e9ecef;">Sonar Mode Selection:</td>
-          <td class="interactive"></td>
+          <td></td>
         </tr>
         <tr>
           <td style="background-color: #e9ecef;">Justification:</td>
-          <td class="interactive"></td>
+          <td></td>
         </tr>
       </tbody>
     </table>
@@ -239,32 +299,32 @@
         <tr>
           <td style="background-color: #e9ecef;">0</td>
           <td style="background-color: #e9ecef;">20</td>
-          <td class="interactive"></td>
-          <td class="interactive"></td>
+          <td></td>
+          <td></td>
         </tr>
         <tr>
           <td style="background-color: #e9ecef;">50</td>
           <td style="background-color: #e9ecef;">18</td>
-          <td class="interactive"></td>
-          <td class="interactive"></td>
+          <td></td>
+          <td></td>
         </tr>
         <tr>
           <td style="background-color: #e9ecef;">100</td>
           <td style="background-color: #e9ecef;">12</td>
-          <td class="interactive"></td>
-          <td class="interactive"></td>
+          <td></td>
+          <td></td>
         </tr>
         <tr>
           <td style="background-color: #e9ecef;">200</td>
           <td style="background-color: #e9ecef;">8</td>
-          <td class="interactive"></td>
-          <td class="interactive"></td>
+          <td></td>
+          <td></td>
         </tr>
         <tr>
           <td style="background-color: #e9ecef;">500</td>
           <td style="background-color: #e9ecef;">5</td>
-          <td class="interactive"></td>
-          <td class="interactive"></td>
+          <td></td>
+          <td></td>
         </tr>
       </tbody>
     </table>
@@ -274,9 +334,8 @@
     <h2>Authoring Guidelines</h2>
     <ul>
       <li><strong>Class attribute:</strong> Tables must have the <code>qd-analysis</code> class</li>
-      <li><strong>Editable cells:</strong> Add <code>class="interactive"</code> to make cells editable</li>
-      <li><strong>Read-only cells:</strong> Cells WITHOUT the <code>interactive</code> class remain read-only</li>
-      <li><strong>Styling:</strong> Authors can add background colors or other styles independently of editability</li>
+      <li><strong>Read-only cells:</strong> Add <code>style="background-color: #xxx"</code> to make cells read-only</li>
+      <li><strong>Editable cells:</strong> Leave cells WITHOUT any background-color style to make them editable</li>
       <li><strong>Maximum:</strong> ONE analysis table per page</li>
       <li><strong>Cell content limit:</strong> Maximum 500 characters per cell</li>
       <li><strong>Auto-save:</strong> Student entries are automatically saved as they type</li>
@@ -284,9 +343,7 @@
     </ul>
   </div>
 
-  <script>
-    // Placeholder for sonar-quiz.iife.js
-    console.log('Demo page loaded. Add <script src="sonar-quiz.iife.js"><\/script> to activate analysis functionality.');
-  </script>
+  <!-- Load the Sonar Quiz System IIFE bundle -->
+  <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true"></script>
 </body>
 </html>

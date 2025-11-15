@@ -31,9 +31,10 @@
  */
 
 import { LitElement, html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 import type { CompletionState, SessionCache, SessionData } from '../types/contracts';
 import './qd-login';
+import './qd-instructor';
 
 @customElement('qd-status')
 export class QdStatus extends LitElement {
@@ -92,6 +93,12 @@ export class QdStatus extends LitElement {
   @property({ type: String })
   docId = '';
 
+  /**
+   * Whether instructor panel is currently shown
+   */
+  @state()
+  private _showInstructorPanel = false;
+
   static styles = css`
     :host {
       display: block;
@@ -114,6 +121,7 @@ export class QdStatus extends LitElement {
       padding: 0.5rem 0.75rem;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
       font-size: 0.75rem;
+      position: relative;
     }
 
     .login-container {
@@ -227,6 +235,65 @@ export class QdStatus extends LitElement {
       background: #4e555b;
     }
 
+    .instructor-button {
+      padding: 0.25rem 0.5rem;
+      background: #0066cc;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      font-size: 0.625rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    .instructor-button:hover {
+      background: #0052a3;
+    }
+
+    .instructor-button:active {
+      background: #004080;
+    }
+
+    /* Instructor panel styles (when expanded) */
+    .instructor-panel {
+      display: block;
+      padding: 1rem;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .back-button {
+      background: #f0f0f0;
+      border: 1px solid #ccc;
+      color: #333;
+      font-size: 0.875rem;
+      cursor: pointer;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      font-family: inherit;
+      transition: background-color 0.2s;
+      margin-bottom: 1rem;
+    }
+
+    .back-button:hover {
+      background: #e0e0e0;
+    }
+
+    .build-date {
+      position: absolute;
+      bottom: 2px;
+      right: 4px;
+      font-size: 0.5rem;
+      color: #999;
+      font-family: monospace;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
     @media (max-width: 480px) {
       .status-panel {
         font-size: 0.625rem;
@@ -252,7 +319,16 @@ export class QdStatus extends LitElement {
     this._checkInsertionTarget();
   }
 
+  willUpdate(changedProperties: Map<PropertyKey, unknown>) {
+    if (changedProperties.has('isLoggedIn')) {
+      // isLoggedIn property changed
+    }
+  }
+
   render() {
+    if (this._showInstructorPanel) {
+      return this._renderInstructorView();
+    }
     if (!this.isLoggedIn) {
       return this._renderLoginView();
     }
@@ -296,6 +372,15 @@ export class QdStatus extends LitElement {
         </div>
 
         <button
+          class="instructor-button"
+          @click=${() => this._handleShowInstructor()}
+          aria-label="Instructor Access"
+          title="Instructor Access"
+        >
+          Instructor
+        </button>
+
+        <button
           class="logout-button"
           @click=${() => this._handleLogout()}
           aria-label="Logout"
@@ -303,6 +388,24 @@ export class QdStatus extends LitElement {
         >
           Logout
         </button>
+
+        <span class="build-date" title="Build date">${__BUILD_DATE__}</span>
+      </div>
+    `;
+  }
+
+  private _renderInstructorView() {
+    return html`
+      <div class="instructor-panel" role="region" aria-label="Instructor Dashboard">
+        <button
+          type="button"
+          class="back-button"
+          @click=${() => this._handleHideInstructor()}
+          aria-label="Back to progress view"
+        >
+          ← Back to Progress
+        </button>
+        <qd-instructor release="${this.release}"></qd-instructor>
       </div>
     `;
   }
@@ -341,6 +444,13 @@ export class QdStatus extends LitElement {
     );
   }
 
+  private _handleShowInstructor() {
+    this._showInstructorPanel = true;
+  }
+
+  private _handleHideInstructor() {
+    this._showInstructorPanel = false;
+  }
 
   private _checkInsertionTarget() {
     // If insertAfterSelector is specified, check if target exists

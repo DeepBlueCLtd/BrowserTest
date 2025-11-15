@@ -61,9 +61,4 @@
             </simpletable>
         </section>
     </body>
-    <related-links>
-        <link href="../gram-index.dita" format="dita"></link>
-        <link href="./gram2%20-%202.dita"><linktext>LOFAR 2</linktext></link>
-        <link href="./gram2%20analysis.dita" audience="-trainee"><linktext>ANALYSIS</linktext></link>
-    </related-links>
 </topic>

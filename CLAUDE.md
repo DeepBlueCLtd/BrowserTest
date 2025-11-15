@@ -26,6 +26,8 @@ User Input → DOM Handler → Service Layer → Storage Adapter
 
 **Storage Strategy**:
 - **IndexedDB**: Primary persistence with composite keys `qd/{release}/u{serviceId}`
+  - Database name: `SonarQuizDB` (defined in `src/services/storage/indexeddb.ts`)
+  - Object stores: `students`, `backups`
 - **sessionStorage**: Active session + R/A/G cache (expires 30 min)
 - **No network**: All data remains local, no telemetry/CDN/remote config
 
@@ -34,6 +36,23 @@ User Input → DOM Handler → Service Layer → Storage Adapter
 2. **Service Layer** (`src/services/`): Business logic, state management, event coordination
 3. **Component Layer** (`src/components/`): Lit 3 Web Components with Shadow DOM
 4. **Storage Layer** (`src/services/storage/`): IndexedDB adapter with atomic transactions
+
+### Storage Monitor (Development Tool)
+The `<qd-storage-monitor>` component provides real-time inspection of browser storage during development:
+- **Auto-injected** when `data-debug="true"` is set on the script tag
+- **Configuration**: Set `dbName` attribute to specify the IndexedDB database to monitor
+  - Default: `'quiz-scores'` (generic default for reusability)
+  - Sonar Quiz System: `'SonarQuizDB'` (automatically set when auto-injected)
+- **Usage examples**:
+  ```html
+  <!-- Auto-injected by system (uses SonarQuizDB) -->
+  <script src="sonar-quiz.iife.js" data-sonar-quiz data-debug="true"></script>
+
+  <!-- Manual usage with custom database -->
+  <qd-storage-monitor dbName="MyCustomDB"></qd-storage-monitor>
+  ```
+- **Keyboard shortcut**: `Ctrl+Shift+D` to toggle visibility
+- **Features**: Expand/collapse entries, view nested JSON, clear individual keys or all storage
 
 ## Development Commands
 
@@ -57,6 +76,68 @@ npm run format:check    # Prettier formatting verification
 # Size verification
 npm run size-check      # Verify bundle <25KB min+gzip
 ```
+
+## Demo & Manual Testing
+
+The `demo/` directory contains standalone HTML files for manual testing and demonstration:
+
+- **demo/quiz-index.html**: Index page with login UI, status panel, and navigation with R/A/G badges
+- **demo/quiz-examples.html**: Interactive quiz tables (MCQ and numeric questions)
+- **demo/analysis-examples.html**: Editable analysis tables for free-form student work
+
+### Quick Test Workflow
+```bash
+# 1. Build the bundle
+npm run build
+
+# 2. Test via file:// protocol (recommended for offline testing)
+open demo/quiz-index.html
+
+# 3. Or serve via HTTP for full IndexedDB support
+python3 -m http.server 8000
+# Visit: http://localhost:8000/demo/quiz-index.html
+```
+
+All demo files load the built bundle from `dist/sonar-quiz.iife.js` and have debug mode enabled (`data-debug="true"`). See **demo/README.md** for:
+- Detailed test scenarios (login, quiz interaction, analysis tables, session management)
+- Browser DevTools inspection tips (IndexedDB, sessionStorage, custom events)
+- Troubleshooting common issues
+- E2E testing integration guidance
+
+## Definition of Done
+
+**CRITICAL**: Before marking ANY task as complete, ALL of the following must pass with ZERO errors:
+
+```bash
+# 1. TypeScript compilation (MUST pass)
+npm run build
+
+# 2. Linter (zero errors required, warnings acceptable with justification)
+npm run lint
+
+# 3. Unit tests (all must pass, zero failures)
+npm run test:unit
+
+# 4. Integration tests (if applicable to the task)
+npm run test:integration
+
+# 5. Format check (code must be properly formatted)
+npm run format:check
+```
+
+**No Exceptions**:
+- If ANY check fails, the task is NOT complete
+- Fix all errors before committing
+- Do not skip tests to achieve project goals (Constitution III)
+- All code must be properly typed (no `any` without eslint-disable comment)
+- All event handlers must use arrow functions or explicit `.bind()` to avoid unbound method errors
+
+**Post-Implementation Checklist**:
+- [ ] All tests passing (green)
+- [ ] Linter clean (zero errors)
+- [ ] Build successful
+- [ ] Bundle size within limits (<25KB gzipped)
+- [ ] Code committed with descriptive message
 
 ## Critical Constraints (Constitution)
 
@@ -135,16 +216,15 @@ Content authors must follow these rules (runtime validation enforces):
 
 ### Quiz Tables
 - Exactly 3 columns: Question | Answer | Detail
-- Class: `qd-quiz`
+- Class: `qd-quiz qd-page`
 - MCQ: Use `<ol>` lists (1-indexed, first option = 1)
 - Numeric: Tolerance in third column
 - **Maximum ONE** quiz table per page
 
 ### Analysis Tables
 - Class: `qd-analysis`
-- Cells WITH `class="interactive"` (DITA: `outputClass="interactive"`) = editable
-- Cells WITHOUT `interactive` class = read-only/unused
-- Authors can style cells with `outputClass="shaded"` without affecting editability
+- Cells WITH `background-color` style = read-only
+- Cells WITHOUT background-color = editable
 - **Maximum ONE** analysis table per page
 
 ### Home Page
@@ -235,6 +315,7 @@ Enable via `data-qd-debug` attribute on quiz/analysis tables:
 - **Technical_Design.md**: Architecture, packaging, integration patterns
 - **Contracts.md**: Frozen types and interfaces
 - **Delivery_Plan.md**: 8-phase plan with exit gates
+- **demo/README.md**: Demo HTML files, testing workflows, troubleshooting guide
 - **specs/001-sonar-quiz-system/**: Feature spec, plan, data model, contracts
 
 ## Common Patterns
