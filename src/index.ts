@@ -323,10 +323,10 @@ function handleAnswerSaved(
   // Recalculate totals from all stored answers
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const pageAnswers = (pageCache.answers as AnswerRecord[]).filter(
-    (a: AnswerRecord) => a !== undefined,
+    (a: AnswerRecord) => a !== undefined && a !== null,
   );
   cache.pages[pageId].answered = pageAnswers.length;
-  cache.pages[pageId].correct = pageAnswers.filter((a: AnswerRecord) => a.success).length;
+  cache.pages[pageId].correct = pageAnswers.filter((a: AnswerRecord) => a && a.success).length;
 
   // Recalculate global totals from all pages
   cache.totals.answered = Object.values(cache.pages).reduce(
@@ -489,10 +489,14 @@ async function restoreSession(session: import('./types/contracts').SessionData):
     // Populate cache with page data
     Object.entries(studentRecord.pages).forEach(([pageId, pageData]) => {
       const answers = pageData.answers || [];
+      // Filter out null and undefined values
+      const validAnswers = answers.filter(
+        (a: import('./types/contracts').AnswerRecord) => a !== null && a !== undefined,
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const pageCache: any = {
-        answered: answers.filter((a: import('./types/contracts').AnswerRecord) => a).length,
-        correct: answers.filter((a: import('./types/contracts').AnswerRecord) => a && a.success)
+        answered: validAnswers.length,
+        correct: validAnswers.filter((a: import('./types/contracts').AnswerRecord) => a.success)
           .length,
         state: pageData.state || 'unstarted',
         // Store answers array for restoration (not in PageCache type but needed for restoration)
