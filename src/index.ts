@@ -489,12 +489,17 @@ async function restoreSession(session: import('./types/contracts').SessionData):
     // Populate cache with page data
     Object.entries(studentRecord.pages).forEach(([pageId, pageData]) => {
       const answers = pageData.answers || [];
-      cache.pages[pageId] = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pageCache: any = {
         answered: answers.filter((a: import('./types/contracts').AnswerRecord) => a).length,
         correct: answers.filter((a: import('./types/contracts').AnswerRecord) => a && a.success)
           .length,
         state: pageData.state || 'unstarted',
+        // Store answers array for restoration (not in PageCache type but needed for restoration)
+        answers: pageData.answers || [],
       };
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      cache.pages[pageId] = pageCache;
     });
 
     // Save cache to sessionStorage
@@ -529,9 +534,12 @@ async function restoreSession(session: import('./types/contracts').SessionData):
 
     // Enhance analysis tables if present
     const analysisTables = document.querySelectorAll('table.qd-analysis');
+    log(`Found ${analysisTables.length} analysis tables on this page`);
     if (analysisTables.length > 0) {
       enhanceAllAnalysisTables();
       log(`Analysis tables enhanced from restored session (${analysisTables.length} tables)`);
+    } else {
+      log('No analysis tables to enhance on this page');
     }
 
     // Update home badges if on home page
