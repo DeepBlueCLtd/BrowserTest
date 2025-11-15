@@ -186,17 +186,15 @@
     <p class="subtitle">Offline-first Interactive Training Platform</p>
   </header>
 
-  <nav class="qd-nav">
+  <nav class="qd-nav wh_top_menu_and_indexterms_link">
     <ul>
-      <li><a href="quiz-index.html" class="qd-test-link active">Home</a></li>
-      <li><a href="quiz-examples.html" class="qd-test-link" data-page-id="sonar-basics">Quiz Examples</a></li>
-      <li><a href="analysis-examples.html" class="qd-test-link" data-page-id="contact-analysis">Analysis Examples</a></li>
+      <li><a href="quiz-index.html" class="qd-test-link quizPageBtn active">Home</a></li>
+      <li><a href="quiz-examples.html" class="qd-test-link quizPageBtn" data-page-id="sonar-basics">Quiz Examples</a></li>
+      <li><a href="analysis-examples.html" class="qd-test-link quizPageBtn" data-page-id="contact-analysis">Analysis Examples</a></li>
     </ul>
   </nav>
 
   <main>
-    <!-- Status Panel Container - qd-status component will be injected here -->
-    <div id="qd-status"></div>
 
     <div class="instructions">
       <h3>How to Use This System</h3>
@@ -303,6 +301,6 @@
   </footer>
 
   <!-- Load the Sonar Quiz System -->
-  <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true"></script>
+  <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true" data-status-panel-container=".qd-nav"></script>
 </body>
 </html>

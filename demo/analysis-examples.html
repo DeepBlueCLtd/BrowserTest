@@ -113,16 +113,13 @@
   </style>
 </head>
 <body>
-  <nav class="qd-nav">
+  <nav class="qd-nav wh_top_menu_and_indexterms_link">
     <ul>
-      <li><a href="quiz-index.html" class="qd-test-link">Home</a></li>
-      <li><a href="quiz-examples.html" class="qd-test-link" data-page-id="sonar-basics">Quiz Examples</a></li>
-      <li><a href="analysis-examples.html" class="qd-test-link active" data-page-id="contact-analysis">Analysis Examples</a></li>
+      <li><a href="quiz-index.html" class="qd-test-link quizPageBtn">Home</a></li>
+      <li><a href="quiz-examples.html" class="qd-test-link quizPageBtn" data-page-id="sonar-basics">Quiz Examples</a></li>
+      <li><a href="analysis-examples.html" class="qd-test-link quizPageBtn active" data-page-id="contact-analysis">Analysis Examples</a></li>
     </ul>
   </nav>
-
-  <!-- Status Panel Container - qd-status component will be injected here -->
-  <div id="qd-status"></div>
 
   <h1>Analysis Table Examples</h1>
   <p>Demonstration of analysis table formats for the Sonar Quiz System.</p>
@@ -344,6 +341,6 @@
   </div>
 
   <!-- Load the Sonar Quiz System IIFE bundle -->
-  <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true"></script>
+  <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true" data-status-panel-container=".qd-nav"></script>
 </body>
 </html>
