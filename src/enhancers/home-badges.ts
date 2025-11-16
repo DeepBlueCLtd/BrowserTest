@@ -9,21 +9,35 @@ import type { SessionCache, CompletionState } from '../types/contracts';
 import { CSS_CLASSES, STORAGE_KEYS } from '../types/contracts';
 
 /**
- * Extract page ID from link href
+ * Extract page ID from navigation link text
  *
- * @param href - Link href attribute
- * @returns Page ID or null if invalid
+ * Since DITA publishing ensures link text matches the target page title,
+ * we use the link's text content as the page ID.
+ *
+ * For complex card structures (like quiz-link-card), we extract from .link-title.
+ * For simple text links, we use the direct textContent.
+ *
+ * @param link - Link element
+ * @returns Page ID (trimmed link text) or null if invalid
  */
-export function extractPageIdFromHref(href: string): string | null {
+export function extractPageIdFromLink(link: Element): string | null {
+  const href = link.getAttribute('href');
+
+  // Skip invalid links
   if (!href || href.startsWith('#') || href.startsWith('http') || href.startsWith('javascript:')) {
     return null;
   }
 
-  // Extract filename without extension
-  const filename = href.split('/').pop() ?? '';
-  const pageId = filename.replace(/\.html?$/i, '');
+  // For quiz-link-card structures, extract from .link-title
+  const linkTitle = link.querySelector('.link-title');
+  if (linkTitle) {
+    const titleText = linkTitle.textContent?.trim();
+    return titleText || null;
+  }
 
-  return pageId || null;
+  // For simple links, use direct textContent
+  const linkText = link.textContent?.trim();
+  return linkText || null;
 }
 
 /**
@@ -106,10 +120,7 @@ export function injectBadges(container: HTMLElement, cache: SessionCache | null)
   const links = container.querySelectorAll(`.${CSS_CLASSES.TEST_LINK}`);
 
   links.forEach((link) => {
-    const href = link.getAttribute('href');
-    if (!href) return;
-
-    const pageId = extractPageIdFromHref(href);
+    const pageId = extractPageIdFromLink(link);
     if (!pageId) return;
 
     const color = getPageBadgeColor(pageId, cache);
@@ -189,10 +200,7 @@ export function updateBadgeForPage(pageId: string, container: HTMLElement = docu
   const links = container.querySelectorAll(`.${CSS_CLASSES.TEST_LINK}`);
 
   links.forEach((link) => {
-    const href = link.getAttribute('href');
-    if (!href) return;
-
-    const linkPageId = extractPageIdFromHref(href);
+    const linkPageId = extractPageIdFromLink(link);
     if (linkPageId !== pageId) return;
 
     const color = getPageBadgeColor(pageId, cache);

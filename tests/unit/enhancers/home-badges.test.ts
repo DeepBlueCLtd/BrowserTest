@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { SessionCache, CompletionState } from '../../../src/types/contracts';
 import { CSS_CLASSES } from '../../../src/types/contracts';
 import {
-  extractPageIdFromHref,
+  extractPageIdFromLink,
   getBadgeColor,
   getPageBadgeColor,
   createBadgeElement,
@@ -47,12 +47,12 @@ beforeEach(() => {
 });
 
 describe('Home Page Badge Detection', () => {
-  it('should detect links with quizPageBtn class', () => {
+  it('should detect links with qd-test-link class', () => {
     // Arrange
     const container = document.createElement('div');
     container.innerHTML = `
-      <a href="page1.html" class="quizPageBtn">Page 1</a>
-      <a href="page2.html" class="quizPageBtn">Page 2</a>
+      <a href="page1.html" class="qd-test-link">Page 1</a>
+      <a href="page2.html" class="qd-test-link">Page 2</a>
       <a href="page3.html">Page 3 (no badge)</a>
     `;
 
@@ -65,33 +65,79 @@ describe('Home Page Badge Detection', () => {
     expect(links[1].getAttribute('href')).toBe('page2.html');
   });
 
-  it('should extract page ID from link href', () => {
+  it('should extract page ID from simple link text content', () => {
     // Arrange
     const testCases = [
-      { href: 'page1.html', expected: 'page1' },
-      { href: './chapter-2.html', expected: 'chapter-2' },
-      { href: '../section/test-page.html', expected: 'test-page' },
-      { href: 'folder/quiz.html', expected: 'quiz' },
+      {
+        href: 'page1.html',
+        text: 'Quiz Table Examples - Sonar Quiz System',
+        expected: 'Quiz Table Examples - Sonar Quiz System',
+      },
+      {
+        href: 'chapter-2.html',
+        text: 'Analysis Table Examples - Sonar Quiz System',
+        expected: 'Analysis Table Examples - Sonar Quiz System',
+      },
+      {
+        href: 'test-page.html',
+        text: 'Seven Questions - Acoustic Analysis Framework',
+        expected: 'Seven Questions - Acoustic Analysis Framework',
+      },
     ];
 
-    testCases.forEach(({ href, expected }) => {
+    testCases.forEach(({ href, text, expected }) => {
+      // Arrange
+      const link = document.createElement('a');
+      link.href = href;
+      link.textContent = text;
+
       // Act
-      const pageId = extractPageIdFromHref(href);
+      const pageId = extractPageIdFromLink(link);
 
       // Assert
       expect(pageId).toBe(expected);
     });
   });
 
-  it('should handle malformed hrefs gracefully', () => {
+  it('should extract page ID from quiz-link-card with .link-title', () => {
     // Arrange
-    const testCases = ['', '#anchor', 'http://external.com/page.html', 'javascript:void(0)'];
+    const link = document.createElement('a');
+    link.href = 'quiz-mixed.html';
+    link.classList.add('quiz-link-card', 'qd-test-link');
+    link.innerHTML = `
+      <span class="badge-placeholder"></span>
+      <div class="link-content">
+        <div class="link-title">Mixed Quiz - Sonar Quiz System</div>
+        <p class="link-description">Combination of MCQ and numeric questions</p>
+      </div>
+    `;
 
-    testCases.forEach((href) => {
+    // Act
+    const pageId = extractPageIdFromLink(link);
+
+    // Assert
+    expect(pageId).toBe('Mixed Quiz - Sonar Quiz System');
+  });
+
+  it('should handle malformed links gracefully', () => {
+    // Arrange
+    const testCases = [
+      { href: '', text: 'Empty href' },
+      { href: '#anchor', text: 'Anchor link' },
+      { href: 'http://external.com/page.html', text: 'External link' },
+      { href: 'javascript:void(0)', text: 'JavaScript link' },
+    ];
+
+    testCases.forEach(({ href, text }) => {
+      // Arrange
+      const link = document.createElement('a');
+      link.href = href;
+      link.textContent = text;
+
       // Act
-      const pageId = extractPageIdFromHref(href);
+      const pageId = extractPageIdFromLink(link);
 
-      // Assert - should return null or empty string for invalid hrefs
+      // Assert - should return null for invalid links
       expect(pageId).toBeFalsy();
     });
   });
@@ -204,12 +250,12 @@ describe('Badge Element Creation', () => {
 });
 
 describe('Badge Injection', () => {
-  it('should inject badges into all quizPageBtn elements', () => {
+  it('should inject badges into all qd-test-link elements', () => {
     // Arrange
     const container = document.createElement('div');
     container.innerHTML = `
-      <a href="page1.html" class="quizPageBtn">Page 1</a>
-      <a href="page2.html" class="quizPageBtn">Page 2</a>
+      <a href="page1.html" class="qd-test-link">Page 1</a>
+      <a href="page2.html" class="qd-test-link">Page 2</a>
     `;
 
     const cache: SessionCache = {
@@ -234,7 +280,7 @@ describe('Badge Injection', () => {
   it('should not inject duplicate badges', () => {
     // Arrange
     const container = document.createElement('div');
-    container.innerHTML = `<a href="page1.html" class="quizPageBtn">Page 1</a>`;
+    container.innerHTML = `<a href="page1.html" class="qd-test-link">Page 1</a>`;
 
     const cache: SessionCache = {
       totals: { answered: 0, correct: 0 },
@@ -254,7 +300,7 @@ describe('Badge Injection', () => {
   it('should handle missing cache gracefully', () => {
     // Arrange
     const container = document.createElement('div');
-    container.innerHTML = `<a href="page1.html" class="quizPageBtn">Page 1</a>`;
+    container.innerHTML = `<a href="page1.html" class="qd-test-link">Page 1</a>`;
 
     // Act - inject with null cache
     expect(() => injectBadges(container, null)).not.toThrow();
@@ -263,16 +309,20 @@ describe('Badge Injection', () => {
   it('should update existing badges when state changes', () => {
     // Arrange
     const container = document.createElement('div');
-    container.innerHTML = `<a href="page1.html" class="quizPageBtn">Page 1</a>`;
+    container.innerHTML = `<a href="page1.html" class="qd-test-link">Quiz Table Examples - Sonar Quiz System</a>`;
 
     const cache1: SessionCache = {
       totals: { answered: 1, correct: 0 },
-      pages: { page1: { state: 'incomplete', answered: 1, correct: 0 } },
+      pages: {
+        'Quiz Table Examples - Sonar Quiz System': { state: 'incomplete', answered: 1, correct: 0 },
+      },
     };
 
     const cache2: SessionCache = {
       totals: { answered: 5, correct: 5 },
-      pages: { page1: { state: 'complete', answered: 5, correct: 5 } },
+      pages: {
+        'Quiz Table Examples - Sonar Quiz System': { state: 'complete', answered: 5, correct: 5 },
+      },
     };
 
     // Act

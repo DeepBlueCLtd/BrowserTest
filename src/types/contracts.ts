@@ -309,7 +309,7 @@ export const CSS_CLASSES = {
   QUIZ_TABLE: 'qd-quiz',
   PAGE_TABLE: 'qd-page',
   ANALYSIS_TABLE: 'qd-analysis',
-  TEST_LINK: 'quizPageBtn',
+  TEST_LINK: 'qd-test-link',
 } as const;
 
 /** Element IDs */

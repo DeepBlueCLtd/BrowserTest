@@ -276,7 +276,7 @@ Content authors must follow these rules (runtime validation enforces):
   - **Not logged in**: Shows login form within status panel
   - **Logged in**: Shows quiz progress (R/A/G state, counts, percentage)
   - **Logout**: Button at bottom-right clears sessionStorage and shows login form
-- Navigation links: Add class `quizPageBtn` for R/A/G badges
+- Navigation links: Add class `qd-test-link` for R/A/G badges. Link text must match the target page's `<title>` element exactly.
 
 ## Data Model Key Points
 
