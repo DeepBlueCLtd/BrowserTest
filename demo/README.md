@@ -2,6 +2,43 @@
 
 This directory contains standalone HTML test files that load and test the built Sonar Quiz System artifacts from the `dist` folder.
 
+## Instructor Password Setup
+
+### `hash-password.html` - Password Hash Generator
+
+**Purpose**: Generate a 16-character SHA-256 hash for instructor authentication
+
+**How to Use**:
+1. Open `demo/hash-password.html` in a web browser
+2. Enter your desired instructor password
+3. Click "Generate Hash" to create the 16-character hash
+4. Copy the generated hash to your clipboard
+
+**Oxygen XML Editor Integration**:
+1. In your Oxygen transformation scenario, add a parameter:
+   - Name: `instructor.password.hash`
+   - Value: Paste the generated hash
+2. Update your XSL template to inject the hash into the HTML:
+   ```xml
+   <xsl:param name="instructor.password.hash" select="''" />
+
+   <!-- In your body template, add: -->
+   <span id="instructor-password-hash" style="display:none">
+     <xsl:value-of select="$instructor.password.hash"/>
+   </span>
+   ```
+3. The `qd-instructor` component will automatically read the hash from this hidden span element
+
+**Security Note**: The hash should be unique per deployment. Do not commit the hash to version control or share it publicly.
+
+**Example**:
+- Password: `instructor123`
+- Generated hash: `c1437a55f6e93b70`
+
+See `quiz-index.html` for an example of the injected span element.
+
+---
+
 ## Files Overview
 
 ### 1. `quiz-index.html` - Quiz Index/Homepage

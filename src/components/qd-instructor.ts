@@ -49,13 +49,6 @@ export class QdInstructor extends LitElement {
   release = '';
 
   /**
-   * Instructor password hash (SHA-256)
-   * If not provided, falls back to VITE_INSTRUCTOR_PASSWORD_HASH environment variable
-   */
-  @property({ type: String })
-  passwordHash = '';
-
-  /**
    * Whether instructor mode is unlocked
    */
   @property({ type: Boolean })
@@ -975,19 +968,35 @@ export class QdInstructor extends LitElement {
   /**
    * Validate instructor password using SHA-256 hash
    *
-   * Security: Uses environment variable for password hash and constant-time comparison
-   * to prevent timing attacks. No hardcoded passwords.
+   * Security: Reads password hash from hidden span element injected by XSL transformation.
+   * Uses constant-time comparison to prevent timing attacks. No hardcoded passwords.
    */
   private async _validatePassword(password: string): Promise<boolean> {
-    // Hash the input password
+    // Hash the input password (16 character truncated)
     const hash = await this._hashPassword(password);
 
-    // Get configured password hash from property or environment variable
-    const configuredHash = this.passwordHash || import.meta.env.VITE_INSTRUCTOR_PASSWORD_HASH;
+    // Get configured password hash from hidden span element
+    // XSL transformation should inject: <span id="instructor-password-hash" style="display:none">HASH</span>
+    const hashElement = document.getElementById('instructor-password-hash');
+
+    if (!hashElement) {
+      console.error(
+        'Instructor password hash not found. Expected <span id="instructor-password-hash"> element in the page.',
+      );
+      return false;
+    }
+
+    const configuredHash = hashElement.textContent?.trim() || '';
 
     if (!configuredHash || configuredHash.length === 0) {
+      console.error('Instructor password hash element is empty.');
+      return false;
+    }
+
+    // Validate hash length (should be 16 characters)
+    if (configuredHash.length !== 16) {
       console.error(
-        'Password hash not configured. Set passwordHash property or VITE_INSTRUCTOR_PASSWORD_HASH environment variable.',
+        `Invalid hash length: expected 16 characters, got ${configuredHash.length}. Use demo/hash-password.html to generate the hash.`,
       );
       return false;
     }
@@ -1004,7 +1013,7 @@ export class QdInstructor extends LitElement {
   }
 
   /**
-   * Hash password using SHA-256
+   * Hash password using SHA-256 (16 character truncated)
    */
   private async _hashPassword(password: string): Promise<string> {
     // Use Web Crypto API for hashing
@@ -1013,7 +1022,9 @@ export class QdInstructor extends LitElement {
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-    return hashHex;
+
+    // Return first 16 characters for compatibility with hash-password.html utility
+    return hashHex.substring(0, 16);
   }
 
   /**
