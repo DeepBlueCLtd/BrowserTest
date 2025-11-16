@@ -425,6 +425,16 @@ export class QdInstructor extends LitElement {
     this._setupCrossTabSync();
   }
 
+  firstUpdated() {
+    // If already unlocked when component first renders, reveal answers
+    if (this.unlocked) {
+      // Use setTimeout to ensure quiz tables are prepared
+      setTimeout(() => {
+        this._revealAnswersOnPage();
+      }, 100);
+    }
+  }
+
   disconnectedCallback() {
     super.disconnectedCallback();
     // Clean up broadcast channel

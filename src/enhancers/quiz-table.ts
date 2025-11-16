@@ -101,6 +101,9 @@ export function prepareQuizTable(
     if (question.kind === 'numeric' && question.tolerance !== undefined) {
       answerCell.setAttribute('data-tolerance', question.tolerance.toString());
     }
+
+    // Clear the visible answer text to hide correct answers until instructor reveal
+    answerCell.textContent = '';
   });
 
   // Remove the detail column (3rd column) - it's only used for metadata during parsing
@@ -552,11 +555,17 @@ export function revealCorrectAnswers(table: HTMLTableElement | null): void {
           if (!isNaN(answerIndex) && answerIndex >= 1 && answerIndex <= options.length) {
             const optionText = options[answerIndex - 1]; // Convert to 0-based index
             displayText = `${answerIndex}: ${optionText}`;
+          } else {
+            console.warn(
+              `MCQ answer index ${answerIndex} out of range (1-${options.length}) or invalid`,
+            );
           }
         } catch (error) {
           // If parsing fails, just show the answer as-is
           console.warn('Failed to parse MCQ options:', error);
         }
+      } else {
+        console.warn('MCQ question missing data-options attribute');
       }
 
       revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${displayText}`;
