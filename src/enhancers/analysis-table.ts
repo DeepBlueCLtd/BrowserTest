@@ -11,9 +11,10 @@
  * - Cell keys for tracking individual cell data
  */
 
-import type { AnalysisData, CellKey, PageId } from '../types/contracts';
+import type { AnalysisData, CellKey } from '../types/contracts';
 import { parseAnalysisTable } from '../services/analysis-parser';
 import { STORAGE_KEYS, LIMITS } from '../types/contracts';
+import { getPageId } from '../utils/page';
 
 /**
  * Enhancement options
@@ -216,17 +217,6 @@ function loadAnalysisData(tableId: string): AnalysisData | null {
     console.error('Failed to load analysis data:', error);
     return null;
   }
-}
-
-/**
- * Get current page ID from document
- * Simplified version - in full implementation would be more sophisticated
- */
-function getPageId(): PageId {
-  // Try to extract from URL or document metadata
-  const path = window.location.pathname;
-  const match = path.match(/([^/]+)\.html?$/);
-  return match ? match[1] : 'unknown-page';
 }
 
 /**

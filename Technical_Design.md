@@ -43,6 +43,7 @@
 ## 7. Data and Session Model
 - **Record key:** `qd/{release}/u{serviceId}`.
 - **Release detection**: Extracted from DOM structure `<div class="{titleContainerClass}">...<span class="title">...</span>...</div>` (configurable, default: `wh_publication_title`)
+- **Page identification**: Extracted from HTML `<title>` element (`document.title`). Authors control page titles directly, unlike metadata.
 - **Page object:** `answers[]`, `firstAttempted`, `lastAttempted`, `state`, optional `analysis{cells, firstEdited, lastEdited}`.
 - **Persistence:** IndexedDB atomic read‑modify‑write per save.
 - **Session:** `sessionStorage` holds active user + instructor unlock + per‑session R/A/G cache (`qd/state`).

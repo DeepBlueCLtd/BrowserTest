@@ -61,6 +61,18 @@ Documents are published quarterly and used by individual students. Instructors c
   - `<span class="title">Field Manual Pub-10 Mar 2025</span>` → Release: `"Field Manual Pub-10 Mar 2025"`
   - `<span class="title">Sonar Training v2.1</span>` → Release: `"Sonar Training v2.1"`
 
+#### 4.1.2 Page Identification
+- **Page identifier**: Extracted from the HTML `<title>` element
+- **Rationale**: Content authors cannot reliably edit metadata (like meta tags) without special tools, but they always control the page title
+- **No parsing**: The entire text content of `document.title` is used as the page ID
+- **Fallback**: If title is empty or whitespace-only, defaults to `"unknown-page"`
+- **Author responsibility**: Ensure each page has a unique, descriptive `<title>` element
+- **Data isolation**: Quiz answers and analysis data are stored per page using the page ID
+- **Examples**:
+  - `<title>Quiz Table Examples - Sonar Quiz System</title>` → Page ID: `"Quiz Table Examples - Sonar Quiz System"`
+  - `<title>Analysis Table Examples - Sonar Quiz System</title>` → Page ID: `"Analysis Table Examples - Sonar Quiz System"`
+  - `<title>Sonar Basics</title>` → Page ID: `"Sonar Basics"`
+
 ### 4.2 Quiz Tables
 - Each page may contain one table: `table.qd-quiz.qd-page`.
 - Columns (strict order):  

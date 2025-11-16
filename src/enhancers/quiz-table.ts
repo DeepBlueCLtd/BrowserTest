@@ -12,6 +12,7 @@
 
 import { parseQuizTable, validateAnswer } from '../services/quiz-parser';
 import type { AnswerRecord, QuizQuestion } from '../types/contracts';
+import { getPageId } from '../utils/page';
 
 /**
  * Debounce timeout for auto-save (milliseconds)
@@ -454,8 +455,8 @@ export function activateAllQuizTables(
   const tables = doc.querySelectorAll<HTMLTableElement>('table.qd-quiz');
 
   tables.forEach((table) => {
-    // Try to determine pageId for answer restoration
-    const pageId = table.getAttribute('data-page-id') || '';
+    // Get page ID from document title for answer restoration
+    const pageId = getPageId();
     const savedAnswers = answersByPage?.get(pageId);
 
     activateQuizTable(table, savedAnswers);
@@ -475,9 +476,8 @@ export function enhanceAllQuizTables(
   const tables = doc.querySelectorAll<HTMLTableElement>('table.qd-quiz');
 
   tables.forEach((table) => {
-    // Try to determine pageId for answer restoration
-    // For now, use table index as fallback
-    const pageId = table.getAttribute('data-page-id') || '';
+    // Get page ID from document title for answer restoration
+    const pageId = getPageId();
     const savedAnswers = answersByPage?.get(pageId);
 
     enhanceQuizTable(table, savedAnswers);

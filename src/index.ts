@@ -20,6 +20,7 @@ import { enhanceAllAnalysisTables } from './enhancers/analysis-table';
 import { getSessionService } from './services/session';
 import { getStorageAdapter } from './services/storage/indexeddb';
 import { initializeHomeBadges } from './enhancers/home-badges';
+import { getPageId } from './utils/page';
 
 // Import components to register custom elements
 import './components/qd-login';
@@ -296,13 +297,8 @@ function handleAnswerSaved(
     };
   }
 
-  // Determine current page ID
-  const pageIdMeta = document.querySelector('meta[name="page-id"]');
-  const pageId =
-    pageIdMeta?.getAttribute('content') ||
-    table.getAttribute('data-page-id') ||
-    document.location.pathname.replace(/^.*\//, '').replace(/\.html?$/, '') ||
-    'unknown-page';
+  // Determine current page ID from document title
+  const pageId = getPageId();
 
   // Initialize page data if it doesn't exist
   if (!cache.pages[pageId]) {
@@ -579,12 +575,8 @@ function restorePreviousAnswers(): void {
     return;
   }
 
-  // Determine current page ID
-  const pageIdMeta = document.querySelector('meta[name="page-id"]');
-  const pageId =
-    pageIdMeta?.getAttribute('content') ||
-    document.location.pathname.replace(/^.*\//, '').replace(/\.html?$/, '') ||
-    'unknown-page';
+  // Determine current page ID from document title
+  const pageId = getPageId();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
   const pageCache = cache.pages[pageId] as any;

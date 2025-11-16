@@ -200,6 +200,24 @@ The system looks for a specific DOM pattern in the published HTML:
 
 **Configuration**: Set `titleContainerClass` in init() or via `data-title-container-class` attribute on the script tag to match your publishing system's structure.
 
+## Page Identification
+
+**The page identifier is extracted from the HTML `<title>` element.**
+
+Content authors cannot reliably edit metadata (like meta tags) without special tools, but they always control the HTML page title. Therefore:
+
+- **Page ID source**: `document.title` (the HTML `<title>` element)
+- **No parsing**: The entire text content is used as the page ID
+- **Fallback**: If title is empty or whitespace-only, defaults to `"unknown-page"`
+- **Examples**:
+  - `<title>Quiz Table Examples - Sonar Quiz System</title>` → Page ID: `"Quiz Table Examples - Sonar Quiz System"`
+  - `<title>Analysis Table Examples - Sonar Quiz System</title>` → Page ID: `"Analysis Table Examples - Sonar Quiz System"`
+  - `<title>Sonar Basics</title>` → Page ID: `"Sonar Basics"`
+
+**Author requirement**: Ensure each page in your DITA project has a unique, descriptive `<title>` element. The system uses this title to track quiz progress and analysis data per page.
+
+**Data isolation**: Quiz answers and analysis data are stored with composite keys: `qd/{release}/u{serviceId}/pages/{pageId}`, ensuring data is tracked separately for each page.
+
 ## Frozen Contracts (src/types/contracts.ts)
 
 **DO NOT MODIFY** without version bump and migration strategy.
@@ -209,7 +227,7 @@ The system looks for a specific DOM pattern in the published HTML:
 // Identity
 type ReleaseId = string;      // Full document title (e.g., "TRV Connectors Autumn 2025")
 type ServiceId = string;      // e.g. "RN2344"
-type PageId = string;         // e.g. "gram-1"
+type PageId = string;         // HTML <title> element (e.g., "Quiz Table Examples - Sonar Quiz System")
 type CellKey = string;        // "R{row}C{col}#f:{hash}"
 
 // States
