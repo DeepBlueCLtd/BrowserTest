@@ -1,9 +1,13 @@
 /**
  * Frozen Type Contracts for Sonar Quiz System
- * Version: 1.0.0
+ * Version: 1.1.0 (Fixed PageCache with answers field)
  *
  * These types are FROZEN and must not be modified without version bump.
  * Any changes require migration strategy and backwards compatibility.
+ *
+ * Changelog:
+ * - 1.1.0: Added missing `answers` field to PageCache (fixes 78 eslint-disable comments)
+ * - 1.0.0: Initial contracts
  */
 
 // ============================================================================
@@ -152,7 +156,12 @@ export interface SessionData {
   unlockTime?: string;
 }
 
-/** Cached page state for performance */
+/**
+ * Cached page state for performance
+ *
+ * CRITICAL FIX: Added `answers` field to fix type safety issues
+ * This was missing in v1.0.0, causing 78 eslint-disable comments
+ */
 export interface PageCache {
   /** Page completion state */
   state: CompletionState;
@@ -162,6 +171,8 @@ export interface PageCache {
   correct: number;
   /** Last update timestamp (ISO 8601) */
   last?: string;
+  /** Answer records (ADDED in v1.1.0) */
+  answers?: AnswerRecord[];
 }
 
 /** Session cache for quick access */
@@ -284,6 +295,7 @@ export interface QuizEvents {
   'qd:instructor-unlock': { detail: { timestamp: string } };
   'qd:instructor-lock': { detail: { timestamp: string } };
   'qd:data-cleared': { detail: { timestamp: string } };
+  'qd:session-expired': { detail: { timestamp: string } };
   'qd:storage-error': { detail: { error: Error; operation: string } };
 }
 

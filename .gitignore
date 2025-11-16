@@ -144,3 +144,6 @@ storybook-static/
 # Playwright test results
 playwright-report/
 test-results/
+
+# Rewrite reference (old implementation backup)
+.rewrite-reference/
