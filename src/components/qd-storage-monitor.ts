@@ -596,10 +596,8 @@ export class StorageMonitor extends LitElement {
       <div class="monitor">
         <div class="header">
           <h2>Storage Monitor</h2>
-          <button class="close-btn" @click=${() => (this.visible = false)}>✕</button>
+          <div class="hint">Ctrl+Shift+D to toggle</div>
         </div>
-
-        <div class="hint">Press Ctrl+Shift+D to toggle</div>
 
         ${this.renderSummary()}
 
@@ -660,14 +658,12 @@ export class StorageMonitor extends LitElement {
 
   static styles = css`
     :host {
-      position: fixed;
-      top: 0;
-      right: 0;
-      width: 400px;
-      height: 100vh;
+      display: block;
+      width: 100%;
+      max-width: 400px;
       font-family: monospace;
       font-size: 12px;
-      z-index: 9999;
+      border-left: 1px solid #3e3e42;
     }
 
     :host([hidden]) {
@@ -676,12 +672,13 @@ export class StorageMonitor extends LitElement {
 
     .monitor {
       width: 100%;
-      height: 100%;
+      height: 100vh;
+      position: sticky;
+      top: 0;
       background: #1e1e1e;
       color: #d4d4d4;
       display: flex;
       flex-direction: column;
-      box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
       overflow: hidden;
     }
 
@@ -700,25 +697,9 @@ export class StorageMonitor extends LitElement {
       font-weight: 600;
     }
 
-    .close-btn {
-      background: transparent;
-      border: none;
-      color: #d4d4d4;
-      font-size: 16px;
-      cursor: pointer;
-      padding: 4px 8px;
-    }
-
-    .close-btn:hover {
-      background: #3e3e42;
-    }
-
     .hint {
-      padding: 8px 12px;
       font-size: 10px;
       color: #858585;
-      background: #252526;
-      border-bottom: 1px solid #3e3e42;
     }
 
     .summary {
