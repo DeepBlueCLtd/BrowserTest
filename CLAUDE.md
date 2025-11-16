@@ -186,7 +186,8 @@ npm run format:check
 type ReleaseId = string;      // "MM-YYYY"
 type ServiceId = string;      // e.g. "RN2344"
 type PageId = string;         // e.g. "gram-1"
-type CellKey = string;        // "R{row}C{col}#f:{hash}"
+type TableId = string;        // 16-char hash from structure
+type CellKey = string;        // "R{row}C{col}#f:{hash}" (8-char content hash)
 
 // States
 type CompletionState = 'unstarted' | 'incomplete' | 'complete';
@@ -250,10 +251,17 @@ complete → All answered AND all correct
 - SessionCache rebuilt from IndexedDB on login
 - Auto-logout after 30 minutes inactivity
 
+### TableId Generation
+Format: 16-character hash derived from table structure
+- Based on: `{rows}x{cols}:{className}`
+- Example: "8e2b4a1c9f3d7b6e"
+- Used to uniquely identify analysis tables
+
 ### Cell Keys for Analysis
 Format: `R{row}C{col}#f:{hash}`
-- Hash: First 8 chars of SHA-256 of content
+- Hash: 8-character hash from normalized content (whitespace collapsed)
 - Unique identifier for analysis table cells
+- Example: "R2C4#f:abc123de"
 
 ## Testing Requirements
 

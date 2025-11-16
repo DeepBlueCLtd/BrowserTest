@@ -19,10 +19,10 @@ export type ServiceId = string;
 /** Page identifier from DITA document */
 export type PageId = string;
 
-/** Table identifier (hash-based) */
+/** Table identifier (16-char hash based on table structure: rows x cols + class name) */
 export type TableId = string;
 
-/** Cell key format: "R{row}C{col}#f:{hash}" */
+/** Cell key format: "R{row}C{col}#f:{hash}" where hash is 8-char from normalized content */
 export type CellKey = string;
 
 // ============================================================================
