@@ -49,6 +49,13 @@ export class QdInstructor extends LitElement {
   release = '';
 
   /**
+   * Instructor password hash (SHA-256)
+   * If not provided, falls back to VITE_INSTRUCTOR_PASSWORD_HASH environment variable
+   */
+  @property({ type: String })
+  passwordHash = '';
+
+  /**
    * Whether instructor mode is unlocked
    */
   @property({ type: Boolean })
@@ -975,11 +982,11 @@ export class QdInstructor extends LitElement {
     // Hash the input password
     const hash = await this._hashPassword(password);
 
-    // Get configured password hash from environment variable
-    const configuredHash = import.meta.env.VITE_INSTRUCTOR_PASSWORD_HASH;
+    // Get configured password hash from property or environment variable
+    const configuredHash = this.passwordHash || import.meta.env.VITE_INSTRUCTOR_PASSWORD_HASH;
 
     if (!configuredHash || configuredHash.length === 0) {
-      console.error('VITE_INSTRUCTOR_PASSWORD_HASH not configured');
+      console.error('Password hash not configured. Set passwordHash property or VITE_INSTRUCTOR_PASSWORD_HASH environment variable.');
       return false;
     }
 

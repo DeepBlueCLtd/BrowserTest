@@ -14,6 +14,12 @@ import { generateEncryptionKey } from '../utils/crypto';
  * Session Service for managing user sessions
  */
 export class SessionService {
+  private enableEncryption: boolean;
+
+  constructor(options?: { enableEncryption?: boolean }) {
+    this.enableEncryption = options?.enableEncryption ?? true;
+  }
+
   /**
    * Get or generate the encryption key for this session
    *
@@ -78,7 +84,7 @@ export class SessionService {
       }
 
       // Try to decrypt if encryption is enabled
-      if (import.meta.env.VITE_ENABLE_ENCRYPTION !== false) {
+      if (this.enableEncryption) {
         const encryptionKey = await this.getOrCreateEncryptionKey();
         const decryptedSession = await getEncryptedJSON<SessionData>(
           STORAGE_KEYS.SESSION,
@@ -108,7 +114,7 @@ export class SessionService {
       }
 
       // Re-encrypt plaintext session if encryption is enabled
-      if (import.meta.env.VITE_ENABLE_ENCRYPTION !== false) {
+      if (this.enableEncryption) {
         console.warn('Migrating plaintext session to encrypted format...');
         await this.saveSession(session);
       }
@@ -224,7 +230,7 @@ export class SessionService {
       }
 
       // Try to decrypt if encryption is enabled
-      if (import.meta.env.VITE_ENABLE_ENCRYPTION !== false) {
+      if (this.enableEncryption) {
         const encryptionKey = await this.getOrCreateEncryptionKey();
         const decryptedCache = await getEncryptedJSON<SessionCache>(
           STORAGE_KEYS.CACHE,
@@ -263,7 +269,7 @@ export class SessionService {
   async saveCache(cache: SessionCache): Promise<void> {
     try {
       // Encrypt if enabled
-      if (import.meta.env.VITE_ENABLE_ENCRYPTION !== false) {
+      if (this.enableEncryption) {
         const encryptionKey = await this.getOrCreateEncryptionKey();
         await setEncryptedJSON(STORAGE_KEYS.CACHE, cache, encryptionKey);
       } else {
@@ -290,7 +296,7 @@ export class SessionService {
   private async saveSession(session: SessionData): Promise<void> {
     try {
       // Encrypt if enabled
-      if (import.meta.env.VITE_ENABLE_ENCRYPTION !== false) {
+      if (this.enableEncryption) {
         const encryptionKey = await this.getOrCreateEncryptionKey();
         await setEncryptedJSON(STORAGE_KEYS.SESSION, session, encryptionKey);
       } else {
@@ -432,7 +438,9 @@ let sessionInstance: SessionService | null = null;
 
 export function getSessionService(): SessionService {
   if (!sessionInstance) {
-    sessionInstance = new SessionService();
+    sessionInstance = new SessionService({
+      enableEncryption: import.meta.env.VITE_ENABLE_ENCRYPTION !== false,
+    });
   }
   return sessionInstance;
 }
