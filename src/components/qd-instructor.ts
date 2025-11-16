@@ -123,10 +123,10 @@ export class QdInstructor extends LitElement {
   private _showStudentAnswers = false;
 
   /**
-   * Set of expanded student IDs in the scores table
+   * Whether to show detailed answers in the scores table
    */
   @state()
-  private _expandedStudents = new Set<string>();
+  private _showScoresDetails = false;
 
   static styles = css`
     :host {
@@ -418,80 +418,62 @@ export class QdInstructor extends LitElement {
       overflow: hidden;
     }
 
-    .expand-button {
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      padding: 0.25rem;
-      color: #0066cc;
-      font-size: 1.25rem;
-      line-height: 1;
-      transition: transform 0.2s;
-    }
-
-    .expand-button:hover {
-      background: #f5f5f5;
+    .toggle-details {
+      margin-bottom: 1rem;
+      padding: 0.75rem;
+      background: #f9f9f9;
+      border: 1px solid #e0e0e0;
       border-radius: 4px;
     }
 
-    .expand-button.expanded {
-      transform: rotate(90deg);
-    }
-
-    .details-row {
-      background: #f9f9f9;
-    }
-
-    .details-cell {
-      padding: 1rem !important;
-    }
-
-    .student-details {
+    .toggle-details label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
       font-size: 0.875rem;
     }
 
-    .page-section {
-      margin-bottom: 1rem;
+    .toggle-details input[type='checkbox'] {
+      cursor: pointer;
     }
 
-    .page-section:last-child {
+    .answer-details {
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      color: #555;
+      line-height: 1.4;
+    }
+
+    .answer-details-page {
+      margin-bottom: 0.25rem;
+    }
+
+    .answer-details-page:last-child {
       margin-bottom: 0;
     }
 
-    .page-header {
+    .answer-details-page-title {
       font-weight: 600;
       color: #333;
-      margin-bottom: 0.5rem;
-      padding-bottom: 0.25rem;
-      border-bottom: 1px solid #ddd;
+      margin-bottom: 0.125rem;
     }
 
-    .answer-list {
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      gap: 0.5rem 1rem;
-      align-items: center;
-      font-size: 0.8125rem;
+    .answer-details-answers {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
     }
 
-    .answer-list .question-num {
-      color: #666;
-      font-weight: 500;
+    .answer-details-item {
+      white-space: nowrap;
     }
 
-    .answer-list .answer-value {
-      color: #333;
-    }
-
-    .answer-list .answer-status {
-      font-size: 1rem;
-    }
-
-    .answer-list .answer-status.correct {
+    .answer-details-item .correct {
       color: #2e7d32;
     }
 
-    .answer-list .answer-status.incorrect {
+    .answer-details-item .incorrect {
       color: #d32f2f;
     }
   `;
@@ -716,11 +698,22 @@ export class QdInstructor extends LitElement {
           </button>
         </div>
 
+        <!-- Toggle for Answer Details -->
+        <div class="toggle-details">
+          <label>
+            <input
+              type="checkbox"
+              .checked=${this._showScoresDetails}
+              @change=${() => (this._showScoresDetails = !this._showScoresDetails)}
+            />
+            Show detailed answers for all students
+          </label>
+        </div>
+
         <!-- Scores Table -->
         <table>
           <thead>
             <tr>
-              <th scope="col" style="width: 2rem;"></th>
               <th scope="col">Service ID</th>
               <th scope="col">Name</th>
               <th scope="col">Attempted</th>
@@ -738,63 +731,52 @@ export class QdInstructor extends LitElement {
   }
 
   /**
-   * Render a student row with optional expanded details
+   * Render a student row with optional inline details
    */
   private _renderStudentRow(student: import('../services/scores').AggregatedScores['students'][0]) {
-    const isExpanded = this._expandedStudents.has(student.serviceId);
     const fullRecord = this._studentRecords.find((r) => r.serviceId === student.serviceId);
 
     return html`
       <tr>
-        <td>
-          <button
-            type="button"
-            class="expand-button ${isExpanded ? 'expanded' : ''}"
-            @click=${() => this._toggleStudentExpansion(student.serviceId)}
-            aria-label="${isExpanded ? 'Collapse' : 'Expand'} details for ${student.name}"
-          >
-            ▶
-          </button>
-        </td>
         <td>${student.serviceId}</td>
         <td>${student.name}</td>
         <td>${student.totalAttempted}</td>
         <td>${student.totalCorrect}</td>
         <td>${student.percentage.toFixed(1)}%</td>
-        <td>${student.pagesComplete} / ${student.pagesTotal}</td>
-      </tr>
-      ${isExpanded && fullRecord ? this._renderStudentDetails(fullRecord) : ''}
-    `;
-  }
-
-  /**
-   * Render expanded student details showing all answers by page
-   */
-  private _renderStudentDetails(student: StudentRecord) {
-    const pages = Object.entries(student.pages).sort(([a], [b]) => a.localeCompare(b));
-
-    return html`
-      <tr class="details-row">
-        <td colspan="7" class="details-cell">
-          <div class="student-details">
-            ${pages.length === 0
-              ? html`<p style="margin: 0; color: #666;">No answers recorded yet.</p>`
-              : pages.map(([pageId, pageData]) => this._renderPageSection(pageId, pageData))}
-          </div>
+        <td>
+          <div>${student.pagesComplete} / ${student.pagesTotal}</div>
+          ${this._showScoresDetails && fullRecord ? this._renderAnswerDetails(fullRecord) : ''}
         </td>
       </tr>
     `;
   }
 
   /**
-   * Render a page section showing all answers for that page
+   * Render compact answer details for a student
    */
-  private _renderPageSection(pageId: string, pageData: import('../types/contracts').PageData) {
+  private _renderAnswerDetails(student: StudentRecord) {
+    const pages = Object.entries(student.pages).sort(([a], [b]) => a.localeCompare(b));
+
+    if (pages.length === 0) {
+      return '';
+    }
+
+    return html`
+      <div class="answer-details">
+        ${pages.map(([pageId, pageData]) => this._renderPageAnswers(pageId, pageData))}
+      </div>
+    `;
+  }
+
+  /**
+   * Render answers for a single page (compact format)
+   */
+  private _renderPageAnswers(pageId: string, pageData: import('../types/contracts').PageData) {
     if (!pageData.answers || pageData.answers.length === 0) {
       return '';
     }
 
-    // Filter out null/undefined answers and track their original indices
+    // Filter out null/undefined answers
     const validAnswers = pageData.answers
       .map((answer, index) => ({ answer, questionNum: index + 1 }))
       .filter((item) => item.answer != null);
@@ -804,44 +786,22 @@ export class QdInstructor extends LitElement {
     }
 
     return html`
-      <div class="page-section">
-        <div class="page-header">${pageId} (${validAnswers.length} questions)</div>
-        <div class="answer-list">
-          ${validAnswers.map((item) => this._renderAnswer(item.questionNum, item.answer))}
+      <div class="answer-details-page">
+        <div class="answer-details-page-title">${pageId}:</div>
+        <div class="answer-details-answers">
+          ${validAnswers.map(
+            (item) => html`
+              <span class="answer-details-item">
+                Q${item.questionNum}:${item.answer.answer}<span
+                  class="${item.answer.success ? 'correct' : 'incorrect'}"
+                  >${item.answer.success ? '✓' : '✗'}</span
+                >
+              </span>
+            `,
+          )}
         </div>
       </div>
     `;
-  }
-
-  /**
-   * Render a single answer row
-   */
-  private _renderAnswer(questionNum: number, answer: import('../types/contracts').AnswerRecord) {
-    // Safety check - should not happen due to filtering, but be defensive
-    if (!answer) {
-      return '';
-    }
-
-    return html`
-      <span class="question-num">Q${questionNum}</span>
-      <span class="answer-value">${answer.answer}</span>
-      <span class="answer-status ${answer.success ? 'correct' : 'incorrect'}">
-        ${answer.success ? '✓' : '✗'}
-      </span>
-    `;
-  }
-
-  /**
-   * Toggle expansion state for a student
-   */
-  private _toggleStudentExpansion(serviceId: string): void {
-    if (this._expandedStudents.has(serviceId)) {
-      this._expandedStudents.delete(serviceId);
-    } else {
-      this._expandedStudents.add(serviceId);
-    }
-    // Trigger re-render
-    this.requestUpdate();
   }
 
   private _renderEraseDialog() {
