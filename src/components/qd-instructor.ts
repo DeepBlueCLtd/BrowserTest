@@ -744,9 +744,10 @@ export class QdInstructor extends LitElement {
       return '';
     }
 
-    // Show ALL questions, including unanswered (null) ones
-    const allQuestions = pageData.answers.map((answer, index) => ({
-      answer,
+    // Use Array.from to handle sparse arrays (arrays with undefined holes)
+    // .map() skips undefined indices, but Array.from with explicit indexing doesn't
+    const allQuestions = Array.from({ length: pageData.answers.length }, (_, index) => ({
+      answer: pageData.answers[index] ?? null,
       questionNum: index + 1,
     }));
 
