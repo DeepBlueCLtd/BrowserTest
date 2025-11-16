@@ -81,6 +81,7 @@ See [demo/README.md](./demo/README.md) for detailed testing instructions, workfl
 |----------|-------------|
 | [System_Requirements.md](./System_Requirements.md) | Functional requirements, user roles, data model, and authoring rules |
 | [Technical_Design.md](./Technical_Design.md) | Architecture, technology decisions, packaging, integration, and acceptance criteria |
+| [ARCHITECTURE_FLOWS.md](./ARCHITECTURE_FLOWS.md) | Event flows, login processes, DOM patterns, and service interactions |
 | [Contracts.md](./Contracts.md) | Core types, interfaces, events, constants, and validation rules (frozen API) |
 | [Delivery_Plan.md](./Delivery_Plan.md) | Phase-by-phase development plan with exit gates and testing strategy |
 | [Storybook_Plan.md](./Storybook_Plan.md) | Component stories, controls, interaction tests, and visual regression policy |

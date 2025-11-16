@@ -321,6 +321,7 @@ Enable via `data-qd-debug` attribute on quiz/analysis tables:
 
 - **System_Requirements.md**: Functional requirements, data model, authoring rules
 - **Technical_Design.md**: Architecture, packaging, integration patterns
+- **ARCHITECTURE_FLOWS.md**: Event flows, login processes, DOM patterns, service interactions
 - **Contracts.md**: Frozen types and interfaces
 - **Delivery_Plan.md**: 8-phase plan with exit gates
 - **demo/README.md**: Demo HTML files, testing workflows, troubleshooting guide
