@@ -111,6 +111,12 @@ export class QdInstructor extends LitElement {
   @state()
   private _exportFormat: ExportFormat = 'summary';
 
+  /**
+   * Whether to show student answers inline in quiz tables
+   */
+  @state()
+  private _showStudentAnswers = false;
+
   static styles = css`
     :host {
       display: block;
@@ -540,6 +546,20 @@ export class QdInstructor extends LitElement {
           export data, and manage the system.
         </p>
         <p>Use the tabs above to navigate between different views.</p>
+
+        <div class="field" style="margin-top: 1.5rem;">
+          <label>
+            <input
+              type="checkbox"
+              .checked=${this._showStudentAnswers}
+              @change=${() => this._handleToggleStudentAnswers()}
+            />
+            Show student answers in quiz tables
+          </label>
+          <p style="margin: 0.5rem 0 0 1.5rem; font-size: 0.875rem; color: #666;">
+            When enabled, displays all student answers inline within quiz tables on quiz pages.
+          </p>
+        </div>
       </div>
     `;
   }
@@ -693,6 +713,9 @@ export class QdInstructor extends LitElement {
           composed: true,
         }),
       );
+
+      // Automatically reveal answers on all quiz tables
+      this._revealAnswersOnPage();
     } else {
       this._errorMessage = 'Incorrect password. Please try again.';
       this._password = '';
@@ -954,6 +977,117 @@ export class QdInstructor extends LitElement {
   private _handleSortChange(field: SortField): void {
     this._sortField = field;
     this._aggregateScores();
+  }
+
+  /**
+   * Reveal correct answers on all quiz tables on the current page
+   */
+  private _revealAnswersOnPage(): void {
+    // Import revealCorrectAnswers dynamically to avoid circular dependencies
+    import('../enhancers/quiz-table')
+      .then(({ revealCorrectAnswers }) => {
+        const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
+        quizTables.forEach((table) => {
+          revealCorrectAnswers(table);
+        });
+      })
+      .catch((error) => {
+        console.error('Failed to reveal answers:', error);
+      });
+  }
+
+  /**
+   * Handle toggle for showing student answers inline
+   */
+  private _handleToggleStudentAnswers(): void {
+    this._showStudentAnswers = !this._showStudentAnswers;
+
+    if (this._showStudentAnswers) {
+      // Show student answers (intentionally not awaited)
+      void this._showStudentAnswersOnPage();
+    } else {
+      // Hide student answers
+      this._hideStudentAnswersOnPage();
+    }
+  }
+
+  /**
+   * Show student answers inline on all quiz tables
+   */
+  private async _showStudentAnswersOnPage(): Promise<void> {
+    // Ensure student records are loaded
+    if (this._studentRecords.length === 0) {
+      await this._loadStudentRecords();
+    }
+
+    if (this._studentRecords.length === 0) {
+      this._statusMessage = 'No student data available to display';
+      return;
+    }
+
+    // Get current page ID from URL or data attribute
+    const pageId = this._getCurrentPageId();
+
+    if (!pageId) {
+      this._statusMessage = 'Unable to determine current page ID';
+      return;
+    }
+
+    // Import and call showStudentAnswersInline
+    import('../enhancers/quiz-table')
+      .then(({ showStudentAnswersInline }) => {
+        const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
+        quizTables.forEach((table) => {
+          showStudentAnswersInline(table, this._studentRecords, pageId);
+        });
+        this._statusMessage = 'Student answers displayed inline';
+      })
+      .catch((error) => {
+        console.error('Failed to show student answers:', error);
+        this._errorMessage = 'Failed to display student answers';
+      });
+  }
+
+  /**
+   * Hide student answers from all quiz tables
+   */
+  private _hideStudentAnswersOnPage(): void {
+    import('../enhancers/quiz-table')
+      .then(({ hideStudentAnswersInline }) => {
+        const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
+        quizTables.forEach((table) => {
+          hideStudentAnswersInline(table);
+        });
+        this._statusMessage = 'Student answers hidden';
+      })
+      .catch((error) => {
+        console.error('Failed to hide student answers:', error);
+      });
+  }
+
+  /**
+   * Get current page ID from URL or data attributes
+   *
+   * @returns Page ID or empty string if not found
+   */
+  private _getCurrentPageId(): string {
+    // Try to get from data attribute on quiz table
+    const quizTable = document.querySelector<HTMLTableElement>('table.qd-quiz');
+    if (quizTable) {
+      const pageId = quizTable.getAttribute('data-page-id');
+      if (pageId) return pageId;
+    }
+
+    // Try to extract from URL pathname
+    // Expected format: /path/to/page-id.html
+    const pathname = window.location.pathname;
+    const match = pathname.match(/\/([^/]+)\.html?$/);
+    if (match && match[1]) {
+      return match[1];
+    }
+
+    // Fallback: return empty string
+    return '';
   }
 }
 
