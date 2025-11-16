@@ -65,7 +65,7 @@ export function sanitizeInput(input: string): string {
 export function createSafeElement(
   tagName: string = 'span',
   content: string,
-  className?: string
+  className?: string,
 ): HTMLElement {
   const element = document.createElement(tagName);
   element.textContent = content; // textContent auto-escapes

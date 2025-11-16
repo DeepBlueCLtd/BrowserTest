@@ -49,19 +49,16 @@ const IV_LENGTH = 12; // 96 bits (recommended for AES-GCM)
 export async function deriveKey(
   password: string,
   salt: Uint8Array,
-  iterations: number = PBKDF2_ITERATIONS
+  iterations: number = PBKDF2_ITERATIONS,
 ): Promise<CryptoKey> {
   const encoder = new TextEncoder();
   const passwordBytes = encoder.encode(password);
 
   // Import password as key material
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    passwordBytes,
-    'PBKDF2',
-    false,
-    ['deriveBits', 'deriveKey']
-  );
+  const keyMaterial = await crypto.subtle.importKey('raw', passwordBytes, 'PBKDF2', false, [
+    'deriveBits',
+    'deriveKey',
+  ]);
 
   // Derive AES-GCM key
   const key = await crypto.subtle.deriveKey(
@@ -77,7 +74,7 @@ export async function deriveKey(
       length: 256,
     },
     false, // Not extractable
-    ['encrypt', 'decrypt']
+    ['encrypt', 'decrypt'],
   );
 
   return key;
@@ -124,7 +121,7 @@ export async function encrypt(data: unknown, password: string): Promise<Encrypte
       iv,
     },
     key,
-    plaintext
+    plaintext,
   );
 
   // Convert to base64 for storage
@@ -185,7 +182,7 @@ export async function decrypt(encryptedData: EncryptedData, password: string): P
         iv,
       },
       key,
-      ciphertext
+      ciphertext,
     );
 
     // Decode and parse JSON

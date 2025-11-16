@@ -39,7 +39,9 @@ describe('XSS Prevention', () => {
       expect(sanitized).not.toContain('<a');
       expect(sanitized).toContain('&lt;a');
       // Result is safe - all HTML is escaped
-      expect(sanitized).toBe('&lt;a href=&quot;javascript:void(0)&quot; onclick=&quot;alert(1)&quot;&gt;Click here&lt;&#x2F;a&gt;');
+      expect(sanitized).toBe(
+        '&lt;a href=&quot;javascript:void(0)&quot; onclick=&quot;alert(1)&quot;&gt;Click here&lt;&#x2F;a&gt;',
+      );
     });
 
     it('should prevent XSS in correct answer reveal', () => {
@@ -82,7 +84,7 @@ describe('XSS Prevention', () => {
         '<input onfocus="alert(1)">',
       ];
 
-      handlers.forEach(malicious => {
+      handlers.forEach((malicious) => {
         const sanitized = sanitizeInput(malicious);
         // Key check: no actual HTML tags (all escaped)
         expect(sanitized).not.toContain('<div');

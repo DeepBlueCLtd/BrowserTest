@@ -444,7 +444,7 @@ export class QdInstructor extends LitElement {
     super.connectedCallback();
     // Check session for existing unlock status
     const session = getSessionService();
-    void session.isInstructorUnlocked().then(unlocked => {
+    void session.isInstructorUnlocked().then((unlocked) => {
       this.unlocked = unlocked;
     });
 
@@ -743,7 +743,7 @@ export class QdInstructor extends LitElement {
 
       // Log lockout event
       logger.logSecurityEvent(SecurityEventType.AUTH_LOCKOUT, {
-        remainingTime: remainingMs
+        remainingTime: remainingMs,
       });
 
       return;
@@ -785,7 +785,7 @@ export class QdInstructor extends LitElement {
       // Log failed authentication
       const attemptCount = this._rateLimiter.getAttemptCount();
       logger.logSecurityEvent(SecurityEventType.AUTH_FAILURE, {
-        attemptCount
+        attemptCount,
       });
 
       const maxAttempts = 5;
@@ -802,7 +802,7 @@ export class QdInstructor extends LitElement {
 
         // Log lockout event
         logger.logSecurityEvent(SecurityEventType.AUTH_LOCKOUT, {
-          remainingTime: lockoutMs
+          remainingTime: lockoutMs,
         });
       }
 
@@ -986,7 +986,9 @@ export class QdInstructor extends LitElement {
     const configuredHash = this.passwordHash || import.meta.env.VITE_INSTRUCTOR_PASSWORD_HASH;
 
     if (!configuredHash || configuredHash.length === 0) {
-      console.error('Password hash not configured. Set passwordHash property or VITE_INSTRUCTOR_PASSWORD_HASH environment variable.');
+      console.error(
+        'Password hash not configured. Set passwordHash property or VITE_INSTRUCTOR_PASSWORD_HASH environment variable.',
+      );
       return false;
     }
 

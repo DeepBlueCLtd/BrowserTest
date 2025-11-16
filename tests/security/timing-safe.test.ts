@@ -55,8 +55,8 @@ describe('constantTimeCompare', () => {
    */
   it('should take similar time regardless of difference position', () => {
     const baseString = 'x'.repeat(1000);
-    const earlyDiff = 'y' + 'x'.repeat(999);  // Differs at position 0
-    const lateDiff = 'x'.repeat(999) + 'y';   // Differs at position 999
+    const earlyDiff = 'y' + 'x'.repeat(999); // Differs at position 0
+    const lateDiff = 'x'.repeat(999) + 'y'; // Differs at position 999
 
     // Warm up to avoid JIT compilation affecting timing
     for (let i = 0; i < 100; i++) {

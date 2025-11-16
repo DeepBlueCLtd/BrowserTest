@@ -6,11 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import {
-  Logger,
-  SecurityEventType,
-  logger as defaultLogger,
-} from '../../src/utils/logger';
+import { Logger, SecurityEventType, logger as defaultLogger } from '../../src/utils/logger';
 
 describe('Logger', () => {
   let logger: Logger;
@@ -48,10 +44,7 @@ describe('Logger', () => {
       logger.info('Test info message');
 
       expect(consoleInfoSpy).toHaveBeenCalledTimes(1);
-      expect(consoleInfoSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Test info message'),
-        '',
-      );
+      expect(consoleInfoSpy).toHaveBeenCalledWith(expect.stringContaining('Test info message'), '');
     });
 
     it('should log warning messages', () => {

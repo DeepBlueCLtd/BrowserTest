@@ -68,7 +68,7 @@ export function prepareQuizTable(
   if (parsed.errors && parsed.errors.length > 0) {
     logger.warn('Quiz table validation failed', {
       code: ERROR_CODES.QT_VAL_ERRORS,
-      errorCount: parsed.errors.length
+      errorCount: parsed.errors.length,
     });
     // Continue with partial preparation if possible
     if (parsed.questions.length === 0) {
@@ -176,7 +176,7 @@ export function activateQuizTable(
     if (!questionType || !correctAnswer) {
       logger.warn('Quiz table validation failed', {
         code: ERROR_CODES.QT_VAL_MISSING_METADATA,
-        questionIndex: index
+        questionIndex: index,
       });
       return;
     }
@@ -195,14 +195,14 @@ export function activateQuizTable(
           // Failed to parse options JSON
           logger.warn('Quiz table validation failed', {
             code: ERROR_CODES.QT_VAL_PARSE_OPTIONS,
-            questionIndex: index
+            questionIndex: index,
           });
           return;
         }
       } else {
         logger.warn('Quiz table validation failed', {
           code: ERROR_CODES.QT_VAL_NO_OPTIONS,
-          questionIndex: index
+          questionIndex: index,
         });
         return;
       }

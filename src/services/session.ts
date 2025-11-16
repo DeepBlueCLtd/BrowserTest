@@ -49,7 +49,11 @@ export class SessionService {
    * @param release - Current release ID
    * @returns Created session data
    */
-  async createSession(serviceId: ServiceId, name: string, release: ReleaseId): Promise<SessionData> {
+  async createSession(
+    serviceId: ServiceId,
+    name: string,
+    release: ReleaseId,
+  ): Promise<SessionData> {
     const now = new Date();
     const loginTime = now.toISOString();
     const expiresAt = new Date(now.getTime() + SESSION_TIMEOUT_MS).toISOString();
@@ -93,7 +97,11 @@ export class SessionService {
 
         if (decryptedSession) {
           // Validate required fields
-          if (!decryptedSession.serviceId || !decryptedSession.release || !decryptedSession.expiresAt) {
+          if (
+            !decryptedSession.serviceId ||
+            !decryptedSession.release ||
+            !decryptedSession.expiresAt
+          ) {
             console.warn('Invalid session data, missing required fields');
             return null;
           }

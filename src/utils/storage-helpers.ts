@@ -22,10 +22,7 @@ import { encrypt, decrypt, type EncryptedData } from './crypto';
  * }
  * ```
  */
-export function getJSON<T = unknown>(
-  key: string,
-  storage: Storage = sessionStorage
-): T | null {
+export function getJSON<T = unknown>(key: string, storage: Storage = sessionStorage): T | null {
   try {
     const item = storage.getItem(key);
     if (item === null) {
@@ -56,7 +53,9 @@ export function setJSON(key: string, value: unknown, storage: Storage = sessionS
     storage.setItem(key, json);
   } catch (error) {
     // Storage quota exceeded or serialization error
-    throw new Error(`Failed to save to storage: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to save to storage: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    );
   }
 }
 
@@ -150,7 +149,7 @@ export function hasKey(key: string, storage: Storage = sessionStorage): boolean 
 export async function getEncryptedJSON<T = unknown>(
   key: string,
   password: string,
-  storage: Storage = sessionStorage
+  storage: Storage = sessionStorage,
 ): Promise<T | null> {
   try {
     const item = storage.getItem(key);
@@ -187,7 +186,7 @@ export async function setEncryptedJSON(
   key: string,
   value: unknown,
   password: string,
-  storage: Storage = sessionStorage
+  storage: Storage = sessionStorage,
 ): Promise<void> {
   try {
     // Encrypt the data
@@ -199,7 +198,7 @@ export async function setEncryptedJSON(
   } catch (error) {
     // Encryption or storage error
     throw new Error(
-      `Failed to save encrypted data: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to save encrypted data: ${error instanceof Error ? error.message : 'Unknown error'}`,
     );
   }
 }

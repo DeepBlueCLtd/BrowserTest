@@ -57,7 +57,7 @@ describe('RateLimiter', () => {
     rateLimiter = new RateLimiter('test-key', {
       maxAttempts: 3,
       windowMs: 30000,
-      baseDelayMs: 1000
+      baseDelayMs: 1000,
     });
 
     // First 3 failed attempts
@@ -125,7 +125,7 @@ describe('RateLimiter', () => {
     rateLimiter = new RateLimiter('test-key', {
       maxAttempts: 2,
       windowMs: 30000,
-      baseDelayMs: 5000
+      baseDelayMs: 5000,
     });
 
     rateLimiter.recordAttempt(false);
@@ -170,7 +170,7 @@ describe('RateLimiter', () => {
       maxAttempts: 3,
       windowMs: 30000,
       baseDelayMs: 1000,
-      maxDelayMs: 30000
+      maxDelayMs: 30000,
     });
 
     // Many failed attempts
