@@ -122,6 +122,12 @@ export class QdInstructor extends LitElement {
   @state()
   private _showStudentAnswers = false;
 
+  /**
+   * Set of expanded student IDs in the scores table
+   */
+  @state()
+  private _expandedStudents = new Set<string>();
+
   static styles = css`
     :host {
       display: block;
@@ -411,6 +417,83 @@ export class QdInstructor extends LitElement {
       height: 1px;
       overflow: hidden;
     }
+
+    .expand-button {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0.25rem;
+      color: #0066cc;
+      font-size: 1.25rem;
+      line-height: 1;
+      transition: transform 0.2s;
+    }
+
+    .expand-button:hover {
+      background: #f5f5f5;
+      border-radius: 4px;
+    }
+
+    .expand-button.expanded {
+      transform: rotate(90deg);
+    }
+
+    .details-row {
+      background: #f9f9f9;
+    }
+
+    .details-cell {
+      padding: 1rem !important;
+    }
+
+    .student-details {
+      font-size: 0.875rem;
+    }
+
+    .page-section {
+      margin-bottom: 1rem;
+    }
+
+    .page-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .page-header {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.25rem;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .answer-list {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 0.5rem 1rem;
+      align-items: center;
+      font-size: 0.8125rem;
+    }
+
+    .answer-list .question-num {
+      color: #666;
+      font-weight: 500;
+    }
+
+    .answer-list .answer-value {
+      color: #333;
+    }
+
+    .answer-list .answer-status {
+      font-size: 1rem;
+    }
+
+    .answer-list .answer-status.correct {
+      color: #2e7d32;
+    }
+
+    .answer-list .answer-status.incorrect {
+      color: #d32f2f;
+    }
   `;
 
   private _broadcastChannel: BroadcastChannel | null = null;
@@ -637,6 +720,7 @@ export class QdInstructor extends LitElement {
         <table>
           <thead>
             <tr>
+              <th scope="col" style="width: 2rem;"></th>
               <th scope="col">Service ID</th>
               <th scope="col">Name</th>
               <th scope="col">Attempted</th>
@@ -646,22 +730,104 @@ export class QdInstructor extends LitElement {
             </tr>
           </thead>
           <tbody>
-            ${this._aggregatedScores.students.map(
-              (student) => html`
-                <tr>
-                  <td>${student.serviceId}</td>
-                  <td>${student.name}</td>
-                  <td>${student.totalAttempted}</td>
-                  <td>${student.totalCorrect}</td>
-                  <td>${student.percentage.toFixed(1)}%</td>
-                  <td>${student.pagesComplete} / ${student.pagesTotal}</td>
-                </tr>
-              `,
-            )}
+            ${this._aggregatedScores.students.map((student) => this._renderStudentRow(student))}
           </tbody>
         </table>
       </div>
     `;
+  }
+
+  /**
+   * Render a student row with optional expanded details
+   */
+  private _renderStudentRow(student: import('../services/scores').AggregatedScores['students'][0]) {
+    const isExpanded = this._expandedStudents.has(student.serviceId);
+    const fullRecord = this._studentRecords.find((r) => r.serviceId === student.serviceId);
+
+    return html`
+      <tr>
+        <td>
+          <button
+            type="button"
+            class="expand-button ${isExpanded ? 'expanded' : ''}"
+            @click=${() => this._toggleStudentExpansion(student.serviceId)}
+            aria-label="${isExpanded ? 'Collapse' : 'Expand'} details for ${student.name}"
+          >
+            ▶
+          </button>
+        </td>
+        <td>${student.serviceId}</td>
+        <td>${student.name}</td>
+        <td>${student.totalAttempted}</td>
+        <td>${student.totalCorrect}</td>
+        <td>${student.percentage.toFixed(1)}%</td>
+        <td>${student.pagesComplete} / ${student.pagesTotal}</td>
+      </tr>
+      ${isExpanded && fullRecord ? this._renderStudentDetails(fullRecord) : ''}
+    `;
+  }
+
+  /**
+   * Render expanded student details showing all answers by page
+   */
+  private _renderStudentDetails(student: StudentRecord) {
+    const pages = Object.entries(student.pages).sort(([a], [b]) => a.localeCompare(b));
+
+    return html`
+      <tr class="details-row">
+        <td colspan="7" class="details-cell">
+          <div class="student-details">
+            ${pages.length === 0
+              ? html`<p style="margin: 0; color: #666;">No answers recorded yet.</p>`
+              : pages.map(([pageId, pageData]) => this._renderPageSection(pageId, pageData))}
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
+  /**
+   * Render a page section showing all answers for that page
+   */
+  private _renderPageSection(pageId: string, pageData: import('../types/contracts').PageData) {
+    if (!pageData.answers || pageData.answers.length === 0) {
+      return '';
+    }
+
+    return html`
+      <div class="page-section">
+        <div class="page-header">${pageId} (${pageData.answers.length} questions)</div>
+        <div class="answer-list">
+          ${pageData.answers.map((answer, index) => this._renderAnswer(index + 1, answer))}
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Render a single answer row
+   */
+  private _renderAnswer(questionNum: number, answer: import('../types/contracts').AnswerRecord) {
+    return html`
+      <span class="question-num">Q${questionNum}</span>
+      <span class="answer-value">${answer.answer}</span>
+      <span class="answer-status ${answer.success ? 'correct' : 'incorrect'}">
+        ${answer.success ? '✓' : '✗'}
+      </span>
+    `;
+  }
+
+  /**
+   * Toggle expansion state for a student
+   */
+  private _toggleStudentExpansion(serviceId: string): void {
+    if (this._expandedStudents.has(serviceId)) {
+      this._expandedStudents.delete(serviceId);
+    } else {
+      this._expandedStudents.add(serviceId);
+    }
+    // Trigger re-render
+    this.requestUpdate();
   }
 
   private _renderEraseDialog() {
