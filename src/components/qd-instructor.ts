@@ -128,6 +128,12 @@ export class QdInstructor extends LitElement {
   @state()
   private _showStudentAnswers = false;
 
+  /**
+   * Whether to show answer details in the scores table
+   */
+  @state()
+  private _showAnswerDetails = true;
+
   static styles = css`
     :host {
       display: block;
@@ -351,6 +357,19 @@ export class QdInstructor extends LitElement {
 
     th.sortable.active .sort-icon {
       color: #0066cc;
+    }
+
+    .toggle-answers {
+      cursor: pointer;
+      margin-left: 0.5rem;
+      font-size: 0.875rem;
+      color: #0066cc;
+      text-decoration: underline;
+      user-select: none;
+    }
+
+    .toggle-answers:hover {
+      color: #0052a3;
     }
 
     .dialog-overlay {
@@ -663,7 +682,13 @@ export class QdInstructor extends LitElement {
               >
                 Percentage<span class="sort-icon">${this._getSortIcon('percentage')}</span>
               </th>
-              <th scope="col">Pages Complete</th>
+              <th scope="col">
+                Pages Complete<span
+                  class="toggle-answers"
+                  @click=${() => (this._showAnswerDetails = !this._showAnswerDetails)}
+                  >${this._showAnswerDetails ? 'Hide answers' : 'Show answers'}</span
+                >
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -675,7 +700,7 @@ export class QdInstructor extends LitElement {
   }
 
   /**
-   * Render a student row with inline answer details
+   * Render a student row with optional inline answer details
    */
   private _renderStudentRow(student: import('../services/scores').AggregatedScores['students'][0]) {
     const fullRecord = this._studentRecords.find((r) => r.serviceId === student.serviceId);
@@ -688,7 +713,7 @@ export class QdInstructor extends LitElement {
         <td>${student.percentage.toFixed(1)}%</td>
         <td>
           <div>${student.pagesComplete} / ${student.pagesTotal}</div>
-          ${fullRecord ? this._renderAnswerDetails(fullRecord) : ''}
+          ${this._showAnswerDetails && fullRecord ? this._renderAnswerDetails(fullRecord) : ''}
         </td>
       </tr>
     `;
