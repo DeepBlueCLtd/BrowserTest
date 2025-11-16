@@ -50,11 +50,6 @@ export function enhanceAnalysisTable(
     return;
   }
 
-  // eslint-disable-next-line no-console
-  console.log(
-    `[AnalysisTable] Enhancing table ${parsed.tableId} with ${parsed.editableCells.length} editable cells`,
-  );
-
   // Store table ID on element for data loading
   if (!table.dataset.tableId) {
     table.dataset.tableId = parsed.tableId;
@@ -67,9 +62,6 @@ export function enhanceAnalysisTable(
   parsed.editableCells.forEach((cellInfo) => {
     enhanceCell(table, cellInfo, existingData, parsed.tableId, options);
   });
-
-  // eslint-disable-next-line no-console
-  console.log(`[AnalysisTable] Successfully enhanced table ${parsed.tableId}`);
 }
 
 /**
@@ -224,19 +216,12 @@ function loadAnalysisData(tableId: string): AnalysisData | null {
  */
 export function enhanceAllAnalysisTables(options: EnhancementOptions = {}): void {
   const tables = document.querySelectorAll('table.qd-analysis');
-  // eslint-disable-next-line no-console
-  console.log(`[AnalysisTable] enhanceAllAnalysisTables called, found ${tables.length} tables`);
 
-  tables.forEach((table, index) => {
+  tables.forEach((table) => {
     if (table instanceof HTMLTableElement) {
-      // eslint-disable-next-line no-console
-      console.log(`[AnalysisTable] Enhancing table ${index + 1}/${tables.length}`);
       enhanceAnalysisTable(table, options);
     }
   });
-
-  // eslint-disable-next-line no-console
-  console.log(`[AnalysisTable] Finished enhancing ${tables.length} tables`);
 }
 
 /**
