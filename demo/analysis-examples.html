@@ -8,10 +8,17 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 1000px;
-      margin: 2rem auto;
-      padding: 0 1rem;
+      margin: 0;
+      padding: 0;
       line-height: 1.6;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    #page-content {
+      flex: 1;
+      padding: 2rem;
+      overflow-x: auto;
     }
     table {
       width: 100%;
@@ -98,7 +105,8 @@
     <a href="index.html"><span class="title">Sonar Quiz System Demo - November 2025</span></a>
   </div>
 
-  <nav class="wh_top_menu_and_indexterms_link">
+  <div id="page-content">
+    <nav class="wh_top_menu_and_indexterms_link">
     <ul>
       <li><a href="quiz-index.html" class="qd-test-link">Home</a></li>
       <li><a href="quiz-examples.html" class="qd-test-link" data-page-id="Quiz Table Examples - Sonar Quiz System">Quiz Examples</a></li>
@@ -205,6 +213,7 @@
       </tr>
     </tbody>
   </table>
+  </div>
 
   <!-- Load the Sonar Quiz System IIFE bundle -->
   <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true" data-status-panel-container=".wh_top_menu_and_indexterms_link"></script>

@@ -20,6 +20,8 @@
 
 import { LitElement, html, css } from 'lit';
 import { customElement, state, property } from 'lit/decorators.js';
+import type { SessionData } from '../types/contracts';
+import { STORAGE_KEYS } from '../types/contracts';
 
 interface StorageEntry {
   key: string;
@@ -33,6 +35,17 @@ interface IndexedDBEntry {
   value: unknown;
   size: number;
   expanded?: boolean;
+}
+
+interface PageSummary {
+  hasStatusPanelMarker: boolean;
+  isLoggedIn: boolean;
+  userName?: string;
+  serviceId?: string;
+  release?: string;
+  pageId?: string;
+  quizTables: number;
+  analysisTables: number;
 }
 
 @customElement('qd-storage-monitor')
@@ -58,6 +71,14 @@ export class StorageMonitor extends LitElement {
 
   @state()
   private indexedDBExpanded = true;
+
+  @state()
+  private pageSummary: PageSummary = {
+    hasStatusPanelMarker: false,
+    isLoggedIn: false,
+    quizTables: 0,
+    analysisTables: 0,
+  };
 
   private keyboardHandler = (e: KeyboardEvent) => {
     if (e.ctrlKey && e.shiftKey && e.key === 'D') {
@@ -107,6 +128,50 @@ export class StorageMonitor extends LitElement {
   private async refreshData(): Promise<void> {
     this.sessionEntries = this.readSessionStorage();
     this.indexedDBEntries = await this.readIndexedDB();
+    this.pageSummary = this.gatherPageSummary();
+  }
+
+  private gatherPageSummary(): PageSummary {
+    const summary: PageSummary = {
+      hasStatusPanelMarker: false,
+      isLoggedIn: false,
+      quizTables: 0,
+      analysisTables: 0,
+    };
+
+    // Check for status panel marker (default selector from Oxygen WebHelp)
+    summary.hasStatusPanelMarker = !!document.querySelector('.wh_top_menu_and_indexterms_link');
+
+    // Read session data from sessionStorage
+    const sessionDataStr = sessionStorage.getItem(STORAGE_KEYS.SESSION);
+    if (sessionDataStr) {
+      try {
+        const sessionData = JSON.parse(sessionDataStr) as SessionData;
+        summary.isLoggedIn = true;
+        summary.userName = sessionData.name;
+        summary.serviceId = sessionData.serviceId;
+        summary.release = sessionData.release;
+      } catch {
+        // Invalid session data
+      }
+    }
+
+    // Get release and page ID from meta tags
+    const releaseMeta = document.querySelector('meta[name="release"]');
+    if (releaseMeta) {
+      summary.release = releaseMeta.getAttribute('content') || undefined;
+    }
+
+    const pageIdMeta = document.querySelector('meta[name="document-id"]');
+    if (pageIdMeta) {
+      summary.pageId = pageIdMeta.getAttribute('content') || undefined;
+    }
+
+    // Count quiz and analysis tables
+    summary.quizTables = document.querySelectorAll('table.qd-quiz').length;
+    summary.analysisTables = document.querySelectorAll('table.qd-analysis').length;
+
+    return summary;
   }
 
   private readSessionStorage(): StorageEntry[] {
@@ -309,6 +374,32 @@ export class StorageMonitor extends LitElement {
     }
   }
 
+  /**
+   * Check if a value is a "leaf" object (all values are primitives)
+   * If so, it can be rendered compactly as label:value pairs on one line
+   */
+  private isLeafObject(value: unknown): boolean {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+      return false;
+    }
+    const entries = Object.values(value as Record<string, unknown>);
+    return entries.every(
+      (v) =>
+        v === null ||
+        v === undefined ||
+        typeof v === 'string' ||
+        typeof v === 'number' ||
+        typeof v === 'boolean',
+    );
+  }
+
+  /**
+   * Render a value with tree-based structure:
+   * - Primitives: inline
+   * - Arrays: vertical list of items
+   * - Leaf objects: compact label:value pairs on one line
+   * - Nested objects: hierarchical tree
+   */
   private renderValue(value: unknown, depth = 0): unknown {
     if (value === null) {
       return html`<span class="value-null">null</span>`;
@@ -334,20 +425,17 @@ export class StorageMonitor extends LitElement {
       if (value.length === 0) {
         return html`<span class="value-array">[]</span>`;
       }
+      // Arrays render as vertical columns
       return html`
         <div class="value-array">
-          <span class="bracket">[</span>
-          <div class="indent">
-            ${value.map(
-              (item, i) => html`
-                <div class="array-item">
-                  <span class="index">${i}:</span>
-                  ${this.renderValue(item, depth + 1)}
-                </div>
-              `,
-            )}
-          </div>
-          <span class="bracket">]</span>
+          ${value.map(
+            (item, i) => html`
+              <div class="array-item">
+                <span class="index">[${i}]</span>
+                ${this.renderValue(item, depth + 1)}
+              </div>
+            `,
+          )}
         </div>
       `;
     }
@@ -357,20 +445,34 @@ export class StorageMonitor extends LitElement {
       if (entries.length === 0) {
         return html`<span class="value-object">{}</span>`;
       }
+
+      // Check if this is a leaf object (all primitive values)
+      if (this.isLeafObject(value)) {
+        // Render compactly on one line
+        return html`
+          <span class="value-object-compact">
+            {${entries.map(([k, v], i) => {
+              const separator = i < entries.length - 1 ? ', ' : '';
+              return html`<span class="key">${k}:</span>${this.renderValue(
+                  v,
+                  depth + 1,
+                )}${separator}`;
+            })}}
+          </span>
+        `;
+      }
+
+      // Otherwise, render as tree
       return html`
         <div class="value-object">
-          <span class="bracket">{</span>
-          <div class="indent">
-            ${entries.map(
-              ([k, v]) => html`
-                <div class="object-entry">
-                  <span class="key">${k}:</span>
-                  ${this.renderValue(v, depth + 1)}
-                </div>
-              `,
-            )}
-          </div>
-          <span class="bracket">}</span>
+          ${entries.map(
+            ([k, v]) => html`
+              <div class="object-entry">
+                <span class="key">${k}:</span>
+                <div class="object-value">${this.renderValue(v, depth + 1)}</div>
+              </div>
+            `,
+          )}
         </div>
       `;
     }
@@ -428,6 +530,63 @@ export class StorageMonitor extends LitElement {
     return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
   }
 
+  private renderSummary(): unknown {
+    const { pageSummary } = this;
+    return html`
+      <div class="summary">
+        <h3>Page Context</h3>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <span class="summary-label">Status Panel:</span>
+            <span class="summary-value ${pageSummary.hasStatusPanelMarker ? 'success' : 'error'}">
+              ${pageSummary.hasStatusPanelMarker ? '✓ Found' : '✗ Not Found'}
+            </span>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">Logged In:</span>
+            <span class="summary-value ${pageSummary.isLoggedIn ? 'success' : 'error'}">
+              ${pageSummary.isLoggedIn ? '✓ Yes' : '✗ No'}
+            </span>
+          </div>
+
+          ${pageSummary.isLoggedIn
+            ? html`
+                <div class="summary-item">
+                  <span class="summary-label">User:</span>
+                  <span class="summary-value">${pageSummary.userName}</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Service ID:</span>
+                  <span class="summary-value">${pageSummary.serviceId}</span>
+                </div>
+              `
+            : ''}
+
+          <div class="summary-item">
+            <span class="summary-label">Release:</span>
+            <span class="summary-value">${pageSummary.release || 'N/A'}</span>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">Page ID:</span>
+            <span class="summary-value">${pageSummary.pageId || 'N/A'}</span>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">Quiz Tables:</span>
+            <span class="summary-value">${pageSummary.quizTables}</span>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">Analysis Tables:</span>
+            <span class="summary-value">${pageSummary.analysisTables}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   render() {
     if (!this.visible) {
       return html``;
@@ -437,10 +596,10 @@ export class StorageMonitor extends LitElement {
       <div class="monitor">
         <div class="header">
           <h2>Storage Monitor</h2>
-          <button class="close-btn" @click=${() => (this.visible = false)}>✕</button>
+          <div class="hint">Ctrl+Shift+D to toggle</div>
         </div>
 
-        <div class="hint">Press Ctrl+Shift+D to toggle</div>
+        ${this.renderSummary()}
 
         <div class="section">
           <div class="section-header">
@@ -500,20 +659,26 @@ export class StorageMonitor extends LitElement {
   static styles = css`
     :host {
       display: block;
-      width: 400px;
-      height: 100vh;
+      width: 100%;
+      max-width: 400px;
       font-family: monospace;
       font-size: 12px;
+      border-left: 1px solid #3e3e42;
+    }
+
+    :host([hidden]) {
+      display: none;
     }
 
     .monitor {
       width: 100%;
-      height: 100%;
+      height: 100vh;
+      position: sticky;
+      top: 0;
       background: #1e1e1e;
       color: #d4d4d4;
       display: flex;
       flex-direction: column;
-      box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
       overflow: hidden;
     }
 
@@ -532,25 +697,52 @@ export class StorageMonitor extends LitElement {
       font-weight: 600;
     }
 
-    .close-btn {
-      background: transparent;
-      border: none;
-      color: #d4d4d4;
-      font-size: 16px;
-      cursor: pointer;
-      padding: 4px 8px;
-    }
-
-    .close-btn:hover {
-      background: #3e3e42;
-    }
-
     .hint {
-      padding: 8px 12px;
       font-size: 10px;
       color: #858585;
+    }
+
+    .summary {
+      padding: 12px;
       background: #252526;
       border-bottom: 1px solid #3e3e42;
+    }
+
+    .summary h3 {
+      margin: 0 0 8px 0;
+      font-size: 12px;
+      font-weight: 600;
+      color: #d4d4d4;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+    }
+
+    .summary-label {
+      color: #858585;
+      font-weight: 500;
+    }
+
+    .summary-value {
+      color: #d4d4d4;
+      font-weight: 600;
+    }
+
+    .summary-value.success {
+      color: #4ec9b0;
+    }
+
+    .summary-value.error {
+      color: #f48771;
     }
 
     .section {
@@ -683,8 +875,22 @@ export class StorageMonitor extends LitElement {
       font-style: italic;
     }
 
-    .value-array,
+    .value-array {
+      color: #d4d4d4;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
     .value-object {
+      color: #d4d4d4;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-left: 12px;
+    }
+
+    .value-object-compact {
       color: #d4d4d4;
     }
 
@@ -694,17 +900,35 @@ export class StorageMonitor extends LitElement {
 
     .key {
       color: #9cdcfe;
-      margin-right: 4px;
+      margin-right: 6px;
+      font-weight: 500;
     }
 
     .index {
       color: #858585;
-      margin-right: 4px;
+      margin-right: 8px;
+      font-weight: 500;
+      min-width: 30px;
+      display: inline-block;
     }
 
-    .array-item,
+    .array-item {
+      display: flex;
+      align-items: flex-start;
+      padding: 2px 0;
+      border-left: 2px solid #3e3e42;
+      padding-left: 8px;
+      margin-left: 4px;
+    }
+
     .object-entry {
-      margin: 2px 0;
+      display: flex;
+      flex-direction: column;
+      padding: 2px 0;
+    }
+
+    .object-value {
+      margin-left: 12px;
     }
   `;
 }
