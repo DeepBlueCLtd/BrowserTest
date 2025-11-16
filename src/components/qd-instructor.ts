@@ -33,11 +33,7 @@ import {
 } from '../services/csv-export';
 import { getStorageAdapter } from '../services/storage/indexeddb';
 import type { StudentRecord } from '../types/contracts';
-import {
-  revealCorrectAnswers,
-  showStudentAnswersInline,
-  hideStudentAnswersInline,
-} from '../enhancers/quiz-table';
+import { showStudentAnswersInline, hideStudentAnswersInline } from '../enhancers/quiz-table';
 
 type InstructorMode = 'overview' | 'scores' | 'export' | 'manage';
 type SortField = 'serviceId' | 'name' | 'score' | 'percentage';
