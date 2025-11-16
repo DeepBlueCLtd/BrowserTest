@@ -45,8 +45,14 @@ export function enhanceAnalysisTable(
 
   // Only enhance valid analysis tables
   if (!parsed) {
+    console.warn('[AnalysisTable] Failed to parse table, skipping enhancement');
     return;
   }
+
+  // eslint-disable-next-line no-console
+  console.log(
+    `[AnalysisTable] Enhancing table ${parsed.tableId} with ${parsed.editableCells.length} editable cells`,
+  );
 
   // Store table ID on element for data loading
   if (!table.dataset.tableId) {
@@ -60,6 +66,9 @@ export function enhanceAnalysisTable(
   parsed.editableCells.forEach((cellInfo) => {
     enhanceCell(table, cellInfo, existingData, parsed.tableId, options);
   });
+
+  // eslint-disable-next-line no-console
+  console.log(`[AnalysisTable] Successfully enhanced table ${parsed.tableId}`);
 }
 
 /**
@@ -225,11 +234,19 @@ function getPageId(): PageId {
  */
 export function enhanceAllAnalysisTables(options: EnhancementOptions = {}): void {
   const tables = document.querySelectorAll('table.qd-analysis');
-  tables.forEach((table) => {
+  // eslint-disable-next-line no-console
+  console.log(`[AnalysisTable] enhanceAllAnalysisTables called, found ${tables.length} tables`);
+
+  tables.forEach((table, index) => {
     if (table instanceof HTMLTableElement) {
+      // eslint-disable-next-line no-console
+      console.log(`[AnalysisTable] Enhancing table ${index + 1}/${tables.length}`);
       enhanceAnalysisTable(table, options);
     }
   });
+
+  // eslint-disable-next-line no-console
+  console.log(`[AnalysisTable] Finished enhancing ${tables.length} tables`);
 }
 
 /**

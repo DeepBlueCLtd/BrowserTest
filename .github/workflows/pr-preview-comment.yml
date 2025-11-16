@@ -1,0 +1,78 @@
+name: PR Demo Preview Comment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  comment:
+    name: Add Demo Preview Comment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment on PR with demo info
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const prNumber = context.issue.number;
+
+            const comment = `## 📦 Demo Build Status
+
+            ✅ Your changes will be built and tested automatically.
+
+            **📋 Live Demo Links (available after merge to main):**
+            - 🏠 [Quiz Index (Home)](https://${owner}.github.io/${repo}/quiz-index.html)
+            - 📝 [Quiz Examples](https://${owner}.github.io/${repo}/quiz-examples.html)
+            - 📊 [Analysis Examples](https://${owner}.github.io/${repo}/analysis-examples.html)
+
+            **ℹ️ Note:** GitHub Pages deploys from the \`main\` branch only.
+            - The demo links above show the current production version
+            - Your changes will be reflected after this PR is merged
+            - The build artifacts from this PR can be downloaded from the [CI workflow runs](https://github.com/${owner}/${repo}/actions)
+
+            **🧪 Testing Locally:**
+            To test your changes before merging:
+            \`\`\`bash
+            npm install
+            npm run build
+            # Open demo/quiz-index.html in your browser (use file:// or http-server)
+            \`\`\`
+
+            ---
+            *This comment will be automatically updated when you push new commits.*`;
+
+            // Check if we've already commented
+            const { data: comments } = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number: prNumber,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Demo Build Status')
+            );
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: prNumber,
+                body: comment
+              });
+            }
