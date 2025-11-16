@@ -540,8 +540,26 @@ export function revealCorrectAnswers(table: HTMLTableElement | null): void {
 
     // Display correct answer based on question type
     if (questionType === 'mcq') {
-      // MCQ question
-      revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${correctAnswer}`;
+      // MCQ question - show both index and option text
+      const optionsJson = answerCell.getAttribute('data-options');
+      let displayText = correctAnswer;
+
+      if (optionsJson) {
+        try {
+          const options = JSON.parse(optionsJson) as string[];
+          // correctAnswer is 1-based index for MCQ
+          const answerIndex = parseInt(correctAnswer, 10);
+          if (!isNaN(answerIndex) && answerIndex >= 1 && answerIndex <= options.length) {
+            const optionText = options[answerIndex - 1]; // Convert to 0-based index
+            displayText = `${answerIndex}: ${optionText}`;
+          }
+        } catch (error) {
+          // If parsing fails, just show the answer as-is
+          console.warn('Failed to parse MCQ options:', error);
+        }
+      }
+
+      revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${displayText}`;
     } else if (questionType === 'numeric') {
       // Numeric question - get tolerance from data attribute
       const toleranceAttr = answerCell.getAttribute('data-tolerance');

@@ -33,6 +33,7 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import type { CompletionState, SessionCache, SessionData } from '../types/contracts';
+import { getSessionService } from '../services/session';
 import './qd-login';
 import './qd-instructor';
 
@@ -317,6 +318,12 @@ export class QdStatus extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this._checkInsertionTarget();
+
+    // Check if instructor mode is already unlocked (from previous page)
+    const session = getSessionService();
+    if (session.isInstructorUnlocked()) {
+      this._showInstructorPanel = true;
+    }
   }
 
   willUpdate(changedProperties: Map<PropertyKey, unknown>) {
