@@ -92,6 +92,17 @@ function createStudentSummary(student: StudentRecord): StudentSummary {
   const pagesComplete = pages.filter((p) => p.state === 'complete').length;
   const pagesTotal = pages.length;
 
+  console.log('[createStudentSummary] Student:', student.name);
+  console.log('[createStudentSummary] Pages:', Object.entries(student.pages));
+  pages.forEach((page, idx) => {
+    const pageId = Object.keys(student.pages)[idx];
+    console.log(`[createStudentSummary] Page ${pageId}:`, {
+      state: page.state,
+      answers: page.answers,
+    });
+  });
+  console.log('[createStudentSummary] pagesComplete:', pagesComplete, '/', pagesTotal);
+
   // Calculate percentage
   const percentage = student.attempted > 0 ? (student.correct / student.attempted) * 100 : 0;
 
