@@ -105,6 +105,12 @@ export class QdInstructor extends LitElement {
   private _sortField: SortField = 'serviceId';
 
   /**
+   * Sort direction (ascending or descending)
+   */
+  @state()
+  private _sortDirection: 'asc' | 'desc' = 'asc';
+
+  /**
    * Raw student records (loaded from IndexedDB)
    */
   @state()
@@ -321,37 +327,30 @@ export class QdInstructor extends LitElement {
       color: #555;
     }
 
-    .sort-controls {
-      margin-bottom: 1rem;
-      display: flex;
-      gap: 0.5rem;
-      align-items: center;
-    }
-
-    .sort-controls label {
-      font-weight: 500;
-      color: #555;
-    }
-
-    .sort-controls button {
-      padding: 0.5rem 1rem;
-      border: 1px solid #ccc;
-      background: #ffffff;
-      color: #333;
-      border-radius: 4px;
+    th.sortable {
       cursor: pointer;
-      transition: all 0.2s;
-      font-size: 0.875rem;
+      user-select: none;
+      transition: background-color 0.2s;
     }
 
-    .sort-controls button:hover {
-      background: #f5f5f5;
+    th.sortable:hover {
+      background: #e8e8e8;
     }
 
-    .sort-controls button.active {
-      background: #0066cc;
-      color: #ffffff;
-      border-color: #0052a3;
+    th.sortable.active {
+      background: #e0f2ff;
+      color: #0066cc;
+    }
+
+    .sort-icon {
+      display: inline-block;
+      margin-left: 0.25rem;
+      font-size: 0.75rem;
+      color: #999;
+    }
+
+    th.sortable.active .sort-icon {
+      color: #0066cc;
     }
 
     .dialog-overlay {
@@ -632,43 +631,38 @@ export class QdInstructor extends LitElement {
           </p>
         </div>
 
-        <!-- Sort Controls -->
-        <div class="sort-controls">
-          <label>Sort by:</label>
-          <button
-            class="${this._sortField === 'serviceId' ? 'active' : ''}"
-            @click=${() => this._handleSortChange('serviceId')}
-          >
-            Service ID
-          </button>
-          <button
-            class="${this._sortField === 'name' ? 'active' : ''}"
-            @click=${() => this._handleSortChange('name')}
-          >
-            Name
-          </button>
-          <button
-            class="${this._sortField === 'score' ? 'active' : ''}"
-            @click=${() => this._handleSortChange('score')}
-          >
-            Score
-          </button>
-          <button
-            class="${this._sortField === 'percentage' ? 'active' : ''}"
-            @click=${() => this._handleSortChange('percentage')}
-          >
-            Percentage
-          </button>
-        </div>
-
         <!-- Scores Table -->
         <table>
           <thead>
             <tr>
-              <th scope="col">Service ID</th>
-              <th scope="col">Name</th>
-              <th scope="col">Correct</th>
-              <th scope="col">Percentage</th>
+              <th
+                scope="col"
+                class="sortable ${this._sortField === 'serviceId' ? 'active' : ''}"
+                @click=${() => this._handleSortChange('serviceId')}
+              >
+                Service ID<span class="sort-icon">${this._getSortIcon('serviceId')}</span>
+              </th>
+              <th
+                scope="col"
+                class="sortable ${this._sortField === 'name' ? 'active' : ''}"
+                @click=${() => this._handleSortChange('name')}
+              >
+                Name<span class="sort-icon">${this._getSortIcon('name')}</span>
+              </th>
+              <th
+                scope="col"
+                class="sortable ${this._sortField === 'score' ? 'active' : ''}"
+                @click=${() => this._handleSortChange('score')}
+              >
+                Correct<span class="sort-icon">${this._getSortIcon('score')}</span>
+              </th>
+              <th
+                scope="col"
+                class="sortable ${this._sortField === 'percentage' ? 'active' : ''}"
+                @click=${() => this._handleSortChange('percentage')}
+              >
+                Percentage<span class="sort-icon">${this._getSortIcon('percentage')}</span>
+              </th>
               <th scope="col">Pages Complete</th>
             </tr>
           </thead>
@@ -1040,28 +1034,54 @@ export class QdInstructor extends LitElement {
   }
 
   /**
-   * Sort students based on selected field
+   * Sort students based on selected field and direction
    */
   private _sortStudents(students: StudentRecord[]): StudentRecord[] {
+    let sorted: StudentRecord[];
+
     switch (this._sortField) {
       case 'serviceId':
-        return students.sort(sortByServiceId);
+        sorted = students.sort(sortByServiceId);
+        break;
       case 'name':
-        return students.sort(sortByName);
+        sorted = students.sort(sortByName);
+        break;
       case 'score':
-        return students.sort(sortByScore);
+        sorted = students.sort(sortByScore);
+        break;
       case 'percentage':
-        return students.sort(sortByPercentage);
+        sorted = students.sort(sortByPercentage);
+        break;
       default:
-        return students;
+        sorted = students;
     }
+
+    // Reverse if descending
+    return this._sortDirection === 'desc' ? sorted.reverse() : sorted;
+  }
+
+  /**
+   * Get sort icon for a column header
+   */
+  private _getSortIcon(field: SortField): string {
+    if (this._sortField !== field) {
+      return '↕'; // Neutral sort icon when not active
+    }
+    return this._sortDirection === 'asc' ? '↑' : '↓';
   }
 
   /**
    * Handle sort field change
    */
   private _handleSortChange(field: SortField): void {
-    this._sortField = field;
+    // If clicking the same field, toggle direction
+    if (this._sortField === field) {
+      this._sortDirection = this._sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      // New field - reset to ascending
+      this._sortField = field;
+      this._sortDirection = 'asc';
+    }
     this._aggregateScores();
   }
 
