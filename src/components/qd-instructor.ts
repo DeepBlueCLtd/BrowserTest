@@ -794,11 +794,20 @@ export class QdInstructor extends LitElement {
       return '';
     }
 
+    // Filter out null/undefined answers and track their original indices
+    const validAnswers = pageData.answers
+      .map((answer, index) => ({ answer, questionNum: index + 1 }))
+      .filter((item) => item.answer != null);
+
+    if (validAnswers.length === 0) {
+      return '';
+    }
+
     return html`
       <div class="page-section">
-        <div class="page-header">${pageId} (${pageData.answers.length} questions)</div>
+        <div class="page-header">${pageId} (${validAnswers.length} questions)</div>
         <div class="answer-list">
-          ${pageData.answers.map((answer, index) => this._renderAnswer(index + 1, answer))}
+          ${validAnswers.map((item) => this._renderAnswer(item.questionNum, item.answer))}
         </div>
       </div>
     `;
@@ -808,6 +817,11 @@ export class QdInstructor extends LitElement {
    * Render a single answer row
    */
   private _renderAnswer(questionNum: number, answer: import('../types/contracts').AnswerRecord) {
+    // Safety check - should not happen due to filtering, but be defensive
+    if (!answer) {
+      return '';
+    }
+
     return html`
       <span class="question-num">Q${questionNum}</span>
       <span class="answer-value">${answer.answer}</span>
