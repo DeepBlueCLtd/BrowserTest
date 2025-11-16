@@ -289,8 +289,8 @@ describe.skip('QdLogin Component', () => {
 /**
  * Tests for Release Detection Logic
  *
- * Tests that the system uses the ENTIRE document title as the release ID
- * without parsing or extraction.
+ * Tests that the system extracts release ID from the DOM structure:
+ * <div class="{titleContainerClass}"><span class="title">Release Text</span></div>
  *
  * NOTE: These tests are skipped because JSDOM has limited support for
  * Custom Elements. The release detection functionality is tested in
@@ -301,17 +301,27 @@ describe.skip('QdLogin - Release Detection', () => {
   let document: Document;
 
   beforeEach(() => {
-    dom = new JSDOM('<!DOCTYPE html><html><head><title></title></head><body></body></html>');
+    dom = new JSDOM('<!DOCTYPE html><html><head></head><body></body></html>');
     document = dom.window.document;
     global.document = document as unknown as Document;
     global.window = dom.window as unknown as Window & typeof globalThis;
     global.customElements = dom.window.customElements;
   });
 
-  describe('Full Title as Release ID', () => {
-    it('should use entire title "TRV Connectors Autumn 2025" as release ID', async () => {
+  describe('DOM Structure Detection', () => {
+    it('should extract release from wh_publication_title div with span.title', async () => {
       const { QdLogin } = await import('../../../src/components/qd-login');
-      document.title = 'TRV Connectors Autumn 2025';
+
+      // Create the DOM structure
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'wh_publication_title';
+      const link = document.createElement('a');
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'title';
+      titleSpan.textContent = 'TRV Connectors Autumn 2025';
+      link.appendChild(titleSpan);
+      titleDiv.appendChild(link);
+      document.body.appendChild(titleDiv);
 
       const element = new QdLogin() as any;
       const release = element._inferRelease();
@@ -319,19 +329,33 @@ describe.skip('QdLogin - Release Detection', () => {
       expect(release).toBe('TRV Connectors Autumn 2025');
     });
 
-    it('should use entire title "Document Name Spring 2024" as release ID', async () => {
+    it('should extract release "Field Manual Pub-10 Mar 2025" from DOM', async () => {
       const { QdLogin } = await import('../../../src/components/qd-login');
-      document.title = 'Document Name Spring 2024';
+
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'wh_publication_title';
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'title';
+      titleSpan.textContent = 'Field Manual Pub-10 Mar 2025';
+      titleDiv.appendChild(titleSpan);
+      document.body.appendChild(titleDiv);
 
       const element = new QdLogin() as any;
       const release = element._inferRelease();
 
-      expect(release).toBe('Document Name Spring 2024');
+      expect(release).toBe('Field Manual Pub-10 Mar 2025');
     });
 
-    it('should use entire title "Sonar Training v2.1" as release ID', async () => {
+    it('should extract release "Sonar Training v2.1" from DOM', async () => {
       const { QdLogin } = await import('../../../src/components/qd-login');
-      document.title = 'Sonar Training v2.1';
+
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'wh_publication_title';
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'title';
+      titleSpan.textContent = 'Sonar Training v2.1';
+      titleDiv.appendChild(titleSpan);
+      document.body.appendChild(titleDiv);
 
       const element = new QdLogin() as any;
       const release = element._inferRelease();
@@ -339,19 +363,16 @@ describe.skip('QdLogin - Release Detection', () => {
       expect(release).toBe('Sonar Training v2.1');
     });
 
-    it('should use entire title with no version info as release ID', async () => {
+    it('should trim whitespace from span.title content', async () => {
       const { QdLogin } = await import('../../../src/components/qd-login');
-      document.title = 'Generic Document Title';
 
-      const element = new QdLogin() as any;
-      const release = element._inferRelease();
-
-      expect(release).toBe('Generic Document Title');
-    });
-
-    it('should trim whitespace from title', async () => {
-      const { QdLogin } = await import('../../../src/components/qd-login');
-      document.title = '  Document With Spaces  ';
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'wh_publication_title';
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'title';
+      titleSpan.textContent = '  Document With Spaces  ';
+      titleDiv.appendChild(titleSpan);
+      document.body.appendChild(titleDiv);
 
       const element = new QdLogin() as any;
       const release = element._inferRelease();
@@ -360,10 +381,49 @@ describe.skip('QdLogin - Release Detection', () => {
     });
   });
 
-  describe('Fallback Behavior', () => {
-    it('should return current MM-YYYY for empty title', async () => {
+  describe('Custom Container Class', () => {
+    it('should use custom titleContainerClass property', async () => {
       const { QdLogin } = await import('../../../src/components/qd-login');
-      document.title = '';
+
+      // Create structure with custom class
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'custom_title_container';
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'title';
+      titleSpan.textContent = 'Custom Container Release';
+      titleDiv.appendChild(titleSpan);
+      document.body.appendChild(titleDiv);
+
+      const element = new QdLogin() as any;
+      element.titleContainerClass = 'custom_title_container';
+      const release = element._inferRelease();
+
+      expect(release).toBe('Custom Container Release');
+    });
+  });
+
+  describe('Fallback Behavior', () => {
+    it('should return current MM-YYYY when DOM structure not found', async () => {
+      const { QdLogin } = await import('../../../src/components/qd-login');
+
+      // No title structure in DOM
+      const element = new QdLogin() as any;
+      const release = element._inferRelease();
+
+      // Should match MM-YYYY format
+      expect(release).toMatch(/^\d{2}-\d{4}$/);
+    });
+
+    it('should return current MM-YYYY when span.title is empty', async () => {
+      const { QdLogin } = await import('../../../src/components/qd-login');
+
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'wh_publication_title';
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'title';
+      titleSpan.textContent = '';
+      titleDiv.appendChild(titleSpan);
+      document.body.appendChild(titleDiv);
 
       const element = new QdLogin() as any;
       const release = element._inferRelease();
@@ -372,11 +432,38 @@ describe.skip('QdLogin - Release Detection', () => {
       expect(release).toMatch(/^\d{2}-\d{4}$/);
     });
 
-    it('should return current MM-YYYY for whitespace-only title', async () => {
+    it('should return current MM-YYYY when span.title has only whitespace', async () => {
       const { QdLogin } = await import('../../../src/components/qd-login');
-      document.title = '   ';
+
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'wh_publication_title';
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'title';
+      titleSpan.textContent = '   ';
+      titleDiv.appendChild(titleSpan);
+      document.body.appendChild(titleDiv);
 
       const element = new QdLogin() as any;
+      const release = element._inferRelease();
+
+      // Should match MM-YYYY format
+      expect(release).toMatch(/^\d{2}-\d{4}$/);
+    });
+
+    it('should return current MM-YYYY when titleContainerClass element not found', async () => {
+      const { QdLogin } = await import('../../../src/components/qd-login');
+
+      // Create div with wrong class
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'wrong_class';
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'title';
+      titleSpan.textContent = 'Some Title';
+      titleDiv.appendChild(titleSpan);
+      document.body.appendChild(titleDiv);
+
+      const element = new QdLogin() as any;
+      element.titleContainerClass = 'wh_publication_title';
       const release = element._inferRelease();
 
       // Should match MM-YYYY format

@@ -42,6 +42,8 @@ interface SonarQuizConfig {
   loginTitle?: string;
   /** CSS selector for navbar container where status panel will be injected as last child (e.g., ".wh_top_menu_and_indexterms_link", ".navbar-nav", "#header-nav") */
   statusPanelContainer?: string;
+  /** CSS class name for the container element that holds the document title (e.g., "wh_publication_title") */
+  titleContainerClass?: string;
 }
 
 /**
@@ -54,6 +56,7 @@ const DEFAULT_CONFIG: SonarQuizConfig = {
   loginInsertBeforeSelector: undefined,
   loginTitle: 'Core Skills Assessment',
   statusPanelContainer: '.wh_top_menu_and_indexterms_link', // Oxygen WebHelp default
+  titleContainerClass: 'wh_publication_title', // Oxygen WebHelp default
 };
 
 /**
@@ -106,13 +109,9 @@ function injectLoginComponent(doc: Document = document): void {
 
   const login = doc.createElement('qd-login');
 
-  // Try to extract release and docId from meta tags or document
-  const releaseMeta = doc.querySelector('meta[name="release"]');
+  // Try to extract docId from meta tags
   const docIdMeta = doc.querySelector('meta[name="document-id"]');
 
-  if (releaseMeta) {
-    login.setAttribute('release', releaseMeta.getAttribute('content') || '');
-  }
   if (docIdMeta) {
     login.setAttribute('docId', docIdMeta.getAttribute('content') || '');
   }
@@ -120,6 +119,11 @@ function injectLoginComponent(doc: Document = document): void {
   // Set title from config
   if (config.loginTitle) {
     login.setAttribute('title', config.loginTitle);
+  }
+
+  // Set titleContainerClass from config
+  if (config.titleContainerClass) {
+    login.setAttribute('titleContainerClass', config.titleContainerClass);
   }
 
   // Determine insertion point

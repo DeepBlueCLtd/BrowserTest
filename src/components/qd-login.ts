@@ -44,6 +44,14 @@ export class QdLogin extends LitElement {
   title = 'Core Skills Assessment';
 
   /**
+   * CSS class name for the container element that holds the document title
+   * (e.g., "wh_publication_title" for Oxygen WebHelp)
+   * The system will look for a <span class="title"> inside this container.
+   */
+  @property({ type: String })
+  titleContainerClass = 'wh_publication_title';
+
+  /**
    * Internal state for form validation
    */
   @state()
@@ -160,9 +168,12 @@ export class QdLogin extends LitElement {
         ? html`
             <div class="warning" role="alert">
               <strong>⚠️ Release Version Not Found</strong>
-              No document title found. The document <code>&lt;title&gt;</code> element is used as
-              the release identifier. User data may not be stored correctly. Please ensure the DITA
-              map has a <code>&lt;title&gt;</code> element.
+              No document title found. Looking for
+              <code
+                >&lt;div class="${this.titleContainerClass}"&gt;&lt;span
+                class="title"&gt;...&lt;/span&gt;&lt;/div&gt;</code
+              >. User data may not be stored correctly. Please ensure the DITA map title is
+              published correctly.
             </div>
           `
         : ''}
@@ -287,8 +298,8 @@ export class QdLogin extends LitElement {
   }
 
   /**
-   * Detect release from document title
-   * Uses the ENTIRE document.title as the release ID (no parsing)
+   * Detect release from DOM structure
+   * Looks for: <div class="{titleContainerClass}">...<span class="title">Release Text</span>...</div>
    */
   private _detectRelease(): void {
     // If release is already provided as a property, skip detection
@@ -297,29 +308,37 @@ export class QdLogin extends LitElement {
       return;
     }
 
-    // Use the entire document title as the release ID
-    const docTitle = document.title;
-    if (docTitle && docTitle.trim()) {
-      this.release = docTitle.trim();
-      this._releaseDetectionFailed = false;
-    } else {
-      // No title found - show warning and use fallback
-      const now = new Date();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const year = now.getFullYear();
-      this.release = `${month}-${year}`;
-      this._releaseDetectionFailed = true;
+    // Look for the title container element
+    const titleContainer = document.querySelector(`.${this.titleContainerClass}`);
+    if (titleContainer) {
+      // Find the span.title within the container
+      const titleSpan = titleContainer.querySelector('span.title');
+      if (titleSpan && titleSpan.textContent && titleSpan.textContent.trim()) {
+        this.release = titleSpan.textContent.trim();
+        this._releaseDetectionFailed = false;
+        return;
+      }
     }
+
+    // Fallback: No title found - show warning and use current date
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    this.release = `${month}-${year}`;
+    this._releaseDetectionFailed = true;
   }
 
   private _inferRelease(): string {
-    // Fallback method - uses document title or current date
-    const docTitle = document.title;
-    if (docTitle && docTitle.trim()) {
-      return docTitle.trim();
+    // Fallback method - tries to find release from DOM or uses current date
+    const titleContainer = document.querySelector(`.${this.titleContainerClass}`);
+    if (titleContainer) {
+      const titleSpan = titleContainer.querySelector('span.title');
+      if (titleSpan && titleSpan.textContent && titleSpan.textContent.trim()) {
+        return titleSpan.textContent.trim();
+      }
     }
 
-    // Default: current month-year if title is empty
+    // Default: current month-year if title not found
     const now = new Date();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const year = now.getFullYear();

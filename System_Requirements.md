@@ -49,15 +49,17 @@ Documents are published quarterly and used by individual students. Instructors c
 - Next session rebuilds cache from IndexedDB after login.
 
 #### 4.1.1 Release Detection
-- **Release identifier**: The entire `document.title` value is used as the release ID
-- **No parsing**: The system does NOT extract or parse portions of the title
-- **No meta tags**: The system does NOT read release from `<meta>` tags
-- **Source**: The `<title>` element in the DITA map becomes the HTML `<title>`
-- **Warning**: If `document.title` is empty, a warning banner is shown on login
-- **Author responsibility**: Ensure each DITA map has a unique `<title>` to differentiate releases
+- **Release identifier**: Extracted from DOM structure in the published HTML
+- **DOM pattern**: `<div class="{titleContainerClass}">...<span class="title">Release Text</span>...</div>`
+- **Default container class**: `wh_publication_title` (Oxygen WebHelp default)
+- **Configurable**: The container class can be configured via `titleContainerClass` option
+- **No parsing**: The system uses the entire text content of the `<span class="title">` element
+- **Warning**: If the DOM structure is not found, a warning banner is shown on login
+- **Author responsibility**: Ensure each DITA map has a unique title that gets published correctly
 - **Examples**:
-  - `<title>TRV Connectors Autumn 2025</title>` → Release: `"TRV Connectors Autumn 2025"`
-  - `<title>Sonar Training v2.1</title>` → Release: `"Sonar Training v2.1"`
+  - `<span class="title">TRV Connectors Autumn 2025</span>` → Release: `"TRV Connectors Autumn 2025"`
+  - `<span class="title">Field Manual Pub-10 Mar 2025</span>` → Release: `"Field Manual Pub-10 Mar 2025"`
+  - `<span class="title">Sonar Training v2.1</span>` → Release: `"Sonar Training v2.1"`
 
 ### 4.2 Quiz Tables
 - Each page may contain one table: `table.qd-quiz.qd-page`.

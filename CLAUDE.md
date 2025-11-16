@@ -178,19 +178,27 @@ npm run format:check
 
 ## Release Detection
 
-**The document `<title>` element is used as the release identifier.**
+**The release identifier is extracted from the DOM structure.**
 
-- The system reads the **entire** `document.title` value as the release ID
-- **No parsing or extraction** is performed on the title
-- **No meta tags** are checked for release information
-- The `<title>` element in the DITA map becomes the release identifier
-- **Warning displayed** on login if `document.title` is empty or not found
-- Examples:
-  - `<title>TRV Connectors Autumn 2025</title>` → Release ID: `"TRV Connectors Autumn 2025"`
-  - `<title>Core Skills 02-2025</title>` → Release ID: `"Core Skills 02-2025"`
-  - `<title>Sonar Training</title>` → Release ID: `"Sonar Training"`
+The system looks for a specific DOM pattern in the published HTML:
+```html
+<div class="wh_publication_title">
+  <a href="..."><span class="title">Document Title Text</span></a>
+</div>
+```
 
-**Author requirement**: Ensure each DITA map has a unique `<title>` element to differentiate between document releases.
+- **Container class**: Configurable via `titleContainerClass` option (default: `wh_publication_title`)
+- **Title element**: The text content of `<span class="title">` within the container
+- **No parsing**: The entire text content is used as the release ID
+- **Warning displayed** on login if the structure is not found
+- **Examples**:
+  - `<span class="title">TRV Connectors Autumn 2025</span>` → Release ID: `"TRV Connectors Autumn 2025"`
+  - `<span class="title">Core Skills 02-2025</span>` → Release ID: `"Core Skills 02-2025"`
+  - `<span class="title">Field Manual Pub-10 Mar 2025</span>` → Release ID: `"Field Manual Pub-10 Mar 2025"`
+
+**Author requirement**: Ensure each DITA map has a unique title that gets published into this DOM structure.
+
+**Configuration**: Set `titleContainerClass` in init() or via `data-title-container-class` attribute on the script tag to match your publishing system's structure.
 
 ## Frozen Contracts (src/types/contracts.ts)
 
