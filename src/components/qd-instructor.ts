@@ -122,12 +122,6 @@ export class QdInstructor extends LitElement {
   @state()
   private _showStudentAnswers = false;
 
-  /**
-   * Whether to show detailed answers in the scores table
-   */
-  @state()
-  private _showScoresDetails = false;
-
   static styles = css`
     :host {
       display: block;
@@ -418,26 +412,6 @@ export class QdInstructor extends LitElement {
       overflow: hidden;
     }
 
-    .toggle-details {
-      margin-bottom: 1rem;
-      padding: 0.75rem;
-      background: #f9f9f9;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-    }
-
-    .toggle-details label {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      cursor: pointer;
-      font-size: 0.875rem;
-    }
-
-    .toggle-details input[type='checkbox'] {
-      cursor: pointer;
-    }
-
     .answer-details {
       margin-top: 0.5rem;
       font-size: 0.75rem;
@@ -698,25 +672,12 @@ export class QdInstructor extends LitElement {
           </button>
         </div>
 
-        <!-- Toggle for Answer Details -->
-        <div class="toggle-details">
-          <label>
-            <input
-              type="checkbox"
-              .checked=${this._showScoresDetails}
-              @change=${() => (this._showScoresDetails = !this._showScoresDetails)}
-            />
-            Show detailed answers for all students
-          </label>
-        </div>
-
         <!-- Scores Table -->
         <table>
           <thead>
             <tr>
               <th scope="col">Service ID</th>
               <th scope="col">Name</th>
-              <th scope="col">Attempted</th>
               <th scope="col">Correct</th>
               <th scope="col">Percentage</th>
               <th scope="col">Pages Complete</th>
@@ -731,7 +692,7 @@ export class QdInstructor extends LitElement {
   }
 
   /**
-   * Render a student row with optional inline details
+   * Render a student row with inline answer details
    */
   private _renderStudentRow(student: import('../services/scores').AggregatedScores['students'][0]) {
     const fullRecord = this._studentRecords.find((r) => r.serviceId === student.serviceId);
@@ -740,12 +701,11 @@ export class QdInstructor extends LitElement {
       <tr>
         <td>${student.serviceId}</td>
         <td>${student.name}</td>
-        <td>${student.totalAttempted}</td>
-        <td>${student.totalCorrect}</td>
+        <td>${student.totalCorrect} / ${student.totalAttempted}</td>
         <td>${student.percentage.toFixed(1)}%</td>
         <td>
           <div>${student.pagesComplete} / ${student.pagesTotal}</div>
-          ${this._showScoresDetails && fullRecord ? this._renderAnswerDetails(fullRecord) : ''}
+          ${fullRecord ? this._renderAnswerDetails(fullRecord) : ''}
         </td>
       </tr>
     `;
