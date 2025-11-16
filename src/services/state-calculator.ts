@@ -56,21 +56,13 @@ export function isPageComplete(answers: AnswerRecord[], totalQuestions: number):
   // Filter out null/undefined answers
   const validAnswers = answers.filter((a) => a != null);
 
-  console.log('[isPageComplete] totalQuestions:', totalQuestions);
-  console.log('[isPageComplete] answers.length:', answers.length);
-  console.log('[isPageComplete] validAnswers.length:', validAnswers.length);
-  console.log('[isPageComplete] validAnswers:', validAnswers);
-
   // Must have answered all questions
   if (validAnswers.length !== totalQuestions) {
-    console.log('[isPageComplete] Not all questions answered - INCOMPLETE');
     return false;
   }
 
   // All answers must be correct
-  const allCorrect = validAnswers.every((answer) => answer.success === true);
-  console.log('[isPageComplete] All correct?', allCorrect);
-  return allCorrect;
+  return validAnswers.every((answer) => answer.success === true);
 }
 
 /**

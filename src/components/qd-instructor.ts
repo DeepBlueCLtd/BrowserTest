@@ -744,26 +744,25 @@ export class QdInstructor extends LitElement {
       return '';
     }
 
-    // Filter out null/undefined answers
-    const validAnswers = pageData.answers
-      .map((answer, index) => ({ answer, questionNum: index + 1 }))
-      .filter((item) => item.answer != null);
-
-    if (validAnswers.length === 0) {
-      return '';
-    }
+    // Show ALL questions, including unanswered (null) ones
+    const allQuestions = pageData.answers.map((answer, index) => ({
+      answer,
+      questionNum: index + 1,
+    }));
 
     return html`
       <div class="answer-details-page">
         <div class="answer-details-page-title">${pageId}:</div>
         <div class="answer-details-answers">
-          ${validAnswers.map(
+          ${allQuestions.map(
             (item) => html`
               <span class="answer-details-item">
-                Q${item.questionNum}:${item.answer.answer}<span
-                  class="${item.answer.success ? 'correct' : 'incorrect'}"
-                  >${item.answer.success ? '✓' : '✗'}</span
-                >
+                ${item.answer != null
+                  ? html`Q${item.questionNum}:${item.answer.answer}<span
+                        class="${item.answer.success ? 'correct' : 'incorrect'}"
+                        >${item.answer.success ? '✓' : '✗'}</span
+                      >`
+                  : html`Q${item.questionNum}:<span style="color: #999;">—</span>`}
               </span>
             `,
           )}
