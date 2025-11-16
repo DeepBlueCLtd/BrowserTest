@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="release" content="02-2025">
-  <meta name="document-id" content="analysis-examples">
-  <meta name="page-id" content="analysis-examples">
-  <title>Analysis Table Examples - Sonar Quiz System</title>
+  <meta name="document-id" content="analysis-environmental">
+  <meta name="page-id" content="analysis-environmental">
+  <title>Environmental Analysis - Sonar Quiz System</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -103,12 +103,12 @@
     </ul>
   </nav>
 
-  <h1>Analysis Table Examples</h1>
-  <p>Students analyze sonar contacts and fill in classification details.</p>
+  <h1>Environmental Analysis</h1>
+  <p>Combination of pre-filled environmental data and student-calculated values.</p>
 
   <div class="note">
-    <strong>Demo:</strong> This analysis table allows free-form text entry.
-    Gray cells are read-only, white cells are editable. Your entries are auto-saved.
+    <strong>Demo:</strong> Calculate sound speed and identify layer types based on depth and temperature.
+    This demonstrates mixing read-only reference data with student calculations.
   </div>
 
   <div class="legend">
@@ -125,39 +125,40 @@
   <table class="qd-analysis">
     <thead>
       <tr>
-        <th style="background-color: #e9ecef;">Contact ID</th>
-        <th style="background-color: #e9ecef;">Bearing (°)</th>
-        <th style="background-color: #e9ecef;">Classification</th>
-        <th style="background-color: #e9ecef;">Confidence</th>
-        <th style="background-color: #e9ecef;">Notes</th>
+        <th style="background-color: #e9ecef;">Depth (m)</th>
+        <th style="background-color: #e9ecef;">Temperature (°C)</th>
+        <th style="background-color: #e9ecef;">Sound Speed (m/s)</th>
+        <th style="background-color: #e9ecef;">Layer Type</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td style="background-color: #e9ecef;">C-001</td>
-        <td style="background-color: #e9ecef;">045</td>
-        <td class="interactive"></td>
-        <td class="interactive"></td>
-        <td class="interactive"></td>
-      </tr>
-      <tr>
-        <td style="background-color: #e9ecef;">C-002</td>
-        <td style="background-color: #e9ecef;">120</td>
-        <td class="interactive"></td>
+        <td style="background-color: #e9ecef;">0</td>
+        <td style="background-color: #e9ecef;">20</td>
         <td class="interactive"></td>
         <td class="interactive"></td>
       </tr>
       <tr>
-        <td style="background-color: #e9ecef;">C-003</td>
-        <td style="background-color: #e9ecef;">270</td>
-        <td class="interactive"></td>
+        <td style="background-color: #e9ecef;">50</td>
+        <td style="background-color: #e9ecef;">18</td>
         <td class="interactive"></td>
         <td class="interactive"></td>
       </tr>
       <tr>
-        <td style="background-color: #e9ecef;">C-004</td>
-        <td style="background-color: #e9ecef;">315</td>
+        <td style="background-color: #e9ecef;">100</td>
+        <td style="background-color: #e9ecef;">12</td>
         <td class="interactive"></td>
+        <td class="interactive"></td>
+      </tr>
+      <tr>
+        <td style="background-color: #e9ecef;">200</td>
+        <td style="background-color: #e9ecef;">8</td>
+        <td class="interactive"></td>
+        <td class="interactive"></td>
+      </tr>
+      <tr>
+        <td style="background-color: #e9ecef;">500</td>
+        <td style="background-color: #e9ecef;">5</td>
         <td class="interactive"></td>
         <td class="interactive"></td>
       </tr>
@@ -165,7 +166,7 @@
   </table>
 
   <h2>Verification Questions</h2>
-  <p>Based on your analysis above, answer the following questions:</p>
+  <p>Based on your sound velocity profile analysis above, answer the following:</p>
 
   <table class="qd-quiz qd-page">
     <thead>
@@ -177,26 +178,26 @@
     </thead>
     <tbody>
       <tr>
-        <td>How many contacts did you classify as merchant vessels?</td>
-        <td>2</td>
-        <td>0.5</td>
+        <td>At what depth does the thermocline begin (in meters)?</td>
+        <td>50</td>
+        <td>10</td>
       </tr>
       <tr>
-        <td>Which contact has the highest confidence level?</td>
-        <td>1</td>
+        <td>What type of propagation environment is this?</td>
+        <td>2</td>
         <td>
           <ol>
-            <li>C-001</li>
-            <li>C-002</li>
-            <li>C-003</li>
-            <li>C-004</li>
+            <li>Isovelocity (constant sound speed)</li>
+            <li>Negative gradient (decreasing with depth)</li>
+            <li>Positive gradient (increasing with depth)</li>
+            <li>Surface duct</li>
           </ol>
         </td>
       </tr>
       <tr>
-        <td>What is the bearing of the contact classified as submarine?</td>
-        <td>270</td>
-        <td>5</td>
+        <td>What is the sound speed at 500m depth in m/s?</td>
+        <td>1480</td>
+        <td>10</td>
       </tr>
     </tbody>
   </table>

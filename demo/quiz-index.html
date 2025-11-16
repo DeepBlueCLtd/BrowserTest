@@ -8,45 +8,12 @@
   <title>Sonar Quiz System - Index Page</title>
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 2rem;
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 2rem auto;
+      padding: 0 1rem;
       line-height: 1.6;
-      background-color: #f5f5f5;
     }
-
-    header {
-      background: linear-gradient(135deg, #0066cc 0%, #004080 100%);
-      color: white;
-      padding: 2rem;
-      border-radius: 8px;
-      margin-bottom: 2rem;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    h1 {
-      margin: 0 0 0.5rem 0;
-      font-size: 2rem;
-    }
-
-    .subtitle {
-      margin: 0;
-      opacity: 0.9;
-      font-size: 1.1rem;
-    }
-
-    main {
-      background: white;
-      padding: 2rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .section {
-      margin-bottom: 3rem;
-    }
-
     .section h2 {
       color: #0066cc;
       border-bottom: 2px solid #e0e0e0;
@@ -95,14 +62,6 @@
       font-size: 0.875rem;
       color: #666;
       margin: 0;
-    }
-
-    .badge-placeholder {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background-color: #e0e0e0;
-      flex-shrink: 0;
     }
 
     /* Status panel container */
@@ -181,22 +140,13 @@
   </style>
 </head>
 <body>
-  <header>
-    <h1>Sonar Quiz System</h1>
-    <p class="subtitle">Offline-first Interactive Training Platform</p>
-  </header>
-
-  <nav class="qd-nav">
+  <nav class="qd-nav wh_top_menu_and_indexterms_link">
     <ul>
-      <li><a href="quiz-index.html" class="qd-test-link active">Home</a></li>
-      <li><a href="quiz-examples.html" class="qd-test-link" data-page-id="sonar-basics">Quiz Examples</a></li>
-      <li><a href="analysis-examples.html" class="qd-test-link" data-page-id="contact-analysis">Analysis Examples</a></li>
+      <li><a href="quiz-index.html" class="active">Home</a></li>
+      <li><a href="seven-questions.html">Seven Questions</a></li>
+      <li><a href="dev-with-storage-monitor.html">Dev Monitor</a></li>
     </ul>
   </nav>
-
-  <main>
-    <!-- Status Panel Container - qd-status component will be injected here -->
-    <div id="qd-status"></div>
 
     <div class="instructions">
       <h3>How to Use This System</h3>
@@ -210,92 +160,82 @@
     </div>
 
     <div class="section">
-      <h2>Chapter 1: Fundamentals</h2>
+      <h2>📚 Reference Materials</h2>
       <div class="quiz-links">
-        <a href="quiz-examples.html" class="quiz-link-card qd-test-link" data-page-id="sonar-basics">
-          <span class="badge-placeholder"></span>
+        <a href="reference.html" class="quiz-link-card">
           <div class="link-content">
-            <div class="link-title">Sonar Basics</div>
-            <p class="link-description">Introduction to sonar systems and principles</p>
-          </div>
-        </a>
-
-        <a href="#" class="quiz-link-card qd-test-link" data-page-id="sound-propagation">
-          <span class="badge-placeholder"></span>
-          <div class="link-content">
-            <div class="link-title">Sound Propagation</div>
-            <p class="link-description">Understanding sound waves in water</p>
-          </div>
-        </a>
-
-        <a href="#" class="quiz-link-card qd-test-link" data-page-id="transducers">
-          <span class="badge-placeholder"></span>
-          <div class="link-content">
-            <div class="link-title">Transducers</div>
-            <p class="link-description">Converting electrical signals to sound</p>
+            <div class="link-title">Passive Sonar Reference</div>
+            <p class="link-description">Quick summary of how passive sonar works with diagrams</p>
           </div>
         </a>
       </div>
     </div>
 
     <div class="section">
-      <h2>Chapter 2: Operations</h2>
+      <h2>Gramless Grams</h2>
       <div class="quiz-links">
-        <a href="#" class="quiz-link-card qd-test-link" data-page-id="active-sonar">
-          <span class="badge-placeholder"></span>
+        <a href="quiz-mixed.html" class="quiz-link-card quizPageBtn" data-page-id="quiz-mixed">
+
           <div class="link-content">
-            <div class="link-title">Active Sonar</div>
-            <p class="link-description">Active detection techniques</p>
+            <div class="link-title">Mixed Quiz</div>
+            <p class="link-description">Combination of MCQ and numeric questions</p>
           </div>
         </a>
 
-        <a href="#" class="quiz-link-card qd-test-link" data-page-id="passive-sonar">
-          <span class="badge-placeholder"></span>
+        <a href="quiz-mcq.html" class="quiz-link-card quizPageBtn" data-page-id="quiz-mcq">
+
           <div class="link-content">
-            <div class="link-title">Passive Sonar</div>
-            <p class="link-description">Listening and classification</p>
+            <div class="link-title">MCQ Quiz</div>
+            <p class="link-description">Multiple choice questions only</p>
           </div>
         </a>
 
-        <a href="analysis-examples.html" class="quiz-link-card qd-test-link" data-page-id="contact-analysis">
-          <span class="badge-placeholder"></span>
+        <a href="quiz-numeric.html" class="quiz-link-card quizPageBtn" data-page-id="quiz-numeric">
+
+          <div class="link-content">
+            <div class="link-title">Numeric Quiz</div>
+            <p class="link-description">Numeric questions with tolerance values</p>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Grams</h2>
+      <div class="quiz-links">
+        <a href="analysis-contact.html" class="quiz-link-card quizPageBtn" data-page-id="analysis-contact">
+
           <div class="link-content">
             <div class="link-title">Contact Analysis</div>
-            <p class="link-description">Analyzing and classifying sonar contacts</p>
-          </div>
-        </a>
-      </div>
-    </div>
-
-    <div class="section">
-      <h2>Chapter 3: Advanced Topics</h2>
-      <div class="quiz-links">
-        <a href="#" class="quiz-link-card qd-test-link" data-page-id="environment">
-          <span class="badge-placeholder"></span>
-          <div class="link-content">
-            <div class="link-title">Environmental Factors</div>
-            <p class="link-description">Temperature, salinity, and pressure effects</p>
+            <p class="link-description">Classify and analyze sonar contacts</p>
           </div>
         </a>
 
-        <a href="#" class="quiz-link-card qd-test-link" data-page-id="performance">
-          <span class="badge-placeholder"></span>
+        <a href="analysis-performance.html" class="quiz-link-card quizPageBtn" data-page-id="analysis-performance">
+
           <div class="link-content">
             <div class="link-title">Performance Calculations</div>
-            <p class="link-description">Sonar equations and range prediction</p>
+            <p class="link-description">Sonar equation calculation worksheet</p>
           </div>
         </a>
 
-        <a href="#" class="quiz-link-card qd-test-link" data-page-id="tactics">
-          <span class="badge-placeholder"></span>
+        <a href="analysis-tactical.html" class="quiz-link-card quizPageBtn" data-page-id="analysis-tactical">
+
           <div class="link-content">
-            <div class="link-title">Tactical Applications</div>
-            <p class="link-description">Real-world operational scenarios</p>
+            <div class="link-title">Tactical Decision Matrix</div>
+            <p class="link-description">Record tactical analysis and recommendations</p>
+          </div>
+        </a>
+
+        <a href="analysis-environmental.html" class="quiz-link-card quizPageBtn" data-page-id="analysis-environmental">
+
+          <div class="link-content">
+            <div class="link-title">Environmental Analysis</div>
+            <p class="link-description">Calculate sound speed and identify water layers</p>
           </div>
         </a>
       </div>
     </div>
-  </main>
 
   <footer>
     <p>Sonar Quiz System v0.1.0 | Offline-First Training Platform</p>
@@ -303,6 +243,6 @@
   </footer>
 
   <!-- Load the Sonar Quiz System -->
-  <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true"></script>
+  <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true" data-status-panel-container=".qd-nav"></script>
 </body>
 </html>

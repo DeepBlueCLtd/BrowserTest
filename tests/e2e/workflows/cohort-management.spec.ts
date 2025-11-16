@@ -200,9 +200,17 @@ test.describe('Cohort Management - CSV Export', () => {
   });
 
   test('should login as student and create data for export', async ({ page }) => {
-    // Wait for login component to appear (use first() since qd-status also has qd-login)
-    const loginComponent = page.locator('qd-login').first();
-    await expect(loginComponent).toBeVisible();
+    // Wait for status component (which contains login when not logged in)
+    const statusComponent = page.locator('qd-status');
+    await expect(statusComponent).toBeVisible();
+
+    // Wait for login component to render inside status shadow DOM
+    await page.waitForFunction(() => {
+      const status = document.querySelector('qd-status');
+      if (!status?.shadowRoot) return false;
+      const login = status.shadowRoot.querySelector('qd-login');
+      return !!login?.shadowRoot?.querySelector('#serviceId');
+    });
 
     // Set up event listener for login event
     const loginEventPromise = page.evaluate(
@@ -212,9 +220,10 @@ test.describe('Cohort Management - CSV Export', () => {
         }),
     );
 
-    // Fill in student credentials using shadow DOM
+    // Fill in student credentials using shadow DOM (qd-login is inside qd-status)
     await page.evaluate(() => {
-      const login = document.querySelector('qd-login');
+      const status = document.querySelector('qd-status');
+      const login = status?.shadowRoot?.querySelector('qd-login');
       if (login?.shadowRoot) {
         const serviceIdInput = login.shadowRoot.querySelector('#serviceId') as HTMLInputElement;
         const nameInput = login.shadowRoot.querySelector('#name') as HTMLInputElement;
