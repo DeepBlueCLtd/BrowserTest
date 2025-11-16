@@ -33,7 +33,11 @@ import {
 } from '../services/csv-export';
 import { getStorageAdapter } from '../services/storage/indexeddb';
 import type { StudentRecord } from '../types/contracts';
-import { showStudentAnswersInline, hideStudentAnswersInline } from '../enhancers/quiz-table';
+import {
+  showStudentAnswersInline,
+  hideStudentAnswersInline,
+  revealCorrectAnswers,
+} from '../enhancers/quiz-table';
 
 type InstructorMode = 'overview' | 'scores' | 'export' | 'manage';
 type SortField = 'serviceId' | 'name' | 'score' | 'percentage';
@@ -990,28 +994,21 @@ export class QdInstructor extends LitElement {
    * Reveal correct answers on all quiz tables on the current page
    */
   private _revealAnswersOnPage(): void {
-    // Import revealCorrectAnswers dynamically to avoid circular dependencies
-    import('../enhancers/quiz-table')
-      .then(({ revealCorrectAnswers }) => {
-        const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
+    const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
 
-        if (quizTables.length === 0) {
-          // No quiz tables on current page
-          return;
-        }
+    if (quizTables.length === 0) {
+      // No quiz tables on current page
+      return;
+    }
 
-        quizTables.forEach((table) => {
-          // Check if table is enhanced/prepared before revealing
-          if (table.classList.contains('qd-prepared')) {
-            revealCorrectAnswers(table);
-          } else {
-            console.warn('Quiz table not prepared yet, skipping reveal');
-          }
-        });
-      })
-      .catch((error) => {
-        console.error('Failed to reveal answers:', error);
-      });
+    quizTables.forEach((table) => {
+      // Check if table is enhanced/prepared before revealing
+      if (table.classList.contains('qd-prepared')) {
+        revealCorrectAnswers(table);
+      } else {
+        console.warn('Quiz table not prepared yet, skipping reveal');
+      }
+    });
   }
 
   /**
