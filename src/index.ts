@@ -327,10 +327,10 @@ function handleAnswerSaved(
   // Recalculate totals from all stored answers
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const pageAnswers = (pageCache.answers as AnswerRecord[]).filter(
-    (a: AnswerRecord) => a !== undefined,
+    (a: AnswerRecord) => a !== undefined && a !== null,
   );
   cache.pages[pageId].answered = pageAnswers.length;
-  cache.pages[pageId].correct = pageAnswers.filter((a: AnswerRecord) => a.success).length;
+  cache.pages[pageId].correct = pageAnswers.filter((a: AnswerRecord) => a && a.success).length;
 
   // Recalculate global totals from all pages
   cache.totals.answered = Object.values(cache.pages).reduce(
@@ -463,6 +463,111 @@ function clearQuizAnswers(): void {
 }
 
 /**
+ * Restore an existing session on page load
+ * This allows users to navigate between pages without re-logging in
+ *
+ * @param session - The session data to restore
+ */
+async function restoreSession(session: import('./types/contracts').SessionData): Promise<void> {
+  const sessionService = getSessionService();
+
+  try {
+    // Load student record from IndexedDB
+    const storage = getStorageAdapter();
+    const studentRecord = await storage.getStudent(session.release, session.serviceId);
+
+    if (!studentRecord) {
+      log('No student record found, session cannot be fully restored');
+      return;
+    }
+
+    // Rebuild session cache from student record
+    const cache: import('./types/contracts').SessionCache = {
+      totals: {
+        answered: studentRecord.attempted,
+        correct: studentRecord.correct,
+      },
+      pages: {},
+    };
+
+    // Populate cache with page data
+    Object.entries(studentRecord.pages).forEach(([pageId, pageData]) => {
+      const answers = pageData.answers || [];
+      // Filter out null and undefined values
+      const validAnswers = answers.filter(
+        (a: import('./types/contracts').AnswerRecord) => a !== null && a !== undefined,
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pageCache: any = {
+        answered: validAnswers.length,
+        correct: validAnswers.filter((a: import('./types/contracts').AnswerRecord) => a.success)
+          .length,
+        state: pageData.state || 'unstarted',
+        // Store answers array for restoration (not in PageCache type but needed for restoration)
+        answers: pageData.answers || [],
+      };
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      cache.pages[pageId] = pageCache;
+    });
+
+    // Save cache to sessionStorage
+    sessionService.saveCache(cache);
+    log('Session cache restored from IndexedDB');
+
+    // Wait for qd-status component to be defined before updating it
+    await customElements.whenDefined('qd-status');
+
+    // Update status panel to show logged-in state
+    const statusPanel = document.querySelector(
+      'qd-status',
+    ) as import('./components/qd-status').QdStatus;
+    if (statusPanel) {
+      statusPanel.isLoggedIn = true;
+      statusPanel.attempted = cache.totals.answered;
+      statusPanel.correct = cache.totals.correct;
+      statusPanel.total = cache.totals.answered; // Total questions attempted
+      log('Status panel updated with restored session');
+    } else {
+      log('WARNING: Status panel not found after component definition');
+    }
+
+    // Activate quiz tables if present on this page
+    if (hasQuizTables()) {
+      activateAllQuizTables(document);
+      log('Quiz tables activated from restored session');
+
+      // Restore previous answers for current page
+      restorePreviousAnswers();
+    }
+
+    // Enhance analysis tables if present
+    const analysisTables = document.querySelectorAll('table.qd-analysis');
+    log(`Found ${analysisTables.length} analysis tables on this page`);
+    if (analysisTables.length > 0) {
+      enhanceAllAnalysisTables();
+      log(`Analysis tables enhanced from restored session (${analysisTables.length} tables)`);
+    } else {
+      log('No analysis tables to enhance on this page');
+    }
+
+    // Update home badges if on home page
+    const hasTestLinks = document.querySelectorAll(`.${CSS_CLASSES.TEST_LINK}`).length > 0;
+    if (hasTestLinks) {
+      // Re-initialize badges with restored cache
+      initializeHomeBadges();
+      log('Home badges updated with restored session');
+    }
+
+    // Update activity time
+    sessionService.updateActivity();
+  } catch (error) {
+    console.error('Failed to restore session:', error);
+    // Clear invalid session
+    sessionService.clearSession();
+  }
+}
+
+/**
  * Restore previous answers from session cache
  */
 function restorePreviousAnswers(): void {
@@ -551,8 +656,7 @@ function setupEventListeners(doc: Document = document): void {
     sessionStorage.setItem('qd/session', JSON.stringify(sessionData));
     log('Session stored in sessionStorage');
 
-    // Initialize student record in IndexedDB if it doesn't exist
-    // Note: Using void to explicitly discard the Promise return value
+    // Handle login asynchronously to load student record and restore state
     void (async () => {
       try {
         const storage = getStorageAdapter();
@@ -561,11 +665,13 @@ function setupEventListeners(doc: Document = document): void {
         // Try to load existing record, or create new one
         const existingRecord = await storage.getStudent(sessionData.release, sessionData.serviceId);
 
+        let studentRecord: import('./types/contracts').StudentRecord;
+
         if (!existingRecord) {
           // Create new student record
           const docId =
             doc.querySelector('meta[name="document-id"]')?.getAttribute('content') || 'unknown';
-          const newRecord: import('./types/contracts').StudentRecord = {
+          studentRecord = {
             schema: 1,
             docId,
             serviceId: sessionData.serviceId,
@@ -576,10 +682,87 @@ function setupEventListeners(doc: Document = document): void {
             updated: new Date().toISOString(),
             pages: {},
           };
-          await storage.saveStudent(newRecord);
+          await storage.saveStudent(studentRecord);
           log('Created new student record in IndexedDB');
         } else {
+          studentRecord = existingRecord;
           log('Loaded existing student record from IndexedDB');
+
+          // Rebuild cache from student record for answer restoration
+          const sessionService = getSessionService();
+          const cache: import('./types/contracts').SessionCache = {
+            totals: {
+              answered: studentRecord.attempted,
+              correct: studentRecord.correct,
+            },
+            pages: {},
+          };
+
+          // Populate cache with page data including answers
+          Object.entries(studentRecord.pages).forEach(([pageId, pageData]) => {
+            const answers = pageData.answers || [];
+            const validAnswers = answers.filter(
+              (a: import('./types/contracts').AnswerRecord) => a !== null && a !== undefined,
+            );
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const pageCache: any = {
+              answered: validAnswers.length,
+              correct: validAnswers.filter(
+                (a: import('./types/contracts').AnswerRecord) => a.success,
+              ).length,
+              state: pageData.state || 'unstarted',
+              answers: pageData.answers || [],
+            };
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            cache.pages[pageId] = pageCache;
+          });
+
+          // Save cache to sessionStorage
+          sessionService.saveCache(cache);
+          log('Session cache rebuilt from existing student record');
+        }
+
+        // Activate quiz tables (inject interactive controls)
+        activateAllQuizTables(doc);
+        log('Quiz tables activated (interactive controls injected)');
+
+        // Restore previous answers from session cache (now populated)
+        restorePreviousAnswers();
+
+        // Enhance analysis tables (inject input fields)
+        const analysisTables = doc.querySelectorAll('table.qd-analysis');
+        log(`Found ${analysisTables.length} analysis tables to enhance`);
+        if (analysisTables.length > 0) {
+          enhanceAllAnalysisTables();
+          log(`Analysis tables enhanced (${analysisTables.length} tables)`);
+        }
+
+        // Initialize or update status panel
+        const statusPanel = doc.querySelector(
+          'qd-status',
+        ) as import('./components/qd-status').QdStatus;
+        log('Status panel element:', statusPanel);
+        if (statusPanel) {
+          log('Current isLoggedIn state BEFORE update:', statusPanel.isLoggedIn);
+          // Update status panel to show logged-in state
+          statusPanel.isLoggedIn = true;
+          // Update with totals from cache
+          if (existingRecord) {
+            statusPanel.attempted = studentRecord.attempted;
+            statusPanel.correct = studentRecord.correct;
+            statusPanel.total = studentRecord.attempted;
+          }
+          log('Current isLoggedIn state AFTER update:', statusPanel.isLoggedIn);
+          log('Status panel updated with logged-in state');
+        } else {
+          log('WARNING: Status panel not found in DOM');
+        }
+
+        // Update home page badges if we're on a home page
+        const hasTestLinks = doc.querySelectorAll(`.${CSS_CLASSES.TEST_LINK}`).length > 0;
+        if (hasTestLinks) {
+          initializeHomeBadges();
+          log('Home badges updated after login');
         }
       } catch (error) {
         console.error('Failed to initialize student record:', error);
@@ -589,30 +772,6 @@ function setupEventListeners(doc: Document = document): void {
         }
       }
     })();
-
-    // Activate quiz tables (inject interactive controls)
-    activateAllQuizTables(doc);
-    log('Quiz tables activated (interactive controls injected)');
-
-    // Restore previous answers from session cache if logged in
-    restorePreviousAnswers();
-
-    // Enhance analysis tables (inject input fields)
-    enhanceAllAnalysisTables();
-    log('Analysis tables enhanced (input fields injected)');
-
-    // Initialize or update status panel
-    const statusPanel = doc.querySelector('qd-status') as import('./components/qd-status').QdStatus;
-    log('Status panel element:', statusPanel);
-    if (statusPanel) {
-      log('Current isLoggedIn state BEFORE update:', statusPanel.isLoggedIn);
-      // Update status panel to show logged-in state
-      statusPanel.isLoggedIn = true;
-      log('Current isLoggedIn state AFTER update:', statusPanel.isLoggedIn);
-      log('Status panel updated with logged-in state');
-    } else {
-      log('WARNING: Status panel not found in DOM');
-    }
   });
 
   // Listen for answer-saved events
@@ -654,6 +813,13 @@ function setupEventListeners(doc: Document = document): void {
     } else {
       log('WARNING: Status panel not found on logout');
     }
+
+    // Reset home page badges if we're on a home page
+    const hasTestLinks = doc.querySelectorAll(`.${CSS_CLASSES.TEST_LINK}`).length > 0;
+    if (hasTestLinks) {
+      initializeHomeBadges();
+      log('Home badges reset after logout');
+    }
   });
 
   log('Event listeners setup complete');
@@ -665,7 +831,7 @@ function setupEventListeners(doc: Document = document): void {
  *
  * @param userConfig - Optional configuration overrides
  */
-function init(userConfig?: Partial<SonarQuizConfig>): void {
+async function init(userConfig?: Partial<SonarQuizConfig>): Promise<void> {
   // Merge user config with defaults
   config = { ...DEFAULT_CONFIG, ...userConfig };
 
@@ -676,54 +842,83 @@ function init(userConfig?: Partial<SonarQuizConfig>): void {
   injectQuizStyles();
   log('Quiz styles injected');
 
-  // Check for quiz tables
-  if (!hasQuizTables()) {
-    log('No quiz tables found on this page');
-    return;
-  }
-
-  log('Quiz tables detected');
-
   // Initialize IndexedDB early (before storage monitor) to ensure proper schema
   // This prevents the storage monitor from creating an empty database
   const storage = getStorageAdapter();
-  storage
-    .init()
-    .then(() => {
-      log('IndexedDB initialized successfully');
-    })
-    .catch((error) => {
-      console.error('Failed to initialize IndexedDB:', error);
-      if (config.debug) {
-        // Fail fast in debug mode
-        throw new Error(
-          `IndexedDB initialization failed: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-    });
+
+  // Wait for IndexedDB to be ready before proceeding with session restoration
+  try {
+    await storage.init();
+    log('IndexedDB initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize IndexedDB:', error);
+    if (config.debug) {
+      // Fail fast in debug mode
+      throw new Error(
+        `IndexedDB initialization failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    // In production, continue without storage (session won't persist)
+    log('Continuing without persistent storage');
+  }
 
   // Setup event listeners first
   setupEventListeners();
 
-  // Inject login component
-  injectLoginComponent();
-
-  // Inject status panel
+  // Inject status panel first (if navbar exists)
+  // This prevents duplicate login forms
   injectStatusPanel();
+
+  // Inject standalone login component only if status panel wasn't injected
+  injectLoginComponent();
 
   // Inject storage monitor (development tool)
   injectStorageMonitor();
-
-  // Prepare tables if auto-enhance is enabled (hide metadata pre-login)
-  if (config.autoEnhance) {
-    prepareAllTables();
-  }
 
   // Initialize home page badges if we're on a home page
   const hasTestLinks = document.querySelectorAll(`.${CSS_CLASSES.TEST_LINK}`).length > 0;
   if (hasTestLinks) {
     initializeHomeBadges();
     log('Home page badges initialized');
+  }
+
+  // ALWAYS prepare quiz tables to hide answers (security requirement)
+  // This must run on every page load regardless of login state
+  if (hasQuizTables()) {
+    log('Quiz tables detected');
+
+    // CRITICAL: Always prepare tables to hide correct answers from students
+    // This is a security requirement and must not be conditional
+    prepareAllTables();
+    log('Quiz tables prepared (answers hidden)');
+  } else {
+    log('No quiz tables found on this page');
+  }
+
+  // Restore existing session if present and not expired
+  const sessionService = getSessionService();
+  const existingSession = sessionService.getSession();
+  if (existingSession && !sessionService.isExpired()) {
+    log(
+      'Restoring existing session for:',
+      existingSession.name,
+      'ServiceID:',
+      existingSession.serviceId,
+    );
+
+    // Restore session by triggering the same logic as login
+    try {
+      await restoreSession(existingSession);
+      log('Session restoration complete');
+    } catch (error) {
+      console.error('Failed to restore session on init:', error);
+      sessionService.clearSession();
+    }
+  } else if (existingSession && sessionService.isExpired()) {
+    log('Session expired, clearing session data');
+    sessionService.clearSession();
+  } else {
+    log('No existing session found or session not valid');
   }
 
   log('Initialization complete');
@@ -787,9 +982,15 @@ if (typeof window !== 'undefined') {
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => init(autoConfig));
+    document.addEventListener('DOMContentLoaded', () => {
+      init(autoConfig).catch((error) => {
+        console.error('[SonarQuiz] Initialization failed:', error);
+      });
+    });
   } else {
-    init(autoConfig);
+    init(autoConfig).catch((error) => {
+      console.error('[SonarQuiz] Initialization failed:', error);
+    });
   }
 }
 

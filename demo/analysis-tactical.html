@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="release" content="02-2025">
-  <meta name="document-id" content="analysis-examples">
-  <meta name="page-id" content="analysis-examples">
-  <title>Analysis Table Examples - Sonar Quiz System</title>
+  <meta name="document-id" content="analysis-tactical">
+  <meta name="page-id" content="analysis-tactical">
+  <title>Tactical Decision Matrix - Sonar Quiz System</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -95,11 +95,6 @@
   </style>
 </head>
 <body>
-  <!-- Document title structure (Oxygen WebHelp format) -->
-  <div class="wh_publication_title">
-    <a href="index.html"><span class="title">Sonar Quiz System Demo - November 2025</span></a>
-  </div>
-
   <nav class="wh_top_menu_and_indexterms_link">
     <ul>
       <li><a href="quiz-index.html">Home</a></li>
@@ -108,12 +103,12 @@
     </ul>
   </nav>
 
-  <h1>Analysis Table Examples</h1>
-  <p>Students analyze sonar contacts and fill in classification details.</p>
+  <h1>Tactical Decision Matrix</h1>
+  <p>Students record their tactical analysis decisions based on a given scenario.</p>
 
   <div class="note">
-    <strong>Demo:</strong> This analysis table allows free-form text entry.
-    Gray cells are read-only, white cells are editable. Your entries are auto-saved.
+    <strong>Demo:</strong> This analysis table is designed for recording tactical decisions.
+    Fill in your recommendations and justifications.
   </div>
 
   <div class="legend">
@@ -128,49 +123,36 @@
   </div>
 
   <table class="qd-analysis">
-    <thead>
-      <tr>
-        <th style="background-color: #e9ecef;">Contact ID</th>
-        <th style="background-color: #e9ecef;">Bearing (°)</th>
-        <th style="background-color: #e9ecef;">Classification</th>
-        <th style="background-color: #e9ecef;">Confidence</th>
-        <th style="background-color: #e9ecef;">Notes</th>
-      </tr>
-    </thead>
     <tbody>
       <tr>
-        <td style="background-color: #e9ecef;">C-001</td>
-        <td style="background-color: #e9ecef;">045</td>
-        <td class="interactive"></td>
-        <td class="interactive"></td>
+        <td style="background-color: #e9ecef; width: 30%;">Threat Assessment:</td>
         <td class="interactive"></td>
       </tr>
       <tr>
-        <td style="background-color: #e9ecef;">C-002</td>
-        <td style="background-color: #e9ecef;">120</td>
-        <td class="interactive"></td>
-        <td class="interactive"></td>
+        <td style="background-color: #e9ecef;">Recommended Action:</td>
         <td class="interactive"></td>
       </tr>
       <tr>
-        <td style="background-color: #e9ecef;">C-003</td>
-        <td style="background-color: #e9ecef;">270</td>
-        <td class="interactive"></td>
-        <td class="interactive"></td>
+        <td style="background-color: #e9ecef;">Course Change (if any):</td>
         <td class="interactive"></td>
       </tr>
       <tr>
-        <td style="background-color: #e9ecef;">C-004</td>
-        <td style="background-color: #e9ecef;">315</td>
+        <td style="background-color: #e9ecef;">Speed Change (if any):</td>
         <td class="interactive"></td>
+      </tr>
+      <tr>
+        <td style="background-color: #e9ecef;">Sonar Mode Selection:</td>
         <td class="interactive"></td>
+      </tr>
+      <tr>
+        <td style="background-color: #e9ecef;">Justification:</td>
         <td class="interactive"></td>
       </tr>
     </tbody>
   </table>
 
   <h2>Verification Questions</h2>
-  <p>Based on your analysis above, answer the following questions:</p>
+  <p>Based on your tactical analysis above, answer the following:</p>
 
   <table class="qd-quiz qd-page">
     <thead>
@@ -182,26 +164,21 @@
     </thead>
     <tbody>
       <tr>
-        <td>How many contacts did you classify as merchant vessels?</td>
+        <td>What threat level did you assign?</td>
         <td>2</td>
-        <td>0.5</td>
-      </tr>
-      <tr>
-        <td>Which contact has the highest confidence level?</td>
-        <td>1</td>
         <td>
           <ol>
-            <li>C-001</li>
-            <li>C-002</li>
-            <li>C-003</li>
-            <li>C-004</li>
+            <li>Low</li>
+            <li>Medium</li>
+            <li>High</li>
+            <li>Critical</li>
           </ol>
         </td>
       </tr>
       <tr>
-        <td>What is the bearing of the contact classified as submarine?</td>
-        <td>270</td>
-        <td>5</td>
+        <td>What is your recommended course change in degrees?</td>
+        <td>45</td>
+        <td>10</td>
       </tr>
     </tbody>
   </table>

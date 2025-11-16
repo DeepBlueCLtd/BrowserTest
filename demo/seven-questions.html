@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="release" content="02-2025">
+  <meta name="document-id" content="seven-questions">
+  <title>Seven Questions - Acoustic Analysis Framework</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      line-height: 1.6;
+    }
+
+    nav {
+      background-color: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    nav li {
+      margin: 0;
+    }
+    nav a {
+      color: #0066cc;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    nav a:hover {
+      background-color: #e9ecef;
+    }
+    nav a.active {
+      background-color: #0066cc;
+      color: white;
+    }
+
+    h1 {
+      color: #0066cc;
+      border-bottom: 3px solid #0066cc;
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .intro {
+      background: #e7f3ff;
+      border-left: 4px solid #0066cc;
+      padding: 1rem 1.5rem;
+      margin: 1.5rem 0;
+      border-radius: 4px;
+    }
+
+    .intro p {
+      margin: 0.5rem 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 2rem 0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    th, td {
+      padding: 1rem;
+      text-align: left;
+      border: 1px solid #e0e0e0;
+    }
+
+    th {
+      background-color: #0066cc;
+      color: white;
+      font-weight: 600;
+    }
+
+    td:first-child {
+      background-color: #f8f9fa;
+      font-weight: 600;
+      width: 30%;
+      color: #0066cc;
+    }
+
+    tr:hover {
+      background-color: #f8f9fa;
+    }
+
+    .question-number {
+      display: inline-block;
+      width: 1.5rem;
+      height: 1.5rem;
+      background-color: #0066cc;
+      color: white;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 1.5rem;
+      margin-right: 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid #e0e0e0;
+      text-align: center;
+      color: #666;
+      font-size: 0.875rem;
+    }
+
+    .mnemonic {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin: 2rem 0;
+      text-align: center;
+    }
+
+    .mnemonic h2 {
+      margin: 0 0 1rem 0;
+      color: #856404;
+    }
+
+    .mnemonic-text {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: 0.3rem;
+      color: #856404;
+      font-family: 'Courier New', monospace;
+    }
+  </style>
+</head>
+<body>
+  <nav class="wh_top_menu_and_indexterms_link">
+    <ul>
+      <li><a href="quiz-index.html">Home</a></li>
+      <li><a href="seven-questions.html" class="active">Seven Questions</a></li>
+      <li><a href="dev-with-storage-monitor.html">Dev Monitor</a></li>
+    </ul>
+  </nav>
+
+  <h1>The Seven Questions of Acoustic Analysis</h1>
+
+  <div class="intro">
+    <p><strong>Purpose:</strong> When detecting and analyzing a sonar contact, acoustic analysts systematically answer these seven fundamental questions to build a complete tactical picture.</p>
+    <p><strong>Framework:</strong> Based on the IWADC mnemonic, extended with Speed and Action assessment.</p>
+  </div>
+
+  <div class="mnemonic">
+    <h2>Remember: IWADC + SA</h2>
+    <div class="mnemonic-text">I-W-A-D-C-S-A</div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Question</th>
+        <th>Analysis Focus</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="question-number">1</span><strong>Identification</strong></td>
+        <td>What type of contact is this? (Submarine, surface vessel, biological, noise, etc.)</td>
+      </tr>
+      <tr>
+        <td><span class="question-number">2</span><strong>Where</strong></td>
+        <td>Where is the contact located? (Bearing, range, depth if available)</td>
+      </tr>
+      <tr>
+        <td><span class="question-number">3</span><strong>Aspect</strong></td>
+        <td>What is the contact's orientation relative to own ship? (Bow-on, beam, stern, etc.)</td>
+      </tr>
+      <tr>
+        <td><span class="question-number">4</span><strong>Distance</strong></td>
+        <td>How far away is the contact? (Range estimation using various methods)</td>
+      </tr>
+      <tr>
+        <td><span class="question-number">5</span><strong>Course</strong></td>
+        <td>What direction is the contact traveling? (True bearing of movement)</td>
+      </tr>
+      <tr>
+        <td><span class="question-number">6</span><strong>Speed</strong></td>
+        <td>How fast is the contact moving? (Knots, blade rate analysis)</td>
+      </tr>
+      <tr>
+        <td><span class="question-number">7</span><strong>Action</strong></td>
+        <td>What is the recommended tactical response? (Track, classify, evade, engage, report)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="intro">
+    <p><strong>Application:</strong> These questions should be answered in sequence for every sonar contact. The first five (IWADC) establish the contact's identity and geometry. Speed (S) provides motion analysis. Action (A) determines the tactical response based on all previous answers.</p>
+  </div>
+
+  <footer>
+    <p>Sonar Quiz System v0.1.0 | Offline-First Training Platform</p>
+    <p>Seven Questions Framework | IWADC-SA Mnemonic</p>
+  </footer>
+
+  <!-- Load the Sonar Quiz System -->
+  <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true" data-status-panel-container=".wh_top_menu_and_indexterms_link"></script>
+</body>
+</html>
