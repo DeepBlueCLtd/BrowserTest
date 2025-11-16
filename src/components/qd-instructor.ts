@@ -212,14 +212,6 @@ export class QdInstructor extends LitElement {
       background-color: #1b5e20;
     }
 
-    .lock-button {
-      background-color: #757575;
-    }
-
-    .lock-button:hover:not(:disabled) {
-      background-color: #616161;
-    }
-
     .erase-data {
       background-color: #d32f2f;
     }
@@ -549,9 +541,6 @@ export class QdInstructor extends LitElement {
       <h2>Instructor Dashboard</h2>
 
       <div class="controls">
-        <button type="button" class="lock-button" @click=${() => this._handleLock()}>
-          Lock Instructor Mode
-        </button>
         <button type="button" class="export-csv" @click=${() => this._handleExport()}>
           Export CSV
         </button>
@@ -835,30 +824,6 @@ export class QdInstructor extends LitElement {
       this._errorMessage = 'Incorrect password. Please try again.';
       this._password = '';
     }
-  }
-
-  private _handleLock() {
-    this.unlocked = false;
-    const session = getSessionService();
-    session.lockInstructor();
-
-    this._statusMessage = 'Instructor mode locked';
-    this.mode = 'overview';
-
-    // Hide student answers if they were shown
-    if (this._showStudentAnswers) {
-      this._showStudentAnswers = false;
-      this._hideStudentAnswersOnPage();
-    }
-
-    // Emit lock event
-    this.dispatchEvent(
-      new CustomEvent('qd:instructor-lock', {
-        detail: { timestamp: new Date().toISOString() },
-        bubbles: true,
-        composed: true,
-      }),
-    );
   }
 
   private async _handleExport() {
