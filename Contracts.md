@@ -6,8 +6,8 @@
 export type ReleaseId  = string;  // e.g. "02-2025"
 export type ServiceId  = string;  // e.g. "RN2344"
 export type PageId     = string;  // e.g. "gram-1"
-export type TableId    = string;  // e.g. "t:8e2b4"
-export type CellKey    = string;  // e.g. "R2C4#f:abc123"
+export type TableId    = string;  // 16-char hash from structure (e.g. "8e2b4a1c9f3d7b6e")
+export type CellKey    = string;  // e.g. "R2C4#f:abc123" (8-char content hash)
 ```
 
 ---
@@ -140,7 +140,7 @@ export const LOCAL_PREFIX      = 'qd/';
 export const SESSION_KEY       = 'qd/session';
 export const STATE_KEY         = 'qd/state';
 export const SCHEMA_VER        = 3;
-export const SESSION_TIMEOUT_MS = 1800000;  // 30 minutes
+export const SESSION_TIMEOUT_MS = 30 * 60 * 1000;  // 30 minutes
 ```
 
 ---
