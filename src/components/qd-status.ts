@@ -343,6 +343,8 @@ export class QdStatus extends LitElement {
           release="${this.release}"
           docId="${this.docId}"
           @qd:login=${(event: CustomEvent<SessionData>) => this._handleLogin(event)}
+          @qd:instructor-login=${(event: CustomEvent<{ timestamp: string; release: string }>) =>
+            this._handleInstructorLogin(event)}
         >
         </qd-login>
       </div>
@@ -417,6 +419,20 @@ export class QdStatus extends LitElement {
     // Forward the login event
     this.dispatchEvent(
       new CustomEvent<SessionData>('qd:login', {
+        detail: event.detail,
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  private _handleInstructorLogin(event: CustomEvent<{ timestamp: string; release: string }>) {
+    // Show instructor panel immediately (skip student status view)
+    this._showInstructorPanel = true;
+
+    // Forward the instructor login event
+    this.dispatchEvent(
+      new CustomEvent('qd:instructor-login', {
         detail: event.detail,
         bubbles: true,
         composed: true,

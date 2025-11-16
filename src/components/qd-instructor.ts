@@ -730,6 +730,12 @@ export class QdInstructor extends LitElement {
     this._statusMessage = 'Instructor mode locked';
     this.mode = 'overview';
 
+    // Hide student answers if they were shown
+    if (this._showStudentAnswers) {
+      this._showStudentAnswers = false;
+      this._hideStudentAnswersOnPage();
+    }
+
     // Emit lock event
     this.dispatchEvent(
       new CustomEvent('qd:instructor-lock', {
@@ -987,8 +993,19 @@ export class QdInstructor extends LitElement {
     import('../enhancers/quiz-table')
       .then(({ revealCorrectAnswers }) => {
         const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
+
+        if (quizTables.length === 0) {
+          // No quiz tables on current page
+          return;
+        }
+
         quizTables.forEach((table) => {
-          revealCorrectAnswers(table);
+          // Check if table is enhanced/prepared before revealing
+          if (table.classList.contains('qd-prepared')) {
+            revealCorrectAnswers(table);
+          } else {
+            console.warn('Quiz table not prepared yet, skipping reveal');
+          }
         });
       })
       .catch((error) => {
