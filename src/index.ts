@@ -753,6 +753,13 @@ function setupEventListeners(doc: Document = document): void {
         } else {
           log('WARNING: Status panel not found in DOM');
         }
+
+        // Update home page badges if we're on a home page
+        const hasTestLinks = doc.querySelectorAll(`.${CSS_CLASSES.TEST_LINK}`).length > 0;
+        if (hasTestLinks) {
+          initializeHomeBadges();
+          log('Home badges updated after login');
+        }
       } catch (error) {
         console.error('Failed to initialize student record:', error);
         // In debug mode, re-throw to fail fast
@@ -801,6 +808,13 @@ function setupEventListeners(doc: Document = document): void {
       log('Status panel updated with logged-out state');
     } else {
       log('WARNING: Status panel not found on logout');
+    }
+
+    // Reset home page badges if we're on a home page
+    const hasTestLinks = doc.querySelectorAll(`.${CSS_CLASSES.TEST_LINK}`).length > 0;
+    if (hasTestLinks) {
+      initializeHomeBadges();
+      log('Home badges reset after logout');
     }
   });
 
