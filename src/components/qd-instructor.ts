@@ -33,6 +33,11 @@ import {
 } from '../services/csv-export';
 import { getStorageAdapter } from '../services/storage/indexeddb';
 import type { StudentRecord } from '../types/contracts';
+import {
+  showStudentAnswersInline,
+  hideStudentAnswersInline,
+  revealCorrectAnswers,
+} from '../enhancers/quiz-table';
 
 type InstructorMode = 'overview' | 'scores' | 'export' | 'manage';
 type SortField = 'serviceId' | 'name' | 'score' | 'percentage';
@@ -100,6 +105,12 @@ export class QdInstructor extends LitElement {
   private _sortField: SortField = 'serviceId';
 
   /**
+   * Sort direction (ascending or descending)
+   */
+  @state()
+  private _sortDirection: 'asc' | 'desc' = 'asc';
+
+  /**
    * Raw student records (loaded from IndexedDB)
    */
   @state()
@@ -110,6 +121,18 @@ export class QdInstructor extends LitElement {
    */
   @state()
   private _exportFormat: ExportFormat = 'summary';
+
+  /**
+   * Whether to show student answers inline in quiz tables
+   */
+  @state()
+  private _showStudentAnswers = false;
+
+  /**
+   * Whether to show answer details in the scores table
+   */
+  @state()
+  private _showAnswerDetails = true;
 
   static styles = css`
     :host {
@@ -199,14 +222,6 @@ export class QdInstructor extends LitElement {
 
     .unlock-button:hover:not(:disabled) {
       background-color: #1b5e20;
-    }
-
-    .lock-button {
-      background-color: #757575;
-    }
-
-    .lock-button:hover:not(:disabled) {
-      background-color: #616161;
     }
 
     .erase-data {
@@ -318,37 +333,43 @@ export class QdInstructor extends LitElement {
       color: #555;
     }
 
-    .sort-controls {
-      margin-bottom: 1rem;
-      display: flex;
-      gap: 0.5rem;
-      align-items: center;
-    }
-
-    .sort-controls label {
-      font-weight: 500;
-      color: #555;
-    }
-
-    .sort-controls button {
-      padding: 0.5rem 1rem;
-      border: 1px solid #ccc;
-      background: #ffffff;
-      color: #333;
-      border-radius: 4px;
+    th.sortable {
       cursor: pointer;
-      transition: all 0.2s;
+      user-select: none;
+      transition: background-color 0.2s;
+    }
+
+    th.sortable:hover {
+      background: #e8e8e8;
+    }
+
+    th.sortable.active {
+      background: #e0f2ff;
+      color: #0066cc;
+    }
+
+    .sort-icon {
+      display: inline-block;
+      margin-left: 0.25rem;
+      font-size: 0.75rem;
+      color: #999;
+    }
+
+    th.sortable.active .sort-icon {
+      color: #0066cc;
+    }
+
+    .toggle-answers {
+      cursor: pointer;
+      margin-left: 0.5rem;
       font-size: 0.875rem;
+      color: #0066cc;
+      text-decoration: underline;
+      user-select: none;
     }
 
-    .sort-controls button:hover {
-      background: #f5f5f5;
-    }
-
-    .sort-controls button.active {
-      background: #0066cc;
-      color: #ffffff;
-      border-color: #0052a3;
+    .toggle-answers:hover {
+      color: #0052a3;
     }
 
     .dialog-overlay {
@@ -400,6 +421,45 @@ export class QdInstructor extends LitElement {
       height: 1px;
       overflow: hidden;
     }
+
+    .answer-details {
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      color: #555;
+      line-height: 1.4;
+    }
+
+    .answer-details-page {
+      margin-bottom: 0.25rem;
+    }
+
+    .answer-details-page:last-child {
+      margin-bottom: 0;
+    }
+
+    .answer-details-page-title {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 0.125rem;
+    }
+
+    .answer-details-answers {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
+
+    .answer-details-item {
+      white-space: nowrap;
+    }
+
+    .answer-details-item .correct {
+      color: #2e7d32;
+    }
+
+    .answer-details-item .incorrect {
+      color: #d32f2f;
+    }
   `;
 
   private _broadcastChannel: BroadcastChannel | null = null;
@@ -412,6 +472,16 @@ export class QdInstructor extends LitElement {
 
     // Setup cross-tab sync listener
     this._setupCrossTabSync();
+  }
+
+  firstUpdated() {
+    // If already unlocked when component first renders, reveal answers
+    if (this.unlocked) {
+      // Use setTimeout to ensure quiz tables are prepared
+      setTimeout(() => {
+        this._revealAnswersOnPage();
+      }, 100);
+    }
   }
 
   disconnectedCallback() {
@@ -489,9 +559,6 @@ export class QdInstructor extends LitElement {
       <h2>Instructor Dashboard</h2>
 
       <div class="controls">
-        <button type="button" class="lock-button" @click=${() => this._handleLock()}>
-          Lock Instructor Mode
-        </button>
         <button type="button" class="export-csv" @click=${() => this._handleExport()}>
           Export CSV
         </button>
@@ -540,6 +607,20 @@ export class QdInstructor extends LitElement {
           export data, and manage the system.
         </p>
         <p>Use the tabs above to navigate between different views.</p>
+
+        <div class="field" style="margin-top: 1.5rem;">
+          <label>
+            <input
+              type="checkbox"
+              .checked=${this._showStudentAnswers}
+              @change=${() => this._handleToggleStudentAnswers()}
+            />
+            Show student answers in quiz tables
+          </label>
+          <p style="margin: 0.5rem 0 0 1.5rem; font-size: 0.875rem; color: #666;">
+            When enabled, displays all student answers inline within quiz tables on quiz pages.
+          </p>
+        </div>
       </div>
     `;
   }
@@ -569,62 +650,124 @@ export class QdInstructor extends LitElement {
           </p>
         </div>
 
-        <!-- Sort Controls -->
-        <div class="sort-controls">
-          <label>Sort by:</label>
-          <button
-            class="${this._sortField === 'serviceId' ? 'active' : ''}"
-            @click=${() => this._handleSortChange('serviceId')}
-          >
-            Service ID
-          </button>
-          <button
-            class="${this._sortField === 'name' ? 'active' : ''}"
-            @click=${() => this._handleSortChange('name')}
-          >
-            Name
-          </button>
-          <button
-            class="${this._sortField === 'score' ? 'active' : ''}"
-            @click=${() => this._handleSortChange('score')}
-          >
-            Score
-          </button>
-          <button
-            class="${this._sortField === 'percentage' ? 'active' : ''}"
-            @click=${() => this._handleSortChange('percentage')}
-          >
-            Percentage
-          </button>
-        </div>
-
         <!-- Scores Table -->
         <table>
           <thead>
             <tr>
-              <th scope="col">Service ID</th>
-              <th scope="col">Name</th>
-              <th scope="col">Attempted</th>
-              <th scope="col">Correct</th>
-              <th scope="col">Percentage</th>
-              <th scope="col">Pages Complete</th>
+              <th
+                scope="col"
+                class="sortable ${this._sortField === 'serviceId' ? 'active' : ''}"
+                @click=${() => this._handleSortChange('serviceId')}
+              >
+                Service ID<span class="sort-icon">${this._getSortIcon('serviceId')}</span>
+              </th>
+              <th
+                scope="col"
+                class="sortable ${this._sortField === 'name' ? 'active' : ''}"
+                @click=${() => this._handleSortChange('name')}
+              >
+                Name<span class="sort-icon">${this._getSortIcon('name')}</span>
+              </th>
+              <th
+                scope="col"
+                class="sortable ${this._sortField === 'score' ? 'active' : ''}"
+                @click=${() => this._handleSortChange('score')}
+              >
+                Correct<span class="sort-icon">${this._getSortIcon('score')}</span>
+              </th>
+              <th
+                scope="col"
+                class="sortable ${this._sortField === 'percentage' ? 'active' : ''}"
+                @click=${() => this._handleSortChange('percentage')}
+              >
+                Percentage<span class="sort-icon">${this._getSortIcon('percentage')}</span>
+              </th>
+              <th scope="col">
+                Pages Complete<span
+                  class="toggle-answers"
+                  @click=${() => (this._showAnswerDetails = !this._showAnswerDetails)}
+                  >${this._showAnswerDetails ? 'Hide answers' : 'Show answers'}</span
+                >
+              </th>
             </tr>
           </thead>
           <tbody>
-            ${this._aggregatedScores.students.map(
-              (student) => html`
-                <tr>
-                  <td>${student.serviceId}</td>
-                  <td>${student.name}</td>
-                  <td>${student.totalAttempted}</td>
-                  <td>${student.totalCorrect}</td>
-                  <td>${student.percentage.toFixed(1)}%</td>
-                  <td>${student.pagesComplete} / ${student.pagesTotal}</td>
-                </tr>
-              `,
-            )}
+            ${this._aggregatedScores.students.map((student) => this._renderStudentRow(student))}
           </tbody>
         </table>
+      </div>
+    `;
+  }
+
+  /**
+   * Render a student row with optional inline answer details
+   */
+  private _renderStudentRow(student: import('../services/scores').AggregatedScores['students'][0]) {
+    const fullRecord = this._studentRecords.find((r) => r.serviceId === student.serviceId);
+
+    return html`
+      <tr>
+        <td>${student.serviceId}</td>
+        <td>${student.name}</td>
+        <td>${student.totalCorrect} / ${student.totalAttempted}</td>
+        <td>${student.percentage.toFixed(1)}%</td>
+        <td>
+          <div>${student.pagesComplete} / ${student.pagesTotal}</div>
+          ${this._showAnswerDetails && fullRecord ? this._renderAnswerDetails(fullRecord) : ''}
+        </td>
+      </tr>
+    `;
+  }
+
+  /**
+   * Render compact answer details for a student
+   */
+  private _renderAnswerDetails(student: StudentRecord) {
+    const pages = Object.entries(student.pages).sort(([a], [b]) => a.localeCompare(b));
+
+    if (pages.length === 0) {
+      return '';
+    }
+
+    return html`
+      <div class="answer-details">
+        ${pages.map(([pageId, pageData]) => this._renderPageAnswers(pageId, pageData))}
+      </div>
+    `;
+  }
+
+  /**
+   * Render answers for a single page (compact format)
+   */
+  private _renderPageAnswers(pageId: string, pageData: import('../types/contracts').PageData) {
+    if (!pageData.answers || pageData.answers.length === 0) {
+      return '';
+    }
+
+    // Use Array.from to handle sparse arrays (arrays with undefined holes)
+    // .map() skips undefined indices, but Array.from with explicit indexing doesn't
+    const allQuestions = Array.from({ length: pageData.answers.length }, (_, index) => ({
+      answer: pageData.answers[index] ?? null,
+      questionNum: index + 1,
+    }));
+
+    return html`
+      <div class="answer-details-page">
+        <div class="answer-details-page-title">${pageId}:</div>
+        <div class="answer-details-answers">
+          ${allQuestions.map(
+            (item) => html`
+              <span class="answer-details-item">
+                ${item.answer != null
+                  ? html`Q${item.questionNum}:${item.answer.answer}<span
+                        class="${item.answer.success ? 'correct' : 'incorrect'}"
+                        >${item.answer.success ? '✓' : '✗'}</span
+                      >`
+                  : html`Q${item.questionNum}:<span style="color: #999;">—</span>`}
+              </span>
+            `,
+          )}
+        </div>
       </div>
     `;
   }
@@ -693,28 +836,13 @@ export class QdInstructor extends LitElement {
           composed: true,
         }),
       );
+
+      // Automatically reveal answers on all quiz tables
+      this._revealAnswersOnPage();
     } else {
       this._errorMessage = 'Incorrect password. Please try again.';
       this._password = '';
     }
-  }
-
-  private _handleLock() {
-    this.unlocked = false;
-    const session = getSessionService();
-    session.lockInstructor();
-
-    this._statusMessage = 'Instructor mode locked';
-    this.mode = 'overview';
-
-    // Emit lock event
-    this.dispatchEvent(
-      new CustomEvent('qd:instructor-lock', {
-        detail: { timestamp: new Date().toISOString() },
-        bubbles: true,
-        composed: true,
-      }),
-    );
   }
 
   private async _handleExport() {
@@ -931,29 +1059,165 @@ export class QdInstructor extends LitElement {
   }
 
   /**
-   * Sort students based on selected field
+   * Sort students based on selected field and direction
    */
   private _sortStudents(students: StudentRecord[]): StudentRecord[] {
+    let sorted: StudentRecord[];
+
     switch (this._sortField) {
       case 'serviceId':
-        return students.sort(sortByServiceId);
+        sorted = students.sort(sortByServiceId);
+        break;
       case 'name':
-        return students.sort(sortByName);
+        sorted = students.sort(sortByName);
+        break;
       case 'score':
-        return students.sort(sortByScore);
+        sorted = students.sort(sortByScore);
+        break;
       case 'percentage':
-        return students.sort(sortByPercentage);
+        sorted = students.sort(sortByPercentage);
+        break;
       default:
-        return students;
+        sorted = students;
     }
+
+    // Reverse if descending
+    return this._sortDirection === 'desc' ? sorted.reverse() : sorted;
+  }
+
+  /**
+   * Get sort icon for a column header
+   */
+  private _getSortIcon(field: SortField): string {
+    if (this._sortField !== field) {
+      return '↕'; // Neutral sort icon when not active
+    }
+    return this._sortDirection === 'asc' ? '↑' : '↓';
   }
 
   /**
    * Handle sort field change
    */
   private _handleSortChange(field: SortField): void {
-    this._sortField = field;
+    // If clicking the same field, toggle direction
+    if (this._sortField === field) {
+      this._sortDirection = this._sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      // New field - reset to ascending
+      this._sortField = field;
+      this._sortDirection = 'asc';
+    }
     this._aggregateScores();
+  }
+
+  /**
+   * Reveal correct answers on all quiz tables on the current page
+   */
+  private _revealAnswersOnPage(): void {
+    const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
+
+    if (quizTables.length === 0) {
+      // No quiz tables on current page
+      return;
+    }
+
+    quizTables.forEach((table) => {
+      // Check if table is enhanced/prepared before revealing
+      if (table.classList.contains('qd-prepared')) {
+        revealCorrectAnswers(table);
+      } else {
+        console.warn('Quiz table not prepared yet, skipping reveal');
+      }
+    });
+  }
+
+  /**
+   * Handle toggle for showing student answers inline
+   */
+  private _handleToggleStudentAnswers(): void {
+    this._showStudentAnswers = !this._showStudentAnswers;
+
+    if (this._showStudentAnswers) {
+      // Show student answers (intentionally not awaited)
+      void this._showStudentAnswersOnPage();
+    } else {
+      // Hide student answers
+      this._hideStudentAnswersOnPage();
+    }
+  }
+
+  /**
+   * Show student answers inline on all quiz tables
+   */
+  private async _showStudentAnswersOnPage(): Promise<void> {
+    // Ensure student records are loaded
+    if (this._studentRecords.length === 0) {
+      await this._loadStudentRecords();
+    }
+
+    if (this._studentRecords.length === 0) {
+      this._statusMessage = 'No student data available to display';
+      return;
+    }
+
+    // Get current page ID from URL or data attribute
+    const pageId = this._getCurrentPageId();
+
+    if (!pageId) {
+      this._statusMessage = 'Unable to determine current page ID';
+      return;
+    }
+
+    try {
+      const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
+      quizTables.forEach((table) => {
+        showStudentAnswersInline(table, this._studentRecords, pageId);
+      });
+      this._statusMessage = 'Student answers displayed inline';
+    } catch (error) {
+      console.error('Failed to show student answers:', error);
+      this._errorMessage = 'Failed to display student answers';
+    }
+  }
+
+  /**
+   * Hide student answers from all quiz tables
+   */
+  private _hideStudentAnswersOnPage(): void {
+    try {
+      const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
+      quizTables.forEach((table) => {
+        hideStudentAnswersInline(table);
+      });
+      this._statusMessage = 'Student answers hidden';
+    } catch (error) {
+      console.error('Failed to hide student answers:', error);
+    }
+  }
+
+  /**
+   * Get current page ID from URL or data attributes
+   *
+   * @returns Page ID or empty string if not found
+   */
+  private _getCurrentPageId(): string {
+    // Try to get from data attribute on quiz table
+    const quizTable = document.querySelector<HTMLTableElement>('table.qd-quiz');
+    if (quizTable) {
+      const pageId = quizTable.getAttribute('data-page-id');
+      if (pageId) return pageId;
+    }
+
+    // Try to extract from URL pathname
+    // Expected format: /path/to/page-id.html
+    const pathname = window.location.pathname;
+    const match = pathname.match(/\/([^/]+)\.html?$/);
+    if (match && match[1]) {
+      return match[1];
+    }
+
+    // Fallback: return empty string
+    return '';
   }
 }
 

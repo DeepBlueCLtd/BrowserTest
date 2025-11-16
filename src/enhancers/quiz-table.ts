@@ -101,6 +101,9 @@ export function prepareQuizTable(
     if (question.kind === 'numeric' && question.tolerance !== undefined) {
       answerCell.setAttribute('data-tolerance', question.tolerance.toString());
     }
+
+    // Clear the visible answer text to hide correct answers until instructor reveal
+    answerCell.textContent = '';
   });
 
   // Remove the detail column (3rd column) - it's only used for metadata during parsing
@@ -540,8 +543,32 @@ export function revealCorrectAnswers(table: HTMLTableElement | null): void {
 
     // Display correct answer based on question type
     if (questionType === 'mcq') {
-      // MCQ question
-      revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${correctAnswer}`;
+      // MCQ question - show both index and option text
+      const optionsJson = answerCell.getAttribute('data-options');
+      let displayText = correctAnswer;
+
+      if (optionsJson) {
+        try {
+          const options = JSON.parse(optionsJson) as string[];
+          // correctAnswer is 1-based index for MCQ
+          const answerIndex = parseInt(correctAnswer, 10);
+          if (!isNaN(answerIndex) && answerIndex >= 1 && answerIndex <= options.length) {
+            const optionText = options[answerIndex - 1]; // Convert to 0-based index
+            displayText = `${answerIndex}: ${optionText}`;
+          } else {
+            console.warn(
+              `MCQ answer index ${answerIndex} out of range (1-${options.length}) or invalid`,
+            );
+          }
+        } catch (error) {
+          // If parsing fails, just show the answer as-is
+          console.warn('Failed to parse MCQ options:', error);
+        }
+      } else {
+        console.warn('MCQ question missing data-options attribute');
+      }
+
+      revealDiv.innerHTML = `<strong>Correct Answer:</strong> ${displayText}`;
     } else if (questionType === 'numeric') {
       // Numeric question - get tolerance from data attribute
       const toleranceAttr = answerCell.getAttribute('data-tolerance');
@@ -665,6 +692,164 @@ export function showStudentComparisons(
   // Insert comparison table after the quiz table
   if (table.parentElement) {
     table.parentElement.insertBefore(comparisonTable, table.nextSibling);
+  }
+}
+
+/**
+ * Show student answers inline within quiz table cells (instructor mode)
+ *
+ * Embeds each student's answer within the quiz table answer cell, showing:
+ * - Student name
+ * - Tail digits of service ID (last 4 digits)
+ * - Answer given
+ * - Shortened date/time
+ * - Color-coded success (green) or failure (red)
+ *
+ * @param table - The quiz table element
+ * @param students - Array of student records to display
+ * @param pageId - Current page ID to extract answers from
+ */
+export function showStudentAnswersInline(
+  table: HTMLTableElement | null,
+  students: import('../types/contracts').StudentRecord[],
+  pageId: string,
+): void {
+  if (!table || !students || students.length === 0) {
+    return;
+  }
+
+  // Get question count from stored data attribute
+  const questionCountAttr = table.getAttribute('data-question-count');
+  const questionCount = questionCountAttr ? parseInt(questionCountAttr, 10) : 0;
+
+  if (questionCount === 0) {
+    return;
+  }
+
+  // Get all answer cells (second column in tbody)
+  const rows = Array.from(table.querySelectorAll('tbody tr'));
+
+  // For each question (row)
+  for (let questionIndex = 0; questionIndex < questionCount; questionIndex++) {
+    if (questionIndex >= rows.length) break;
+
+    const row = rows[questionIndex];
+    const answerCell = row.querySelector('td:nth-child(2)');
+
+    if (!answerCell) continue;
+
+    // Skip if already showing inline student answers
+    if (answerCell.querySelector('.qd-student-answers-inline')) {
+      continue;
+    }
+
+    // Collect all student answers for this question
+    const studentAnswers: Array<{
+      name: string;
+      serviceIdTail: string;
+      answer: string;
+      timestamp: string;
+      success: boolean;
+    }> = [];
+
+    students.forEach((student) => {
+      const pageData = student.pages[pageId];
+      const answers = pageData?.answers || [];
+      const answer = answers[questionIndex];
+
+      if (answer && answer.answer) {
+        // Get last 4 digits of service ID
+        const serviceIdTail = student.serviceId.slice(-4);
+
+        studentAnswers.push({
+          name: student.name,
+          serviceIdTail,
+          answer: answer.answer,
+          timestamp: answer.timestamp,
+          success: answer.success,
+        });
+      }
+    });
+
+    // If no student answers, skip this question
+    if (studentAnswers.length === 0) {
+      continue;
+    }
+
+    // Create inline student answers container
+    const inlineContainer = document.createElement('div');
+    inlineContainer.className = 'qd-student-answers-inline';
+
+    // Add header
+    const header = document.createElement('div');
+    header.className = 'qd-student-answers-header';
+    header.textContent = 'Student Answers:';
+    inlineContainer.appendChild(header);
+
+    // Add each student answer
+    const answerList = document.createElement('ul');
+    answerList.className = 'qd-student-answers-list';
+
+    studentAnswers.forEach((sa) => {
+      const listItem = document.createElement('li');
+      listItem.className = sa.success
+        ? 'qd-student-answer-item qd-success'
+        : 'qd-student-answer-item qd-failure';
+
+      // Format timestamp (MM/DD HH:mm)
+      const formattedTime = formatTimestamp(sa.timestamp);
+
+      // Build answer text: Name (####): answer [✓/✗] MM/DD HH:mm
+      const icon = sa.success ? '✓' : '✗';
+      listItem.textContent = `${sa.name} (${sa.serviceIdTail}): ${sa.answer} ${icon} ${formattedTime}`;
+
+      answerList.appendChild(listItem);
+    });
+
+    inlineContainer.appendChild(answerList);
+
+    // Insert before the input element (find qd-input-container)
+    const inputElement = answerCell.querySelector('.qd-input-container');
+    if (inputElement) {
+      answerCell.insertBefore(inlineContainer, inputElement);
+    } else {
+      // Fallback: append to end of cell
+      answerCell.appendChild(inlineContainer);
+    }
+  }
+}
+
+/**
+ * Hide inline student answers from quiz table
+ *
+ * @param table - The quiz table element
+ */
+export function hideStudentAnswersInline(table: HTMLTableElement | null): void {
+  if (!table) return;
+
+  // Find and remove all inline student answer containers
+  const inlineContainers = table.querySelectorAll('.qd-student-answers-inline');
+  inlineContainers.forEach((container) => {
+    container.remove();
+  });
+}
+
+/**
+ * Format ISO 8601 timestamp to shortened format (MM/DD HH:mm)
+ *
+ * @param timestamp - ISO 8601 timestamp string
+ * @returns Formatted string like "01/15 14:30"
+ */
+function formatTimestamp(timestamp: string): string {
+  try {
+    const date = new Date(timestamp);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${month}/${day} ${hours}:${minutes}`;
+  } catch {
+    return 'Invalid date';
   }
 }
 
@@ -823,6 +1008,48 @@ export function injectQuizStyles(doc: Document = document): void {
 
     .qd-student-row:hover {
       background-color: #fafafa;
+    }
+
+    /* Inline student answers styling */
+    .qd-student-answers-inline {
+      margin: 0.5rem 0;
+      padding: 0.75rem;
+      background-color: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      font-size: 0.875rem;
+    }
+
+    .qd-student-answers-header {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 0.5rem;
+    }
+
+    .qd-student-answers-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .qd-student-answer-item {
+      padding: 0.375rem 0.5rem;
+      margin: 0.25rem 0;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 0.8125rem;
+    }
+
+    .qd-student-answer-item.qd-success {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      border-left: 3px solid #4caf50;
+    }
+
+    .qd-student-answer-item.qd-failure {
+      background-color: #ffebee;
+      color: #c62828;
+      border-left: 3px solid #f44336;
     }
   `;
 

@@ -45,21 +45,24 @@ export function calculateCompletionState(
  * Check if a page is complete
  *
  * A page is complete when:
- * - All questions are answered (answers.length === totalQuestions)
- * - All answers are correct (every answer has success === true)
+ * - All questions are answered (non-null answers === totalQuestions)
+ * - All answered questions are correct (every non-null answer has success === true)
  *
- * @param answers - Array of answer records
+ * @param answers - Array of answer records (may contain null/undefined)
  * @param totalQuestions - Total number of questions
  * @returns True if page is complete
  */
 export function isPageComplete(answers: AnswerRecord[], totalQuestions: number): boolean {
+  // Filter out null/undefined answers
+  const validAnswers = answers.filter((a) => a != null);
+
   // Must have answered all questions
-  if (answers.length !== totalQuestions) {
+  if (validAnswers.length !== totalQuestions) {
     return false;
   }
 
   // All answers must be correct
-  return answers.every((answer) => answer.success === true);
+  return validAnswers.every((answer) => answer.success === true);
 }
 
 /**

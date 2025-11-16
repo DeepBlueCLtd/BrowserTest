@@ -1,8 +1,8 @@
 /**
  * QdLogin Component
  *
- * Web component for student login. Captures service ID and name,
- * validates inputs, and emits qd:login event on successful submission.
+ * Web component for student and instructor login.
+ * Supports two login modes: Student (service ID + name) and Instructor (password).
  *
  * Features compact vertical stack layout with button to the right.
  *
@@ -15,13 +15,16 @@
  *   - title: Fieldset title (default: "Core Skills Assessment")
  *
  * Emits:
- *   qd:login - Custom event with SessionData in detail
+ *   qd:login - Custom event with SessionData in detail (student login)
+ *   qd:instructor-login - Custom event for instructor login
  */
 
 import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import type { SessionData } from '../types/contracts';
 import { LIMITS, SESSION_TIMEOUT_MS } from '../types/contracts';
+
+type LoginMode = 'student' | 'instructor';
 
 @customElement('qd-login')
 export class QdLogin extends LitElement {
@@ -49,11 +52,53 @@ export class QdLogin extends LitElement {
   @state()
   private _isSubmitting = false;
 
+  /**
+   * Current login mode (student or instructor)
+   */
+  @state()
+  private _loginMode: LoginMode = 'student';
+
+  /**
+   * Error message for failed login attempts
+   */
+  @state()
+  private _errorMessage = '';
+
   static styles = css`
     :host {
       display: block;
       font-family:
         -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    .mode-selector {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .mode-tab {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #666;
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .mode-tab:hover {
+      background: #e8e8e8;
+      color: #333;
+    }
+
+    .mode-tab.active {
+      background: #0066cc;
+      color: #ffffff;
+      border-color: #0052a3;
     }
 
     form {
@@ -94,7 +139,7 @@ export class QdLogin extends LitElement {
       border-color: #4caf50;
     }
 
-    button {
+    button[type='submit'] {
       padding: 0.5rem 1.25rem;
       font-size: 0.875rem;
       font-weight: 500;
@@ -109,17 +154,27 @@ export class QdLogin extends LitElement {
       align-self: stretch;
     }
 
-    button:hover:not(:disabled) {
+    button[type='submit']:hover:not(:disabled) {
       background-color: #0052a3;
     }
 
-    button:active:not(:disabled) {
+    button[type='submit']:active:not(:disabled) {
       background-color: #004080;
     }
 
-    button:disabled {
+    button[type='submit']:disabled {
       background-color: #ccc;
       cursor: not-allowed;
+    }
+
+    .error {
+      color: #d32f2f;
+      font-size: 0.8125rem;
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      background: #ffebee;
+      border: 1px solid #ffcdd2;
+      border-radius: 4px;
     }
 
     @media (max-width: 480px) {
@@ -127,7 +182,7 @@ export class QdLogin extends LitElement {
         flex-direction: column;
       }
 
-      button {
+      button[type='submit'] {
         align-self: stretch;
       }
     }
@@ -135,47 +190,98 @@ export class QdLogin extends LitElement {
 
   render() {
     return html`
-      <form @submit=${(e: Event) => this._handleSubmit(e)} novalidate>
-        <div class="inputs-stack">
-          <input
-            type="text"
-            id="serviceId"
-            name="serviceId"
-            required
-            minlength="2"
-            maxlength="${LIMITS.MAX_SERVICE_ID_LENGTH}"
-            placeholder="Service ID (e.g., RN2344)"
-            autocomplete="off"
-            autofocus
-            pattern="[A-Za-z0-9]+"
-            title="Service ID must be alphanumeric, 2-10 characters"
-            aria-label="Service ID"
-          />
+      <div class="mode-selector">
+        <button
+          type="button"
+          class="mode-tab ${this._loginMode === 'student' ? 'active' : ''}"
+          @click=${() => this._handleModeChange('student')}
+        >
+          Student
+        </button>
+        <button
+          type="button"
+          class="mode-tab ${this._loginMode === 'instructor' ? 'active' : ''}"
+          @click=${() => this._handleModeChange('instructor')}
+        >
+          Instructor
+        </button>
+      </div>
 
-          <input
-            type="text"
-            id="name"
-            name="name"
-            required
-            minlength="1"
-            maxlength="${LIMITS.MAX_NAME_LENGTH}"
-            placeholder="Name (e.g., J Corner)"
-            autocomplete="off"
-            title="Name is required (1-100 characters)"
-            aria-label="Name"
-          />
-        </div>
+      <form @submit=${(e: Event) => this._handleSubmit(e)} novalidate>
+        <div class="inputs-stack">${this._renderFormFields()}</div>
 
         <button type="submit" ?disabled=${this._isSubmitting}>
           ${this._isSubmitting ? 'Logging in...' : 'Login'}
         </button>
       </form>
+
+      ${this._errorMessage ? html`<div class="error">${this._errorMessage}</div>` : ''}
     `;
+  }
+
+  private _renderFormFields() {
+    if (this._loginMode === 'instructor') {
+      return html`
+        <input
+          type="password"
+          id="password"
+          name="password"
+          required
+          placeholder="Instructor password"
+          autocomplete="current-password"
+          autofocus
+          aria-label="Instructor password"
+        />
+      `;
+    }
+
+    return html`
+      <input
+        type="text"
+        id="serviceId"
+        name="serviceId"
+        required
+        minlength="2"
+        maxlength="${LIMITS.MAX_SERVICE_ID_LENGTH}"
+        placeholder="Service ID (e.g., RN2344)"
+        autocomplete="off"
+        autofocus
+        pattern="[A-Za-z0-9]+"
+        title="Service ID must be alphanumeric, 2-10 characters"
+        aria-label="Service ID"
+      />
+
+      <input
+        type="text"
+        id="name"
+        name="name"
+        required
+        minlength="1"
+        maxlength="${LIMITS.MAX_NAME_LENGTH}"
+        placeholder="Name (e.g., J Corner)"
+        autocomplete="off"
+        title="Name is required (1-100 characters)"
+        aria-label="Name"
+      />
+    `;
+  }
+
+  private _handleModeChange(mode: LoginMode) {
+    this._loginMode = mode;
+    this._errorMessage = '';
   }
 
   private _handleSubmit(e: Event) {
     e.preventDefault();
 
+    if (this._loginMode === 'instructor') {
+      void this._handleInstructorLogin(e);
+    } else {
+      this._handleStudentLogin(e);
+    }
+  }
+
+  private _handleStudentLogin(e: Event) {
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
 
@@ -189,6 +295,7 @@ export class QdLogin extends LitElement {
 
     // Set submitting state
     this._isSubmitting = true;
+    this._errorMessage = '';
 
     // Create session data
     const now = new Date().toISOString();
@@ -217,6 +324,79 @@ export class QdLogin extends LitElement {
     setTimeout(() => {
       this._isSubmitting = false;
     }, 500);
+  }
+
+  private async _handleInstructorLogin(e: Event) {
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+
+    const password = (formData.get('password') as string | null)?.trim() || '';
+
+    if (!password) {
+      this._errorMessage = 'Please enter the instructor password';
+      return;
+    }
+
+    // Set submitting state
+    this._isSubmitting = true;
+    this._errorMessage = '';
+
+    // Validate password against stored hash
+    const isValid = await this._validateInstructorPassword(password);
+
+    if (isValid) {
+      // Emit instructor login event with release info
+      this.dispatchEvent(
+        new CustomEvent('qd:instructor-login', {
+          detail: {
+            timestamp: new Date().toISOString(),
+            release: this.release || this._inferRelease(),
+          },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    } else {
+      this._errorMessage = 'Incorrect instructor password';
+    }
+
+    // Reset submitting state
+    this._isSubmitting = false;
+  }
+
+  private async _validateInstructorPassword(password: string): Promise<boolean> {
+    try {
+      // Hash the input password using SHA-256
+      const encoder = new TextEncoder();
+      const data = encoder.encode(password);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+
+      // Get stored hash from DOM (injected by Oxygen publishing)
+      const hashSpan = document.getElementById('instructor-password-hash');
+      const storedHash = hashSpan?.textContent?.trim();
+
+      if (!storedHash) {
+        // No hash configured, use default for demo
+        console.warn('No instructor password hash found, using default');
+        const defaultHash = await this._hashPassword('instructor');
+        return hashHex === defaultHash;
+      }
+
+      return hashHex === storedHash;
+    } catch (error) {
+      console.error('Failed to validate instructor password:', error);
+      return false;
+    }
+  }
+
+  private async _hashPassword(password: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
   }
 
   private _validateInputs(serviceId: string, name: string): boolean {

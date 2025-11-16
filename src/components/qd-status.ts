@@ -33,6 +33,7 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import type { CompletionState, SessionCache, SessionData } from '../types/contracts';
+import { getSessionService } from '../services/session';
 import './qd-login';
 import './qd-instructor';
 
@@ -317,6 +318,12 @@ export class QdStatus extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this._checkInsertionTarget();
+
+    // Check if instructor mode is already unlocked (from previous page)
+    const session = getSessionService();
+    if (session.isInstructorUnlocked()) {
+      this._showInstructorPanel = true;
+    }
   }
 
   willUpdate(changedProperties: Map<PropertyKey, unknown>) {
@@ -343,6 +350,8 @@ export class QdStatus extends LitElement {
           release="${this.release}"
           docId="${this.docId}"
           @qd:login=${(event: CustomEvent<SessionData>) => this._handleLogin(event)}
+          @qd:instructor-login=${(event: CustomEvent<{ timestamp: string; release: string }>) =>
+            this._handleInstructorLogin(event)}
         >
         </qd-login>
       </div>
@@ -417,6 +426,20 @@ export class QdStatus extends LitElement {
     // Forward the login event
     this.dispatchEvent(
       new CustomEvent<SessionData>('qd:login', {
+        detail: event.detail,
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  private _handleInstructorLogin(event: CustomEvent<{ timestamp: string; release: string }>) {
+    // Show instructor panel immediately (skip student status view)
+    this._showInstructorPanel = true;
+
+    // Forward the instructor login event
+    this.dispatchEvent(
+      new CustomEvent('qd:instructor-login', {
         detail: event.detail,
         bubbles: true,
         composed: true,

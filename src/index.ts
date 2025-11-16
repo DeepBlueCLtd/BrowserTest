@@ -7,7 +7,7 @@
  * with interactive elements.
  */
 
-import { CSS_CLASSES, ELEMENT_IDS } from './types/contracts';
+import { CSS_CLASSES, ELEMENT_IDS, SESSION_TIMEOUT_MS } from './types/contracts';
 import type { AnswerRecord } from './types/contracts';
 import { findQuizTables } from './services/quiz-parser';
 import {
@@ -768,6 +768,58 @@ function setupEventListeners(doc: Document = document): void {
         }
       }
     })();
+  });
+
+  // Listen for instructor login events
+  doc.addEventListener('qd:instructor-login', (e: Event) => {
+    const detail = (e as CustomEvent<{ timestamp: string; release: string }>).detail;
+    log('Instructor login event received:', detail);
+
+    // Store instructor session marker
+    const instructorSession = {
+      instructorMode: true,
+      release: detail.release,
+      loginTime: detail.timestamp,
+      instructorUnlocked: true,
+    };
+    sessionStorage.setItem('qd/instructor-session', JSON.stringify(instructorSession));
+    log('Instructor session stored in sessionStorage');
+
+    // Set instructor unlocked in session service
+    const sessionService = getSessionService();
+    const instructorSessionData: import('./types/contracts').SessionData = {
+      serviceId: 'INSTRUCTOR',
+      name: 'Instructor',
+      release: detail.release,
+      loginTime: detail.timestamp,
+      lastActivity: detail.timestamp,
+      expiresAt: new Date(Date.now() + SESSION_TIMEOUT_MS).toISOString(),
+      instructorUnlocked: true,
+    };
+    sessionService.createSession(
+      instructorSessionData.serviceId,
+      instructorSessionData.name,
+      instructorSessionData.release,
+    );
+    sessionService.unlockInstructor();
+
+    // Prepare quiz tables for answer reveal
+    prepareAllQuizTables(doc);
+
+    // Hide login component and show instructor panel in status location
+    const loginComponent = doc.querySelector('qd-login');
+    if (loginComponent) {
+      loginComponent.style.display = 'none';
+    }
+
+    // Dispatch a custom event to signal components to show instructor UI
+    const instructorShowEvent = new CustomEvent('qd:instructor-show', {
+      detail: { release: detail.release },
+      bubbles: true,
+    });
+    doc.dispatchEvent(instructorShowEvent);
+
+    log('Instructor mode activated');
   });
 
   // Listen for answer-saved events
