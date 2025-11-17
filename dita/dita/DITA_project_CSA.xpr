@@ -16792,7 +16792,7 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                                 <field name="publishingTemplateDataPO">
                                     <publishingTemplate>
                                         <field name="templateRoot">
-                                            <String>/Users/ian/git/BrowserTest/dita/template/</String>
+                                            <String>/Users/ian/git/BrowserTest-dita-improvements/dita/template/</String>
                                         </field>
                                         <field name="descriptorRelativePath">
                                             <String>f13ldMan-p10.opt</String>
@@ -16968,7 +16968,7 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                                                 <String>instructor.password.hash</String>
                                             </field>
                                             <field name="description">
-                                                <String>Hashed version of instructor password. Use the `hash-generator.html` page to hash the instructor password for this release.</String>
+                                                <String>The hashed version of the instructor password.  Generate the hash using the `Hash-Generator.html` file. Provide the raw password (not hashed) in the documentation accompanying the release.</String>
                                             </field>
                                             <field name="value">
                                                 <String>password</String>
