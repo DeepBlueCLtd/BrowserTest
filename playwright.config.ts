@@ -23,9 +23,13 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        // Enable file:// protocol access
+        // Enable file:// protocol access AND disable web security for Storybook testing
         launchOptions: {
-          args: ['--allow-file-access-from-files'],
+          args: [
+            '--allow-file-access-from-files',
+            '--disable-web-security',
+            '--disable-features=IsolateOrigins,site-per-process',
+          ],
         },
       },
     },

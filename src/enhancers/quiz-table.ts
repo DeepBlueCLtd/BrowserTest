@@ -157,9 +157,10 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
     return false;
   }
 
-  // Detail column remains hidden in interactive mode
+  // Hide detail column in interactive mode
   // - MCQ options are now in the select dropdown
   // - Numeric tolerance is applied automatically
+  hideDetailColumn(table);
 
   // Get session data
   const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
