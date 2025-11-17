@@ -32,7 +32,7 @@ describe('Quiz Table Enhancement', () => {
   });
 
   describe('Non-Interactive Mode', () => {
-    it('should hide detail column when enhanced in non-interactive mode', () => {
+    it('should hide answer and detail columns when enhanced in non-interactive mode', () => {
       // Create quiz table
       const table = createMCQTable();
       container.appendChild(table);
@@ -43,15 +43,19 @@ describe('Quiz Table Enhancement', () => {
       expect(result).toBe(true);
       expect(isQuizTableEnhanced(table)).toBe(true);
 
-      // Check that detail column (index 2) is hidden
+      // Check that answer column (index 1) is hidden for security
       const headerCells = table.querySelectorAll('thead th');
+      expect(headerCells[1]?.classList.contains('qd-hidden')).toBe(true);
+
+      // Check that detail column (index 2) is hidden
       expect(headerCells[2]?.classList.contains('qd-hidden')).toBe(true);
 
-      // Check that detail cells are hidden
+      // Check that answer and detail cells are hidden in all rows
       const rows = table.querySelectorAll('tbody tr');
       rows.forEach((row) => {
         const cells = row.querySelectorAll('td');
-        expect(cells[2]?.classList.contains('qd-hidden')).toBe(true);
+        expect(cells[1]?.classList.contains('qd-hidden')).toBe(true); // Answer column
+        expect(cells[2]?.classList.contains('qd-hidden')).toBe(true); // Detail column
       });
 
       // Check that table has non-interactive class

@@ -124,13 +124,17 @@ export function enhanceQuizTable(
 
 /**
  * Enhance table in non-interactive mode
+ * - Hide answer column (security: don't show correct answers before login)
  * - Hide detail column (security: don't show MCQ options or tolerances before login)
  *
  * @param table - Quiz table element
  * @returns true if successful
  */
 function enhanceNonInteractive(table: HTMLTableElement): boolean {
-  // Hide detail column (column index 2)
+  // Hide answer column (column index 1) - security: hide correct answers before login
+  hideAnswerColumn(table);
+
+  // Hide detail column (column index 2) - security: hide MCQ options/tolerances
   hideDetailColumn(table);
 
   addClass(table, 'qd-quiz-non-interactive');
@@ -446,6 +450,31 @@ function saveAnswer(
 function applyValidationStyling(cell: Element, success: boolean): void {
   removeClass(cell, 'qd-answer-correct', 'qd-answer-incorrect');
   addClass(cell, success ? 'qd-answer-correct' : 'qd-answer-incorrect');
+}
+
+/**
+ * Hide answer column (column index 1)
+ *
+ * Hides the Answer column which contains the correct answers.
+ * This prevents users from seeing correct answers before logging in.
+ *
+ * @param table - Quiz table element
+ */
+function hideAnswerColumn(table: HTMLTableElement): void {
+  // Hide header cell (Answer is column 1)
+  const headerCells = table.querySelectorAll('thead th, thead td');
+  if (headerCells[1]) {
+    addClass(headerCells[1], 'qd-hidden');
+  }
+
+  // Hide answer cells in all rows
+  const rows = table.querySelectorAll('tbody tr');
+  rows.forEach((row) => {
+    const cells = row.querySelectorAll('td');
+    if (cells[1]) {
+      addClass(cells[1], 'qd-hidden');
+    }
+  });
 }
 
 /**

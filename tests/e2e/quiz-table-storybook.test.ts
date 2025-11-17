@@ -25,7 +25,7 @@ const STORYBOOK_URL = 'http://localhost:6006';
 
 test.describe('Quiz Table - Storybook Stories', () => {
   test.describe('Non-Interactive Mode', () => {
-    test('should hide Detail column in non-interactive mode', async ({ page }) => {
+    test('should hide Answer and Detail columns in non-interactive mode', async ({ page }) => {
       // Navigate to the NonInteractiveMode story
       await page.goto(`${STORYBOOK_URL}/iframe.html?id=enhancers-quiz-table--non-interactive-mode`);
 
@@ -38,17 +38,23 @@ test.describe('Quiz Table - Storybook Stories', () => {
       const headerCount = await headerCells.count();
       expect(headerCount).toBe(3); // Question, Answer, Detail
 
+      // Verify Answer column (index 1) is hidden for security
+      const answerHeader = headerCells.nth(1);
+      await expect(answerHeader).toHaveClass(/qd-hidden/);
+
       // Verify Detail column (index 2) is hidden
       const detailHeader = headerCells.nth(2);
       await expect(detailHeader).toHaveClass(/qd-hidden/);
 
-      // Verify all Detail cells in tbody are hidden
+      // Verify all Answer and Detail cells in tbody are hidden
       const rows = page.locator('table.qd-quiz tbody tr');
       const rowCount = await rows.count();
 
       for (let i = 0; i < rowCount; i++) {
         const cells = rows.nth(i).locator('td');
+        const answerCell = cells.nth(1);
         const detailCell = cells.nth(2);
+        await expect(answerCell).toHaveClass(/qd-hidden/);
         await expect(detailCell).toHaveClass(/qd-hidden/);
       }
     });
