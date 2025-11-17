@@ -188,9 +188,9 @@ export class QdStorageMonitor extends LitElement {
   }
 
   private startRefresh(): void {
-    this.refreshData();
+    void this.refreshData();
     this.refreshInterval = window.setInterval(() => {
-      this.refreshData();
+      void this.refreshData();
     }, 1000);
   }
 
@@ -227,7 +227,7 @@ export class QdStorageMonitor extends LitElement {
             });
             resolve();
           };
-          request.onerror = () => reject(request.error);
+          request.onerror = () => reject(new Error(request.error?.message || 'IndexedDB request failed'));
         });
       }
 
@@ -265,7 +265,7 @@ export class QdStorageMonitor extends LitElement {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName);
       request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+      request.onerror = () => reject(new Error(request.error?.message || 'Failed to open database'));
     });
   }
 
@@ -277,7 +277,7 @@ export class QdStorageMonitor extends LitElement {
   private handleClearSessionStorage = (): void => {
     if (confirm('Clear all sessionStorage?')) {
       sessionStorage.clear();
-      this.refreshData();
+      void this.refreshData();
     }
   };
 

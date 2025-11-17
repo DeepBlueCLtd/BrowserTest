@@ -1,11 +1,13 @@
 /**
  * Sonar Quiz System - Entry Point
  *
- * Entry point for Phase 2.1-2.2 (Table Enhancement)
- * - Phase 2.1: Quiz Table Enhancement
- * - Phase 2.2: Analysis Table Enhancement
- * Full bootstrap/initialization will be added in Phase 3.
+ * Offline-first interactive quiz and analysis platform for DITA-published content.
+ *
+ * @packageDocumentation
  */
+
+import { bootstrap } from './init/bootstrap.js';
+import { info } from './utils/logger.js';
 
 // Export quiz table enhancer (Phase 2.1)
 export {
@@ -59,11 +61,62 @@ export { Debouncer } from './utils/debouncer.js';
 export { getJSON, setJSON, clearQuizData } from './utils/storage-helpers.js';
 export { info, warn, error } from './utils/logger.js';
 
+// Export bootstrap (Phase 3)
+export { bootstrap, cleanup, isInitialized } from './init/bootstrap.js';
+export type { BootstrapConfig } from './init/bootstrap.js';
+
+// Export component injector
+export { injectComponents, DEFAULT_CONTAINERS } from './init/component-injector.js';
+export type { ComponentInjectorConfig } from './init/component-injector.js';
+
 /**
  * Version information
  */
-export const VERSION = '0.1.0-phase2.2';
+export const VERSION = '0.1.0-phase3.1';
 export const BUILD_DATE = typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__ : 'development';
 
 // Declare global for build date injection
 declare const __BUILD_DATE__: string;
+
+/**
+ * Auto-initialize on DOMContentLoaded if script tag has data-sonar-quiz attribute
+ */
+if (typeof window !== 'undefined') {
+  // Check for data-sonar-quiz attribute on script tag
+  const scripts = document.querySelectorAll('script[data-sonar-quiz]');
+
+  if (scripts.length > 0) {
+    const scriptEl = scripts[0] as HTMLScriptElement;
+
+    // Read configuration from data attributes
+    const debug = scriptEl.getAttribute('data-debug') === 'true';
+    const dbName = scriptEl.getAttribute('data-db-name') || 'SonarQuizDB';
+    const statusPanelContainer = scriptEl.getAttribute('data-status-panel-container');
+
+    // Auto-initialize on DOMContentLoaded
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        info('Auto-initializing Sonar Quiz System from script tag');
+        bootstrap({
+          debug,
+          dbName,
+          statusPanelContainer: statusPanelContainer || undefined,
+          autoEnhanceQuizTables: true,
+          autoEnhanceAnalysisTables: true,
+          autoEnhanceHomeBadges: true,
+        });
+      });
+    } else {
+      // DOM already loaded
+      info('Auto-initializing Sonar Quiz System (DOM already loaded)');
+      bootstrap({
+        debug,
+        dbName,
+        statusPanelContainer: statusPanelContainer || undefined,
+        autoEnhanceQuizTables: true,
+        autoEnhanceAnalysisTables: true,
+        autoEnhanceHomeBadges: true,
+      });
+    }
+  }
+}
