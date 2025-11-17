@@ -723,23 +723,28 @@ npm run storybook
 
 ---
 
-### Goal 2.7: Supporting Components
+### Goal 2.7: Supporting Components ✅ COMPLETE
 **Description:** Port error banner and storage monitor components.
 
 **Location:** `src/components/qd-error-banner.ts`, `src/components/qd-storage-monitor.ts`
 
 **Tasks:**
-- [ ] Port `<qd-error-banner>` component
-- [ ] Port `<qd-storage-monitor>` component
-- [ ] Write unit tests
-- [ ] Create Storybook stories
+- [x] Port `<qd-error-banner>` component (161 lines)
+- [x] Port `<qd-storage-monitor>` component (363 lines)
+- [x] Write unit tests (28 tests total, all passing)
+- [x] Create Storybook stories
 
 **Acceptance Criteria:**
-- ✅ Error banner displays validation errors
-- ✅ Storage monitor shows IndexedDB/sessionStorage contents
-- ✅ Storage monitor respects `data-debug` flag
-- ✅ All tests pass
-- ✅ Storybook stories work
+- ✅ Error banner displays validation errors with error/warning/info severity
+- ✅ Error banner supports auto-dismiss with configurable timeout
+- ✅ Error banner accessible (ARIA attributes: role="alert", aria-live="polite")
+- ✅ Storage monitor shows IndexedDB/sessionStorage contents with real-time refresh
+- ✅ Storage monitor supports Ctrl+Shift+D keyboard toggle
+- ✅ Storage monitor has expand/collapse JSON objects
+- ✅ Storage monitor has clear individual/all storage buttons
+- ✅ Storage monitor configurable dbName property (default: 'quiz-scores')
+- ✅ All tests pass (14 qd-error-banner, 14 qd-storage-monitor)
+- ✅ Storybook stories work (3 error-banner stories, 3 storage-monitor stories)
 
 **Testing:**
 ```bash
@@ -748,39 +753,61 @@ npm run test:unit -- qd-storage-monitor.test.ts
 npm run storybook
 ```
 
+**Key Features Delivered:**
+- **Error Banner:** Dismissable alerts, auto-dismiss timers, severity color coding (red/amber/blue)
+- **Storage Monitor:** Development tool with keyboard shortcut, real-time polling (1s interval), expandable JSON view
+- **Total Lines:** 524 lines across 2 components + 28 comprehensive unit tests
+
 **Dependencies:** Goal 1.1, 1.4 complete
-**Time:** 1.5 hours
+**Time:** 1.5 hours (actual)
 
 ---
 
-### Goal 2.8: Scores & CSV Services
+### Goal 2.8: Scores & CSV Services ✅ COMPLETE
 **Description:** Port scores aggregation and CSV export services.
 
-**Location:** `src/services/scores.ts`, `src/services/csv-export.ts`
+**Location:** `src/services/scores-service.ts`, `src/services/csv-export.ts`
 
 **Tasks:**
-- [ ] Port `ScoresService` class
-- [ ] Port `generateCSV()` function
-- [ ] Write unit tests
+- [x] Port `ScoresService` class (98 lines)
+- [x] Port `generateCSV()` function (105 lines total in csv-export.ts)
+- [x] Write unit tests (43 tests total, all passing)
 
 **Acceptance Criteria:**
-- ✅ Scores service aggregates student data
+- ✅ ScoresService calculates student summaries (attempted/correct/percentage)
+- ✅ ScoresService calculates page summaries with per-page breakdown
+- ✅ ScoresService sorts students by name (alphabetical)
+- ✅ ScoresService sorts students by percentage (descending)
 - ✅ CSV export generates valid RFC 4180 format
-- ✅ All tests pass
+- ✅ CSV escapes special characters (commas, quotes, newlines)
+- ✅ CSV export provides downloadCSV() and exportStudentsToCSV() helpers
+- ✅ All tests pass (21 ScoresService, 22 CSV export)
 
 **Testing:**
 ```bash
-npm run test:unit -- scores.test.ts
+npm run test:unit -- scores-service.test.ts
 npm run test:unit -- csv-export.test.ts
 ```
 
 **Unit Tests Required:**
-- Scores aggregates data correctly
-- CSV escapes special characters
-- CSV handles empty data
+- ✅ ScoresService: calculateStudentSummary() with correct percentage rounding
+- ✅ ScoresService: calculatePageSummary() handles null answers
+- ✅ ScoresService: getPageSummaries() returns all pages
+- ✅ ScoresService: sortStudentsByName() alphabetical sorting
+- ✅ ScoresService: sortStudentsByPercentage() descending order
+- ✅ CSV: generateCSV() includes header row and data rows
+- ✅ CSV: escapeCSVField() handles commas, quotes, newlines
+- ✅ CSV: downloadCSV() triggers browser download with timestamped filename
+- ✅ CSV: exportStudentsToCSV() combines generation and download
+
+**Key Features Delivered:**
+- **ScoresService:** Reusable calculation logic extracted from components
+- **CSV Export:** RFC 4180 compliant with proper escaping and browser download
+- **Type Safety:** All functions properly typed with StudentRecord contracts
+- **Total Lines:** 203 lines across 2 service modules + 43 comprehensive unit tests
 
 **Dependencies:** Goal 1.1 complete
-**Time:** 1 hour
+**Time:** 2 hours (actual)
 
 ---
 
