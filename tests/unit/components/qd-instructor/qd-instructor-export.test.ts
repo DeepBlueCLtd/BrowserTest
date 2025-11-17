@@ -40,11 +40,13 @@ describe('qd-instructor-export', () => {
       const students: StudentRecord[] = [
         {
           schema: 1,
+          docId: 'qd/01-2025/uTEST1',
           serviceId: 'TEST1',
           name: 'Test Student',
           release: '01-2025',
           attempted: 1,
           correct: 1,
+          updated: new Date().toISOString(),
           pages: {},
         },
       ];
@@ -82,11 +84,13 @@ describe('qd-instructor-export', () => {
       const students: StudentRecord[] = [
         {
           schema: 1,
+          docId: 'qd/01-2025/uTEST1',
           serviceId: 'TEST1',
           name: 'Test Student',
           release: '01-2025',
           attempted: 1,
           correct: 1,
+          updated: new Date().toISOString(),
           pages: {
             'page-1': {
               state: 'complete',
@@ -123,20 +127,24 @@ describe('qd-instructor-export', () => {
       element.students = [
         {
           schema: 1,
+          docId: 'qd/01-2025/uTEST1',
           serviceId: 'TEST1',
           name: 'Student 1',
           release: '01-2025',
           attempted: 0,
           correct: 0,
+          updated: new Date().toISOString(),
           pages: {},
         },
         {
           schema: 1,
+          docId: 'qd/01-2025/uTEST2',
           serviceId: 'TEST2',
           name: 'Student 2',
           release: '01-2025',
           attempted: 0,
           correct: 0,
+          updated: new Date().toISOString(),
           pages: {},
         },
       ];

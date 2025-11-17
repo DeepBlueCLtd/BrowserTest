@@ -87,11 +87,13 @@ describe('qd-instructor', () => {
       const students: StudentRecord[] = [
         {
           schema: 1,
+          docId: 'qd/01-2025/uTEST1',
           serviceId: 'TEST1',
           name: 'Test Student',
           release: '01-2025',
           attempted: 5,
           correct: 3,
+          updated: new Date().toISOString(),
           pages: {},
         },
       ];
