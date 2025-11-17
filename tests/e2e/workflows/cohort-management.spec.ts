@@ -7,7 +7,7 @@
  * - Multi-student data cleanup
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -20,7 +20,7 @@ const TEST_PASSWORD = 'instructor123';
 /**
  * Wait for bootstrap to complete and inject components
  */
-async function waitForBootstrap(page: any): Promise<void> {
+async function waitForBootstrap(page: Page): Promise<void> {
   // Wait for qd-login element AND its shadow content to render
   await page.locator('qd-login input[name="serviceId"]').waitFor({ timeout: 5000 });
 }
@@ -195,19 +195,19 @@ test.describe('Cohort Management Workflow', () => {
 
     // Verify data still exists
     const dataAfter = await page.evaluate(async () => {
-      return new Promise((resolve) => {
+      return new Promise<unknown[]>((resolve) => {
         const request = indexedDB.open('SonarQuizDB');
         request.onsuccess = () => {
           const db = request.result;
           const tx = db.transaction('students', 'readonly');
           const store = tx.objectStore('students');
           const getRequest = store.getAll();
-          getRequest.onsuccess = () => resolve(getRequest.result);
+          getRequest.onsuccess = () => resolve(getRequest.result as unknown[]);
         };
       });
     });
     expect(dataAfter).toBeTruthy();
-    expect((dataAfter as any[]).length).toBeGreaterThan(0);
+    expect(dataAfter.length).toBeGreaterThan(0);
   });
 
   test('should erase multiple student records', async ({ page }) => {
@@ -267,18 +267,18 @@ test.describe('Cohort Management Workflow', () => {
     // Verify two students in IndexedDB
     await expect(async () => {
       const studentsBefore = await page.evaluate(async () => {
-        return new Promise((resolve) => {
+        return new Promise<unknown[]>((resolve) => {
           const request = indexedDB.open('SonarQuizDB');
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction('students', 'readonly');
             const store = tx.objectStore('students');
             const getRequest = store.getAll();
-            getRequest.onsuccess = () => resolve(getRequest.result);
+            getRequest.onsuccess = () => resolve(getRequest.result as unknown[]);
           };
         });
       });
-      expect((studentsBefore as any[]).length).toBe(2);
+      expect(studentsBefore.length).toBe(2);
     }).toPass();
 
     // Unlock instructor and erase all data

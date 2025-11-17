@@ -8,7 +8,7 @@
  * - Answer review
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -23,7 +23,7 @@ const TEST_PASSWORD = 'instructor123';
 /**
  * Wait for bootstrap to complete and inject components
  */
-async function waitForBootstrap(page: any): Promise<void> {
+async function waitForBootstrap(page: Page): Promise<void> {
   // Wait for qd-login element AND its shadow content to render
   await page.locator('qd-login input[name="serviceId"]').waitFor({ timeout: 5000 });
 }

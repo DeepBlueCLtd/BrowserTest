@@ -9,19 +9,24 @@
  * - State calculation
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import type { StudentRecord, PageData } from '../../../src/types/contracts.js';
 
 // Get absolute path to demo files
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const demoPath = path.resolve(__dirname, '../../../demo');
 
+interface PagesRecord {
+  [pageId: string]: PageData;
+}
+
 /**
  * Wait for bootstrap to complete and inject components
  */
-async function waitForBootstrap(page: any): Promise<void> {
+async function waitForBootstrap(page: Page): Promise<void> {
   // Wait for qd-login element AND its shadow content to render
   await page.locator('qd-login input[name="serviceId"]').waitFor({ timeout: 5000 });
 }
@@ -207,7 +212,7 @@ test.describe('Progress Tracking Workflow', () => {
     // Check completion state in IndexedDB
     await expect(async () => {
       const completionState = await page.evaluate(async () => {
-        return new Promise((resolve) => {
+        return new Promise<string>((resolve) => {
           const request = indexedDB.open('SonarQuizDB');
           request.onsuccess = () => {
             const db = request.result;
@@ -215,11 +220,12 @@ test.describe('Progress Tracking Workflow', () => {
             const store = tx.objectStore('students');
             const getRequest = store.getAll();
             getRequest.onsuccess = () => {
-              const students = getRequest.result as any[];
+              const students = getRequest.result as StudentRecord[];
               if (students.length > 0) {
                 const student = students[0];
-                const pages = Object.values(student.pages || {}) as any[];
-                resolve(pages[0]?.state || 'unknown');
+                const pages = student.pages as PagesRecord;
+                const pagesArray = Object.values(pages);
+                resolve(pagesArray[0]?.state || 'unknown');
               } else {
                 resolve('no-data');
               }

@@ -8,9 +8,10 @@
  * - Instructor view of student entries
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import type { StudentRecord, PageData } from '../../../src/types/contracts.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,10 +19,18 @@ const demoPath = path.resolve(__dirname, '../../../demo');
 
 const TEST_PASSWORD = 'instructor123';
 
+interface WindowWithSaveCount extends Window {
+  __saveCount?: number;
+}
+
+interface PagesRecord {
+  [pageId: string]: PageData;
+}
+
 /**
  * Wait for bootstrap to complete and inject components
  */
-async function waitForBootstrap(page: any): Promise<void> {
+async function waitForBootstrap(page: Page): Promise<void> {
   // Wait for qd-login element AND its shadow content to render
   await page.locator('qd-login input[name="serviceId"]').waitFor({ timeout: 5000 });
 }
@@ -82,7 +91,7 @@ test.describe('Analysis Capture Workflow', () => {
     // Wait for debounced save
     await expect(async () => {
       const savedData = await page.evaluate(async () => {
-        return new Promise((resolve) => {
+        return new Promise<Record<string, unknown>>((resolve) => {
           const request = indexedDB.open('SonarQuizDB');
           request.onsuccess = () => {
             const db = request.result;
@@ -90,13 +99,14 @@ test.describe('Analysis Capture Workflow', () => {
             const store = tx.objectStore('students');
             const getRequest = store.getAll();
             getRequest.onsuccess = () => {
-              const students = getRequest.result as any[];
+              const students = getRequest.result as StudentRecord[];
               if (students.length > 0) {
-                const pages = students[0].pages || {};
+                const pages = students[0].pages as PagesRecord;
                 const pageKeys = Object.keys(pages);
                 if (pageKeys.length > 0) {
-                  const pageData = pages[pageKeys[0]];
-                  resolve(pageData.answers || {});
+                  const pageData: PageData = pages[pageKeys[0]] as PageData;
+                  const analysis = pageData.analysis;
+                  resolve(analysis?.cells || {});
                 }
               }
               resolve({});
@@ -104,7 +114,7 @@ test.describe('Analysis Capture Workflow', () => {
           };
         });
       });
-      expect(Object.keys(savedData as object).length).toBeGreaterThan(0);
+      expect(Object.keys(savedData).length).toBeGreaterThan(0);
     }).toPass();
   });
 
@@ -147,9 +157,10 @@ test.describe('Analysis Capture Workflow', () => {
 
     // Setup save counter
     await page.evaluate(() => {
-      (window as any).__saveCount = 0;
+      (window as WindowWithSaveCount).__saveCount = 0;
       document.addEventListener('qd:answer-saved', () => {
-        (window as any).__saveCount++;
+        const w = window as WindowWithSaveCount;
+        w.__saveCount = (w.__saveCount || 0) + 1;
       });
     });
 
@@ -163,7 +174,10 @@ test.describe('Analysis Capture Workflow', () => {
 
     // Wait for final debounced save and verify count
     await expect(async () => {
-      const saveCount = await page.evaluate(() => (window as any).__saveCount);
+      const saveCount = await page.evaluate(() => {
+        const w = window as WindowWithSaveCount;
+        return w.__saveCount || 0;
+      });
       expect(saveCount).toBe(1);
     }).toPass({ timeout: 3000 });
   });
@@ -278,14 +292,14 @@ test.describe('Analysis Capture Workflow', () => {
     // Wait for save
     await expect(async () => {
       const savedData = await page.evaluate(async () => {
-        return new Promise((resolve) => {
+        return new Promise<StudentRecord[]>((resolve) => {
           const request = indexedDB.open('SonarQuizDB');
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction('students', 'readonly');
             const store = tx.objectStore('students');
             const getRequest = store.getAll();
-            getRequest.onsuccess = () => resolve(getRequest.result);
+            getRequest.onsuccess = () => resolve(getRequest.result as StudentRecord[]);
           };
         });
       });
@@ -299,7 +313,7 @@ test.describe('Analysis Capture Workflow', () => {
     // Wait for empty save
     await expect(async () => {
       const savedData = await page.evaluate(async () => {
-        return new Promise((resolve) => {
+        return new Promise<string | null>((resolve) => {
           const request = indexedDB.open('SonarQuizDB');
           request.onsuccess = () => {
             const db = request.result;
@@ -307,15 +321,17 @@ test.describe('Analysis Capture Workflow', () => {
             const store = tx.objectStore('students');
             const getRequest = store.getAll();
             getRequest.onsuccess = () => {
-              const students = getRequest.result as any[];
+              const students = getRequest.result as StudentRecord[];
               if (students.length > 0) {
-                const pages = students[0].pages || {};
+                const pages = students[0].pages as PagesRecord;
                 const pageKeys = Object.keys(pages);
                 if (pageKeys.length > 0) {
-                  const pageData = pages[pageKeys[0]];
-                  const answers = pageData.answers || {};
-                  const firstKey = Object.keys(answers)[0];
-                  resolve(answers[firstKey]?.answer || null);
+                  const pageData: PageData = pages[pageKeys[0]] as PageData;
+                  const cells = pageData.analysis?.cells || {};
+                  const firstKey = Object.keys(cells)[0];
+                  if (firstKey) {
+                    resolve(cells[firstKey] ?? null);
+                  }
                 }
               }
               resolve(null);
