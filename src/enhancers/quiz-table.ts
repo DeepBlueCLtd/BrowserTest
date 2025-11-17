@@ -52,8 +52,8 @@ interface QuizTableMetadata {
   interactive: boolean;
   /** Page ID (if interactive) */
   pageId?: PageId;
-  /** Row input elements (if interactive) */
-  inputs?: HTMLInputElement[];
+  /** Row input elements (if interactive) - can be text inputs or select dropdowns */
+  inputs?: (HTMLInputElement | HTMLSelectElement)[];
   /** Debouncer for auto-save */
   debouncer?: Debouncer;
 }
@@ -124,14 +124,14 @@ export function enhanceQuizTable(
 
 /**
  * Enhance table in non-interactive mode
- * - Hide answer column (security: don't show answers before login)
+ * - Hide detail column (security: don't show MCQ options or tolerances before login)
  *
  * @param table - Quiz table element
  * @returns true if successful
  */
 function enhanceNonInteractive(table: HTMLTableElement): boolean {
-  // Hide answer column (column index 1)
-  hideAnswerColumn(table);
+  // Hide detail column (column index 2)
+  hideDetailColumn(table);
 
   addClass(table, 'qd-quiz-non-interactive');
   info('Quiz table enhanced in non-interactive mode');
@@ -157,8 +157,8 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
     return false;
   }
 
-  // Show answer column (unhide if previously hidden)
-  showAnswerColumn(table);
+  // Show detail column (unhide if previously hidden)
+  showDetailColumn(table);
 
   // Get session data
   const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
@@ -180,7 +180,7 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
   }
 
   const rows = Array.from(tbody.querySelectorAll('tr'));
-  const inputs: HTMLInputElement[] = [];
+  const inputs: (HTMLInputElement | HTMLSelectElement)[] = [];
 
   // Inject controls for each question
   parsed.questions.forEach((question, index) => {
@@ -229,25 +229,59 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
 /**
  * Create input control for a question
  *
+ * For MCQ questions: Creates a <select> dropdown with options
+ * For numeric questions: Creates a text input
+ *
  * @param question - Quiz question
  * @param existingAnswer - Existing answer if any
- * @returns Input element
+ * @returns Input or select element
  */
 function createQuestionInput(
   question: QuizQuestion,
   existingAnswer?: AnswerRecord,
-): HTMLInputElement {
-  const input = createElement('input');
-  input.type = 'text';
-  input.className = 'qd-quiz-input';
-  input.placeholder = question.kind === 'mcq' ? 'Enter option number (1, 2, 3...)' : 'Enter value';
+): HTMLInputElement | HTMLSelectElement {
+  if (question.kind === 'mcq' && question.options) {
+    // Create select dropdown for MCQ
+    const select = createElement('select');
+    select.className = 'qd-quiz-input';
 
-  // Pre-fill existing answer
-  if (existingAnswer) {
-    input.value = existingAnswer.answer;
+    // Add placeholder option
+    const placeholderOption = createElement('option');
+    placeholderOption.value = '';
+    placeholderOption.textContent = 'Select an answer...';
+    placeholderOption.disabled = true;
+    select.appendChild(placeholderOption);
+
+    // Add options (1-indexed)
+    question.options.forEach((optionText, index) => {
+      const option = createElement('option');
+      option.value = String(index + 1); // 1-indexed
+      option.textContent = `${index + 1}. ${optionText}`;
+      select.appendChild(option);
+    });
+
+    // Pre-fill existing answer
+    if (existingAnswer) {
+      select.value = existingAnswer.answer;
+    } else {
+      select.value = ''; // Select placeholder
+    }
+
+    return select;
+  } else {
+    // Create text input for numeric questions
+    const input = createElement('input');
+    input.type = 'text';
+    input.className = 'qd-quiz-input';
+    input.placeholder = 'Enter value';
+
+    // Pre-fill existing answer
+    if (existingAnswer) {
+      input.value = existingAnswer.answer;
+    }
+
+    return input;
   }
-
-  return input;
 }
 
 /**
@@ -413,45 +447,48 @@ function applyValidationStyling(cell: Element, success: boolean): void {
 }
 
 /**
- * Hide answer column (column index 1)
+ * Hide detail column (column index 2)
+ *
+ * Hides the Detail column which contains MCQ options or numeric tolerances.
+ * This prevents users from seeing answer options before logging in.
  *
  * @param table - Quiz table element
  */
-function hideAnswerColumn(table: HTMLTableElement): void {
-  // Hide header cell
+function hideDetailColumn(table: HTMLTableElement): void {
+  // Hide header cell (Detail is column 2)
   const headerCells = table.querySelectorAll('thead th, thead td');
-  if (headerCells[1]) {
-    addClass(headerCells[1], 'qd-hidden');
+  if (headerCells[2]) {
+    addClass(headerCells[2], 'qd-hidden');
   }
 
-  // Hide answer cells in all rows
+  // Hide detail cells in all rows
   const rows = table.querySelectorAll('tbody tr');
   rows.forEach((row) => {
     const cells = row.querySelectorAll('td');
-    if (cells[1]) {
-      addClass(cells[1], 'qd-hidden');
+    if (cells[2]) {
+      addClass(cells[2], 'qd-hidden');
     }
   });
 }
 
 /**
- * Show answer column (unhide if previously hidden)
+ * Show detail column (unhide if previously hidden)
  *
  * @param table - Quiz table element
  */
-function showAnswerColumn(table: HTMLTableElement): void {
-  // Show header cell
+function showDetailColumn(table: HTMLTableElement): void {
+  // Show header cell (Detail is column 2)
   const headerCells = table.querySelectorAll('thead th, thead td');
-  if (headerCells[1]) {
-    removeClass(headerCells[1], 'qd-hidden');
+  if (headerCells[2]) {
+    removeClass(headerCells[2], 'qd-hidden');
   }
 
-  // Show answer cells in all rows
+  // Show detail cells in all rows
   const rows = table.querySelectorAll('tbody tr');
   rows.forEach((row) => {
     const cells = row.querySelectorAll('td');
-    if (cells[1]) {
-      removeClass(cells[1], 'qd-hidden');
+    if (cells[2]) {
+      removeClass(cells[2], 'qd-hidden');
     }
   });
 }

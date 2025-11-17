@@ -226,15 +226,13 @@ export const NonInteractiveMode: Story = {
     // Clear any existing session
     clearSession();
 
-    const container = document.createElement('div');
-    container.innerHTML = '';
-
+    // Enhancement must run after Lit renders the DOM
     setTimeout(() => {
-      const table = container.querySelector('table.qd-quiz') as HTMLTableElement;
+      const table = document.querySelector('table.qd-quiz') as HTMLTableElement;
       if (table) {
         enhanceQuizTable(table, { interactive: false });
       }
-    }, 0);
+    }, 100); // Increased delay to ensure Lit has rendered
 
     return html`
       <div>
@@ -265,7 +263,7 @@ export const InteractiveMCQ: Story = {
       if (table) {
         enhanceQuizTable(table, { interactive: true, pageId: 'demo-mcq-page' });
       }
-    }, 0);
+    }, 100);
 
     return html`
       <div>
@@ -306,7 +304,7 @@ export const InteractiveNumeric: Story = {
       if (table) {
         enhanceQuizTable(table, { interactive: true, pageId: 'demo-numeric-page' });
       }
-    }, 0);
+    }, 100);
 
     return html`
       <div>
@@ -361,7 +359,7 @@ export const WithExistingAnswers: Story = {
       if (table) {
         enhanceQuizTable(table, { interactive: true, pageId: 'demo-prefilled-page' });
       }
-    }, 0);
+    }, 100);
 
     return html`
       <div>
@@ -408,7 +406,7 @@ export const StateProgression: Story = {
       if (table) {
         enhanceQuizTable(table, { interactive: true, pageId: 'state-demo-page' });
       }
-    }, 0);
+    }, 100);
 
     return html`
       <div>

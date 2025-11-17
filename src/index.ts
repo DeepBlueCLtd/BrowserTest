@@ -6,7 +6,11 @@
  */
 
 // Export quiz table enhancer (Phase 2.1)
-export { enhanceQuizTable, getQuizTableMetadata, isQuizTableEnhanced } from './enhancers/quiz-table.js';
+export {
+  enhanceQuizTable,
+  getQuizTableMetadata,
+  isQuizTableEnhanced,
+} from './enhancers/quiz-table.js';
 export type { EnhanceQuizTableOptions } from './enhancers/quiz-table.js';
 
 // Export types
