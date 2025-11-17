@@ -346,9 +346,9 @@ describe('Analysis Table Enhancement', () => {
         // Verify event was fired
         expect(eventFired).toBe(true);
         expect(eventDetail).toBeDefined();
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+         
         expect(eventDetail!.pageId).toBe('test-page-1');
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+         
         expect(eventDetail!.cellKey).toMatch(/^R\d+C\d+#f:[0-9a-f]{8}$/);
       }
     });
