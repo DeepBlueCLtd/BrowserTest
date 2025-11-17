@@ -4,10 +4,10 @@
  * Tests the analysis table enhancement by loading Storybook stories
  * and verifying UI behavior, especially data persistence across navigation.
  *
- * PREREQUISITES:
- * 1. Start Storybook: npm run storybook
- * 2. Wait for Storybook to be ready (http://localhost:6006)
- * 3. Run tests: npm run test:e2e
+ * USAGE:
+ * npm run test:e2e
+ *
+ * NOTE: Playwright automatically starts/stops Storybook. No manual setup needed.
  *
  * These tests verify:
  * - Cells with class="interactive" are editable in interactive mode
