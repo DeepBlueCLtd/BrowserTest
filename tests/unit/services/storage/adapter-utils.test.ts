@@ -126,28 +126,32 @@ describe('Storage Adapter Utilities', () => {
 
   describe('createEmptyStudentRecord()', () => {
     it('should create valid empty record', () => {
-      const record = createEmptyStudentRecord('11-2024', 'RN2344', 'Test Student');
+      const record = createEmptyStudentRecord('11-2024', 'RN2344', 'Test Student', 'doc-test');
 
       expect(record.schema).toBe(1);
+      expect(record.docId).toBe('doc-test');
       expect(record.release).toBe('11-2024');
       expect(record.serviceId).toBe('RN2344');
       expect(record.name).toBe('Test Student');
       expect(record.attempted).toBe(0);
       expect(record.correct).toBe(0);
+      expect(record.updated).toBeDefined();
       expect(record.pages).toEqual({});
     });
 
     it('should create record with different parameters', () => {
-      const record = createEmptyStudentRecord('01-2025', 'ABC123', 'Another Student');
+      const record = createEmptyStudentRecord('01-2025', 'ABC123', 'Another Student', 'doc-123');
 
+      expect(record.docId).toBe('doc-123');
       expect(record.release).toBe('01-2025');
       expect(record.serviceId).toBe('ABC123');
       expect(record.name).toBe('Another Student');
     });
 
     it('should handle empty name', () => {
-      const record = createEmptyStudentRecord('11-2024', 'RN2344', '');
+      const record = createEmptyStudentRecord('11-2024', 'RN2344', '', 'doc-empty');
 
+      expect(record.docId).toBe('doc-empty');
       expect(record.name).toBe('');
       expect(record.serviceId).toBe('RN2344');
     });

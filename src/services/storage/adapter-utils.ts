@@ -101,11 +101,12 @@ export function isValidServiceId(serviceId: string): boolean {
  * @param release - Release identifier
  * @param serviceId - Service identifier
  * @param name - Student name
+ * @param docId - Document identifier
  * @returns New StudentRecord with default values
  *
  * @example
  * ```typescript
- * const record = createEmptyStudentRecord('11-2024', 'RN2344', 'Alice Student');
+ * const record = createEmptyStudentRecord('11-2024', 'RN2344', 'Alice Student', 'doc-123');
  * // Returns StudentRecord with empty pages, 0 scores, current timestamp
  * ```
  */
@@ -113,14 +114,17 @@ export function createEmptyStudentRecord(
   release: ReleaseId,
   serviceId: ServiceId,
   name: string,
+  docId: string,
 ): StudentRecord {
   return {
     schema: 1,
+    docId,
     release,
     serviceId,
     name,
     attempted: 0,
     correct: 0,
+    updated: new Date().toISOString(),
     pages: {},
   };
 }

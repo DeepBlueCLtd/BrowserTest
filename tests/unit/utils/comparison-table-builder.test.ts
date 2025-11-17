@@ -16,16 +16,16 @@ describe('Comparison Table Builder', () => {
   const students: StudentRecord[] = [
     {
       schema: 1,
+      docId: 'doc-alice',
       serviceId: 'RN2344',
       name: 'Alice Student',
       release: '11-2024',
       attempted: 10,
       correct: 8,
+      updated: '2024-11-16T10:02:00Z',
       pages: {
         'gram-1': {
           state: 'complete',
-          answered: 3,
-          correct: 2,
           answers: [
             { answer: 'a', success: true, timestamp: '2024-11-16T10:00:00Z' },
             { answer: 'b', success: false, timestamp: '2024-11-16T10:01:00Z' },
@@ -36,16 +36,16 @@ describe('Comparison Table Builder', () => {
     },
     {
       schema: 1,
+      docId: 'doc-bob',
       serviceId: 'RN5678',
       name: 'Bob Student',
       release: '11-2024',
       attempted: 10,
       correct: 9,
+      updated: '2024-11-16T11:02:00Z',
       pages: {
         'gram-1': {
           state: 'complete',
-          answered: 3,
-          correct: 3,
           answers: [
             { answer: 'a', success: true, timestamp: '2024-11-16T11:00:00Z' },
             { answer: 'a', success: true, timestamp: '2024-11-16T11:01:00Z' },
@@ -56,16 +56,16 @@ describe('Comparison Table Builder', () => {
     },
     {
       schema: 1,
+      docId: 'doc-charlie',
       serviceId: 'RN9999',
       name: 'Charlie Student',
       release: '11-2024',
       attempted: 2,
       correct: 1,
+      updated: '2024-11-16T12:00:00Z',
       pages: {
         'gram-1': {
           state: 'incomplete',
-          answered: 1,
-          correct: 0,
           answers: [
             { answer: 'b', success: false, timestamp: '2024-11-16T12:00:00Z' },
             // No second or third answer
@@ -284,11 +284,13 @@ describe('Comparison Table Builder', () => {
       const studentsWithMissingPage: StudentRecord[] = [
         {
           schema: 1,
+          docId: 'doc-test',
           serviceId: 'TEST01',
           name: 'Test Student',
           release: '11-2024',
           attempted: 0,
           correct: 0,
+          updated: '2024-11-16T00:00:00Z',
           pages: {}, // No page data
         },
       ];

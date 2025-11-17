@@ -72,16 +72,16 @@ describe('IndexedDB Storage Adapter', () => {
     it('should retrieve saved student', async () => {
       const record: StudentRecord = {
         schema: 1,
+        docId: 'doc-test',
         release: '11-2024',
         serviceId: 'RN2344',
         name: 'Test Student',
         attempted: 5,
         correct: 3,
+        updated: '2024-11-16T10:00:00Z',
         pages: {
           'gram-1': {
             state: 'complete',
-            answered: 3,
-            correct: 2,
             answers: [
               { answer: 'a', success: true, timestamp: '2024-11-16T10:00:00Z' },
               { answer: 'b', success: false, timestamp: '2024-11-16T10:01:00Z' },
@@ -100,21 +100,25 @@ describe('IndexedDB Storage Adapter', () => {
     it('should handle different releases', async () => {
       const record1: StudentRecord = {
         schema: 1,
+        docId: 'doc-test',
         release: '11-2024',
         serviceId: 'RN2344',
         name: 'Student 1',
         attempted: 0,
         correct: 0,
+        updated: '2024-11-16T10:00:00Z',
         pages: {},
       };
 
       const record2: StudentRecord = {
         schema: 1,
+        docId: 'doc-test',
         release: '01-2025',
         serviceId: 'RN2344',
         name: 'Student 2',
         attempted: 0,
         correct: 0,
+        updated: '2024-11-16T10:00:00Z',
         pages: {},
       };
 
@@ -133,11 +137,13 @@ describe('IndexedDB Storage Adapter', () => {
     it('should save new student record', async () => {
       const record: StudentRecord = {
         schema: 1,
+        docId: 'doc-test',
         release: '11-2024',
         serviceId: 'TEST01',
         name: 'New Student',
         attempted: 0,
         correct: 0,
+        updated: '2024-11-16T10:00:00Z',
         pages: {},
       };
 
@@ -150,11 +156,13 @@ describe('IndexedDB Storage Adapter', () => {
     it('should update existing student record', async () => {
       const record: StudentRecord = {
         schema: 1,
+        docId: 'doc-test',
         release: '11-2024',
         serviceId: 'RN2344',
         name: 'Test Student',
         attempted: 5,
         correct: 3,
+        updated: '2024-11-16T10:00:00Z',
         pages: {},
       };
 
@@ -174,16 +182,16 @@ describe('IndexedDB Storage Adapter', () => {
     it('should save complex page data', async () => {
       const record: StudentRecord = {
         schema: 1,
+        docId: 'doc-test',
         release: '11-2024',
         serviceId: 'RN2344',
         name: 'Test Student',
         attempted: 10,
         correct: 8,
+        updated: '2024-11-16T10:00:00Z',
         pages: {
           'page-1': {
             state: 'complete',
-            answered: 3,
-            correct: 3,
             answers: [
               { answer: 'a', success: true, timestamp: '2024-11-16T10:00:00Z' },
               { answer: 'b', success: true, timestamp: '2024-11-16T10:01:00Z' },
@@ -192,8 +200,6 @@ describe('IndexedDB Storage Adapter', () => {
           },
           'page-2': {
             state: 'incomplete',
-            answered: 1,
-            correct: 0,
             answers: [{ answer: 'x', success: false, timestamp: '2024-11-16T10:05:00Z' }],
           },
         },
@@ -209,11 +215,13 @@ describe('IndexedDB Storage Adapter', () => {
       const uninitializedAdapter = new IndexedDBStorageAdapter();
       const record: StudentRecord = {
         schema: 1,
+        docId: 'doc-test',
         release: '11-2024',
         serviceId: 'RN2344',
         name: 'Test',
         attempted: 0,
         correct: 0,
+        updated: '2024-11-16T10:00:00Z',
         pages: {},
       };
 
@@ -234,31 +242,37 @@ describe('IndexedDB Storage Adapter', () => {
     it('should return all students for a release', async () => {
       const student1: StudentRecord = {
         schema: 1,
+        docId: 'doc-test',
         release: '11-2024',
         serviceId: 'RN2344',
         name: 'Student 1',
         attempted: 0,
         correct: 0,
+        updated: '2024-11-16T10:00:00Z',
         pages: {},
       };
 
       const student2: StudentRecord = {
         schema: 1,
+        docId: 'doc-test',
         release: '11-2024',
         serviceId: 'RN5678',
         name: 'Student 2',
         attempted: 0,
         correct: 0,
+        updated: '2024-11-16T10:00:00Z',
         pages: {},
       };
 
       const student3: StudentRecord = {
         schema: 1,
+        docId: 'doc-test',
         release: '01-2025',
         serviceId: 'RN9999',
         name: 'Student 3',
         attempted: 0,
         correct: 0,
+        updated: '2024-11-16T10:00:00Z',
         pages: {},
       };
 
@@ -292,21 +306,25 @@ describe('IndexedDB Storage Adapter', () => {
     it('should clear all students', async () => {
       const record1: StudentRecord = {
         schema: 1,
+        docId: 'doc-test',
         release: '11-2024',
         serviceId: 'RN2344',
         name: 'Student 1',
         attempted: 0,
         correct: 0,
+        updated: '2024-11-16T10:00:00Z',
         pages: {},
       };
 
       const record2: StudentRecord = {
         schema: 1,
+        docId: 'doc-test',
         release: '11-2024',
         serviceId: 'RN5678',
         name: 'Student 2',
         attempted: 0,
         correct: 0,
+        updated: '2024-11-16T10:00:00Z',
         pages: {},
       };
 
@@ -322,11 +340,13 @@ describe('IndexedDB Storage Adapter', () => {
     it('should clear backups as well', async () => {
       const record: StudentRecord = {
         schema: 1,
+        docId: 'doc-test',
         release: '11-2024',
         serviceId: 'RN2344',
         name: 'Test Student',
         attempted: 0,
         correct: 0,
+        updated: '2024-11-16T10:00:00Z',
         pages: {},
       };
 
@@ -353,11 +373,13 @@ describe('IndexedDB Storage Adapter', () => {
     it('should create backup of student record', async () => {
       const record: StudentRecord = {
         schema: 1,
+        docId: 'doc-test',
         release: '11-2024',
         serviceId: 'RN2344',
         name: 'Test Student',
         attempted: 5,
         correct: 3,
+        updated: '2024-11-16T10:00:00Z',
         pages: {},
       };
 
@@ -367,11 +389,13 @@ describe('IndexedDB Storage Adapter', () => {
     it('should create multiple backups', async () => {
       const record: StudentRecord = {
         schema: 1,
+        docId: 'doc-test',
         release: '11-2024',
         serviceId: 'RN2344',
         name: 'Test Student',
         attempted: 0,
         correct: 0,
+        updated: '2024-11-16T10:00:00Z',
         pages: {},
       };
 
@@ -386,11 +410,13 @@ describe('IndexedDB Storage Adapter', () => {
       const uninitializedAdapter = new IndexedDBStorageAdapter();
       const record: StudentRecord = {
         schema: 1,
+        docId: 'doc-test',
         release: '11-2024',
         serviceId: 'RN2344',
         name: 'Test',
         attempted: 0,
         correct: 0,
+        updated: '2024-11-16T10:00:00Z',
         pages: {},
       };
 
@@ -413,11 +439,13 @@ describe('IndexedDB Storage Adapter', () => {
 
       const record: StudentRecord = {
         schema: 1,
+        docId: 'doc-test',
         release: '11-2024',
         serviceId: 'RN2344',
         name: 'Test',
         attempted: 0,
         correct: 0,
+        updated: '2024-11-16T10:00:00Z',
         pages: {},
       };
 
@@ -469,11 +497,13 @@ describe('IndexedDB Storage Adapter', () => {
     it('should persist data across adapter instances', async () => {
       const record: StudentRecord = {
         schema: 1,
+        docId: 'doc-test',
         release: '11-2024',
         serviceId: 'RN2344',
         name: 'Test Student',
         attempted: 10,
         correct: 8,
+        updated: '2024-11-16T10:00:00Z',
         pages: {},
       };
 

@@ -147,7 +147,7 @@ export class EncryptedSessionStorage {
 
       // Encode to base64 for storage
       const encryptedData: EncryptedData = {
-        iv: this.arrayBufferToBase64(iv),
+        iv: this.arrayBufferToBase64(iv.buffer),
         ciphertext: this.arrayBufferToBase64(ciphertext),
         version: ENCRYPTION_VERSION,
       };
