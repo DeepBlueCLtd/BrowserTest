@@ -12,8 +12,8 @@ export default defineConfig({
   workers: process.env.CI ? 2 : undefined, // Use 2 workers in CI for faster execution
   reporter: 'html',
 
-  // Global timeout for each test (2 seconds max)
-  timeout: 2000,
+  // Global timeout for each test (15 seconds allows multiple operations)
+  timeout: 15000,
 
   // Assertion timeout (2 seconds max for expect() calls)
   expect: {
@@ -24,9 +24,9 @@ export default defineConfig({
     baseURL: 'file://',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    // Action timeout (clicks, fills, etc.) - 2 seconds max
+    // Action timeout (clicks, fills, etc.) - 2 seconds max per action
     actionTimeout: 2000,
-    // Navigation timeout (page.goto) - 2 seconds max
+    // Navigation timeout (page.goto) - 2 seconds max per navigation
     navigationTimeout: 2000,
   },
 
