@@ -75,6 +75,43 @@ python3 -m http.server 8000
 
 See [demo/README.md](./demo/README.md) for detailed testing instructions, workflow guides, and troubleshooting tips.
 
+## Testing
+
+The project uses a comprehensive testing strategy across multiple layers:
+
+### Unit Tests
+```bash
+npm run test:unit        # Vitest unit tests
+npm run test:integration # DOM upgrade integration tests
+```
+
+### E2E Tests (Playwright)
+```bash
+npm run test:e2e         # Auto-starts/stops Storybook, runs E2E tests
+npm run test:e2e:headed  # Run with visible browser
+npm run test:e2e:debug   # Debug mode with Playwright Inspector
+```
+
+**Important**: E2E tests automatically manage Storybook lifecycle:
+- Playwright starts Storybook before tests (12s timeout)
+- Tests run against `http://localhost:6006` Storybook stories
+- Storybook is automatically killed when tests complete
+- If Storybook is already running locally, tests reuse the existing instance
+- All test operations timeout after 2 seconds (local SPA, no network delays)
+
+**No manual Storybook management required** - just run `npm run test:e2e`.
+
+### Visual Regression Tests
+```bash
+npm run storybook        # Start Storybook for local development
+npm run chromatic        # Run visual regression tests (requires API token)
+```
+
+### All Tests
+```bash
+npm test                 # Runs unit + integration tests
+```
+
 ## Project Documentation
 
 | Document | Description |
