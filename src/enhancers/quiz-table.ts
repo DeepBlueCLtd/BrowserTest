@@ -157,8 +157,9 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
     return false;
   }
 
-  // Show detail column (unhide if previously hidden)
-  showDetailColumn(table);
+  // Detail column remains hidden in interactive mode
+  // - MCQ options are now in the select dropdown
+  // - Numeric tolerance is applied automatically
 
   // Get session data
   const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
@@ -467,28 +468,6 @@ function hideDetailColumn(table: HTMLTableElement): void {
     const cells = row.querySelectorAll('td');
     if (cells[2]) {
       addClass(cells[2], 'qd-hidden');
-    }
-  });
-}
-
-/**
- * Show detail column (unhide if previously hidden)
- *
- * @param table - Quiz table element
- */
-function showDetailColumn(table: HTMLTableElement): void {
-  // Show header cell (Detail is column 2)
-  const headerCells = table.querySelectorAll('thead th, thead td');
-  if (headerCells[2]) {
-    removeClass(headerCells[2], 'qd-hidden');
-  }
-
-  // Show detail cells in all rows
-  const rows = table.querySelectorAll('tbody tr');
-  rows.forEach((row) => {
-    const cells = row.querySelectorAll('td');
-    if (cells[2]) {
-      removeClass(cells[2], 'qd-hidden');
     }
   });
 }
