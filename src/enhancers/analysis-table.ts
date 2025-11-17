@@ -6,15 +6,15 @@
  *
  * Features:
  * - Non-interactive mode: Read-only display
- * - Interactive mode: Enable editing for cells without background-color
+ * - Interactive mode: Enable editing for cells with 'interactive' class
  * - Debounced auto-save to prevent excessive writes
  * - Stable cell keys for persistence across page reloads
  * - Uses WeakMap for metadata (not DOM attributes)
  * - Event emission for data changes
  *
  * Author constraints:
- * - Cells WITH inline background-color style = read-only (always)
- * - Cells WITHOUT background-color = editable (in interactive mode)
+ * - Cells WITH class="interactive" = editable (in interactive mode)
+ * - Cells WITHOUT 'interactive' class = read-only (always)
  * - Maximum ONE analysis table per page
  */
 

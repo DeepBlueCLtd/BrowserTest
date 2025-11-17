@@ -6,8 +6,12 @@
  * Key concepts:
  * - TableId: 16-char hash based on table structure (rows × cols + className)
  * - CellKey: Format "R{row}C{col}#f:{hash}" where hash is 8-char from normalized content
- * - Editable cells: Cells WITHOUT inline background-color style
- * - Read-only cells: Cells WITH inline background-color style
+ * - Editable cells: Cells WITH 'interactive' class
+ * - Read-only cells: Cells WITHOUT 'interactive' class
+ *
+ * Author constraints:
+ * - Add class="interactive" to cells that should be editable in interactive mode
+ * - Cells without this class will always be read-only
  *
  * @example
  * ```typescript
@@ -110,26 +114,27 @@ export function generateCellKey(row: number, col: number, content: string): Cell
 /**
  * Check if a cell is editable
  *
- * A cell is editable if it does NOT have an inline background-color style.
- * Cells with background-color are considered read-only (typically headers or pre-filled content).
+ * A cell is editable if it HAS the 'interactive' class.
+ * Cells without this class are considered read-only (headers or pre-filled content).
+ *
+ * Author constraint: Add class="interactive" to cells that should be editable.
  *
  * @param cell - Table cell element
- * @returns true if cell is editable, false if read-only
+ * @returns true if cell has 'interactive' class, false otherwise
  *
  * @example
  * ```typescript
  * const cell = row.cells[0];
  * if (isCellEditable(cell)) {
- *   // Make cell editable
+ *   // Cell has class="interactive", make it editable
  * } else {
- *   // Keep cell read-only
+ *   // Cell is read-only
  * }
  * ```
  */
 export function isCellEditable(cell: HTMLTableCellElement): boolean {
-  // Check for inline background-color style
-  const bgColor = cell.style.backgroundColor;
-  return !bgColor || bgColor === '';
+  // Check for 'interactive' class
+  return cell.classList.contains('interactive');
 }
 
 /**

@@ -86,8 +86,8 @@ Modal overlay (Esc to close) showing:
 - If instructor mode active: Show student answers after each question
 
 **Analysis Tables** (`qd-analysis` class):
-- Make non-colored cells editable (contenteditable)
-- Auto-save to IndexedDB on blur
+- Make cells with class="interactive" editable (contenteditable)
+- Auto-save to IndexedDB with debouncing
 - If instructor mode active: Show student entries
 
 #### **Home Page Badges**
@@ -289,8 +289,8 @@ Content authors must follow these rules (runtime validation enforces):
 
 ### Analysis Tables
 - Class: `qd-analysis`
-- Cells WITH `background-color` style = read-only
-- Cells WITHOUT background-color = editable
+- Cells WITH class="interactive" = editable (in interactive mode)
+- Cells WITHOUT 'interactive' class = read-only (always)
 - **Maximum ONE** analysis table per page
 
 ### Home Page
