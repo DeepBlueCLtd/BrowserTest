@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <topic id="gram1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="urn:oasis:names:tc:dita:xsd:topic.xsd">
-    <title>Gram 1-2</title>
+    <title>Gram Analysis 3</title>
     <body>
-        <p/>
+        <p>Advanced spectrogram analysis exercise. Analyze multiple contacts and environmental conditions.</p>
         <section id="section_r1z_rym_bgc">
-            <title>Gram </title>
+            <title>Gram</title>
             <table frame="all" rowsep="1" colsep="1" id="table_uyb_bym_bgc"
                 outputclass="gram-config">
                 <tgroup cols="2" align="center">
@@ -39,26 +39,34 @@
             </table>
         </section>
         <section id="section_zmv_tym_bgc">
-            <title>Background</title>
-            <p/>
-            <simpletable frame="all" relcolwidth="1.0* 2.7*" id="simpletable_lfd_vym_bgc">
+            <title>Comprehensive Analysis</title>
+            <p>Complete your comprehensive analysis based on the spectrogram above:</p>
+            <simpletable frame="all" relcolwidth="1.5* 3.0*" outputclass="qd-analysis">
                 <strow>
-                    <stentry>Question</stentry>
-                    <stentry>Theory</stentry>
+                    <stentry>Number of distinct contacts:</stentry>
+                    <stentry outputclass="interactive"/>
                 </strow>
                 <strow>
-                    <stentry>Have you considered depth?</stentry>
-                    <stentry/>
+                    <stentry>Primary contact classification:</stentry>
+                    <stentry outputclass="interactive"/>
                 </strow>
                 <strow>
-                    <stentry>Have you considered height?</stentry>
-                    <stentry/>
+                    <stentry>Secondary contact classification:</stentry>
+                    <stentry outputclass="interactive"/>
                 </strow>
                 <strow>
-                    <stentry>Have you considered the weather?</stentry>
-                    <stentry/>
+                    <stentry>Environmental noise assessment:</stentry>
+                    <stentry outputclass="interactive"/>
+                </strow>
+                <strow>
+                    <stentry>Doppler shift observations:</stentry>
+                    <stentry outputclass="interactive"/>
+                </strow>
+                <strow>
+                    <stentry>Tactical recommendation:</stentry>
+                    <stentry outputclass="interactive"/>
                 </strow>
             </simpletable>
         </section>
-    </body>    
+    </body>
 </topic>
