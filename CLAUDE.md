@@ -123,7 +123,7 @@ npm run storybook       # Component development in isolation
 npm test                # Run all tests
 npm run test:unit       # Vitest unit tests
 npm run test:integration # DOM upgrade integration tests
-npm run test:e2e        # Playwright E2E tests (file:// protocol)
+npm run test:e2e        # Playwright E2E tests (auto-starts/stops Storybook)
 npm run chromatic       # Visual regression tests
 
 # Building
@@ -357,6 +357,26 @@ Before committing any code changes, ALL of the following MUST pass:
 - **Phase 4**: Session switch tests, expiry unit tests
 - **Phase 5**: E2E file:// saves/reloads, CSV validation
 - **Phase 6**: Perf/a11y green, <25KB budget met
+
+### E2E Testing Configuration
+E2E tests run via Playwright against Storybook stories at `http://localhost:6006`.
+
+**Key Configuration** (`playwright.config.ts`):
+- **Auto-start/stop**: Playwright automatically starts Storybook before tests and kills it on completion
+- **Storybook startup timeout**: 12 seconds (Storybook reliably starts within 10s)
+- **Test timeout**: 2 seconds max per test (local SPA, no network delays)
+- **Action/navigation timeout**: 2 seconds max (clicks, fills, page.goto)
+- **Expect timeout**: 2 seconds max for assertions
+- **Reuse existing server**: If Storybook already running locally, tests will use it instead of starting new instance
+
+**Usage**:
+```bash
+npm run test:e2e        # Just run tests - Storybook auto-managed
+npm run test:e2e:headed # Run with visible browser
+npm run test:e2e:debug  # Debug mode with Playwright Inspector
+```
+
+**No manual Storybook management required** - the test runner handles lifecycle automatically.
 
 ## Event System
 

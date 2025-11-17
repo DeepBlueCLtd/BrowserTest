@@ -47,5 +47,11 @@ export default defineConfig({
     },
   ],
 
-  webServer: undefined, // No web server needed for file:// protocol
+  // Auto-start Storybook before tests, kill on completion
+  webServer: {
+    command: 'npm run storybook',
+    url: 'http://localhost:6006',
+    timeout: 12000, // Storybook starts within 10s, 12s includes buffer
+    reuseExistingServer: !process.env.CI, // Reuse if already running locally
+  },
 });
