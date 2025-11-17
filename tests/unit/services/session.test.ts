@@ -73,7 +73,6 @@ describe('Session Service', () => {
 
       expect(eventHandler).toHaveBeenCalledTimes(1);
       expect(eventHandler).toHaveBeenCalledWith(
-         
         expect.objectContaining({
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           detail: expect.objectContaining({
@@ -145,9 +144,7 @@ describe('Session Service', () => {
       expect(newExpiry).toBeDefined();
       expect(oldExpiry).toBeDefined();
       if (oldExpiry && newExpiry) {
-        expect(new Date(newExpiry).getTime()).toBeGreaterThanOrEqual(
-          new Date(oldExpiry).getTime(),
-        );
+        expect(new Date(newExpiry).getTime()).toBeGreaterThanOrEqual(new Date(oldExpiry).getTime());
       }
     });
 
@@ -211,7 +208,6 @@ describe('Session Service', () => {
 
       expect(eventHandler).toHaveBeenCalledTimes(1);
       expect(eventHandler).toHaveBeenCalledWith(
-         
         expect.objectContaining({
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           detail: expect.objectContaining({

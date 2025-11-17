@@ -208,10 +208,9 @@ describe('Table Validation Service', () => {
       const result = validateQuizTable(table);
       expect(result.valid).toBe(false);
       expect(result.errors).toContainEqual(
-         
         expect.objectContaining({
           code: 'INVALID_ANSWER_FORMAT',
-           
+
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           message: expect.stringContaining('must be numeric'),
         }),
