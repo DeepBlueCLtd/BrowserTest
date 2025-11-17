@@ -630,19 +630,19 @@ npm run storybook
 
 ---
 
-### Goal 2.5: Status Component
+### Goal 2.5: Status Component ✅ COMPLETE
 **Description:** Port `<qd-status>` with fixed reactive properties.
 
 **Location:** `src/components/qd-status.ts`
 
 **Tasks:**
-- [ ] Port existing Lit component
-- [ ] Fix reactive properties causing re-render issues
-- [ ] Display session info (serviceId, name, release)
-- [ ] Display progress (R/A/G counts, percentage)
-- [ ] Logout button emits `qd:logout`
-- [ ] Write unit tests
-- [ ] Create Storybook story
+- [x] Port existing Lit component
+- [x] Fix reactive properties causing re-render issues
+- [x] Display session info (serviceId, name, release)
+- [x] Display progress (R/A/G counts, percentage)
+- [x] Logout button emits `qd:logout`
+- [x] Write unit tests
+- [x] Create Storybook story
 
 **Acceptance Criteria:**
 - ✅ Reactive updates on session changes

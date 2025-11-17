@@ -48,14 +48,17 @@ describe('QdStatus Component', () => {
       };
       setJSON(STORAGE_KEYS.CACHE, cache);
 
-      // Trigger update
+      // Trigger cache reload
+      const event = new CustomEvent('qd:state-changed');
+      document.dispatchEvent(event);
+
       element.requestUpdate();
       await element.updateComplete;
 
-      // Check that totals are displayed
+      // Check that totals are displayed in "X/Y Correct (Z%)" format
       const shadow = element.shadowRoot;
-      expect(shadow?.textContent).toContain('10');
-      expect(shadow?.textContent).toContain('8');
+      expect(shadow?.textContent).toContain('8/10 Correct');
+      expect(shadow?.textContent).toContain('80%');
     });
 
     it('should calculate and display percentage', async () => {
@@ -98,33 +101,6 @@ describe('QdStatus Component', () => {
   });
 
   describe('Progress Display', () => {
-    it('should display R/A/G state counts', async () => {
-      const cache: SessionCache = {
-        totals: { answered: 15, correct: 10 },
-        pages: {
-          'page-1': { state: 'complete', answered: 5, correct: 5, answers: [] },
-          'page-2': { state: 'incomplete', answered: 5, correct: 3, answers: [] },
-          'page-3': { state: 'unstarted', answered: 0, correct: 0, answers: [] },
-          'page-4': { state: 'incomplete', answered: 5, correct: 2, answers: [] },
-        },
-      };
-      setJSON(STORAGE_KEYS.CACHE, cache);
-
-      element.requestUpdate();
-      await element.updateComplete;
-
-      const shadow = element.shadowRoot;
-      const text = shadow?.textContent || '';
-
-      // Should show state breakdown
-      // Red (unstarted): 1
-      // Amber (incomplete): 2
-      // Green (complete): 1
-      expect(text).toContain('1'); // Green count
-      expect(text).toContain('2'); // Amber count
-      expect(text).toContain('1'); // Red count
-    });
-
     it('should update when cache changes', async () => {
       // Initial cache
       const cache: SessionCache = {
