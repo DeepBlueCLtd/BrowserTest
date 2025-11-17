@@ -186,7 +186,15 @@ describe('qd-instructor-scores', () => {
     });
 
     it('should show page breakdown when expanded', async () => {
-      element['expandedStudents'].add('TEST1');
+      // Toggle to expand
+      element['toggleStudent']('TEST1');
+      await element.updateComplete;
+
+      // Check that expansion is tracked
+      expect(element['expandedStudents'].has('TEST1')).toBe(true);
+
+      // Re-render should show pages
+      await element.requestUpdate();
       await element.updateComplete;
 
       const text = element.shadowRoot?.textContent;
