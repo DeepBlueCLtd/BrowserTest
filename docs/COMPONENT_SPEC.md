@@ -260,13 +260,35 @@ When **disabled**:
 
 **Purpose**: Add interactive controls to DITA quiz tables
 
+### ⚠️ CRITICAL SECURITY REQUIREMENT
+
+**On component load (before ANY rendering):**
+1. Parse quiz table to extract correct answers
+2. Store answers in memory (JavaScript closure/private field)
+3. **IMMEDIATELY** remove/hide answer column from DOM
+4. This prevents students from viewing page source or using DevTools to see answers
+
+**Implementation:**
+```javascript
+// FIRST: Extract answers from DOM
+const correctAnswers = parseQuizTable(tableElement);
+
+// SECOND: Remove answer column from DOM (hide from view source)
+removeAnswerColumn(tableElement);
+
+// THIRD: Render interactive controls
+renderQuizControls(tableElement);
+
+// Answers stored in memory, never exposed in DOM
+```
+
 ### Student Mode
 
 For each question row:
 1. **MCQ**: Render radio buttons for each option
 2. **Numeric**: Render number input field
 3. **Submit button** (or auto-submit on change)
-4. Display feedback (correct/incorrect) after submission
+4. Display feedback (correct/incorrect) after submission (validated against in-memory answers)
 5. Save answer to IndexedDB
 
 ### Instructor Mode (showAnswers = true)

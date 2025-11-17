@@ -78,8 +78,10 @@ Modal overlay (Esc to close) showing:
 
 #### **Table Enhancement**
 **Quiz Tables** (`qd-quiz` class):
+- **SECURITY**: Immediately extract and remove answer column from DOM on load
+- Correct answers stored in memory only (prevents view-source inspection)
 - Render MCQ radio buttons or numeric input fields
-- Submit answers, validate against correct answer
+- Submit answers, validate against in-memory answers
 - Save to IndexedDB via storage adapter
 - If instructor mode active: Show student answers after each question
 
@@ -231,6 +233,13 @@ npm run format:check
 - Single `<script>` tag in DITA template
 - Auto-init on DOMContentLoaded
 - No setup, no config, no dependencies
+
+### VIII. Answer Security
+- **CRITICAL**: Quiz answers MUST be removed from DOM immediately on component load
+- Correct answers extracted, stored in memory (JavaScript closure), never exposed in DOM
+- This prevents students from viewing page source or using DevTools to see answers
+- Implementation order: Parse → Store in memory → Remove from DOM → Render controls
+- Validation performed against in-memory answers only
 
 ## Frozen Contracts (src/types/contracts.ts)
 
