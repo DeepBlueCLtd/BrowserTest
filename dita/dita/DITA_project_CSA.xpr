@@ -16965,6 +16965,29 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                                         </ditaParameter>
                                         <ditaParameter>
                                             <field name="name">
+                                                <String>instructor.password.hash</String>
+                                            </field>
+                                            <field name="description">
+                                                <String>Hashed version of instructor password. Use the `hash-generator.html` page to hash the instructor password for this release.</String>
+                                            </field>
+                                            <field name="value">
+                                                <String>password</String>
+                                            </field>
+                                            <field name="defaultValue">
+                                                <null/>
+                                            </field>
+                                            <field name="type">
+                                                <Integer>5</Integer>
+                                            </field>
+                                            <field name="possibleValues">
+                                                <null/>
+                                            </field>
+                                            <field name="possibleValuesDescriptions">
+                                                <null/>
+                                            </field>
+                                        </ditaParameter>
+                                        <ditaParameter>
+                                            <field name="name">
                                                 <String>webhelp.logo.image</String>
                                             </field>
                                             <field name="description">
