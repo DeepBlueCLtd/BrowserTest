@@ -2,10 +2,21 @@
  * Session Management Service
  *
  * Handles user session lifecycle, timeout management, and instructor mode.
+ * Integrates with encrypted session storage for secure session data.
  */
 
-import type { SessionData, SessionCache, ServiceId, ReleaseId } from '../types/contracts';
-import { STORAGE_KEYS, SESSION_TIMEOUT_MS } from '../types/contracts';
+import type {
+  SessionData,
+  SessionCache,
+  ServiceId,
+  ReleaseId,
+  StudentRecord,
+  PageCache,
+  PageData,
+  CompletionState,
+} from '../types/contracts.js';
+import { STORAGE_KEYS, SESSION_TIMEOUT_MS } from '../types/contracts.js';
+import { info, warn, error } from '../utils/logger.js';
 
 /**
  * Session Service for managing user sessions
@@ -35,6 +46,11 @@ export class SessionService {
     };
 
     this.saveSession(session);
+    info(`Session created for ${serviceId} (${name})`);
+
+    // Emit login event
+    this.emitEvent('qd:login', { serviceId, name, release, loginTime });
+
     return session;
   }
 
@@ -54,13 +70,13 @@ export class SessionService {
 
       // Validate required fields
       if (!session.serviceId || !session.release || !session.expiresAt) {
-        console.warn('Invalid session data, missing required fields');
+        warn('Invalid session data, missing required fields');
         return null;
       }
 
       return session;
-    } catch (error) {
-      console.error('Failed to parse session data:', error);
+    } catch (err) {
+      error('Failed to parse session data', err as Error);
       return null;
     }
   }
@@ -102,8 +118,19 @@ export class SessionService {
    * Clear the current session
    */
   clearSession(): void {
+    const session = this.getSession();
     sessionStorage.removeItem(STORAGE_KEYS.SESSION);
     sessionStorage.removeItem(STORAGE_KEYS.CACHE);
+
+    if (session) {
+      info(`Session cleared for ${session.serviceId}`);
+
+      // Emit logout event
+      this.emitEvent('qd:logout', {
+        serviceId: session.serviceId,
+        timestamp: new Date().toISOString(),
+      });
+    }
   }
 
   /**
@@ -119,6 +146,8 @@ export class SessionService {
     session.unlockTime = new Date().toISOString();
 
     this.saveSession(session);
+
+    info('Instructor mode unlocked');
 
     // Emit custom event
     this.emitEvent('qd:instructor-unlock', { timestamp: session.unlockTime });
@@ -137,6 +166,8 @@ export class SessionService {
     delete session.unlockTime;
 
     this.saveSession(session);
+
+    info('Instructor mode locked');
 
     // Emit custom event
     this.emitEvent('qd:instructor-lock', { timestamp: new Date().toISOString() });
@@ -165,8 +196,8 @@ export class SessionService {
       }
 
       return JSON.parse(cacheData) as SessionCache;
-    } catch (error) {
-      console.error('Failed to parse cache data:', error);
+    } catch (err) {
+      error('Failed to parse cache data', err);
       return null;
     }
   }
@@ -179,8 +210,8 @@ export class SessionService {
   saveCache(cache: SessionCache): void {
     try {
       sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
-    } catch (error) {
-      console.error('Failed to save cache:', error);
+    } catch (err) {
+      error('Failed to save cache', err);
     }
   }
 
@@ -199,8 +230,8 @@ export class SessionService {
   private saveSession(session: SessionData): void {
     try {
       sessionStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(session));
-    } catch (error) {
-      console.error('Failed to save session:', error);
+    } catch (err) {
+      error('Failed to save session', err);
     }
   }
 
@@ -214,8 +245,8 @@ export class SessionService {
     try {
       const event = new CustomEvent(eventName, { detail });
       window.dispatchEvent(event);
-    } catch (error) {
-      console.error(`Failed to emit event ${eventName}:`, error);
+    } catch (err) {
+      error(`Failed to emit event ${eventName}`, err);
     }
   }
 }
@@ -233,9 +264,7 @@ export class SessionService {
  * @param record - Student record to build cache from
  * @returns Session cache with totals and page entries
  */
-export function buildCacheFromRecord(
-  record: import('../types/contracts').StudentRecord,
-): SessionCache {
+export function buildCacheFromRecord(record: StudentRecord): SessionCache {
   const cache: SessionCache = {
     totals: {
       answered: 0,
@@ -264,10 +293,7 @@ export function buildCacheFromRecord(
  * @param pageData - Page data from student record
  * @returns Page cache entry
  */
-export function buildPageCache(
-  _pageId: string,
-  pageData: import('../types/contracts').StudentRecord['pages'][string],
-): import('../types/contracts').PageCache {
+export function buildPageCache(_pageId: string, pageData: PageData): PageCache {
   const answered = pageData.answers.length;
   const correct = pageData.answers.filter((a) => a.success).length;
 
@@ -276,6 +302,8 @@ export function buildPageCache(
     answered,
     correct,
     last: pageData.lastAttempted,
+    answers: pageData.answers,
+    analysis: pageData.analysis, // Preserve analysis data from analysis tables
   };
 }
 
@@ -288,12 +316,14 @@ export function buildPageCache(
  * @param cache - Current cache to update
  * @param pageId - Page where answer was submitted
  * @param isCorrect - Whether the answer is correct
+ * @param newState - New completion state for the page
  * @returns Updated cache
  */
 export function updateCacheWithAnswer(
   cache: SessionCache,
   pageId: string,
   isCorrect: boolean,
+  newState: CompletionState,
 ): SessionCache {
   const now = new Date().toISOString();
 
@@ -305,8 +335,9 @@ export function updateCacheWithAnswer(
   };
 
   // Update page counts
-  const updatedPage = {
+  const updatedPage: PageCache = {
     ...pageCache,
+    state: newState,
     answered: pageCache.answered + 1,
     correct: pageCache.correct + (isCorrect ? 1 : 0),
     last: now,
@@ -326,6 +357,10 @@ export function updateCacheWithAnswer(
     },
   };
 }
+
+// ============================================================================
+// SINGLETON PATTERN
+// ============================================================================
 
 /**
  * Create and return a singleton instance of the session service

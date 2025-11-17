@@ -1,423 +1,340 @@
 /**
  * Analysis Table Enhancer
  *
- * Enhances analysis tables by injecting text inputs into editable cells,
- * implementing auto-save with debouncing, and managing data persistence.
+ * Implements single-phase progressive enhancement for analysis tables.
+ * Similar to quiz-table enhancer but for free-form editable content.
  *
- * Per requirements:
- * - Editable cells (no background-color) → text inputs
- * - Auto-save on input with debouncing (~200ms)
- * - Data persisted to storage via session service
- * - Cell keys for tracking individual cell data
+ * Features:
+ * - Non-interactive mode: Read-only display
+ * - Interactive mode: Enable editing for cells with 'interactive' class
+ * - Debounced auto-save to prevent excessive writes
+ * - Stable cell keys for persistence across page reloads
+ * - Uses WeakMap for metadata (not DOM attributes)
+ * - Event emission for data changes
+ *
+ * Author constraints:
+ * - Cells WITH class="interactive" = editable (in interactive mode)
+ * - Cells WITHOUT 'interactive' class = read-only (always)
+ * - Maximum ONE analysis table per page
  */
 
-import type { AnalysisData, CellKey, PageId } from '../types/contracts';
-import { parseAnalysisTable } from '../services/analysis-parser';
-import { STORAGE_KEYS, LIMITS } from '../types/contracts';
+import type {
+  ParsedAnalysisTable,
+  AnalysisData,
+  PageId,
+  SessionData,
+  SessionCache,
+  CellKey,
+} from '../types/contracts.js';
+import { parseAnalysisTable, isCellEditable } from '../services/analysis-parser.js';
+import { Debouncer } from '../utils/debouncer.js';
+import { getTableRows, getRowCells, addClass, getTextContent } from '../utils/dom-helpers.js';
+import { emitCustomEvent } from '../utils/event-helpers.js';
+import { getJSON, setJSON } from '../utils/storage-helpers.js';
+import { STORAGE_KEYS } from '../types/contracts.js';
+import { info, error as logError } from '../utils/logger.js';
 
 /**
  * Enhancement options
  */
-interface EnhancementOptions {
-  /** Callback for save operations (for testing) */
-  onSave?: (data: AnalysisData) => void;
-  /** Custom debounce delay in ms (default: 200) */
-  debounceMs?: number;
+export interface EnhanceAnalysisTableOptions {
+  /** Whether to enable interactive editing */
+  interactive: boolean;
+  /** Current page ID (required for interactive mode) */
+  pageId?: PageId;
 }
 
 /**
- * Debounce timer map for inputs
+ * Analysis table metadata (stored in WeakMap)
  */
-const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
+interface AnalysisTableMetadata {
+  /** Parsed analysis data */
+  parsed: ParsedAnalysisTable;
+  /** Enhancement mode */
+  interactive: boolean;
+  /** Page ID (if interactive) */
+  pageId?: PageId;
+  /** Debouncer for auto-save */
+  debouncer?: Debouncer;
+  /** Cell element to cell key mapping */
+  cellKeyMap?: Map<HTMLTableCellElement, CellKey>;
+}
+
+// WeakMap to store table metadata without polluting DOM
+const tableMetadata = new WeakMap<HTMLTableElement, AnalysisTableMetadata>();
 
 /**
- * Enhance an analysis table with interactive inputs
+ * Enhance an analysis table with single-phase enhancement
  *
- * @param table - Table element to enhance
+ * @param table - The analysis table element
  * @param options - Enhancement options
+ * @returns true if enhancement succeeded, false if errors occurred
+ *
+ * @example
+ * ```typescript
+ * // Non-interactive mode (read-only)
+ * const table = document.querySelector('table.qd-analysis');
+ * if (table instanceof HTMLTableElement) {
+ *   enhanceAnalysisTable(table, { interactive: false });
+ * }
+ *
+ * // Interactive mode (enable editing)
+ * enhanceAnalysisTable(table, { interactive: true, pageId: 'gram-1' });
+ * ```
  */
 export function enhanceAnalysisTable(
   table: HTMLTableElement,
-  options: EnhancementOptions = {},
-): void {
+  options: EnhanceAnalysisTableOptions,
+): boolean {
   // Parse the table
   const parsed = parseAnalysisTable(table);
 
-  // Only enhance valid analysis tables
-  if (!parsed) {
-    console.warn('[AnalysisTable] Failed to parse table, skipping enhancement');
-    return;
+  // Check for parsing errors
+  if (parsed.errors && parsed.errors.length > 0) {
+    logError('Analysis table has validation errors:', parsed.errors);
+    // Still continue enhancement to show errors visually
   }
 
-  // Store table ID on element for data loading
-  if (!table.dataset.tableId) {
-    table.dataset.tableId = parsed.tableId;
-  }
+  // Store metadata in WeakMap
+  const metadata: AnalysisTableMetadata = {
+    parsed,
+    interactive: options.interactive,
+    pageId: options.pageId,
+  };
 
-  // Load existing data from storage
-  const existingData = loadAnalysisData(parsed.tableId);
-
-  // Enhance each editable cell
-  parsed.editableCells.forEach((cellInfo) => {
-    enhanceCell(table, cellInfo, existingData, parsed.tableId, options);
-  });
-}
-
-/**
- * Enhance a single cell with text input
- */
-function enhanceCell(
-  table: HTMLTableElement,
-  cellInfo: { row: number; col: number; key: CellKey },
-  existingData: AnalysisData | null,
-  tableId: string,
-  options: EnhancementOptions,
-): void {
-  // Find the cell in the table
-  const rows = Array.from(table.querySelectorAll('tbody tr'));
-  if (rows.length === 0) {
-    // Fallback to all rows if no tbody
-    const allRows = Array.from(table.querySelectorAll('tr'));
-    const theadRows = Array.from(table.querySelectorAll('thead tr'));
-    rows.push(...allRows.filter((row) => !theadRows.includes(row)));
-  }
-
-  const row = rows[cellInfo.row];
-  if (!row) return;
-
-  const cells = Array.from(row.querySelectorAll('td'));
-  const cell = cells[cellInfo.col];
-  if (!cell) return;
-
-  // Get original content
-  const originalContent = cell.textContent?.trim() || '';
-
-  // Get saved content if available
-  const savedContent = existingData?.cells[cellInfo.key];
-  const initialValue = savedContent !== undefined ? savedContent : originalContent;
-
-  // Create text input
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.value = initialValue;
-  input.dataset.cellKey = cellInfo.key;
-  input.maxLength = LIMITS.MAX_CELL_CONTENT_LENGTH;
-
-  // Style the input to fit the cell
-  input.style.width = '100%';
-  input.style.boxSizing = 'border-box';
-  input.style.padding = '4px 8px';
-  input.style.border = '1px solid #ced4da';
-  input.style.borderRadius = '4px';
-  input.style.fontSize = 'inherit';
-  input.style.fontFamily = 'inherit';
-
-  // Add input event listener with debouncing
-  input.addEventListener('input', () => {
-    handleInputChange(input, tableId, cellInfo.key, options);
-  });
-
-  // Replace cell content with input
-  cell.innerHTML = '';
-  cell.appendChild(input);
-}
-
-/**
- * Handle input change with debouncing and auto-save
- */
-function handleInputChange(
-  input: HTMLInputElement,
-  tableId: string,
-  cellKey: CellKey,
-  options: EnhancementOptions,
-): void {
-  const debounceMs = options.debounceMs ?? 200;
-
-  // Clear existing timer for this input
-  const existingTimer = debounceTimers.get(cellKey);
-  if (existingTimer) {
-    clearTimeout(existingTimer);
-  }
-
-  // Set new timer
-  const timer = setTimeout(() => {
-    saveAnalysisData(tableId, cellKey, input.value, options);
-    debounceTimers.delete(cellKey);
-  }, debounceMs);
-
-  debounceTimers.set(cellKey, timer);
-}
-
-/**
- * Save analysis data to storage
- */
-function saveAnalysisData(
-  tableId: string,
-  cellKey: CellKey,
-  value: string,
-  options: EnhancementOptions,
-): void {
-  // Load existing data
-  let data = loadAnalysisData(tableId);
-
-  // Create new data structure if none exists
-  if (!data) {
-    data = {
-      tableId,
-      cells: {},
-      firstEdited: new Date().toISOString(),
-    };
-  }
-
-  // Update cell value
-  data.cells[cellKey] = value;
-  data.lastEdited = new Date().toISOString();
-
-  // Save to storage (temporary implementation using sessionStorage)
-  // In full implementation, this would go through StorageAdapter
-  try {
-    const pageId = getPageId();
-    const storageKey = `${STORAGE_KEYS.CACHE}/analysis/${pageId}/${tableId}`;
-    sessionStorage.setItem(storageKey, JSON.stringify(data));
-
-    // Call custom save callback if provided (for testing)
-    if (options.onSave) {
-      options.onSave(data);
-    }
-  } catch (error) {
-    console.error('Failed to save analysis data:', error);
-  }
-}
-
-/**
- * Load analysis data from storage
- */
-function loadAnalysisData(tableId: string): AnalysisData | null {
-  try {
-    const pageId = getPageId();
-    const storageKey = `${STORAGE_KEYS.CACHE}/analysis/${pageId}/${tableId}`;
-    const stored = sessionStorage.getItem(storageKey);
-
-    if (!stored) {
-      return null;
+  if (options.interactive) {
+    // Validate pageId is provided for interactive mode
+    if (!options.pageId) {
+      logError('Interactive mode requires pageId option');
+      return false;
     }
 
-    const data = JSON.parse(stored) as AnalysisData;
-    return data;
-  } catch (error) {
-    console.error('Failed to load analysis data:', error);
-    return null;
+    // Initialize debouncer for auto-save
+    metadata.debouncer = new Debouncer();
+    metadata.cellKeyMap = new Map();
+  }
+
+  tableMetadata.set(table, metadata);
+
+  // Apply enhancement based on mode
+  if (options.interactive) {
+    return enhanceInteractive(table, metadata);
+  } else {
+    return enhanceNonInteractive(table);
   }
 }
 
 /**
- * Get current page ID from document
- * Simplified version - in full implementation would be more sophisticated
- */
-function getPageId(): PageId {
-  // Try to extract from URL or document metadata
-  const path = window.location.pathname;
-  const match = path.match(/([^/]+)\.html?$/);
-  return match ? match[1] : 'unknown-page';
-}
-
-/**
- * Scan and enhance all analysis tables on the page
- */
-export function enhanceAllAnalysisTables(options: EnhancementOptions = {}): void {
-  const tables = document.querySelectorAll('table.qd-analysis');
-
-  tables.forEach((table) => {
-    if (table instanceof HTMLTableElement) {
-      enhanceAnalysisTable(table, options);
-    }
-  });
-}
-
-/**
- * Show student analysis entries in a comparison table (instructor mode)
+ * Enhance table in non-interactive mode
+ * - Read-only display (no contenteditable)
+ * - No interaction enabled
  *
- * T077: Implements student entry display for analysis cells
- * T078: Implements 4-char username prefix display
- *
- * @param table - The analysis table element
- * @param students - Array of student records to display
- * @param pageId - Current page ID to extract analysis data from
+ * @param table - Analysis table element
+ * @returns true if successful
  */
-export function showStudentAnalysisEntries(
-  table: HTMLTableElement | null,
-  students: import('../types/contracts').StudentRecord[],
-  pageId: string,
-): void {
-  if (!table || !students || students.length === 0) {
-    return;
+function enhanceNonInteractive(table: HTMLTableElement): boolean {
+  addClass(table, 'qd-analysis-non-interactive');
+  info('Analysis table enhanced in non-interactive mode');
+
+  return true;
+}
+
+/**
+ * Enhance table in interactive mode
+ * - Enable editing for cells without background-color
+ * - Setup auto-save with debouncing
+ * - Load existing data from storage
+ *
+ * @param table - Analysis table element
+ * @param metadata - Table metadata
+ * @returns true if successful
+ */
+function enhanceInteractive(table: HTMLTableElement, metadata: AnalysisTableMetadata): boolean {
+  const { parsed, pageId, debouncer, cellKeyMap } = metadata;
+
+  if (!pageId || !debouncer || !cellKeyMap) {
+    logError('Interactive mode requires pageId, debouncer, and cellKeyMap');
+    return false;
   }
 
-  // Get table ID (should be set during enhancement)
-  const tableId = table.dataset.tableId;
-  if (!tableId) {
-    console.warn('Analysis table has no tableId - was it enhanced?');
-    return;
+  // Get session data
+  const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
+  if (!session) {
+    logError('No active session found');
+    return false;
   }
 
-  // Get cell keys from existing inputs (set during enhancement)
-  // This is more reliable than re-parsing after cells have been enhanced
-  const inputs = Array.from(table.querySelectorAll<HTMLInputElement>('input[data-cell-key]'));
+  // Get session cache
+  const cache = getJSON<SessionCache>(STORAGE_KEYS.CACHE);
+  const pageCache = cache?.pages[pageId];
+  const existingAnalysis = pageCache?.analysis;
 
-  if (inputs.length === 0) {
-    console.warn('No editable cells found in analysis table');
-    return;
-  }
+  // Load existing cell data if available
+  const existingCells = existingAnalysis?.cells || {};
 
-  const cellKeys = inputs.map((input) => input.dataset.cellKey || '');
+  // Get all rows
+  const rows = getTableRows(table);
 
-  // Create comparison table
-  const comparisonTable = document.createElement('table');
-  comparisonTable.className = 'qd-analysis-comparison';
+  // Enable editing for editable cells
+  parsed.editableCells.forEach(({ row, col, key }) => {
+    const rowElement = rows[row];
+    if (!rowElement) return;
 
-  // Create header row
-  const thead = document.createElement('thead');
-  const headerRow = document.createElement('tr');
+    const cells = getRowCells(rowElement);
+    const cell = cells[col];
+    if (!cell) return;
 
-  // Student ID column
-  const studentIdHeader = document.createElement('th');
-  studentIdHeader.textContent = 'Student';
-  studentIdHeader.scope = 'col';
-  headerRow.appendChild(studentIdHeader);
+    // Verify cell is still editable (defensive check)
+    if (!isCellEditable(cell)) {
+      logError(`Cell at R${row}C${col} is no longer editable`);
+      return;
+    }
 
-  // Cell columns (one for each editable cell)
-  cellKeys.forEach((_, index) => {
-    const cellHeader = document.createElement('th');
-    cellHeader.textContent = `Field ${index + 1}`;
-    cellHeader.scope = 'col';
-    headerRow.appendChild(cellHeader);
-  });
+    // Store cell key mapping
+    cellKeyMap.set(cell, key);
 
-  thead.appendChild(headerRow);
-  comparisonTable.appendChild(thead);
+    // Load existing content if available
+    if (existingCells[key]) {
+      cell.textContent = existingCells[key];
+    }
 
-  // Create body rows for each student
-  const tbody = document.createElement('tbody');
+    // Make cell editable
+    cell.contentEditable = 'true';
+    addClass(cell, 'qd-editable');
 
-  students.forEach((student) => {
-    const row = document.createElement('tr');
-    row.className = 'qd-student-row';
-
-    // T078: Student ID cell (first 4 chars)
-    const studentIdCell = document.createElement('td');
-    studentIdCell.className = 'qd-student-id';
-    studentIdCell.textContent = student.serviceId.substring(0, 4);
-    row.appendChild(studentIdCell);
-
-    // Get student's analysis data for this page
-    const pageData = student.pages[pageId];
-    const analysisData = pageData?.analysis;
-
-    // Check if table IDs match
-    const studentCells = analysisData && analysisData.tableId === tableId ? analysisData.cells : {};
-
-    // Add entry cells for each editable cell
-    cellKeys.forEach((cellKey) => {
-      const entryCell = document.createElement('td');
-      entryCell.className = 'qd-student-entry';
-
-      const entry = studentCells[cellKey];
-
-      if (!entry || entry.trim() === '') {
-        // No entry provided
-        entryCell.textContent = '—';
-        entryCell.classList.add('qd-no-entry');
-      } else {
-        // Show entry
-        entryCell.textContent = entry;
-      }
-
-      row.appendChild(entryCell);
+    // Setup auto-save on input
+    cell.addEventListener('input', () => {
+      handleCellEdit(metadata, cell, key);
     });
 
-    tbody.appendChild(row);
+    // Prevent Enter key from creating line breaks (optional - may want multi-line)
+    // For now, allow multi-line editing
   });
 
-  comparisonTable.appendChild(tbody);
+  addClass(table, 'qd-analysis-interactive');
+  info(`Analysis table enhanced in interactive mode for page ${pageId}`);
 
-  // Insert comparison table after the analysis table
-  if (table.parentElement) {
-    table.parentElement.insertBefore(comparisonTable, table.nextSibling);
-  }
+  return true;
 }
 
 /**
- * Inject inline styles for analysis comparison tables
+ * Handle cell edit
+ *
+ * @param metadata - Table metadata
+ * @param cell - Edited cell element
+ * @param cellKey - Cell key
  */
-export function injectAnalysisStyles(doc: Document = document): void {
-  // Check if styles already injected
-  if (doc.getElementById('qd-analysis-styles')) {
+function handleCellEdit(
+  metadata: AnalysisTableMetadata,
+  cell: HTMLTableCellElement,
+  cellKey: CellKey,
+): void {
+  const { debouncer, pageId } = metadata;
+
+  if (!debouncer || !pageId) {
     return;
   }
 
-  const style = doc.createElement('style');
-  style.id = 'qd-analysis-styles';
-  style.textContent = `
-    /* Analysis comparison table styling */
-    .qd-analysis-comparison {
-      width: 100%;
-      margin-top: 1rem;
-      border-collapse: collapse;
-      font-size: 0.875rem;
-    }
+  const content = getTextContent(cell);
 
-    .qd-analysis-comparison th,
-    .qd-analysis-comparison td {
-      padding: 0.5rem;
-      text-align: left;
-      border: 1px solid #e0e0e0;
-    }
+  // Debounce the save operation (500ms delay - longer than quiz for thoughtful editing)
+  debouncer.debounce(
+    `save-cell-${cellKey}`,
+    () => {
+      saveCellData(metadata, cellKey, content);
+    },
+    500,
+  );
+}
 
-    .qd-analysis-comparison th {
-      background-color: #f5f5f5;
-      font-weight: 600;
-      color: #333;
-    }
+/**
+ * Save cell data to storage
+ *
+ * @param metadata - Table metadata
+ * @param cellKey - Cell key
+ * @param content - Cell content
+ */
+function saveCellData(metadata: AnalysisTableMetadata, cellKey: CellKey, content: string): void {
+  const { pageId, parsed } = metadata;
 
-    .qd-student-id {
-      font-weight: 500;
-      font-family: monospace;
-      background-color: #fafafa;
-    }
+  if (!pageId) {
+    return;
+  }
 
-    .qd-student-entry {
-      max-width: 200px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+  // Get session
+  const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
+  if (!session) {
+    logError('No active session found');
+    return;
+  }
 
-    .qd-student-entry.qd-no-entry {
-      color: #999;
-      font-style: italic;
-      text-align: center;
-    }
+  // Get or create cache
+  const cache = getJSON<SessionCache>(STORAGE_KEYS.CACHE) || {
+    totals: { answered: 0, correct: 0 },
+    pages: {},
+  };
 
-    .qd-student-row:hover {
-      background-color: #fafafa;
-    }
+  // Get existing page data or create default (preserves answers field from quiz tables)
+  const existingPageData = cache.pages[pageId];
+  const pageData = existingPageData || {
+    state: 'unstarted',
+    answered: 0,
+    correct: 0,
+    answers: [],
+  };
 
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-      .qd-analysis-comparison {
-        font-size: 0.75rem;
-      }
+  // Get or create analysis data
+  const analysisData: AnalysisData = pageData.analysis || {
+    tableId: parsed.tableId,
+    cells: {},
+  };
 
-      .qd-analysis-comparison th,
-      .qd-analysis-comparison td {
-        padding: 0.25rem;
-      }
+  // Update cell content
+  analysisData.cells[cellKey] = content;
 
-      .qd-student-entry {
-        max-width: 100px;
-      }
-    }
-  `;
+  // Update timestamps
+  const now = new Date().toISOString();
+  if (!analysisData.firstEdited) {
+    analysisData.firstEdited = now;
+  }
+  analysisData.lastEdited = now;
 
-  doc.head.appendChild(style);
+  // Store analysis data
+  pageData.analysis = analysisData;
+  cache.pages[pageId] = pageData;
+
+  // Save updated cache
+  setJSON(STORAGE_KEYS.CACHE, cache);
+
+  // Emit event
+  emitCustomEvent('qd:analysis-saved', {
+    pageId,
+    tableId: parsed.tableId,
+    cellKey,
+    content,
+  });
+
+  info(`Analysis cell saved for ${cellKey} on page ${pageId}`);
+}
+
+/**
+ * Get analysis table metadata
+ *
+ * @param table - Analysis table element
+ * @returns Metadata if table has been enhanced, undefined otherwise
+ */
+export function getAnalysisTableMetadata(
+  table: HTMLTableElement,
+): AnalysisTableMetadata | undefined {
+  return tableMetadata.get(table);
+}
+
+/**
+ * Check if table is enhanced
+ *
+ * @param table - Analysis table element
+ * @returns true if table has been enhanced
+ */
+export function isAnalysisTableEnhanced(table: HTMLTableElement): boolean {
+  return tableMetadata.has(table);
 }

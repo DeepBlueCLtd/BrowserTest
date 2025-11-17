@@ -3,13 +3,13 @@
  *
  * Functions for calculating page completion states based on answer data.
  *
- * State Rules:
+ * State Rules (from CLAUDE.md):
  * - unstarted: No answers provided
  * - incomplete: Some answered OR any incorrect
  * - complete: All answered AND all correct
  */
 
-import type { AnswerRecord, CompletionState } from '../types/contracts';
+import type { AnswerRecord, CompletionState } from '../types/contracts.js';
 
 /**
  * Calculate the completion state for a page
@@ -17,6 +17,15 @@ import type { AnswerRecord, CompletionState } from '../types/contracts';
  * @param answers - Array of answer records for the page
  * @param totalQuestions - Total number of questions on the page
  * @returns Completion state (unstarted | incomplete | complete)
+ *
+ * @example
+ * ```typescript
+ * const answers = [
+ *   { answer: 'a', success: true, timestamp: '2024-11-16T10:00:00Z' },
+ *   { answer: 'b', success: false, timestamp: '2024-11-16T10:01:00Z' },
+ * ];
+ * const state = calculateCompletionState(answers, 3); // 'incomplete' (not all answered)
+ * ```
  */
 export function calculateCompletionState(
   answers: AnswerRecord[],
@@ -45,24 +54,21 @@ export function calculateCompletionState(
  * Check if a page is complete
  *
  * A page is complete when:
- * - All questions are answered (non-null answers === totalQuestions)
- * - All answered questions are correct (every non-null answer has success === true)
+ * - All questions are answered
+ * - All answered questions are correct
  *
- * @param answers - Array of answer records (may contain null/undefined)
+ * @param answers - Array of answer records
  * @param totalQuestions - Total number of questions
  * @returns True if page is complete
  */
 export function isPageComplete(answers: AnswerRecord[], totalQuestions: number): boolean {
-  // Filter out null/undefined answers
-  const validAnswers = answers.filter((a) => a != null);
-
   // Must have answered all questions
-  if (validAnswers.length !== totalQuestions) {
+  if (answers.length !== totalQuestions) {
     return false;
   }
 
   // All answers must be correct
-  return validAnswers.every((answer) => answer.success === true);
+  return answers.every((answer) => answer.success === true);
 }
 
 /**
@@ -93,6 +99,16 @@ export function countCorrectAnswers(answers: AnswerRecord[]): number {
  * @param answers - Array of answer records
  * @param totalQuestions - Total number of questions
  * @returns Percentage of correct answers (0-100)
+ *
+ * @example
+ * ```typescript
+ * const answers = [
+ *   { answer: 'a', success: true, timestamp: '...' },
+ *   { answer: 'b', success: false, timestamp: '...' },
+ *   { answer: 'c', success: true, timestamp: '...' },
+ * ];
+ * const percentage = calculateSuccessPercentage(answers, 3); // 67 (2 out of 3 correct)
+ * ```
  */
 export function calculateSuccessPercentage(
   answers: AnswerRecord[],

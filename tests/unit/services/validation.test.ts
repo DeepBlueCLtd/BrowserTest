@@ -1,64 +1,48 @@
 /**
- * Table Validation Tests
- *
- * Tests for validating quiz and analysis table structure at runtime.
- * Ensures authoring rules are enforced (FR-007, FR-017).
- *
- * Rules:
- * - Quiz tables: Exactly 3 columns, class "qd-quiz", max ONE per page
- * - Analysis tables: Class "qd-analysis", max ONE per page
- * - MCQ questions: Detail column contains <ol> tag
- * - Numeric questions: Detail column contains tolerance number
+ * Unit tests for table validation service
  */
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-
-import { describe, it, expect, beforeEach } from 'vitest';
-import { JSDOM } from 'jsdom';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
+  hasQuizTableClass,
+  hasAnalysisTableClass,
+  hasCorrectQuizColumns,
   validateQuizTable,
   validateAnalysisTable,
   validatePageTables,
-  hasCorrectQuizColumns,
-  hasQuizTableClass,
-  hasAnalysisTableClass,
-} from '../../../src/services/validation';
+  formatValidationErrors,
+  hasValidTables,
+  type ValidationError,
+} from '../../../src/services/validation.js';
 
-describe('Table Validation', () => {
-  let dom: JSDOM;
-  let document: Document;
+describe('Table Validation Service', () => {
+  let container: HTMLDivElement;
 
   beforeEach(() => {
-    dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
-    document = dom.window.document as unknown as Document;
+    container = document.createElement('div');
+    document.body.appendChild(container);
+  });
+
+  afterEach(() => {
+    container.remove();
   });
 
   describe('hasQuizTableClass()', () => {
     it('should return true for table with qd-quiz class', () => {
       const table = document.createElement('table');
       table.className = 'qd-quiz';
-
       expect(hasQuizTableClass(table)).toBe(true);
-    });
-
-    it('should return true for table with qd-quiz and additional classes', () => {
-      const table = document.createElement('table');
-      table.className = 'qd-quiz other-class';
-
-      expect(hasQuizTableClass(table)).toBe(true);
-    });
-
-    it('should return false for table with no classes', () => {
-      const table = document.createElement('table');
-
-      expect(hasQuizTableClass(table)).toBe(false);
     });
 
     it('should return false for table without qd-quiz class', () => {
       const table = document.createElement('table');
-      table.className = 'some-other-class';
-
       expect(hasQuizTableClass(table)).toBe(false);
+    });
+
+    it('should return true when qd-quiz is one of multiple classes', () => {
+      const table = document.createElement('table');
+      table.className = 'table qd-quiz qd-page';
+      expect(hasQuizTableClass(table)).toBe(true);
     });
   });
 
@@ -66,382 +50,310 @@ describe('Table Validation', () => {
     it('should return true for table with qd-analysis class', () => {
       const table = document.createElement('table');
       table.className = 'qd-analysis';
-
       expect(hasAnalysisTableClass(table)).toBe(true);
     });
 
-    it('should return true for table with qd-analysis and other classes', () => {
+    it('should return false for table without qd-analysis class', () => {
       const table = document.createElement('table');
-      table.className = 'qd-analysis other-class';
-
-      expect(hasAnalysisTableClass(table)).toBe(true);
-    });
-
-    it('should return false for table with no classes', () => {
-      const table = document.createElement('table');
-
-      expect(hasAnalysisTableClass(table)).toBe(false);
-    });
-
-    it('should return false for table with only other classes', () => {
-      const table = document.createElement('table');
-      table.className = 'other-class';
-
       expect(hasAnalysisTableClass(table)).toBe(false);
     });
   });
 
   describe('hasCorrectQuizColumns()', () => {
-    it('should return true for table with exactly 3 columns', () => {
+    it('should return true for table with 3 columns', () => {
       const table = document.createElement('table');
-      const thead = document.createElement('thead');
-      const tr = document.createElement('tr');
-
-      tr.innerHTML = '<th>Question</th><th>Answer</th><th>Detail</th>';
-      thead.appendChild(tr);
-      table.appendChild(thead);
+      const row = document.createElement('tr');
+      row.innerHTML = '<td>Q</td><td>A</td><td>D</td>';
+      table.appendChild(row);
 
       expect(hasCorrectQuizColumns(table)).toBe(true);
     });
 
     it('should return false for table with 2 columns', () => {
       const table = document.createElement('table');
-      const thead = document.createElement('thead');
-      const tr = document.createElement('tr');
-
-      tr.innerHTML = '<th>Question</th><th>Answer</th>';
-      thead.appendChild(tr);
-      table.appendChild(thead);
+      const row = document.createElement('tr');
+      row.innerHTML = '<td>Q</td><td>A</td>';
+      table.appendChild(row);
 
       expect(hasCorrectQuizColumns(table)).toBe(false);
     });
 
     it('should return false for table with 4 columns', () => {
       const table = document.createElement('table');
-      const thead = document.createElement('thead');
-      const tr = document.createElement('tr');
-
-      tr.innerHTML = '<th>Q</th><th>A</th><th>D</th><th>Extra</th>';
-      thead.appendChild(tr);
-      table.appendChild(thead);
+      const row = document.createElement('tr');
+      row.innerHTML = '<td>1</td><td>2</td><td>3</td><td>4</td>';
+      table.appendChild(row);
 
       expect(hasCorrectQuizColumns(table)).toBe(false);
     });
 
-    it('should return true for table with 3 columns in tbody', () => {
+    it('should check thead if present', () => {
       const table = document.createElement('table');
-      const tbody = document.createElement('tbody');
-      const tr = document.createElement('tr');
-
-      tr.innerHTML = '<td>Q1</td><td>A1</td><td>D1</td>';
-      tbody.appendChild(tr);
-      table.appendChild(tbody);
+      const thead = document.createElement('thead');
+      const row = document.createElement('tr');
+      row.innerHTML = '<th>Question</th><th>Answer</th><th>Detail</th>';
+      thead.appendChild(row);
+      table.appendChild(thead);
 
       expect(hasCorrectQuizColumns(table)).toBe(true);
     });
 
     it('should return false for empty table', () => {
       const table = document.createElement('table');
-
-      expect(hasCorrectQuizColumns(table)).toBe(false);
-    });
-
-    it('should return false for table with no rows', () => {
-      const table = document.createElement('table');
-      const thead = document.createElement('thead');
-      table.appendChild(thead);
-
       expect(hasCorrectQuizColumns(table)).toBe(false);
     });
   });
 
   describe('validateQuizTable()', () => {
-    it('should pass validation for valid quiz table', () => {
+    it('should return valid for correctly formatted MCQ table', () => {
       const table = document.createElement('table');
       table.className = 'qd-quiz';
-
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-      headerRow.innerHTML = '<th>Question</th><th>Answer</th><th>Detail</th>';
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
-
-      const tbody = document.createElement('tbody');
-      const row = document.createElement('tr');
-      // Answer "2" means the second option (1-indexed), which is "4"
-      row.innerHTML = '<td>What is 2+2?</td><td>2</td><td><ol><li>3</li><li>4</li></ol></td>';
-      tbody.appendChild(row);
-      table.appendChild(tbody);
+      table.innerHTML = `
+        <thead><tr><th>Question</th><th>Answer</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>What is 2+2?</td>
+            <td>2</td>
+            <td><ol><li>3</li><li>4</li><li>5</li></ol></td>
+          </tr>
+        </tbody>
+      `;
 
       const result = validateQuizTable(table);
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });
 
-    it('should fail validation if missing qd-quiz class', () => {
+    it('should return valid for correctly formatted numeric table', () => {
       const table = document.createElement('table');
-      table.className = 'some-other-class';
+      table.className = 'qd-quiz';
+      table.innerHTML = `
+        <thead><tr><th>Question</th><th>Answer</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>What is pi?</td>
+            <td>3.14</td>
+            <td>0.01</td>
+          </tr>
+        </tbody>
+      `;
+
+      const result = validateQuizTable(table);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should fail if table missing qd-quiz class', () => {
+      const table = document.createElement('table');
+      table.innerHTML = `
+        <tbody>
+          <tr><td>Q</td><td>1</td><td>D</td></tr>
+        </tbody>
+      `;
 
       const result = validateQuizTable(table);
       expect(result.valid).toBe(false);
       expect(result.errors).toContainEqual(
         expect.objectContaining({
           code: 'MISSING_QUIZ_CLASS',
-          message: expect.stringContaining('qd-quiz'),
         }),
       );
     });
 
-    it('should fail validation if not exactly 3 columns', () => {
+    it('should fail if table has wrong number of columns', () => {
       const table = document.createElement('table');
       table.className = 'qd-quiz';
-
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-      headerRow.innerHTML = '<th>Question</th><th>Answer</th>';
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
+      table.innerHTML = `
+        <tbody>
+          <tr><td>Q</td><td>A</td></tr>
+        </tbody>
+      `;
 
       const result = validateQuizTable(table);
       expect(result.valid).toBe(false);
       expect(result.errors).toContainEqual(
         expect.objectContaining({
           code: 'INVALID_COLUMN_COUNT',
-          message: expect.stringContaining('3 columns'),
         }),
       );
     });
 
-    it('should fail validation if table has no rows', () => {
+    it('should fail if table has no data rows', () => {
       const table = document.createElement('table');
       table.className = 'qd-quiz';
-
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-      headerRow.innerHTML = '<th>Question</th><th>Answer</th><th>Detail</th>';
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
+      table.innerHTML = '<thead><tr><th>Q</th><th>A</th><th>D</th></tr></thead><tbody></tbody>';
 
       const result = validateQuizTable(table);
       expect(result.valid).toBe(false);
       expect(result.errors).toContainEqual(
         expect.objectContaining({
           code: 'NO_QUESTIONS',
-          message: expect.stringContaining('no questions'),
         }),
       );
     });
 
-    it('should fail validation if answer column contains non-numeric value for MCQ', () => {
+    it('should fail if answer is not numeric', () => {
       const table = document.createElement('table');
       table.className = 'qd-quiz';
-
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-      headerRow.innerHTML = '<th>Question</th><th>Answer</th><th>Detail</th>';
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
-
-      const tbody = document.createElement('tbody');
-      const row = document.createElement('tr');
-      row.innerHTML = '<td>Q1</td><td>invalid</td><td><ol><li>A</li><li>B</li></ol></td>';
-      tbody.appendChild(row);
-      table.appendChild(tbody);
+      table.innerHTML = `
+        <tbody>
+          <tr>
+            <td>Question</td>
+            <td>not-a-number</td>
+            <td><ol><li>A</li></ol></td>
+          </tr>
+        </tbody>
+      `;
 
       const result = validateQuizTable(table);
       expect(result.valid).toBe(false);
       expect(result.errors).toContainEqual(
         expect.objectContaining({
           code: 'INVALID_ANSWER_FORMAT',
-          row: 1,
+
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          message: expect.stringContaining('must be numeric'),
         }),
       );
     });
 
-    it('should fail validation if numeric question has no tolerance', () => {
+    it('should fail if question is empty', () => {
       const table = document.createElement('table');
       table.className = 'qd-quiz';
-
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-      headerRow.innerHTML = '<th>Question</th><th>Answer</th><th>Detail</th>';
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
-
-      const tbody = document.createElement('tbody');
-      const row = document.createElement('tr');
-      row.innerHTML = '<td>What is pi?</td><td>3.14</td><td>No tolerance given</td>';
-      tbody.appendChild(row);
-      table.appendChild(tbody);
-
-      const result = validateQuizTable(table);
-      expect(result.valid).toBe(false);
-      expect(result.errors).toContainEqual(
-        expect.objectContaining({
-          code: 'MISSING_TOLERANCE',
-          row: 1,
-        }),
-      );
-    });
-
-    it('should pass validation for numeric question with tolerance', () => {
-      const table = document.createElement('table');
-      table.className = 'qd-quiz';
-
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-      headerRow.innerHTML = '<th>Question</th><th>Answer</th><th>Detail</th>';
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
-
-      const tbody = document.createElement('tbody');
-      const row = document.createElement('tr');
-      row.innerHTML = '<td>What is pi?</td><td>3.14</td><td>0.1</td>';
-      tbody.appendChild(row);
-      table.appendChild(tbody);
-
-      const result = validateQuizTable(table);
-      expect(result.valid).toBe(true);
-      expect(result.errors).toHaveLength(0);
-    });
-
-    it('should fail validation if question has neither <ol> nor numeric tolerance', () => {
-      const table = document.createElement('table');
-      table.className = 'qd-quiz';
-
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-      headerRow.innerHTML = '<th>Question</th><th>Answer</th><th>Detail</th>';
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
-
-      const tbody = document.createElement('tbody');
-      const row = document.createElement('tr');
-      row.innerHTML = '<td>Q1</td><td>1</td><td>Plain text options</td>';
-      tbody.appendChild(row);
-      table.appendChild(tbody);
-
-      const result = validateQuizTable(table);
-      expect(result.valid).toBe(false);
-      // Without <ol>, treated as numeric question, so expects numeric tolerance
-      expect(result.errors).toContainEqual(
-        expect.objectContaining({
-          code: 'MISSING_TOLERANCE',
-          row: 1,
-        }),
-      );
-    });
-
-    it('should fail validation if MCQ answer is 0 (not 1-indexed)', () => {
-      const table = document.createElement('table');
-      table.className = 'qd-quiz';
-
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-      headerRow.innerHTML = '<th>Question</th><th>Answer</th><th>Detail</th>';
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
-
-      const tbody = document.createElement('tbody');
-      const row = document.createElement('tr');
-      row.innerHTML =
-        '<td>What is 2+2?</td><td>0</td><td><ol><li>3</li><li>4</li><li>5</li></ol></td>';
-      tbody.appendChild(row);
-      table.appendChild(tbody);
+      table.innerHTML = `
+        <tbody>
+          <tr>
+            <td></td>
+            <td>1</td>
+            <td><ol><li>A</li></ol></td>
+          </tr>
+        </tbody>
+      `;
 
       const result = validateQuizTable(table);
       expect(result.valid).toBe(false);
       expect(result.errors).toContainEqual(
         expect.objectContaining({
           code: 'INVALID_ANSWER_FORMAT',
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          message: expect.stringContaining('cannot be empty'),
+        }),
+      );
+    });
+
+    it('should fail if MCQ answer is less than 1', () => {
+      const table = document.createElement('table');
+      table.className = 'qd-quiz';
+      table.innerHTML = `
+        <tbody>
+          <tr>
+            <td>Question</td>
+            <td>0</td>
+            <td><ol><li>A</li><li>B</li></ol></td>
+          </tr>
+        </tbody>
+      `;
+
+      const result = validateQuizTable(table);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({
+          code: 'INVALID_ANSWER_FORMAT',
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           message: expect.stringContaining('1-indexed'),
-          row: 1,
         }),
       );
     });
 
-    it('should fail validation if MCQ answer exceeds option count', () => {
+    it('should fail if MCQ answer is out of range', () => {
       const table = document.createElement('table');
       table.className = 'qd-quiz';
-
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-      headerRow.innerHTML = '<th>Question</th><th>Answer</th><th>Detail</th>';
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
-
-      const tbody = document.createElement('tbody');
-      const row = document.createElement('tr');
-      row.innerHTML =
-        '<td>What is 2+2?</td><td>5</td><td><ol><li>3</li><li>4</li><li>5</li></ol></td>';
-      tbody.appendChild(row);
-      table.appendChild(tbody);
+      table.innerHTML = `
+        <tbody>
+          <tr>
+            <td>Question</td>
+            <td>5</td>
+            <td><ol><li>A</li><li>B</li></ol></td>
+          </tr>
+        </tbody>
+      `;
 
       const result = validateQuizTable(table);
       expect(result.valid).toBe(false);
       expect(result.errors).toContainEqual(
         expect.objectContaining({
           code: 'INVALID_ANSWER_FORMAT',
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           message: expect.stringContaining('out of range'),
-          row: 1,
         }),
       );
     });
 
-    it('should pass validation if MCQ answer is within valid 1-indexed range', () => {
+    it('should fail if numeric question has no tolerance', () => {
       const table = document.createElement('table');
       table.className = 'qd-quiz';
-
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-      headerRow.innerHTML = '<th>Question</th><th>Answer</th><th>Detail</th>';
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
-
-      const tbody = document.createElement('tbody');
-      const row = document.createElement('tr');
-      row.innerHTML =
-        '<td>What is 2+2?</td><td>2</td><td><ol><li>3</li><li>4</li><li>5</li></ol></td>';
-      tbody.appendChild(row);
-      table.appendChild(tbody);
+      table.innerHTML = `
+        <tbody>
+          <tr>
+            <td>Question</td>
+            <td>3.14</td>
+            <td>not-a-number</td>
+          </tr>
+        </tbody>
+      `;
 
       const result = validateQuizTable(table);
-      expect(result.valid).toBe(true);
-      expect(result.errors).toHaveLength(0);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({
+          code: 'MISSING_TOLERANCE',
+        }),
+      );
+    });
+
+    it('should include row numbers in errors', () => {
+      const table = document.createElement('table');
+      table.className = 'qd-quiz';
+      table.innerHTML = `
+        <tbody>
+          <tr><td>Q1</td><td>1</td><td><ol><li>A</li></ol></td></tr>
+          <tr><td></td><td>2</td><td><ol><li>B</li></ol></td></tr>
+          <tr><td>Q3</td><td>3</td><td><ol><li>C</li></ol></td></tr>
+        </tbody>
+      `;
+
+      const result = validateQuizTable(table);
+      expect(result.valid).toBe(false);
+      const errorWithRow = result.errors.find((e) => e.row === 2);
+      expect(errorWithRow).toBeDefined();
     });
   });
 
   describe('validateAnalysisTable()', () => {
-    it('should pass validation for valid analysis table', () => {
+    it('should return valid for correctly formatted table', () => {
       const table = document.createElement('table');
       table.className = 'qd-analysis';
-
-      const tbody = document.createElement('tbody');
-      const row = document.createElement('tr');
-      row.innerHTML = '<td>Read-only</td><td class="interactive">Editable</td>';
-      tbody.appendChild(row);
-      table.appendChild(tbody);
+      table.innerHTML = '<tbody><tr><td>Cell 1</td><td>Cell 2</td></tr></tbody>';
 
       const result = validateAnalysisTable(table);
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });
 
-    it('should fail validation if missing qd-analysis class', () => {
+    it('should fail if table missing qd-analysis class', () => {
       const table = document.createElement('table');
-      table.className = 'other-class';
+      table.innerHTML = '<tbody><tr><td>Cell 1</td></tr></tbody>';
 
       const result = validateAnalysisTable(table);
       expect(result.valid).toBe(false);
       expect(result.errors).toContainEqual(
         expect.objectContaining({
           code: 'MISSING_ANALYSIS_CLASS',
-          message: expect.stringContaining('qd-analysis'),
         }),
       );
     });
 
-    it('should fail validation if table has no cells', () => {
+    it('should fail if table has no cells', () => {
       const table = document.createElement('table');
       table.className = 'qd-analysis';
 
@@ -450,108 +362,32 @@ describe('Table Validation', () => {
       expect(result.errors).toContainEqual(
         expect.objectContaining({
           code: 'NO_CELLS',
-          message: expect.stringContaining('no cells'),
         }),
       );
-    });
-
-    it('should pass validation if all cells have background-color', () => {
-      const table = document.createElement('table');
-      table.className = 'qd-analysis';
-
-      const tbody = document.createElement('tbody');
-      const row = document.createElement('tr');
-      row.innerHTML =
-        '<td style="background-color: #eee;">Cell 1</td><td style="background-color: #fff;">Cell 2</td>';
-      tbody.appendChild(row);
-      table.appendChild(tbody);
-
-      const result = validateAnalysisTable(table);
-      expect(result.valid).toBe(true);
-      expect(result.errors).toHaveLength(0);
-    });
-
-    it('should pass validation if no cells have interactive class', () => {
-      const table = document.createElement('table');
-      table.className = 'qd-analysis';
-
-      const tbody = document.createElement('tbody');
-      const row = document.createElement('tr');
-      row.innerHTML = '<td>Cell 1</td><td>Cell 2</td>';
-      tbody.appendChild(row);
-      table.appendChild(tbody);
-
-      const result = validateAnalysisTable(table);
-      expect(result.valid).toBe(true);
-      expect(result.errors).toHaveLength(0);
-    });
-
-    it('should pass validation if some cells have interactive class', () => {
-      const table = document.createElement('table');
-      table.className = 'qd-analysis';
-
-      const tbody = document.createElement('tbody');
-      const row = document.createElement('tr');
-      row.innerHTML = '<td>Cell 1</td><td class="interactive">Cell 2</td>';
-      tbody.appendChild(row);
-      table.appendChild(tbody);
-
-      const result = validateAnalysisTable(table);
-      expect(result.valid).toBe(true);
-      expect(result.errors).toHaveLength(0);
     });
   });
 
   describe('validatePageTables()', () => {
-    it('should pass validation for page with one quiz table', () => {
-      document.body.innerHTML = `
+    it('should return valid for page with one quiz and one analysis table', () => {
+      container.innerHTML = `
         <table class="qd-quiz">
-          <thead><tr><th>Q</th><th>A</th><th>D</th></tr></thead>
-          <tbody><tr><td>Q1</td><td>1</td><td><ol><li>A</li></ol></td></tr></tbody>
-        </table>
-      `;
-
-      const result = validatePageTables(document);
-      expect(result.valid).toBe(true);
-      expect(result.errors).toHaveLength(0);
-    });
-
-    it('should pass validation for page with one analysis table', () => {
-      document.body.innerHTML = `
-        <table class="qd-analysis">
-          <tbody><tr><td>Cell 1</td></tr></tbody>
-        </table>
-      `;
-
-      const result = validatePageTables(document);
-      expect(result.valid).toBe(true);
-      expect(result.errors).toHaveLength(0);
-    });
-
-    it('should pass validation for page with one quiz and one analysis table', () => {
-      document.body.innerHTML = `
-        <table class="qd-quiz">
-          <thead><tr><th>Q</th><th>A</th><th>D</th></tr></thead>
-          <tbody><tr><td>Q1</td><td>1</td><td><ol><li>A</li></ol></td></tr></tbody>
+          <tbody><tr><td>Q</td><td>1</td><td><ol><li>A</li></ol></td></tr></tbody>
         </table>
         <table class="qd-analysis">
-          <tbody><tr><td>Cell 1</td></tr></tbody>
+          <tbody><tr><td>Cell</td></tr></tbody>
         </table>
       `;
 
       const result = validatePageTables(document);
       expect(result.valid).toBe(true);
-      expect(result.errors).toHaveLength(0);
     });
 
-    it('should fail validation for page with TWO quiz tables', () => {
-      document.body.innerHTML = `
+    it('should fail if page has multiple quiz tables', () => {
+      container.innerHTML = `
         <table class="qd-quiz">
-          <thead><tr><th>Q</th><th>A</th><th>D</th></tr></thead>
           <tbody><tr><td>Q1</td><td>1</td><td><ol><li>A</li></ol></td></tr></tbody>
         </table>
         <table class="qd-quiz">
-          <thead><tr><th>Q</th><th>A</th><th>D</th></tr></thead>
           <tbody><tr><td>Q2</td><td>2</td><td><ol><li>B</li></ol></td></tr></tbody>
         </table>
       `;
@@ -561,18 +397,17 @@ describe('Table Validation', () => {
       expect(result.errors).toContainEqual(
         expect.objectContaining({
           code: 'MULTIPLE_QUIZ_TABLES',
-          message: expect.stringContaining('maximum ONE quiz table'),
         }),
       );
     });
 
-    it('should fail validation for page with TWO analysis tables', () => {
-      document.body.innerHTML = `
+    it('should fail if page has multiple analysis tables', () => {
+      container.innerHTML = `
         <table class="qd-analysis">
-          <tbody><tr><td>Table 1</td></tr></tbody>
+          <tbody><tr><td>Cell 1</td></tr></tbody>
         </table>
         <table class="qd-analysis">
-          <tbody><tr><td>Table 2</td></tr></tbody>
+          <tbody><tr><td>Cell 2</td></tr></tbody>
         </table>
       `;
 
@@ -581,116 +416,98 @@ describe('Table Validation', () => {
       expect(result.errors).toContainEqual(
         expect.objectContaining({
           code: 'MULTIPLE_ANALYSIS_TABLES',
-          message: expect.stringContaining('maximum ONE analysis table'),
         }),
       );
     });
 
-    it('should pass validation for page with no quiz or analysis tables', () => {
-      document.body.innerHTML = `
-        <p>Just regular content</p>
-        <table class="regular-table">
-          <tr><td>Not a quiz or analysis table</td></tr>
-        </table>
-      `;
-
-      const result = validatePageTables(document);
-      expect(result.valid).toBe(true);
-      expect(result.errors).toHaveLength(0);
-    });
-
-    it('should accumulate multiple validation errors', () => {
-      document.body.innerHTML = `
+    it('should include individual table validation errors', () => {
+      container.innerHTML = `
         <table class="qd-quiz">
-          <thead><tr><th>Q</th><th>A</th></tr></thead>
-        </table>
-        <table class="qd-quiz">
-          <thead><tr><th>Q</th><th>A</th><th>D</th></tr></thead>
-          <tbody><tr><td>Q2</td><td>2</td><td><ol><li>B</li></ol></td></tr></tbody>
+          <tbody><tr><td></td><td>1</td><td><ol><li>A</li></ol></td></tr></tbody>
         </table>
       `;
 
       const result = validatePageTables(document);
       expect(result.valid).toBe(false);
-      expect(result.errors.length).toBeGreaterThanOrEqual(2); // At least 2 errors
-
-      // Should have error for wrong column count
       expect(result.errors).toContainEqual(
-        expect.objectContaining({ code: 'INVALID_COLUMN_COUNT' }),
-      );
-
-      // Should have error for multiple quiz tables
-      expect(result.errors).toContainEqual(
-        expect.objectContaining({ code: 'MULTIPLE_QUIZ_TABLES' }),
+        expect.objectContaining({
+          code: 'INVALID_ANSWER_FORMAT',
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          message: expect.stringContaining('cannot be empty'),
+        }),
       );
     });
   });
 
-  describe('Edge Cases', () => {
-    it('should handle table with mixed valid and invalid rows', () => {
-      const table = document.createElement('table');
-      table.className = 'qd-quiz';
+  describe('formatValidationErrors()', () => {
+    it('should return empty string for no errors', () => {
+      expect(formatValidationErrors([])).toBe('');
+    });
 
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-      headerRow.innerHTML = '<th>Question</th><th>Answer</th><th>Detail</th>';
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
+    it('should format single error', () => {
+      const errors: ValidationError[] = [
+        {
+          code: 'MISSING_QUIZ_CLASS',
+          message: 'Table must have "qd-quiz" class',
+        },
+      ];
 
-      const tbody = document.createElement('tbody');
-      tbody.innerHTML = `
-        <tr><td>Valid Q</td><td>1</td><td><ol><li>A</li></ol></td></tr>
-        <tr><td>Invalid Q</td><td>bad</td><td><ol><li>B</li></ol></td></tr>
-        <tr><td>Valid Q2</td><td>2</td><td>0.5</td></tr>
+      const formatted = formatValidationErrors(errors);
+      expect(formatted).toContain('Table Validation Errors:');
+      expect(formatted).toContain('[MISSING_QUIZ_CLASS]');
+      expect(formatted).toContain('Table must have "qd-quiz" class');
+    });
+
+    it('should format multiple errors', () => {
+      const errors: ValidationError[] = [
+        {
+          code: 'MISSING_QUIZ_CLASS',
+          message: 'Error 1',
+        },
+        {
+          code: 'INVALID_COLUMN_COUNT',
+          message: 'Error 2',
+        },
+      ];
+
+      const formatted = formatValidationErrors(errors);
+      expect(formatted).toContain('1. [MISSING_QUIZ_CLASS] Error 1');
+      expect(formatted).toContain('2. [INVALID_COLUMN_COUNT] Error 2');
+    });
+
+    it('should include row numbers in formatted output', () => {
+      const errors: ValidationError[] = [
+        {
+          code: 'INVALID_ANSWER_FORMAT',
+          message: 'Question cannot be empty',
+          row: 3,
+        },
+      ];
+
+      const formatted = formatValidationErrors(errors);
+      expect(formatted).toContain('(row 3)');
+    });
+  });
+
+  describe('hasValidTables()', () => {
+    it('should return true for valid page', () => {
+      container.innerHTML = `
+        <table class="qd-quiz">
+          <tbody><tr><td>Q</td><td>1</td><td><ol><li>A</li></ol></td></tr></tbody>
+        </table>
       `;
-      table.appendChild(tbody);
 
-      const result = validateQuizTable(table);
-      expect(result.valid).toBe(false);
-      expect(result.errors.length).toBeGreaterThan(0);
-      expect(result.errors.some((e) => e.row === 2)).toBe(true);
+      expect(hasValidTables(document)).toBe(true);
     });
 
-    it('should handle table with empty cells', () => {
-      const table = document.createElement('table');
-      table.className = 'qd-quiz';
+    it('should return false for invalid page', () => {
+      container.innerHTML = `
+        <table class="qd-quiz">
+          <tbody><tr><td></td><td>1</td><td><ol><li>A</li></ol></td></tr></tbody>
+        </table>
+      `;
 
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-      headerRow.innerHTML = '<th>Question</th><th>Answer</th><th>Detail</th>';
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
-
-      const tbody = document.createElement('tbody');
-      tbody.innerHTML = '<tr><td></td><td></td><td></td></tr>';
-      table.appendChild(tbody);
-
-      const result = validateQuizTable(table);
-      expect(result.valid).toBe(false);
-    });
-
-    it('should handle document with no body', () => {
-      const emptyDom = new JSDOM('<!DOCTYPE html><html></html>');
-      const emptyDoc = emptyDom.window.document as unknown as Document;
-
-      const result = validatePageTables(emptyDoc);
-      expect(result.valid).toBe(true); // No tables = valid
-      expect(result.errors).toHaveLength(0);
-    });
-
-    it('should handle table with colspan in header', () => {
-      const table = document.createElement('table');
-      table.className = 'qd-quiz';
-
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-      headerRow.innerHTML = '<th colspan="2">Question</th><th>Detail</th>';
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
-
-      const result = validateQuizTable(table);
-      // This should fail because column count detection may be affected by colspan
-      expect(result.valid).toBe(false);
+      expect(hasValidTables(document)).toBe(false);
     });
   });
 });

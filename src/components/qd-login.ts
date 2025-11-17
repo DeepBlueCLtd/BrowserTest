@@ -1,128 +1,124 @@
 /**
- * QdLogin Component
+ * Login Component
  *
- * Web component for student and instructor login.
- * Supports two login modes: Student (service ID + name) and Instructor (password).
+ * Compact authentication for both students and instructors.
+ * Horizontal layout with Name + Service ID fields, Login + Instructor buttons.
+ * Release is read from document title (.wh_publication_title .title).
  *
- * Features compact vertical stack layout with button to the right.
+ * @element qd-login
+ * @fires {CustomEvent<{serviceId: string, name: string, release: string, role: 'student' | 'instructor'}>} qd:login - Emitted on successful auth
  *
- * Usage:
- *   <qd-login release="02-2025" docId="core-acs" title="Core Skills Assessment"></qd-login>
- *
- * Properties:
- *   - release: Release identifier (e.g., "02-2025")
- *   - docId: Document identifier (e.g., "core-acs")
- *   - title: Fieldset title (default: "Core Skills Assessment")
- *
- * Emits:
- *   qd:login - Custom event with SessionData in detail (student login)
- *   qd:instructor-login - Custom event for instructor login
+ * @example
+ * ```html
+ * <div class="wh_publication_title">
+ *   <span class="title">TRV Connectors Autumn 2025</span>
+ * </div>
+ * <qd-login title="Sonar Quiz System"></qd-login>
+ * ```
  */
 
 import { LitElement, html, css } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import type { SessionData } from '../types/contracts';
-import { LIMITS, SESSION_TIMEOUT_MS } from '../types/contracts';
+import { customElement, state, property } from 'lit/decorators.js';
 
-type LoginMode = 'student' | 'instructor';
+/**
+ * Login event data
+ */
+interface LoginData {
+  serviceId: string;
+  name: string;
+  release: string;
+  role: 'student' | 'instructor';
+}
 
+/**
+ * Login component for student and instructor authentication
+ */
 @customElement('qd-login')
 export class QdLogin extends LitElement {
   /**
-   * Release identifier (e.g., "02-2025")
+   * Title text (configurable via init())
    */
   @property({ type: String })
-  release = '';
+  title = 'Sonar Quiz System';
 
   /**
-   * Document identifier (e.g., "core-acs")
-   */
-  @property({ type: String })
-  docId = '';
-
-  /**
-   * Title displayed as fieldset legend (e.g., "Core Skills Assessment")
-   */
-  @property({ type: String })
-  title = 'Core Skills Assessment';
-
-  /**
-   * Internal state for form validation
+   * Form field: Student name
    */
   @state()
-  private _isSubmitting = false;
+  private name = '';
 
   /**
-   * Current login mode (student or instructor)
+   * Form field: Service ID (2-10 alphanumeric)
    */
   @state()
-  private _loginMode: LoginMode = 'student';
+  private serviceId = '';
 
   /**
-   * Error message for failed login attempts
+   * Instructor modal: Password field
    */
   @state()
-  private _errorMessage = '';
+  private instructorPassword = '';
+
+  /**
+   * Whether instructor modal is open
+   */
+  @state()
+  private showInstructorModal = false;
+
+  /**
+   * Error message to display
+   */
+  @state()
+  private errorMessage = '';
+
+  /**
+   * Instructor error message
+   */
+  @state()
+  private instructorError = '';
+
+  /**
+   * Whether form is currently submitting
+   */
+  @state()
+  private isSubmitting = false;
 
   static styles = css`
     :host {
       display: block;
-      font-family:
-        -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      font-family: system-ui, -apple-system, sans-serif;
     }
 
-    .mode-selector {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 0.75rem;
-    }
-
-    .mode-tab {
-      padding: 0.5rem 1rem;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: #666;
-      background: #f5f5f5;
-      border: 1px solid #e0e0e0;
+    .login-container {
+      padding: 8px 12px;
+      background: #fff;
+      border: 1px solid #ddd;
       border-radius: 4px;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: inherit;
+      max-width: 480px;
     }
 
-    .mode-tab:hover {
-      background: #e8e8e8;
+    .title {
+      margin: 0 0 8px 0;
+      font-size: 15px;
+      font-weight: 600;
       color: #333;
     }
 
-    .mode-tab.active {
-      background: #0066cc;
-      color: #ffffff;
-      border-color: #0052a3;
-    }
-
-    form {
+    .login-form {
       display: flex;
-      flex-direction: row;
-      align-items: stretch;
-      gap: 0.75rem;
-    }
-
-    .inputs-stack {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      flex: 1;
+      gap: 6px;
+      align-items: flex-start;
+      flex-wrap: wrap;
     }
 
     input {
-      padding: 0.5rem 0.75rem;
-      font-size: 0.875rem;
+      padding: 6px 10px;
       border: 1px solid #ccc;
       border-radius: 4px;
-      transition: border-color 0.2s;
-      font-family: inherit;
-      width: 100%;
+      font-size: 11px;
+      width: 110px;
+      min-width: 75px;
+      max-width: 110px;
     }
 
     input:focus {
@@ -131,267 +127,388 @@ export class QdLogin extends LitElement {
       box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
     }
 
-    input:invalid:not(:focus) {
-      border-color: #d32f2f;
-    }
-
-    input:valid {
-      border-color: #4caf50;
-    }
-
-    button[type='submit'] {
-      padding: 0.5rem 1.25rem;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: #ffffff;
-      background-color: #0066cc;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-      font-family: inherit;
-      white-space: nowrap;
-      align-self: stretch;
-    }
-
-    button[type='submit']:hover:not(:disabled) {
-      background-color: #0052a3;
-    }
-
-    button[type='submit']:active:not(:disabled) {
-      background-color: #004080;
-    }
-
-    button[type='submit']:disabled {
-      background-color: #ccc;
+    input:disabled {
+      background-color: #f5f5f5;
       cursor: not-allowed;
     }
 
-    .error {
-      color: #d32f2f;
-      font-size: 0.8125rem;
-      margin-top: 0.5rem;
-      padding: 0.5rem;
-      background: #ffebee;
-      border: 1px solid #ffcdd2;
+    button {
+      padding: 6px 12px;
+      border: none;
       border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
     }
 
-    @media (max-width: 480px) {
-      form {
+    .login-btn {
+      background: #0066cc;
+      color: white;
+    }
+
+    .login-btn:hover:not(:disabled) {
+      background: #0052a3;
+    }
+
+    .login-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .instructor-btn {
+      background: #6c757d;
+      color: white;
+    }
+
+    .instructor-btn:hover {
+      background: #5a6268;
+    }
+
+    .error-message {
+      width: 100%;
+      color: #d32f2f;
+      font-size: 11px;
+      margin-top: 3px;
+      padding: 4px 8px;
+      background: #ffebee;
+      border-radius: 3px;
+      border-left: 3px solid #d32f2f;
+    }
+
+    /* Modal Overlay */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      min-width: 320px;
+      max-width: 400px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin: 0;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #666;
+      cursor: pointer;
+      padding: 0;
+      width: 28px;
+      height: 28px;
+      line-height: 1;
+    }
+
+    .close-btn:hover {
+      color: #333;
+    }
+
+    .modal-body {
+      margin-bottom: 20px;
+    }
+
+    .modal-body input {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .cancel-btn {
+      background: #e0e0e0;
+      color: #333;
+    }
+
+    .cancel-btn:hover {
+      background: #d0d0d0;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .login-form {
         flex-direction: column;
       }
 
-      button[type='submit'] {
-        align-self: stretch;
+      input,
+      button {
+        width: 100%;
       }
     }
   `;
 
+  connectedCallback() {
+    super.connectedCallback();
+    // Listen for Escape key to close modal
+    document.addEventListener('keydown', this.handleEscape);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    document.removeEventListener('keydown', this.handleEscape);
+  }
+
   render() {
     return html`
-      <div class="mode-selector">
-        <button
-          type="button"
-          class="mode-tab ${this._loginMode === 'student' ? 'active' : ''}"
-          @click=${() => this._handleModeChange('student')}
-        >
-          Student
-        </button>
-        <button
-          type="button"
-          class="mode-tab ${this._loginMode === 'instructor' ? 'active' : ''}"
-          @click=${() => this._handleModeChange('instructor')}
-        >
-          Instructor
-        </button>
+      <div class="login-container">
+        <div class="title">${this.title}</div>
+
+        <form class="login-form" @submit=${(e: Event) => this.handleStudentLogin(e)}>
+          <input
+            type="text"
+            placeholder="Name (J Smith)"
+            .value=${this.name}
+            @input=${(e: Event) => this.handleNameInput(e)}
+            ?disabled=${this.isSubmitting}
+            required
+          />
+
+          <input
+            type="text"
+            placeholder="Service ID (30012345)"
+            .value=${this.serviceId}
+            @input=${(e: Event) => this.handleServiceIdInput(e)}
+            ?disabled=${this.isSubmitting}
+            pattern="[A-Za-z0-9]{2,10}"
+            title="2-10 alphanumeric characters"
+            required
+          />
+
+          <button type="submit" class="login-btn" ?disabled=${this.isSubmitting || !this.isValid()}>
+            Login
+          </button>
+
+          <button
+            type="button"
+            class="instructor-btn"
+            @click=${() => this.openInstructorModal()}
+            ?disabled=${this.isSubmitting}
+          >
+            Instructor
+          </button>
+
+          ${this.errorMessage
+            ? html`<div class="error-message">${this.errorMessage}</div>`
+            : ''}
+        </form>
       </div>
 
-      <form @submit=${(e: Event) => this._handleSubmit(e)} novalidate>
-        <div class="inputs-stack">${this._renderFormFields()}</div>
-
-        <button type="submit" ?disabled=${this._isSubmitting}>
-          ${this._isSubmitting ? 'Logging in...' : 'Login'}
-        </button>
-      </form>
-
-      ${this._errorMessage ? html`<div class="error">${this._errorMessage}</div>` : ''}
+      ${this.showInstructorModal ? this.renderInstructorModal() : ''}
     `;
   }
 
-  private _renderFormFields() {
-    if (this._loginMode === 'instructor') {
-      return html`
-        <input
-          type="password"
-          id="password"
-          name="password"
-          required
-          placeholder="Instructor password"
-          autocomplete="current-password"
-          autofocus
-          aria-label="Instructor password"
-        />
-      `;
-    }
-
+  private renderInstructorModal() {
     return html`
-      <input
-        type="text"
-        id="serviceId"
-        name="serviceId"
-        required
-        minlength="2"
-        maxlength="${LIMITS.MAX_SERVICE_ID_LENGTH}"
-        placeholder="Service ID (e.g., RN2344)"
-        autocomplete="off"
-        autofocus
-        pattern="[A-Za-z0-9]+"
-        title="Service ID must be alphanumeric, 2-10 characters"
-        aria-label="Service ID"
-      />
+      <div class="modal-overlay" @click=${() => this.handleOverlayClick()}>
+        <div class="modal" @click=${(e: Event) => this.stopPropagation(e)}>
+          <div class="modal-header">
+            <h3 class="modal-title">Instructor Login</h3>
+            <button type="button" class="close-btn" @click=${() => this.closeInstructorModal()}>
+              ×
+            </button>
+          </div>
 
-      <input
-        type="text"
-        id="name"
-        name="name"
-        required
-        minlength="1"
-        maxlength="${LIMITS.MAX_NAME_LENGTH}"
-        placeholder="Name (e.g., J Corner)"
-        autocomplete="off"
-        title="Name is required (1-100 characters)"
-        aria-label="Name"
-      />
+          <form @submit=${(e: Event) => this.handleInstructorLogin(e)}>
+            <div class="modal-body">
+              <input
+                type="password"
+                placeholder="Password"
+                .value=${this.instructorPassword}
+                @input=${(e: Event) => this.handleInstructorPasswordInput(e)}
+                required
+                autofocus
+              />
+
+              ${this.instructorError
+                ? html`<div class="error-message">${this.instructorError}</div>`
+                : ''}
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" class="cancel-btn" @click=${() => this.closeInstructorModal()}>
+                Cancel
+              </button>
+              <button type="submit" class="login-btn">Login</button>
+            </div>
+          </form>
+        </div>
+      </div>
     `;
   }
 
-  private _handleModeChange(mode: LoginMode) {
-    this._loginMode = mode;
-    this._errorMessage = '';
+  /**
+   * Handle name input
+   */
+  private handleNameInput(e: Event) {
+    const input = e.target as HTMLInputElement;
+    this.name = input.value;
+    this.errorMessage = '';
   }
 
-  private _handleSubmit(e: Event) {
+  /**
+   * Handle service ID input
+   */
+  private handleServiceIdInput(e: Event) {
+    const input = e.target as HTMLInputElement;
+    this.serviceId = input.value;
+    this.errorMessage = '';
+  }
+
+  /**
+   * Handle instructor password input
+   */
+  private handleInstructorPasswordInput(e: Event) {
+    const input = e.target as HTMLInputElement;
+    this.instructorPassword = input.value;
+    this.instructorError = '';
+  }
+
+  /**
+   * Check if student form is valid
+   */
+  private isValid(): boolean {
+    const name = this.name.trim();
+    const serviceId = this.serviceId.trim();
+
+    // Name: non-empty
+    if (!name) return false;
+
+    // Service ID: 2-10 alphanumeric
+    const serviceIdPattern = /^[A-Za-z0-9]{2,10}$/;
+    if (!serviceIdPattern.test(serviceId)) return false;
+
+    return true;
+  }
+
+  /**
+   * Get release from document title
+   * Looks for: .wh_publication_title .title span
+   */
+  private getRelease(): string {
+    const titleElement = document.querySelector('.wh_publication_title .title');
+    return titleElement?.textContent?.trim() || '';
+  }
+
+  /**
+   * Handle student login
+   */
+  private handleStudentLogin(e: Event) {
     e.preventDefault();
 
-    if (this._loginMode === 'instructor') {
-      void this._handleInstructorLogin(e);
-    } else {
-      this._handleStudentLogin(e);
-    }
-  }
-
-  private _handleStudentLogin(e: Event) {
-    const form = e.target as HTMLFormElement;
-    const formData = new FormData(form);
-
-    const serviceId = (formData.get('serviceId') as string | null)?.trim() || '';
-    const name = (formData.get('name') as string | null)?.trim() || '';
-
-    // Validate inputs
-    if (!this._validateInputs(serviceId, name)) {
+    if (!this.isValid()) {
+      this.errorMessage = 'Please enter valid name and service ID (2-10 alphanumeric)';
       return;
     }
 
-    // Set submitting state
-    this._isSubmitting = true;
-    this._errorMessage = '';
+    this.isSubmitting = true;
+    this.errorMessage = '';
 
-    // Create session data
-    const now = new Date().toISOString();
-    const expiresAt = new Date(Date.now() + SESSION_TIMEOUT_MS).toISOString();
-
-    const sessionData: SessionData = {
-      serviceId,
-      name,
-      release: this.release || this._inferRelease(),
-      loginTime: now,
-      lastActivity: now,
-      expiresAt,
-      instructorUnlocked: false,
-    };
-
-    // Emit login event
-    this.dispatchEvent(
-      new CustomEvent('qd:login', {
-        detail: sessionData,
-        bubbles: true,
-        composed: true,
-      }),
-    );
-
-    // Reset submitting state after short delay
-    setTimeout(() => {
-      this._isSubmitting = false;
-    }, 500);
-  }
-
-  private async _handleInstructorLogin(e: Event) {
-    const form = e.target as HTMLFormElement;
-    const formData = new FormData(form);
-
-    const password = (formData.get('password') as string | null)?.trim() || '';
-
-    if (!password) {
-      this._errorMessage = 'Please enter the instructor password';
-      return;
-    }
-
-    // Set submitting state
-    this._isSubmitting = true;
-    this._errorMessage = '';
-
-    // Validate password against stored hash
-    const isValid = await this._validateInstructorPassword(password);
-
-    if (isValid) {
-      // Emit instructor login event with release info
-      this.dispatchEvent(
-        new CustomEvent('qd:instructor-login', {
-          detail: {
-            timestamp: new Date().toISOString(),
-            release: this.release || this._inferRelease(),
-          },
-          bubbles: true,
-          composed: true,
-        }),
-      );
-    } else {
-      this._errorMessage = 'Incorrect instructor password';
-    }
-
-    // Reset submitting state
-    this._isSubmitting = false;
-  }
-
-  private async _validateInstructorPassword(password: string): Promise<boolean> {
     try {
-      // Hash the input password using SHA-256 (first 12 characters)
-      const encoder = new TextEncoder();
-      const data = encoder.encode(password);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('').substring(0, 12);
-
-      // Get stored hash from DOM (injected by Oxygen publishing)
-      const hashSpan = document.getElementById('instructor.password.hash');
-      const storedHash = hashSpan?.textContent?.trim();
-
-      if (!storedHash) {
-        // No hash configured, use default for demo
-        console.warn('No instructor password hash found, using default');
-        const defaultHash = await this._hashPassword('instructor');
-        return hashHex === defaultHash;
+      const release = this.getRelease();
+      if (!release) {
+        this.errorMessage = 'Release not found (missing .wh_publication_title .title element)';
+        this.isSubmitting = false;
+        return;
       }
 
-      return hashHex === storedHash;
-    } catch (error) {
-      console.error('Failed to validate instructor password:', error);
-      return false;
+      const loginData: LoginData = {
+        serviceId: this.serviceId.trim(),
+        name: this.name.trim(),
+        release,
+        role: 'student',
+      };
+
+      const event = new CustomEvent('qd:login', {
+        detail: loginData,
+        bubbles: true,
+        composed: true,
+      });
+      this.dispatchEvent(event);
+
+      // Remove component from DOM on successful login
+      this.remove();
+    } catch (err) {
+      this.errorMessage = 'Login failed. Please try again.';
+      console.error('Student login error:', err);
+      this.isSubmitting = false;
     }
   }
 
-  private async _hashPassword(password: string): Promise<string> {
+  /**
+   * Open instructor modal
+   */
+  private openInstructorModal() {
+    this.showInstructorModal = true;
+    this.instructorPassword = '';
+    this.instructorError = '';
+  }
+
+  /**
+   * Close instructor modal
+   */
+  private closeInstructorModal() {
+    this.showInstructorModal = false;
+    this.instructorPassword = '';
+    this.instructorError = '';
+  }
+
+  /**
+   * Handle click on modal overlay
+   */
+  private handleOverlayClick() {
+    this.closeInstructorModal();
+  }
+
+  /**
+   * Stop event propagation (prevent closing on modal click)
+   */
+  private stopPropagation(e: Event) {
+    e.stopPropagation();
+  }
+
+  /**
+   * Handle Escape key
+   */
+  private handleEscape = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && this.showInstructorModal) {
+      this.closeInstructorModal();
+    }
+  };
+
+  /**
+   * Hash password using SHA-256
+   */
+  private async hashPassword(password: string): Promise<string> {
     const encoder = new TextEncoder();
     const data = encoder.encode(password);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -400,40 +517,64 @@ export class QdLogin extends LitElement {
     return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('').substring(0, 12);
   }
 
-  private _validateInputs(serviceId: string, name: string): boolean {
-    // Service ID validation
-    if (serviceId.length < 2 || serviceId.length > LIMITS.MAX_SERVICE_ID_LENGTH) {
-      this._showError('Service ID must be 2-10 characters');
-      return false;
-    }
-
-    if (!/^[A-Za-z0-9]+$/.test(serviceId)) {
-      this._showError('Service ID must be alphanumeric');
-      return false;
-    }
-
-    // Name validation
-    if (name.length < 1 || name.length > LIMITS.MAX_NAME_LENGTH) {
-      this._showError(`Name must be 1-${LIMITS.MAX_NAME_LENGTH} characters`);
-      return false;
-    }
-
-    return true;
+  /**
+   * Get expected password hash from hidden element
+   */
+  private getExpectedHash(): string {
+    const hashElement = document.getElementById('instructor.password.hash');
+    return hashElement?.textContent?.trim() || '';
   }
 
-  private _showError(message: string) {
-    // For now, use browser's built-in validation UI
-    // Could enhance with custom error display later
-    console.warn('Login validation error:', message);
-  }
+  /**
+   * Handle instructor login
+   */
+  private async handleInstructorLogin(e: Event) {
+    e.preventDefault();
 
-  private _inferRelease(): string {
-    // Try to infer release from document title or filename
-    // Default to current month-year if not found
-    const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear();
-    return `${month}-${year}`;
+    if (!this.instructorPassword) {
+      this.instructorError = 'Password is required';
+      return;
+    }
+
+    try {
+      const passwordHash = await this.hashPassword(this.instructorPassword);
+      const expectedHash = this.getExpectedHash();
+
+      if (!expectedHash) {
+        this.instructorError = 'Instructor password not configured';
+        return;
+      }
+
+      if (passwordHash !== expectedHash) {
+        this.instructorError = 'Incorrect password';
+        this.instructorPassword = '';
+        // TODO: Implement rate limiting (5 attempts per 60 seconds)
+        return;
+      }
+
+      // Success
+      const release = this.getRelease();
+      const loginData: LoginData = {
+        serviceId: 'INSTRUCTOR',
+        name: 'Instructor',
+        release: release || '',
+        role: 'instructor',
+      };
+
+      const event = new CustomEvent('qd:login', {
+        detail: loginData,
+        bubbles: true,
+        composed: true,
+      });
+      this.dispatchEvent(event);
+
+      // Close modal and remove component
+      this.closeInstructorModal();
+      this.remove();
+    } catch (err) {
+      this.instructorError = 'Login failed. Please try again.';
+      console.error('Instructor login error:', err);
+    }
   }
 }
 

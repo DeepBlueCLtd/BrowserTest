@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 BrowserTest (internally "Sonar Quiz System") is an offline-first interactive quiz and analysis platform that progressively enhances DITA-published HTML training materials. The system operates entirely from `file://` URLs with no network dependencies, targeting air-gapped training environments.
 
-**Current Phase**: Phase 0 - Bootstrap + Contracts (toolchain and frozen interfaces)
+**Current Phase**: Phase 1 Complete (Foundation Layer) → Starting Phase 2 (Components & Integration)
 
 ## Core Architecture
 
@@ -37,6 +37,64 @@ User Input → DOM Handler → Service Layer → Storage Adapter
 3. **Component Layer** (`src/components/`): Lit 3 Web Components with Shadow DOM
 4. **Storage Layer** (`src/services/storage/`): IndexedDB adapter with atomic transactions
 
+### Component Architecture
+
+#### **Login Component** (`<qd-login>`)
+Compact login interface with modal for instructor access:
+- **Default View**: Student login form (serviceId + name fields, Login + Instructor buttons)
+- **Instructor Modal**: Password entry popup (opens on "Instructor" button click)
+- **Behavior**:
+  - Student login: Validates, creates session, shows student status panel
+  - Instructor login: Opens modal, validates password (SHA-256 + rate limiting), shows instructor status panel
+- Integrates with SessionService and instructor password verification
+- Emits `qd:login` event on successful authentication
+
+#### **Status Panels** (Conditional Rendering)
+After successful login, ONE of these panels is displayed:
+
+**Student Status Panel** (`<qd-student-status>`):
+- Quiz progress display (R/A/G badges, answered/correct counts, percentage)
+- Logout button
+- Updates in real-time via session cache
+
+**Instructor Status Panel** (`<qd-instructor-status>`):
+Consolidated control center with:
+- **Toggle**: Show/hide student answers on current page
+  - For quiz tables: Inserts `<div>` after each question's input control
+  - Shows list of students (name + last 4 digits of serviceId)
+  - Each student entry shows: answer + shortened timestamp
+  - Red/green color coding for incorrect/correct answers
+  - For analysis tables: Shows student entries in comparison format
+- **Button**: "View All Scores" → Opens `<qd-scores-modal>`
+- **Button**: "Export to CSV" → Downloads detailed answer data
+- **Button**: "Erase All Data" → Clears all storage (with confirmation dialog)
+- **Button**: "Logout"
+
+#### **Scores Modal** (`<qd-scores-modal>`)
+Modal overlay (Esc to close) showing:
+- Student list with totals (attempted, correct, percentage)
+- Per-student expandable breakdown showing per-page answers
+- Close button
+
+#### **Table Enhancement**
+**Quiz Tables** (`qd-quiz` class):
+- **SECURITY**: Immediately extract and remove answer column from DOM on load
+- Correct answers stored in memory only (prevents view-source inspection)
+- Render MCQ radio buttons or numeric input fields
+- Submit answers, validate against in-memory answers
+- Save to IndexedDB via storage adapter
+- If instructor mode active: Show student answers after each question
+
+**Analysis Tables** (`qd-analysis` class):
+- Make cells with class="interactive" editable (contenteditable)
+- Auto-save to IndexedDB with debouncing
+- If instructor mode active: Show student entries
+
+#### **Home Page Badges**
+- R/A/G badges injected into navigation links (class `quizPageBtn`)
+- Real-time updates from session cache
+- Listen to `qd:answer-saved` events for immediate refresh
+
 ### Storage Monitor (Development Tool)
 The `<qd-storage-monitor>` component provides real-time inspection of browser storage during development:
 - **Auto-injected** when `data-debug="true"` is set on the script tag
@@ -65,7 +123,7 @@ npm run storybook       # Component development in isolation
 npm test                # Run all tests
 npm run test:unit       # Vitest unit tests
 npm run test:integration # DOM upgrade integration tests
-npm run test:e2e        # Playwright E2E tests (file:// protocol)
+npm run test:e2e        # Playwright E2E tests (auto-starts/stops Storybook)
 npm run chromatic       # Visual regression tests
 
 # Building
@@ -109,8 +167,8 @@ All demo files load the built bundle from `dist/sonar-quiz.iife.js` and have deb
 **CRITICAL**: Before marking ANY task as complete, ALL of the following must pass with ZERO errors:
 
 ```bash
-# 1. TypeScript compilation (MUST pass)
-npm run build
+# 1. TypeScript type checking (MUST pass)
+npm run typecheck
 
 # 2. Linter (zero errors required, warnings acceptable with justification)
 npm run lint
@@ -123,6 +181,9 @@ npm run test:integration
 
 # 5. Format check (code must be properly formatted)
 npm run format:check
+
+# 6. Build (final verification before commit)
+npm run build
 ```
 
 **No Exceptions**:
@@ -176,6 +237,13 @@ npm run format:check
 - Auto-init on DOMContentLoaded
 - No setup, no config, no dependencies
 
+### VIII. Answer Security
+- **CRITICAL**: Quiz answers MUST be removed from DOM immediately on component load
+- Correct answers extracted, stored in memory (JavaScript closure), never exposed in DOM
+- This prevents students from viewing page source or using DevTools to see answers
+- Implementation order: Parse → Store in memory → Remove from DOM → Render controls
+- Validation performed against in-memory answers only
+
 ## Frozen Contracts (src/types/contracts.ts)
 
 **DO NOT MODIFY** without version bump and migration strategy.
@@ -224,8 +292,8 @@ Content authors must follow these rules (runtime validation enforces):
 
 ### Analysis Tables
 - Class: `qd-analysis`
-- Cells WITH `background-color` style = read-only
-- Cells WITHOUT background-color = editable
+- Cells WITH class="interactive" = editable (in interactive mode)
+- Cells WITHOUT 'interactive' class = read-only (always)
 - **Maximum ONE** analysis table per page
 
 ### Home Page
@@ -276,11 +344,12 @@ Format: `R{row}C{col}#f:{hash}`
 ### Definition of Done (Pre-Commit Checklist)
 Before committing any code changes, ALL of the following MUST pass:
 
-1. ✅ **Tests pass**: `npm run test:unit` (and `npm run test:integration` if applicable)
-2. ✅ **Linting passes**: `npm run lint` (fix with `npm run lint:fix` if needed)
-3. ✅ **Formatting passes**: `npm run format:check` (fix with `npm run format` if needed)
-4. ✅ **Build succeeds**: `npm run build` (if modifying source files)
-5. ✅ **Bundle size**: Under 25KB min+gzip (verify with `npm run size-check` if needed)
+1. ✅ **Type checking passes**: `npm run typecheck` (fast TypeScript type checking)
+2. ✅ **Tests pass**: `npm run test:unit` (and `npm run test:integration` if applicable)
+3. ✅ **Linting passes**: `npm run lint` (fix with `npm run lint:fix` if needed)
+4. ✅ **Formatting passes**: `npm run format:check` (fix with `npm run format` if needed)
+5. ✅ **Build succeeds**: `npm run build` (if modifying source files)
+6. ✅ **Bundle size**: Under 25KB min+gzip (verify with `npm run size-check` if needed)
 
 **Rationale**: CI will fail if any of these checks fail. Running them locally before committing prevents failed CI builds and reduces feedback cycles.
 
@@ -292,6 +361,26 @@ Before committing any code changes, ALL of the following MUST pass:
 - **Phase 4**: Session switch tests, expiry unit tests
 - **Phase 5**: E2E file:// saves/reloads, CSV validation
 - **Phase 6**: Perf/a11y green, <25KB budget met
+
+### E2E Testing Configuration
+E2E tests run via Playwright against Storybook stories at `http://localhost:6006`.
+
+**Key Configuration** (`playwright.config.ts`):
+- **Auto-start/stop**: Playwright automatically starts Storybook before tests and kills it on completion
+- **Storybook startup timeout**: 12 seconds (Storybook reliably starts within 10s)
+- **Test timeout**: 2 seconds max per test (local SPA, no network delays)
+- **Action/navigation timeout**: 2 seconds max (clicks, fills, page.goto)
+- **Expect timeout**: 2 seconds max for assertions
+- **Reuse existing server**: If Storybook already running locally, tests will use it instead of starting new instance
+
+**Usage**:
+```bash
+npm run test:e2e        # Just run tests - Storybook auto-managed
+npm run test:e2e:headed # Run with visible browser
+npm run test:e2e:debug  # Debug mode with Playwright Inspector
+```
+
+**No manual Storybook management required** - the test runner handles lifecycle automatically.
 
 ## Event System
 

@@ -1,77 +1,191 @@
 /**
  * Analysis Table Parser
  *
- * Parses DITA analysis tables with qd-analysis class and identifies
- * editable cells (those with 'interactive' class).
+ * Parses analysis tables and generates stable identifiers for table and cells.
  *
- * Per contract specifications:
- * - Cells WITH 'interactive' class = editable
- * - Cells WITHOUT 'interactive' class = read-only
- * - Cell keys format: R{row}C{col}#f:{hash}
- * - Table ID: 16-char hash of table structure
+ * Key concepts:
+ * - TableId: 16-char hash based on table structure (rows × cols + className)
+ * - CellKey: Format "R{row}C{col}#f:{hash}" where hash is 8-char from normalized content
+ * - Editable cells: Cells WITH 'interactive' class
+ * - Read-only cells: Cells WITHOUT 'interactive' class
+ *
+ * Author constraints:
+ * - Add class="interactive" to cells that should be editable in interactive mode
+ * - Cells without this class will always be read-only
+ *
+ * @example
+ * ```typescript
+ * const table = document.querySelector('table.qd-analysis');
+ * if (table instanceof HTMLTableElement) {
+ *   const parsed = parseAnalysisTable(table);
+ *   console.log(`Table ID: ${parsed.tableId}`);
+ *   console.log(`Editable cells: ${parsed.editableCells.length}`);
+ * }
+ * ```
  */
 
-import type { ParsedAnalysisTable, CellKey, TableId } from '../types/contracts';
-import { CSS_CLASSES, LIMITS } from '../types/contracts';
+import type { ParsedAnalysisTable, TableId, CellKey } from '../types/contracts.js';
+import { getTableRows, getRowCells, getTextContent } from '../utils/dom-helpers.js';
 
 /**
- * Parse an analysis table and identify editable cells
+ * Generate a hash from a string using a simple but stable hash algorithm
  *
- * @param table - HTML table element to parse
- * @returns Parsed table data or null if invalid
+ * Uses a modified DJB2 hash algorithm for simplicity and stability.
+ * Not cryptographically secure, but suitable for generating stable identifiers.
+ *
+ * @param input - String to hash
+ * @param length - Desired hash length (default: 16)
+ * @returns Hex-encoded hash of specified length
  */
-export function parseAnalysisTable(
-  table: HTMLTableElement | null | undefined,
-): ParsedAnalysisTable | null {
-  // Validate input - use duck typing for JSDOM compatibility
-  if (!table || table.tagName !== 'TABLE') {
-    return null;
+function hashString(input: string, length = 16): string {
+  let hash = 5381;
+
+  for (let i = 0; i < input.length; i++) {
+    const char = input.charCodeAt(i);
+    hash = (hash << 5) + hash + char; // hash * 33 + char
+    hash = hash & hash; // Convert to 32-bit integer
   }
 
-  // Check for qd-analysis class
-  if (!table.classList?.contains(CSS_CLASSES.ANALYSIS_TABLE)) {
-    return null;
-  }
+  // Convert to positive hex string
+  const hexHash = Math.abs(hash).toString(16).padStart(8, '0');
 
+  // Repeat and truncate to desired length
+  const repeatedHash = hexHash.repeat(Math.ceil(length / hexHash.length));
+  return repeatedHash.substring(0, length);
+}
+
+/**
+ * Generate stable table ID based on structure
+ *
+ * Format: 16-character hash from "{rows}x{cols}:{className}"
+ *
+ * @param table - Analysis table element
+ * @returns Stable table identifier
+ *
+ * @example
+ * ```typescript
+ * const table = document.querySelector('table.qd-analysis');
+ * if (table instanceof HTMLTableElement) {
+ *   const tableId = generateTableId(table);
+ *   console.log(tableId); // "8e2b4a1c9f3d7b6e"
+ * }
+ * ```
+ */
+export function generateTableId(table: HTMLTableElement): TableId {
+  const rows = getTableRows(table);
+  const firstRow = rows[0];
+  const cols = firstRow ? getRowCells(firstRow).length : 0;
+  const className = table.className || 'qd-analysis';
+
+  // Create structure signature: "3x4:qd-analysis"
+  const signature = `${rows.length}x${cols}:${className}`;
+
+  return hashString(signature, 16);
+}
+
+/**
+ * Generate stable cell key
+ *
+ * Format: "R{row}C{col}#f:{hash}"
+ * - Row and column are 0-indexed
+ * - Hash is 8-char from normalized cell content (whitespace collapsed)
+ *
+ * @param row - Row index (0-based)
+ * @param col - Column index (0-based)
+ * @param content - Cell content
+ * @returns Stable cell key
+ *
+ * @example
+ * ```typescript
+ * const key = generateCellKey(2, 4, 'Sample content');
+ * console.log(key); // "R2C4#f:abc123de"
+ * ```
+ */
+export function generateCellKey(row: number, col: number, content: string): CellKey {
+  // Normalize content: collapse whitespace, trim
+  const normalized = content.replace(/\s+/g, ' ').trim();
+
+  // Generate 8-char hash from normalized content
+  const contentHash = hashString(normalized, 8);
+
+  return `R${row}C${col}#f:${contentHash}`;
+}
+
+/**
+ * Check if a cell is editable
+ *
+ * A cell is editable if it HAS the 'interactive' class.
+ * Cells without this class are considered read-only (headers or pre-filled content).
+ *
+ * Author constraint: Add class="interactive" to cells that should be editable.
+ *
+ * @param cell - Table cell element
+ * @returns true if cell has 'interactive' class, false otherwise
+ *
+ * @example
+ * ```typescript
+ * const cell = row.cells[0];
+ * if (isCellEditable(cell)) {
+ *   // Cell has class="interactive", make it editable
+ * } else {
+ *   // Cell is read-only
+ * }
+ * ```
+ */
+export function isCellEditable(cell: HTMLTableCellElement): boolean {
+  // Check for 'interactive' class
+  return cell.classList.contains('interactive');
+}
+
+/**
+ * Parse an analysis table
+ *
+ * Extracts table structure, generates stable identifiers, and identifies editable cells.
+ *
+ * @param table - Analysis table element
+ * @returns Parsed analysis table data
+ *
+ * @example
+ * ```typescript
+ * const table = document.querySelector('table.qd-analysis');
+ * if (table instanceof HTMLTableElement) {
+ *   const parsed = parseAnalysisTable(table);
+ *
+ *   if (parsed.errors && parsed.errors.length > 0) {
+ *     console.error('Validation errors:', parsed.errors);
+ *   }
+ *
+ *   console.log(`Table ID: ${parsed.tableId}`);
+ *   console.log(`Editable cells: ${parsed.editableCells.length}`);
+ * }
+ * ```
+ */
+export function parseAnalysisTable(table: HTMLTableElement): ParsedAnalysisTable {
   const errors: string[] = [];
-  const editableCells: Array<{
-    row: number;
-    col: number;
-    key: CellKey;
-  }> = [];
 
-  // Get all rows (handle both tbody and direct children)
-  const rows = Array.from(table.querySelectorAll('tbody tr'));
-  if (rows.length === 0) {
-    // Fallback to direct tr children if no tbody
-    const directRows = Array.from(table.querySelectorAll('tr'));
-    // Filter out thead rows
-    const theadRows = Array.from(table.querySelectorAll('thead tr'));
-    rows.push(...directRows.filter((row) => !theadRows.includes(row)));
+  // Validate table structure
+  if (!table.querySelector('tbody')) {
+    errors.push('Analysis table must have a tbody element');
   }
 
-  // Check if table has any cells
-  let totalCells = 0;
+  const rows = getTableRows(table);
+  if (rows.length === 0) {
+    errors.push('Analysis table must have at least one row');
+  }
 
-  // Parse each row
+  // Generate table ID
+  const tableId = generateTableId(table);
+
+  // Identify editable cells
+  const editableCells: ParsedAnalysisTable['editableCells'] = [];
+
   rows.forEach((row, rowIndex) => {
-    const cells = Array.from(row.querySelectorAll('td'));
-    totalCells += cells.length;
+    const cells = getRowCells(row);
 
     cells.forEach((cell, colIndex) => {
-      // Check if cell is editable (no background-color)
-      if (isEditableCell(cell)) {
-        const content = cell.textContent?.trim() || '';
-
-        // Validate content length
-        if (content.length > LIMITS.MAX_CELL_CONTENT_LENGTH) {
-          errors.push(
-            `Cell at R${rowIndex}C${colIndex} exceeds maximum length of ${LIMITS.MAX_CELL_CONTENT_LENGTH} characters`,
-          );
-        }
-
-        // Generate cell key
-        const key = getCellKey(rowIndex, colIndex, content);
+      if (isCellEditable(cell)) {
+        const content = getTextContent(cell);
+        const key = generateCellKey(rowIndex, colIndex, content);
 
         editableCells.push({
           row: rowIndex,
@@ -82,115 +196,10 @@ export function parseAnalysisTable(
     });
   });
 
-  // Validate table has cells
-  if (totalCells === 0) {
-    errors.push('Table has no cells');
-  }
-
-  // Generate table ID from structure
-  const tableId = generateTableId(table);
-
   return {
     element: table,
     tableId,
     editableCells,
-    ...(errors.length > 0 && { errors }),
+    errors: errors.length > 0 ? errors : undefined,
   };
-}
-
-/**
- * Check if a cell is editable (has 'interactive' class)
- *
- * @param cell - Table cell element
- * @returns True if cell is editable
- */
-function isEditableCell(cell: HTMLTableCellElement): boolean {
-  return cell.classList.contains('interactive');
-}
-
-/**
- * Generate cell key in format: R{row}C{col}#f:{hash}
- *
- * @param row - Row index
- * @param col - Column index
- * @param content - Cell content for hashing
- * @returns Cell key string
- */
-export function getCellKey(row: number, col: number, content: string): CellKey {
-  const hash = hashContent(content);
-  return `R${row}C${col}#f:${hash}`;
-}
-
-/**
- * Generate 8-character hash from content
- *
- * Uses SHA-256 and takes first 8 characters.
- * Normalizes whitespace before hashing for consistency.
- *
- * @param content - Content to hash
- * @returns 8-character hex hash
- */
-export function hashContent(content: string): string {
-  // Normalize whitespace: collapse multiple spaces to single space
-  const normalized = content.trim().replace(/\s+/g, ' ');
-
-  // Simple hash implementation using crypto API if available
-  // For browser compatibility, we use a basic hash function
-  const hash = simpleHash(normalized);
-
-  return hash;
-}
-
-/**
- * Simple hash function for content
- * Returns 8-character hex string
- *
- * @param str - String to hash
- * @returns 8-character hex hash
- */
-function simpleHash(str: string): string {
-  let hash = 0;
-
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-
-  // Convert to positive number and then to hex
-  const positiveHash = Math.abs(hash);
-  let hex = positiveHash.toString(16);
-
-  // Pad or truncate to 8 characters
-  if (hex.length < 8) {
-    hex = hex.padStart(8, '0');
-  } else if (hex.length > 8) {
-    hex = hex.substring(0, 8);
-  }
-
-  return hex;
-}
-
-/**
- * Generate table ID from table structure
- *
- * Creates a 16-character hash based on table dimensions and structure
- *
- * @param table - Table element
- * @returns 16-character table ID
- */
-function generateTableId(table: HTMLTableElement): TableId {
-  // Generate identifier from table structure
-  const rows = table.querySelectorAll('tbody tr').length || table.querySelectorAll('tr').length;
-  const firstRow = table.querySelector('tr');
-  const cols = firstRow ? firstRow.querySelectorAll('td, th').length : 0;
-
-  // Create structure signature
-  const structure = `${rows}x${cols}:${table.className}`;
-
-  // Hash the structure twice to get 16 characters
-  const hash1 = simpleHash(structure);
-  const hash2 = simpleHash(structure + hash1);
-
-  return hash1 + hash2.substring(0, 8);
 }
