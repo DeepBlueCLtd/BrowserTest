@@ -84,20 +84,21 @@ export class QdInstructorManage extends LitElement {
 
   override render() {
     return html`
-      <div class="manage-container">
-        <h4>Data Management</h4>
-        <p>
-          Clear all student quiz data and progress. This action cannot be undone.
-        </p>
+      <button
+        @click=${this.handleClearRequest}
+        class="danger compact"
+        title="Clear all student quiz data and progress"
+      >
+        Erase All Data
+      </button>
 
-        ${this.success ? html`<div class="success">${this.success}</div>` : ''}
+      ${this.showConfirmDialog ? this.renderConfirmDialog() : ''}
 
-        <button @click=${this.handleClearRequest} class="danger">
-          🗑️ Erase All Data
-        </button>
-
-        ${this.showConfirmDialog ? this.renderConfirmDialog() : ''}
-      </div>
+      ${this.success ? html`
+        <div style="position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 12px 16px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+          ${this.success}
+        </div>
+      ` : ''}
     `;
   }
 

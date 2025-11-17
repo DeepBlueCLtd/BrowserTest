@@ -10,10 +10,17 @@ import { css } from 'lit';
  */
 export const sharedStyles = css`
   :host {
-    display: block;
+    display: inline-block;
     font-family: system-ui, -apple-system, sans-serif;
     font-size: 14px;
     line-height: 1.5;
+  }
+
+  .instructor-panel {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
   }
 
   button {
@@ -40,6 +47,11 @@ export const sharedStyles = css`
     cursor: not-allowed;
   }
 
+  button.compact {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
   button.primary {
     background: #007bff;
     color: white;
@@ -60,6 +72,17 @@ export const sharedStyles = css`
   button.danger:hover {
     background: #c82333;
     border-color: #c82333;
+  }
+
+  button.logout {
+    background: #6c757d;
+    color: white;
+    border-color: #6c757d;
+  }
+
+  button.logout:hover {
+    background: #5a6268;
+    border-color: #5a6268;
   }
 
   input,

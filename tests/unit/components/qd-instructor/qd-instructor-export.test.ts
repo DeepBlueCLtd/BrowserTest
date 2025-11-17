@@ -117,13 +117,13 @@ describe('qd-instructor-export', () => {
     });
   });
 
-  describe('student count display', () => {
-    it('should show "No data" when empty', () => {
-      const text = element.shadowRoot?.textContent;
-      expect(text).toContain('No data');
+  describe('tooltip', () => {
+    it('should show "No data to export" tooltip when empty', () => {
+      const button = element.shadowRoot?.querySelector('button');
+      expect(button?.getAttribute('title')).toBe('No data to export');
     });
 
-    it('should show student count when data present', async () => {
+    it('should show student count in tooltip when data present', async () => {
       element.students = [
         {
           schema: 1,
@@ -150,8 +150,8 @@ describe('qd-instructor-export', () => {
       ];
       await element.updateComplete;
 
-      const text = element.shadowRoot?.textContent;
-      expect(text).toContain('2 students');
+      const button = element.shadowRoot?.querySelector('button');
+      expect(button?.getAttribute('title')).toBe('Export 2 students to CSV');
     });
   });
 });

@@ -88,23 +88,19 @@ export class QdInstructorExport extends LitElement {
 
   override render() {
     const hasData = this.students.length > 0;
+    const tooltip = hasData
+      ? `Export ${this.students.length} student${this.students.length === 1 ? '' : 's'} to CSV`
+      : 'No data to export';
 
     return html`
-      <div class="export-container">
-        <h4>Export Data</h4>
-        <p>
-          Download all student answers and scores as CSV.
-          ${hasData ? `(${this.students.length} students)` : '(No data)'}
-        </p>
-
-        <button
-          @click=${this.handleExport}
-          ?disabled=${!hasData}
-          class="primary"
-        >
-          📥 Export to CSV
-        </button>
-      </div>
+      <button
+        @click=${this.handleExport}
+        ?disabled=${!hasData}
+        class="primary compact"
+        title=${tooltip}
+      >
+        Export CSV
+      </button>
     `;
   }
 }

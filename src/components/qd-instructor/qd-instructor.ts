@@ -84,6 +84,14 @@ export class QdInstructor extends LitElement {
     this.students = [];
   };
 
+  private handleLogout = (): void => {
+    this.lock();
+    this.dispatchEvent(new CustomEvent('qd:logout', {
+      bubbles: true,
+      composed: true,
+    }));
+  };
+
   override render() {
     if (!this.unlocked) {
       return html`
@@ -95,13 +103,9 @@ export class QdInstructor extends LitElement {
 
     return html`
       <div class="instructor-panel">
-        <h3>Instructor Controls</h3>
-
-        <div style="margin: 16px 0;">
-          <button @click=${this.handleViewScores} class="primary">
-            📊 View All Scores
-          </button>
-        </div>
+        <button @click=${this.handleViewScores} class="primary compact">
+          View Scores
+        </button>
 
         <qd-instructor-export
           .students=${this.students}
@@ -110,6 +114,10 @@ export class QdInstructor extends LitElement {
         <qd-instructor-manage
           @qd:data-cleared=${this.handleDataCleared}
         ></qd-instructor-manage>
+
+        <button @click=${this.handleLogout} class="logout">
+          Logout
+        </button>
 
         <qd-instructor-scores
           .students=${this.students}

@@ -667,20 +667,20 @@ npm run storybook
 
 ---
 
-### Goal 2.6: Instructor Component (Decomposed)
+### Goal 2.6: Instructor Component (Decomposed) ✅ COMPLETE
 **Description:** Decompose 1,228-line component into 5 sub-components.
 
 **Location:** `src/components/qd-instructor/`
 
 **Tasks:**
-- [ ] `qd-instructor.ts` - Orchestrator (100-150 lines)
-- [ ] `qd-instructor-unlock.ts` - Password UI with RateLimiter (150-200 lines)
-- [ ] `qd-instructor-scores.ts` - Scores table view (200-250 lines)
-- [ ] `qd-instructor-export.ts` - CSV export controls (150-200 lines)
-- [ ] `qd-instructor-manage.ts` - Data management (200-250 lines)
-- [ ] `shared-styles.ts` - CSS-in-JS shared across sub-components
-- [ ] Write unit tests for each sub-component
-- [ ] Create Storybook stories for each
+- [x] `qd-instructor.ts` - Orchestrator (100-150 lines)
+- [x] `qd-instructor-unlock.ts` - Password UI with RateLimiter (150-200 lines)
+- [x] `qd-instructor-scores.ts` - Scores table view (200-250 lines)
+- [x] `qd-instructor-export.ts` - CSV export controls (150-200 lines)
+- [x] `qd-instructor-manage.ts` - Data management (200-250 lines)
+- [x] `shared-styles.ts` - CSS-in-JS shared across sub-components
+- [x] Write unit tests for each sub-component (60 tests, all passing)
+- [x] Create Storybook stories for each
 
 **Acceptance Criteria:**
 - ✅ Each sub-component <250 lines
