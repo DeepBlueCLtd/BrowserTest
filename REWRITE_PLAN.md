@@ -668,29 +668,33 @@ npm run storybook
 ---
 
 ### Goal 2.6: Instructor Component (Decomposed) ✅ COMPLETE
-**Description:** Decompose 1,228-line component into 5 sub-components.
+**Description:** Decompose 1,228-line component into 5 sub-components with horizontal UI layout.
 
 **Location:** `src/components/qd-instructor/`
 
 **Tasks:**
-- [x] `qd-instructor.ts` - Orchestrator (100-150 lines)
-- [x] `qd-instructor-unlock.ts` - Password UI with RateLimiter (150-200 lines)
-- [x] `qd-instructor-scores.ts` - Scores table view (200-250 lines)
-- [x] `qd-instructor-export.ts` - CSV export controls (150-200 lines)
-- [x] `qd-instructor-manage.ts` - Data management (200-250 lines)
-- [x] `shared-styles.ts` - CSS-in-JS shared across sub-components
+- [x] `qd-instructor.ts` - Orchestrator (128 lines) - Horizontal flexbox layout
+- [x] `qd-instructor-unlock.ts` - Password UI with RateLimiter (156 lines)
+- [x] `qd-instructor-scores.ts` - Scores table view (194 lines) - Expandable modal
+- [x] `qd-instructor-export.ts` - CSV export controls (116 lines) - Compact button with tooltip
+- [x] `qd-instructor-manage.ts` - Data management (160 lines) - Compact button with toast
+- [x] `shared-styles.ts` - CSS-in-JS shared across sub-components (171 lines)
 - [x] Write unit tests for each sub-component (60 tests, all passing)
-- [x] Create Storybook stories for each
+- [x] Create Storybook stories with password guidance (3 stories: Locked, Unlocked, UnlockedNoData)
+- [x] Horizontal UI redesign: View Scores | Export CSV | Erase All Data | Logout
+- [x] Password documentation: DOM element `id="instructor.password.hash"` (NOT env vars)
 
 **Acceptance Criteria:**
-- ✅ Each sub-component <250 lines
+- ✅ Each sub-component <250 lines (largest: 194 lines)
 - ✅ Orchestrator delegates to sub-components
-- ✅ Unlock component uses RateLimiter
-- ✅ Scores component uses comparison-table-builder
-- ✅ Export component generates CSV
-- ✅ Manage component clears/backs up data
-- ✅ All tests pass
-- ✅ All Storybook stories work
+- ✅ Unlock component uses RateLimiter with exponential backoff (2s→4s→8s→16s→30s)
+- ✅ Scores component uses expandable table with per-page breakdown
+- ✅ Export component generates RFC 4180 CSV with tooltips
+- ✅ Manage component clears data with confirmation modal + toast notification
+- ✅ All tests pass (60/60)
+- ✅ All Storybook stories work with test password "instructor123"
+- ✅ Horizontal layout: single row, compact buttons, no icons
+- ✅ Password hash from DOM (Oxygen XSL injection pattern documented)
 
 **Testing:**
 ```bash
@@ -699,15 +703,23 @@ npm run storybook
 ```
 
 **Unit Tests Required:**
-- Orchestrator renders unlock when locked
-- Orchestrator renders sub-components when unlocked
-- Unlock enforces rate limiting on failures
-- Scores table displays all students
-- Export generates valid CSV
-- Manage clears all data on confirmation
+- ✅ Orchestrator renders unlock when locked
+- ✅ Orchestrator renders sub-components when unlocked
+- ✅ Unlock enforces rate limiting on failures
+- ✅ Scores table displays all students with expandable per-page breakdown
+- ✅ Export generates valid CSV with proper escaping
+- ✅ Manage clears all data on confirmation with exact text match
+
+**Key Features Delivered:**
+- **Horizontal Layout:** Flexbox row with 8px gap, inline-block components
+- **Compact Buttons:** 6px/12px padding, 13px font, no icons
+- **Tooltips:** Context-aware (student counts, warnings)
+- **Toast Notifications:** Success messages for data operations
+- **Password Security:** DOM-based hash storage (Oxygen XSL), rate limiting, constant-time comparison
+- **Total Lines:** 925 lines across 6 files (24% reduction from 1,228-line monolith)
 
 **Dependencies:** Goal 1.2, 1.5, 1.6 complete
-**Time:** 4 hours
+**Time:** 4 hours (actual)
 
 ---
 
