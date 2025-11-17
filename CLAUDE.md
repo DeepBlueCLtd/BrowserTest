@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 BrowserTest (internally "Sonar Quiz System") is an offline-first interactive quiz and analysis platform that progressively enhances DITA-published HTML training materials. The system operates entirely from `file://` URLs with no network dependencies, targeting air-gapped training environments.
 
-**Current Phase**: Phase 0 - Bootstrap + Contracts (toolchain and frozen interfaces)
+**Current Phase**: Phase 1 Complete (Foundation Layer) → Starting Phase 2 (Components & Integration)
 
 ## Core Architecture
 
@@ -36,6 +36,59 @@ User Input → DOM Handler → Service Layer → Storage Adapter
 2. **Service Layer** (`src/services/`): Business logic, state management, event coordination
 3. **Component Layer** (`src/components/`): Lit 3 Web Components with Shadow DOM
 4. **Storage Layer** (`src/services/storage/`): IndexedDB adapter with atomic transactions
+
+### Component Architecture
+
+#### **Login Component** (`<qd-login>`)
+Unified login form with two modes (selected via radio buttons):
+- **Student Mode**: Fields for serviceId and name
+- **Instructor Mode**: Single password field
+- Integrates with SessionService and instructor password verification
+- Emits `qd:login` event on successful authentication
+
+#### **Status Panels** (Conditional Rendering)
+After successful login, ONE of these panels is displayed:
+
+**Student Status Panel** (`<qd-student-status>`):
+- Quiz progress display (R/A/G badges, answered/correct counts, percentage)
+- Logout button
+- Updates in real-time via session cache
+
+**Instructor Status Panel** (`<qd-instructor-status>`):
+Consolidated control center with:
+- **Toggle**: Show/hide student answers on current page
+  - For quiz tables: Inserts `<div>` after each question's input control
+  - Shows list of students (name + last 4 digits of serviceId)
+  - Each student entry shows: answer + shortened timestamp
+  - Red/green color coding for incorrect/correct answers
+  - For analysis tables: Shows student entries in comparison format
+- **Button**: "View All Scores" → Opens `<qd-scores-modal>`
+- **Button**: "Export to CSV" → Downloads detailed answer data
+- **Button**: "Erase All Data" → Clears all storage (with confirmation dialog)
+- **Button**: "Logout"
+
+#### **Scores Modal** (`<qd-scores-modal>`)
+Modal overlay (Esc to close) showing:
+- Student list with totals (attempted, correct, percentage)
+- Per-student expandable breakdown showing per-page answers
+- Close button
+
+#### **Table Enhancement**
+**Quiz Tables** (`qd-quiz` class):
+- Render MCQ radio buttons or numeric input fields
+- Submit answers, validate against correct answer
+- Save to IndexedDB via storage adapter
+- If instructor mode active: Show student answers after each question
+
+**Analysis Tables** (`qd-analysis` class):
+- Make non-colored cells editable (contenteditable)
+- Auto-save to IndexedDB on blur
+- If instructor mode active: Show student entries
+
+#### **Home Page Badges**
+- R/A/G badges injected into navigation links (class `quizPageBtn`)
+- Real-time updates from session cache
+- Listen to `qd:answer-saved` events for immediate refresh
 
 ### Storage Monitor (Development Tool)
 The `<qd-storage-monitor>` component provides real-time inspection of browser storage during development:
