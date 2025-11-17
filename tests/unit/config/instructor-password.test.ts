@@ -10,8 +10,7 @@ import {
 
 describe('getInstructorPasswordHash', () => {
   const ELEMENT_ID = 'instructor.password.hash';
-  const VALID_HASH =
-    '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
+  const VALID_HASH = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
 
   beforeEach(() => {
     // Clean up any existing elements
@@ -64,9 +63,7 @@ describe('getInstructorPasswordHash', () => {
   });
 
   it('should throw error when element not found', () => {
-    expect(() => getInstructorPasswordHash()).toThrow(
-      /Instructor password hash not found/
-    );
+    expect(() => getInstructorPasswordHash()).toThrow(/Instructor password hash not found/);
   });
 
   it('should throw error when element is empty', () => {
@@ -97,8 +94,7 @@ describe('getInstructorPasswordHash', () => {
   });
 
   it('should accept mixed-case hex', () => {
-    const mixedCaseHash =
-      '5E884898da28047151d0e56f8DC6292773603d0d6aabbdd62a11ef721d1542d8';
+    const mixedCaseHash = '5E884898da28047151d0e56f8DC6292773603d0d6aabbdd62a11ef721d1542d8';
 
     const span = document.createElement('span');
     span.id = ELEMENT_ID;
@@ -112,8 +108,7 @@ describe('getInstructorPasswordHash', () => {
 
 describe('isInstructorPasswordConfigured', () => {
   const ELEMENT_ID = 'instructor.password.hash';
-  const VALID_HASH =
-    '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
+  const VALID_HASH = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
 
   beforeEach(() => {
     const existing = document.getElementById(ELEMENT_ID);

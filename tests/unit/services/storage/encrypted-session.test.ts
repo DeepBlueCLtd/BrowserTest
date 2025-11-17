@@ -249,9 +249,13 @@ describe('EncryptedSessionStorage', () => {
       expect(stored).toBeTruthy();
 
       if (stored) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const parsed = JSON.parse(stored);
+
         expect(parsed).toHaveProperty('iv');
+
         expect(parsed).toHaveProperty('ciphertext');
+
         expect(parsed).toHaveProperty('version', 1);
       }
     });
@@ -284,10 +288,7 @@ describe('EncryptedSessionStorage', () => {
 
     it('should handle missing version field', async () => {
       const key = 'no-version';
-      sessionStorage.setItem(
-        key,
-        JSON.stringify({ iv: 'abc', ciphertext: 'def' })
-      );
+      sessionStorage.setItem(key, JSON.stringify({ iv: 'abc', ciphertext: 'def' }));
 
       const retrieved = await storage.getSecure<string>(key);
       expect(retrieved).toBeNull();
@@ -295,10 +296,7 @@ describe('EncryptedSessionStorage', () => {
 
     it('should handle wrong version', async () => {
       const key = 'wrong-version';
-      sessionStorage.setItem(
-        key,
-        JSON.stringify({ iv: 'abc', ciphertext: 'def', version: 999 })
-      );
+      sessionStorage.setItem(key, JSON.stringify({ iv: 'abc', ciphertext: 'def', version: 999 }));
 
       const retrieved = await storage.getSecure<string>(key);
       expect(retrieved).toBeNull();
@@ -308,7 +306,7 @@ describe('EncryptedSessionStorage', () => {
       const key = 'invalid-base64';
       sessionStorage.setItem(
         key,
-        JSON.stringify({ iv: '!!!invalid', ciphertext: '!!!invalid', version: 1 })
+        JSON.stringify({ iv: '!!!invalid', ciphertext: '!!!invalid', version: 1 }),
       );
 
       const retrieved = await storage.getSecure<string>(key);
@@ -342,6 +340,158 @@ describe('EncryptedSessionStorage', () => {
         expect(typeof retrieved.count).toBe('number');
         expect(typeof retrieved.active).toBe('boolean');
       }
+    });
+  });
+
+  describe('Encryption control', () => {
+    it('should enable encryption by default', () => {
+      const defaultStorage = new EncryptedSessionStorage();
+      expect(defaultStorage.isEncryptionEnabled()).toBe(true);
+    });
+
+    it('should allow disabling encryption via constructor', () => {
+      const plaintextStorage = new EncryptedSessionStorage(false);
+      expect(plaintextStorage.isEncryptionEnabled()).toBe(false);
+    });
+
+    it('should store plaintext when encryption disabled', async () => {
+      const plaintextStorage = new EncryptedSessionStorage(false);
+      const key = 'plaintext-test';
+      const value = { data: 'visible data' };
+
+      await plaintextStorage.setSecure(key, value);
+
+      // Retrieve directly from sessionStorage
+      const stored = sessionStorage.getItem(key);
+      expect(stored).toBeTruthy();
+
+      if (stored) {
+        // Should be plain JSON, not encrypted
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const parsed = JSON.parse(stored);
+        expect(parsed).toEqual(value);
+
+        expect(parsed).not.toHaveProperty('iv');
+
+        expect(parsed).not.toHaveProperty('ciphertext');
+      }
+    });
+
+    it('should retrieve plaintext when encryption disabled', async () => {
+      const plaintextStorage = new EncryptedSessionStorage(false);
+      const key = 'plaintext-retrieve';
+      const value = 'test data';
+
+      await plaintextStorage.setSecure(key, value);
+      const retrieved = await plaintextStorage.getSecure<string>(key);
+
+      expect(retrieved).toBe(value);
+    });
+
+    it('should allow enabling encryption at runtime', () => {
+      const dynamicStorage = new EncryptedSessionStorage(false);
+      expect(dynamicStorage.isEncryptionEnabled()).toBe(false);
+
+      dynamicStorage.setEncryption(true);
+      expect(dynamicStorage.isEncryptionEnabled()).toBe(true);
+    });
+
+    it('should allow disabling encryption at runtime', () => {
+      const dynamicStorage = new EncryptedSessionStorage(true);
+      expect(dynamicStorage.isEncryptionEnabled()).toBe(true);
+
+      dynamicStorage.setEncryption(false);
+      expect(dynamicStorage.isEncryptionEnabled()).toBe(false);
+    });
+
+    it('should store encrypted data after enabling encryption', async () => {
+      const dynamicStorage = new EncryptedSessionStorage(false);
+      const key = 'toggle-encrypted';
+      const value = 'secret data';
+
+      // Enable encryption
+      dynamicStorage.setEncryption(true);
+      await dynamicStorage.setSecure(key, value);
+
+      // Check stored data is encrypted
+      const stored = sessionStorage.getItem(key);
+      expect(stored).toBeTruthy();
+
+      if (stored) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const parsed = JSON.parse(stored);
+
+        expect(parsed).toHaveProperty('iv');
+
+        expect(parsed).toHaveProperty('ciphertext');
+
+        expect(parsed).toHaveProperty('version', 1);
+        // Should not contain plaintext
+        expect(stored).not.toContain(value);
+      }
+
+      // Verify decryption works
+      const retrieved = await dynamicStorage.getSecure<string>(key);
+      expect(retrieved).toBe(value);
+    });
+
+    it('should store plaintext after disabling encryption', async () => {
+      const dynamicStorage = new EncryptedSessionStorage(true);
+      const key = 'toggle-plaintext';
+      const value = 'visible data';
+
+      // Disable encryption
+      dynamicStorage.setEncryption(false);
+      await dynamicStorage.setSecure(key, value);
+
+      // Check stored data is plaintext
+      const stored = sessionStorage.getItem(key);
+      expect(stored).toBeTruthy();
+
+      if (stored) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const parsed = JSON.parse(stored);
+        expect(parsed).toBe(value);
+      }
+    });
+
+    it('should handle complex objects in plaintext mode', async () => {
+      const plaintextStorage = new EncryptedSessionStorage(false);
+      const key = 'complex-plaintext';
+      const value = {
+        user: { id: 'RN2344', name: 'Test User' },
+        scores: [95, 87, 92],
+        metadata: { timestamp: Date.now() },
+      };
+
+      await plaintextStorage.setSecure(key, value);
+      const retrieved = await plaintextStorage.getSecure<typeof value>(key);
+
+      expect(retrieved).toEqual(value);
+    });
+
+    it('should return encrypted structure when reading encrypted data with encryption disabled', async () => {
+      const encryptedStorage = new EncryptedSessionStorage(true);
+      const key = 'encrypted-data';
+      const value = 'secret';
+
+      // Store encrypted
+      await encryptedStorage.setSecure(key, value);
+
+      // Try to read with encryption disabled
+      const plaintextStorage = new EncryptedSessionStorage(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+      const retrieved = await plaintextStorage.getSecure<any>(key);
+
+      // Should return the encrypted object structure (not the original value)
+      expect(retrieved).toBeTruthy();
+
+      expect(retrieved).toHaveProperty('iv');
+
+      expect(retrieved).toHaveProperty('ciphertext');
+
+      expect(retrieved).toHaveProperty('version', 1);
+      expect(retrieved).not.toBe(value);
     });
   });
 });

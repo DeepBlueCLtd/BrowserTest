@@ -33,7 +33,7 @@ export function emitCustomEvent<K extends keyof QuizEvents>(
     bubbles?: boolean;
     composed?: boolean;
     cancelable?: boolean;
-  }
+  },
 ): boolean {
   const event = new CustomEvent(name, {
     detail,
@@ -66,7 +66,7 @@ export function emitCustomEvent<K extends keyof QuizEvents>(
 export function addEventListener<K extends keyof QuizEvents>(
   name: K,
   handler: (event: CustomEvent<QuizEvents[K]['detail']>) => void,
-  options?: AddEventListenerOptions
+  options?: AddEventListenerOptions,
 ): () => void {
   const listener = handler as EventListener;
   document.addEventListener(name, listener, options);
@@ -98,7 +98,7 @@ export function addEventListener<K extends keyof QuizEvents>(
 export function removeEventListener<K extends keyof QuizEvents>(
   name: K,
   handler: (event: CustomEvent<QuizEvents[K]['detail']>) => void,
-  options?: EventListenerOptions
+  options?: EventListenerOptions,
 ): void {
   const listener = handler as EventListener;
   document.removeEventListener(name, listener, options);
@@ -120,7 +120,7 @@ export function removeEventListener<K extends keyof QuizEvents>(
  */
 export function addEventListenerOnce<K extends keyof QuizEvents>(
   name: K,
-  handler: (event: CustomEvent<QuizEvents[K]['detail']>) => void
+  handler: (event: CustomEvent<QuizEvents[K]['detail']>) => void,
 ): void {
   const listener = handler as EventListener;
   document.addEventListener(name, listener, { once: true });
@@ -144,7 +144,7 @@ export function addEventListenerOnce<K extends keyof QuizEvents>(
  */
 export function waitForEvent<K extends keyof QuizEvents>(
   name: K,
-  timeout?: number
+  timeout?: number,
 ): Promise<QuizEvents[K]['detail']> {
   return new Promise((resolve, reject) => {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -192,7 +192,7 @@ export function dispatchEventOn<T>(
     bubbles?: boolean;
     composed?: boolean;
     cancelable?: boolean;
-  }
+  },
 ): boolean {
   const event = new CustomEvent(name, {
     detail,

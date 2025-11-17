@@ -3,11 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  RateLimiter,
-  constantTimeCompare,
-  hashPassword,
-} from '../../../src/utils/security.js';
+import { RateLimiter, constantTimeCompare, hashPassword } from '../../../src/utils/security.js';
 
 describe('RateLimiter', () => {
   let limiter: RateLimiter;
@@ -17,8 +13,8 @@ describe('RateLimiter', () => {
     vi.useFakeTimers();
   });
 
-  it('should allow first attempt', async () => {
-    const result = await limiter.attempt();
+  it('should allow first attempt', () => {
+    const result = limiter.attempt();
     expect(result).toBe(true);
   });
 
@@ -27,11 +23,11 @@ describe('RateLimiter', () => {
     expect(limiter.getRemainingSeconds()).toBe(0);
   });
 
-  it('should lock out after first failure (2s delay)', async () => {
+  it('should lock out after first failure (2s delay)', () => {
     limiter.recordFailure();
 
     expect(limiter.isLockedOut()).toBe(true);
-    expect(await limiter.attempt()).toBe(false);
+    expect(limiter.attempt()).toBe(false);
     expect(limiter.getRemainingSeconds()).toBe(2);
   });
 
@@ -57,15 +53,15 @@ describe('RateLimiter', () => {
     expect(limiter.getRemainingSeconds()).toBeLessThanOrEqual(30);
   });
 
-  it('should allow attempt after lockout expires', async () => {
+  it('should allow attempt after lockout expires', () => {
     limiter.recordFailure(); // 2s lockout
 
-    expect(await limiter.attempt()).toBe(false);
+    expect(limiter.attempt()).toBe(false);
 
     // Fast-forward 2 seconds
     vi.advanceTimersByTime(2000);
 
-    expect(await limiter.attempt()).toBe(true);
+    expect(limiter.attempt()).toBe(true);
   });
 
   it('should reset failure count on reset()', () => {
@@ -122,12 +118,9 @@ describe('constantTimeCompare', () => {
   });
 
   it('should handle long strings (password hashes)', async () => {
-    const hash1 =
-      '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
-    const hash2 =
-      '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
-    const hash3 =
-      '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d9'; // Different last char
+    const hash1 = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
+    const hash2 = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
+    const hash3 = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d9'; // Different last char
 
     expect(await constantTimeCompare(hash1, hash2)).toBe(true);
     expect(await constantTimeCompare(hash1, hash3)).toBe(false);
@@ -171,9 +164,7 @@ describe('constantTimeCompare', () => {
 describe('hashPassword', () => {
   it('should hash password to SHA-256', async () => {
     const hash = await hashPassword('password');
-    expect(hash).toBe(
-      '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8'
-    );
+    expect(hash).toBe('5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8');
   });
 
   it('should produce consistent hashes', async () => {
@@ -190,9 +181,7 @@ describe('hashPassword', () => {
 
   it('should handle empty string', async () => {
     const hash = await hashPassword('');
-    expect(hash).toBe(
-      'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
-    );
+    expect(hash).toBe('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
   });
 
   it('should produce 64-character hex string', async () => {

@@ -177,7 +177,7 @@ describe('Logger - Output', () => {
         '[DEBUG] User data',
         expect.objectContaining({
           serviceId: 'RN****',
-        })
+        }),
       );
     });
   });
@@ -196,8 +196,9 @@ describe('Logger - Output', () => {
       expect(consoleLogSpy).toHaveBeenCalledWith(
         '[INFO] Data',
         expect.not.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           passwordHash: expect.anything(),
-        })
+        }),
       );
     });
   });
@@ -216,7 +217,7 @@ describe('Logger - Output', () => {
         '[WARN] Warning',
         expect.objectContaining({
           serviceId: 'RN****',
-        })
+        }),
       );
     });
   });
@@ -236,7 +237,7 @@ describe('Logger - Output', () => {
         expect.objectContaining({
           name: 'Error',
           message: 'Test error',
-        })
+        }),
       );
     });
 
@@ -248,8 +249,9 @@ describe('Logger - Output', () => {
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         '[ERROR] An error occurred',
         expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           stack: expect.any(String),
-        })
+        }),
       );
     });
 
@@ -270,7 +272,7 @@ describe('Logger - Output', () => {
         '[ERROR] Error with data',
         expect.objectContaining({
           serviceId: 'RN****',
-        })
+        }),
       );
     });
   });

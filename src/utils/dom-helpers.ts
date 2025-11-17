@@ -108,7 +108,7 @@ export function setTextContent(element: Element, text: string): void {
 export function createElement<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   text?: string,
-  className?: string
+  className?: string,
 ): HTMLElementTagNameMap[K] {
   const element = document.createElement(tag);
 
@@ -138,10 +138,7 @@ export function createElement<K extends keyof HTMLElementTagNameMap>(
  * ]);
  * ```
  */
-export function appendChildren(
-  parent: Element,
-  children: Element[]
-): void {
+export function appendChildren(parent: Element, children: Element[]): void {
   for (const child of children) {
     parent.appendChild(child);
   }
@@ -164,7 +161,7 @@ export function appendChildren(
  */
 export function querySelector<T extends Element = Element>(
   selector: string,
-  parent: ParentNode = document
+  parent: ParentNode = document,
 ): T | null {
   return parent.querySelector<T>(selector);
 }
@@ -184,7 +181,7 @@ export function querySelector<T extends Element = Element>(
  */
 export function querySelectorAll<T extends Element = Element>(
   selector: string,
-  parent: ParentNode = document
+  parent: ParentNode = document,
 ): T[] {
   return Array.from(parent.querySelectorAll<T>(selector));
 }
@@ -203,9 +200,7 @@ export function querySelectorAll<T extends Element = Element>(
  * }
  * ```
  */
-export function getElementById<T extends HTMLElement = HTMLElement>(
-  id: string
-): T | null {
+export function getElementById<T extends HTMLElement = HTMLElement>(id: string): T | null {
   const element = document.getElementById(id);
   return element as T | null;
 }
@@ -246,10 +241,7 @@ export function removeAllChildren(element: Element): void {
  * }
  * ```
  */
-export function replaceChildren(
-  element: Element,
-  children: Element[]
-): void {
+export function replaceChildren(element: Element, children: Element[]): void {
   removeAllChildren(element);
   appendChildren(element, children);
 }

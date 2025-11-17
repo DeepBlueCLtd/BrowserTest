@@ -42,10 +42,31 @@ const ENCRYPTION_VERSION = 1;
  *
  * Singleton class that manages encryption/decryption of session data.
  * Creates a unique encryption key per browser session.
+ *
+ * Supports disabling encryption at runtime for debugging purposes.
  */
 export class EncryptedSessionStorage {
   private encryptionKey: CryptoKey | null = null;
   private keyPromise: Promise<CryptoKey> | null = null;
+  private encryptionEnabled: boolean;
+
+  /**
+   * Create encrypted session storage instance
+   *
+   * @param enableEncryption - Enable encryption (default: true). Set to false for debugging.
+   *
+   * @example
+   * ```typescript
+   * // Production: encrypted
+   * const storage = new EncryptedSessionStorage(true);
+   *
+   * // Development: plaintext for debugging
+   * const storage = new EncryptedSessionStorage(false);
+   * ```
+   */
+  constructor(enableEncryption = true) {
+    this.encryptionEnabled = enableEncryption;
+  }
 
   /**
    * Get or create the encryption key
@@ -72,7 +93,7 @@ export class EncryptedSessionStorage {
         const key = await crypto.subtle.generateKey(
           { name: 'AES-GCM', length: 256 },
           false, // Non-extractable for security
-          ['encrypt', 'decrypt']
+          ['encrypt', 'decrypt'],
         );
 
         this.encryptionKey = key;
@@ -103,6 +124,13 @@ export class EncryptedSessionStorage {
    */
   async setSecure<T>(key: string, value: T): Promise<boolean> {
     try {
+      // If encryption disabled, use plain JSON storage (for debugging)
+      if (!this.encryptionEnabled) {
+        const json = JSON.stringify(value);
+        sessionStorage.setItem(key, json);
+        return true;
+      }
+
       // Serialize data
       const json = JSON.stringify(value);
       const encoder = new TextEncoder();
@@ -115,11 +143,7 @@ export class EncryptedSessionStorage {
       const cryptoKey = await this.getEncryptionKey();
 
       // Encrypt data
-      const ciphertext = await crypto.subtle.encrypt(
-        { name: 'AES-GCM', iv },
-        cryptoKey,
-        data
-      );
+      const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, cryptoKey, data);
 
       // Encode to base64 for storage
       const encryptedData: EncryptedData = {
@@ -155,10 +179,15 @@ export class EncryptedSessionStorage {
    */
   async getSecure<T>(key: string): Promise<T | null> {
     try {
-      // Retrieve encrypted data
+      // Retrieve data
       const stored = sessionStorage.getItem(key);
       if (!stored) {
         return null;
+      }
+
+      // If encryption disabled, parse as plain JSON (for debugging)
+      if (!this.encryptionEnabled) {
+        return JSON.parse(stored) as T;
       }
 
       // Parse encrypted data
@@ -178,11 +207,7 @@ export class EncryptedSessionStorage {
       const cryptoKey = await this.getEncryptionKey();
 
       // Decrypt data
-      const decrypted = await crypto.subtle.decrypt(
-        { name: 'AES-GCM', iv },
-        cryptoKey,
-        ciphertext
-      );
+      const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, cryptoKey, ciphertext);
 
       // Deserialize
       const decoder = new TextDecoder();
@@ -220,6 +245,38 @@ export class EncryptedSessionStorage {
   clearKey(): void {
     this.encryptionKey = null;
     this.keyPromise = null;
+  }
+
+  /**
+   * Enable or disable encryption at runtime
+   *
+   * Useful for switching between encrypted (production) and plaintext (debugging) modes.
+   * Warning: Changing this setting will not re-encrypt existing data.
+   *
+   * @param enabled - Enable encryption (true) or use plaintext (false)
+   *
+   * @example
+   * ```typescript
+   * // Disable encryption for debugging
+   * storage.setEncryption(false);
+   * await storage.setSecure('test', { data: 'visible' });
+   * // Now visible in DevTools sessionStorage inspector
+   *
+   * // Re-enable for production
+   * storage.setEncryption(true);
+   * ```
+   */
+  setEncryption(enabled: boolean): void {
+    this.encryptionEnabled = enabled;
+  }
+
+  /**
+   * Check if encryption is currently enabled
+   *
+   * @returns true if encryption is enabled
+   */
+  isEncryptionEnabled(): boolean {
+    return this.encryptionEnabled;
   }
 
   /**

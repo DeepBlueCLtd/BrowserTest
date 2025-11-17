@@ -40,9 +40,9 @@ export class RateLimiter {
   /**
    * Attempt an action (e.g., login attempt)
    *
-   * @returns Promise<true> if action is allowed, Promise<false> if rate limited
+   * @returns true if action is allowed, false if rate limited
    */
-  async attempt(): Promise<boolean> {
+  attempt(): boolean {
     if (this.lockoutUntil && Date.now() < this.lockoutUntil) {
       return false;
     }
@@ -121,10 +121,7 @@ export class RateLimiter {
  * }
  * ```
  */
-export async function constantTimeCompare(
-  a: string,
-  b: string
-): Promise<boolean> {
+export async function constantTimeCompare(a: string, b: string): Promise<boolean> {
   // Early length check (length is not secret information)
   if (a.length !== b.length) {
     return false;
@@ -147,7 +144,7 @@ export async function constantTimeCompare(
       aBuffer,
       { name: 'HMAC', hash: 'SHA-256' },
       false,
-      ['sign']
+      ['sign'],
     );
 
     // Sign second string with first as key
@@ -160,14 +157,10 @@ export async function constantTimeCompare(
       bBuffer,
       { name: 'HMAC', hash: 'SHA-256' },
       false,
-      ['sign']
+      ['sign'],
     );
 
-    const expectedSignature = await crypto.subtle.sign(
-      'HMAC',
-      expectedKey,
-      aBuffer
-    );
+    const expectedSignature = await crypto.subtle.sign('HMAC', expectedKey, aBuffer);
 
     // Compare signatures byte-by-byte
     if (signature.byteLength !== expectedSignature.byteLength) {
