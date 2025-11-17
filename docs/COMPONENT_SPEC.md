@@ -18,15 +18,12 @@ The system uses a **role-based UI** where the login component determines which i
 
 **Default View (Student Login):**
 ```
-┌─────────────────────────────────────┐
-│  Sonar Quiz System                  │
-│                                     │
-│  Service ID: [________]             │
-│  Name: [________________]           │
-│                                     │
-│  [Login]  [Instructor]              │
-└─────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────┐
+│  {title}                                                          │
+│  [Name (J Smith)] [Service ID (30012345)] [Login] [Instructor]   │
+└────────────────────────────────────────────────────────────────────┘
 ```
+*Note: {title} is configurable via init() method, defaults to "Sonar Quiz System"*
 
 **Instructor Modal (shown when "Instructor" button clicked):**
 ```
@@ -40,14 +37,15 @@ The system uses a **role-based UI** where the login component determines which i
 ```
 
 ### Properties
-- None (stateless, manages internal form state only)
+- `title: string` - Configurable title text (default: "Sonar Quiz System"), set via central `init()` method at runtime
+- Internal form state only (managed within component)
 
 ### Behavior
 
 #### Student Login (Default)
-1. **Form fields**:
-   - Service ID: 2-10 alphanumeric characters
-   - Name: Non-empty string
+1. **Form fields** (horizontal single-row layout):
+   - Name: Placeholder text "Name (J Smith)", non-empty string required
+   - Service ID: Placeholder text "Service ID (30012345)", 2-10 alphanumeric characters required
 2. **Validation**:
    - Real-time validation on blur
    - Submit button disabled until valid
@@ -84,6 +82,10 @@ The system uses a **role-based UI** where the login component determines which i
 
 ### Styling
 - **Login form**: Shadow DOM with minimal vertical footprint
+  - Horizontal flexbox/grid layout for fields and buttons
+  - All controls in single row (Name, Service ID, Login, Instructor)
+  - Responsive: stacks vertically on narrow screens (<600px)
+  - Input fields use placeholder text (no separate labels)
 - **Instructor modal**:
   - Modal overlay (semi-transparent backdrop)
   - Centered modal dialog
