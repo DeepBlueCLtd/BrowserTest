@@ -44,12 +44,7 @@ test.describe('Analysis Table - Storybook Stories', () => {
       // Verify NO cells are contenteditable
       for (let i = 0; i < cellCount; i++) {
         const cell = cells.nth(i);
-        const isEditable = await cell.evaluate((el) => {
-          if (el instanceof HTMLElement) {
-            return el.contentEditable === 'true';
-          }
-          return false;
-        });
+        const isEditable = await cell.evaluate((el) => (el as HTMLElement).contentEditable === 'true');
         expect(isEditable).toBe(false);
       }
     });
@@ -75,12 +70,7 @@ test.describe('Analysis Table - Storybook Stories', () => {
 
       for (let i = 0; i < interactiveCellCount; i++) {
         const cell = interactiveCells.nth(i);
-        const isEditable = await cell.evaluate((el) => {
-          if (el instanceof HTMLElement) {
-            return el.contentEditable === 'true';
-          }
-          return false;
-        });
+        const isEditable = await cell.evaluate((el) => (el as HTMLElement).contentEditable === 'true');
         expect(isEditable).toBe(true);
         await expect(cell).toHaveClass(/qd-editable/);
       }
@@ -96,12 +86,7 @@ test.describe('Analysis Table - Storybook Stories', () => {
         );
 
         if (!hasInteractiveClass) {
-          const isEditable = await cell.evaluate((el) => {
-            if (el instanceof HTMLElement) {
-              return el.contentEditable === 'true';
-            }
-            return false;
-          });
+          const isEditable = await cell.evaluate((el) => (el as HTMLElement).contentEditable === 'true');
           expect(isEditable).toBe(false);
         }
       }
@@ -265,12 +250,7 @@ test.describe('Analysis Table - Storybook Stories', () => {
         const hasInteractiveClass = await cell.evaluate((el) =>
           el.classList.contains('interactive'),
         );
-        const isEditable = await cell.evaluate((el) => {
-          if (el instanceof HTMLElement) {
-            return el.contentEditable === 'true';
-          }
-          return false;
-        });
+        const isEditable = await cell.evaluate((el) => (el as HTMLElement).contentEditable === 'true');
 
         if (hasInteractiveClass) {
           expect(isEditable).toBe(true);
