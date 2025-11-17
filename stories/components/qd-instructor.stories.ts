@@ -376,7 +376,7 @@ export const PasswordSecurity: Story = {
         style="background: #fff; padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.875rem;"
       >
 Plain password: "instructor"
-SHA-256 hash:   "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"
+SHA-256 hash:   "5e884898da28"
 </pre
       >
 

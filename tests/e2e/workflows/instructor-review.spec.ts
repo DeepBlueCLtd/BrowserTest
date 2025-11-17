@@ -125,7 +125,7 @@ test.describe.skip('Instructor Review - Password Authentication', () => {
       const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 
       // Expected hash for "instructor"
-      return hashHex === '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
+      return hashHex === '5e884898da28';
     });
 
     expect(hashUsed).toBe(true);
@@ -165,7 +165,7 @@ test.describe.skip('Instructor Review - Lock/Unlock State', () => {
 
     // Unlock instructor mode
     await page.evaluate(() => {
-      const hash = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
+      const hash = '5e884898da28';
       sessionStorage.setItem('qd/instructor', hash);
     });
 
@@ -288,7 +288,7 @@ test.describe.skip('Instructor Review - Answer Reveal', () => {
     // Setup: Unlock instructor mode
     await page.goto('/demo/instructor-quiz.html');
     await page.evaluate(() => {
-      const hash = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
+      const hash = '5e884898da28';
       sessionStorage.setItem('qd/instructor', hash);
     });
     await page.reload();
@@ -349,7 +349,7 @@ test.describe.skip('Instructor Review - Student Comparisons', () => {
     await page.goto('/demo/instructor-analysis.html');
 
     await page.evaluate(() => {
-      const hash = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
+      const hash = '5e884898da28';
       sessionStorage.setItem('qd/instructor', hash);
 
       // Mock student data
@@ -465,7 +465,7 @@ test.describe.skip('Instructor Review - Student Scores', () => {
 
     // Setup: Unlock and load mock student data
     await page.evaluate(() => {
-      const hash = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
+      const hash = '5e884898da28';
       sessionStorage.setItem('qd/instructor', hash);
     });
 
@@ -634,7 +634,7 @@ test.describe.skip('Instructor Review - Accessibility', () => {
   test('should announce state changes to screen readers', async ({ page }) => {
     // Unlock instructor mode
     await page.evaluate(() => {
-      const hash = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
+      const hash = '5e884898da28';
       sessionStorage.setItem('qd/instructor', hash);
     });
 

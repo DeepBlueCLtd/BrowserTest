@@ -996,7 +996,7 @@ export class QdInstructor extends LitElement {
   }
 
   /**
-   * Hash password using SHA-256
+   * Hash password using SHA-256 (first 12 characters)
    */
   private async _hashPassword(password: string): Promise<string> {
     // Use Web Crypto API for hashing
@@ -1005,7 +1005,8 @@ export class QdInstructor extends LitElement {
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-    return hashHex;
+    // Return first 12 characters for author-friendly Oxygen dialogs
+    return hashHex.substring(0, 12);
   }
 
   /**

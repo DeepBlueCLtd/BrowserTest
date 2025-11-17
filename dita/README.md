@@ -34,10 +34,10 @@ When publishing with Oxygen, ensure these parameters are set in your transformat
 
 ### Required Parameters
 
-- **`instructor.password.hash`** - SHA-256 hash of instructor password
-  - **Default Value**: `5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8`
+- **`instructor.password.hash`** - 12-character hash of instructor password
+  - **Default Value**: `5e884898da28`
   - **Description**: Default hash for password "password" (change for production)
-  - **Generate Custom Hash**: Open `generate-password-hash.html` in a browser, enter your password, copy the hash
+  - **Generate Custom Hash**: Open `generate-password-hash.html` in a browser, enter your password, copy the 12-char hash
   - **How to set**: In Oxygen transformation scenario → Parameters tab → Add parameter
   - **Purpose**: XSL template injects this into a hidden span for instructor authentication
 

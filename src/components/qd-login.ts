@@ -366,15 +366,15 @@ export class QdLogin extends LitElement {
 
   private async _validateInstructorPassword(password: string): Promise<boolean> {
     try {
-      // Hash the input password using SHA-256
+      // Hash the input password using SHA-256 (first 12 characters)
       const encoder = new TextEncoder();
       const data = encoder.encode(password);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+      const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('').substring(0, 12);
 
       // Get stored hash from DOM (injected by Oxygen publishing)
-      const hashSpan = document.getElementById('instructor-password-hash');
+      const hashSpan = document.getElementById('instructor.password.hash');
       const storedHash = hashSpan?.textContent?.trim();
 
       if (!storedHash) {
@@ -396,7 +396,8 @@ export class QdLogin extends LitElement {
     const data = encoder.encode(password);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    // Return first 12 characters for author-friendly Oxygen dialogs
+    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('').substring(0, 12);
   }
 
   private _validateInputs(serviceId: string, name: string): boolean {

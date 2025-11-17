@@ -1,22 +1,22 @@
 # Instructor Password Implementation Guide
-**16-Character Hash Strategy with Oxygen WebHelp Integration**
+**12-Character Hash Strategy with Oxygen WebHelp Integration**
 
-**Version:** 1.0
-**Date:** 2025-11-14
-**Security Level:** 96-bit (2^96 combinations)
+**Version:** 1.1
+**Date:** 2025-11-17
+**Security Level:** 48-bit (2^48 combinations - 281 trillion)
 
 ---
 
 ## Overview
 
-This document provides complete implementation instructions for securing the instructor password system using a **16-character hash** that integrates with the **OxygenXML WebHelp publishing workflow**.
+This document provides complete implementation instructions for securing the instructor password system using a **12-character hash** that integrates with the **OxygenXML WebHelp publishing workflow**.
 
 ### Key Features
-- ✅ **16-character hash** (compact, easy to manage)
-- ✅ **96-bit security** (2^96 = 79 billion billion billion combinations)
+- ✅ **12-character hash** (compact, fits in Oxygen dialogs)
+- ✅ **48-bit security** (2^48 = 281 trillion combinations)
 - ✅ **Zero dependencies** (Web Crypto API built into browsers)
 - ✅ **Oxygen integration** via publishing parameters
-- ✅ **Author-friendly** workflow (copy/paste hash)
+- ✅ **Author-friendly** workflow (short, visible hash)
 - ✅ **Offline-first** (no network required)
 
 ---
@@ -26,27 +26,27 @@ This document provides complete implementation instructions for securing the ins
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ 1. AUTHOR: Uses password generator tool                        │
-│    Input: "spring2025" → Output: "XohImNooAHFR0OV"             │
+│    Input: "password" → Output: "5e884898da28"                  │
 └──────────────────────┬──────────────────────────────────────────┘
                        │
                        ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │ 2. OXYGEN: Author sets publishing parameter                    │
-│    Parameter: instructor.password.hash = "XohImNooAHFR0OV"     │
+│    Parameter: instructor.password.hash = "5e884898da28"        │
 └──────────────────────┬──────────────────────────────────────────┘
                        │
                        ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │ 3. XSL: Template injects hash into HTML                        │
-│    <span id="instructor-password-hash" style="display:none">   │
-│      XohImNooAHFR0OV                                            │
+│    <span id="instructor.password.hash" style="display:none;">  │
+│      5e884898da28                                               │
 │    </span>                                                      │
 └──────────────────────┬──────────────────────────────────────────┘
                        │
                        ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │ 4. INSTRUCTOR: Enters password in UI                           │
-│    Input: "spring2025"                                          │
+│    Input: "password"                                            │
 └──────────────────────┬──────────────────────────────────────────┘
                        │
                        ▼
