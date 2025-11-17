@@ -1,7 +1,8 @@
 /**
  * Status Component
  *
- * Displays student quiz progress with R/A/G badges and logout control.
+ * Compact single-line display of student quiz progress and logout button.
+ * Shows: "X/Y Correct (Z%)" format.
  *
  * @element qd-status
  * @fires {CustomEvent} qd:logout - Emitted when user clicks logout
@@ -17,15 +18,6 @@ import { customElement, state } from 'lit/decorators.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
 import type { SessionCache } from '../types/contracts.js';
 import { getJSON } from '../utils/storage-helpers.js';
-
-/**
- * R/A/G state counts
- */
-interface StateCount {
-  red: number; // unstarted
-  amber: number; // incomplete
-  green: number; // complete
-}
 
 /**
  * Status panel component for student progress tracking
@@ -51,10 +43,10 @@ export class QdStatus extends LitElement {
   private percentage = 0;
 
   /**
-   * R/A/G state counts
+   * Overall status indicator color
    */
   @state()
-  private stateCounts: StateCount = { red: 0, amber: 0, green: 0 };
+  private statusColor: 'red' | 'amber' | 'green' = 'red';
 
   static styles = css`
     :host {
@@ -63,120 +55,58 @@ export class QdStatus extends LitElement {
     }
 
     .status-panel {
-      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
       background: #fff;
       border: 1px solid #ddd;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-
-    h2 {
-      margin: 0;
-      font-size: 20px;
-      color: #333;
-    }
-
-    .progress-section {
-      margin-bottom: 16px;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .stat-card {
-      padding: 12px;
-      background: #f5f5f5;
       border-radius: 4px;
-      text-align: center;
     }
 
-    .stat-value {
-      font-size: 24px;
-      font-weight: 600;
-      color: #333;
-    }
-
-    .stat-label {
-      font-size: 12px;
-      color: #666;
-      margin-top: 4px;
-    }
-
-    .percentage {
-      font-size: 32px;
-      font-weight: 700;
-      text-align: center;
-      color: #0066cc;
-      margin: 16px 0;
-    }
-
-    .badge-section {
-      margin-bottom: 16px;
-    }
-
-    .badge-label {
-      font-size: 14px;
-      font-weight: 500;
-      color: #555;
-      margin-bottom: 8px;
-    }
-
-    .badge-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-    }
-
-    .badge-count {
-      display: flex;
-      align-items: center;
-      padding: 8px 12px;
-      background: #f5f5f5;
-      border-radius: 4px;
-      font-size: 14px;
-    }
-
-    .badge-indicator {
-      width: 16px;
-      height: 16px;
+    .status-indicator {
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
-      margin-right: 8px;
+      flex-shrink: 0;
     }
 
-    .badge-indicator.green {
-      background: #4caf50;
+    .status-indicator.red {
+      background: #d32f2f;
     }
 
-    .badge-indicator.amber {
+    .status-indicator.amber {
       background: #ff9800;
     }
 
-    .badge-indicator.red {
-      background: #d32f2f;
+    .status-indicator.green {
+      background: #4caf50;
+    }
+
+    .progress-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #555;
+      white-space: nowrap;
+    }
+
+    .progress-text {
+      font-size: 13px;
+      color: #333;
+      white-space: nowrap;
     }
 
     .logout-button {
-      width: 100%;
-      padding: 10px 16px;
+      padding: 5px 10px;
       background: #d32f2f;
       color: white;
       border: none;
-      border-radius: 4px;
-      font-size: 14px;
+      border-radius: 3px;
+      font-size: 12px;
       font-weight: 500;
       cursor: pointer;
       transition: background 0.2s;
+      white-space: nowrap;
     }
 
     .logout-button:hover {
@@ -200,47 +130,11 @@ export class QdStatus extends LitElement {
   render() {
     return html`
       <div class="status-panel">
-        <div class="header">
-          <h2>Your Progress</h2>
+        <div class="status-indicator ${this.statusColor}"></div>
+        <div class="progress-label">Progress:</div>
+        <div class="progress-text">
+          ${this.correct}/${this.answered} Correct (${this.percentage}%)
         </div>
-
-        <div class="progress-section">
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-value">${this.answered}</div>
-              <div class="stat-label">Answered</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-value">${this.correct}</div>
-              <div class="stat-label">Correct</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-value">${this.answered - this.correct}</div>
-              <div class="stat-label">Incorrect</div>
-            </div>
-          </div>
-
-          <div class="percentage">${this.percentage}%</div>
-        </div>
-
-        <div class="badge-section">
-          <div class="badge-label">Page Status</div>
-          <div class="badge-grid">
-            <div class="badge-count">
-              <div class="badge-indicator green"></div>
-              <span>${this.stateCounts.green} Complete</span>
-            </div>
-            <div class="badge-count">
-              <div class="badge-indicator amber"></div>
-              <span>${this.stateCounts.amber} In Progress</span>
-            </div>
-            <div class="badge-count">
-              <div class="badge-indicator red"></div>
-              <span>${this.stateCounts.red} Not Started</span>
-            </div>
-          </div>
-        </div>
-
         <button class="logout-button" @click=${() => this.handleLogout()}>Logout</button>
       </div>
     `;
@@ -255,14 +149,14 @@ export class QdStatus extends LitElement {
       this.answered = 0;
       this.correct = 0;
       this.percentage = 0;
-      this.stateCounts = { red: 0, amber: 0, green: 0 };
+      this.statusColor = 'red';
       return;
     }
 
     this.answered = cache.totals.answered;
     this.correct = cache.totals.correct;
     this.percentage = this.calculatePercentage(cache.totals.answered, cache.totals.correct);
-    this.stateCounts = this.calculateStateCounts(cache);
+    this.statusColor = this.calculateStatusColor(cache.totals.answered, cache.totals.correct);
   }
 
   /**
@@ -274,23 +168,15 @@ export class QdStatus extends LitElement {
   }
 
   /**
-   * Calculate R/A/G state counts from cache
+   * Calculate status indicator color
+   * Red: No answers
+   * Green: All correct
+   * Amber: Some answered but not all correct
    */
-  private calculateStateCounts(cache: SessionCache): StateCount {
-    const counts: StateCount = { red: 0, amber: 0, green: 0 };
-
-    Object.values(cache.pages).forEach((page) => {
-      const state = page.state;
-      if (state === 'complete') {
-        counts.green++;
-      } else if (state === 'incomplete') {
-        counts.amber++;
-      } else {
-        counts.red++;
-      }
-    });
-
-    return counts;
+  private calculateStatusColor(answered: number, correct: number): 'red' | 'amber' | 'green' {
+    if (answered === 0) return 'red';
+    if (correct === answered) return 'green';
+    return 'amber';
   }
 
   /**
