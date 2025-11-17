@@ -213,14 +213,6 @@ function setupSession() {
 }
 
 /**
- * Clear session storage
- */
-function clearSession() {
-  sessionStorage.removeItem(STORAGE_KEYS.SESSION);
-  sessionStorage.removeItem(STORAGE_KEYS.CACHE);
-}
-
-/**
  * Story: Non-Interactive Mode (Pre-Login)
  *
  * Shows quiz table with answer column hidden for security.
@@ -228,8 +220,7 @@ function clearSession() {
  */
 export const NonInteractiveMode: Story = {
   render: () => {
-    // Clear any existing session
-    clearSession();
+    // NOTE: Do NOT manipulate storage - enhancer handles mode via interactive parameter
 
     // Enhancement must run after Lit renders the DOM
     setTimeout(() => {

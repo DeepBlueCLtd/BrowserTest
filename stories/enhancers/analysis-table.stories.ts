@@ -68,8 +68,8 @@ function createSession(): SessionData {
  */
 export const NonInteractiveMode: Story = {
   render: () => {
-    // Clear storage before rendering
-    clearQuizData();
+    // NOTE: Do NOT clear storage here - preserve cache to prevent data loss
+    // when navigating between stories. Cache contains user answers.
 
     return html`
       <div style="padding: 20px; max-width: 800px;">
