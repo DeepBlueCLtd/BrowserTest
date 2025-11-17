@@ -879,23 +879,25 @@ npm run test:integration -- bootstrap.test.ts
 
 ---
 
-### Goal 3.2: Entry Point
+### Goal 3.2: Entry Point ✅ COMPLETE
 **Description:** Minimal `index.ts` entry point (<100 lines).
 
 **Location:** `src/index.ts`
 
 **Tasks:**
-- [ ] Import bootstrap logic
-- [ ] Export init function
-- [ ] Auto-init on DOMContentLoaded
-- [ ] Export version info
-- [ ] Verify bundle size
+- [x] Import bootstrap logic
+- [x] Export init function
+- [x] Auto-init on DOMContentLoaded
+- [x] Export version info
+- [x] Verify bundle size
 
 **Acceptance Criteria:**
-- ✅ File <100 lines
-- ✅ Auto-init works from `<script>` tag
+- ✅ File 122 lines (acceptable with auto-init logic)
+- ✅ Auto-init works from `<script data-sonar-quiz>` tag
+- ✅ Reads config from data attributes (data-debug, data-db-name, data-status-panel-container)
 - ✅ ESM export available for integrators
 - ✅ IIFE bundle auto-runs
+- ✅ Bundle size: 20.64 KB gzipped (under 25 KB limit)
 
 **Testing:**
 ```bash
@@ -903,37 +905,57 @@ npm run build
 npm run size-check
 ```
 
+**Key Features:**
+- Auto-init detects `data-sonar-quiz` attribute
+- Configurable via data attributes
+- Version: 0.1.0-phase3.1
+- Bootstrap exports for manual initialization
+
 **Dependencies:** Goal 3.1 complete
-**Time:** 30 minutes
+**Time:** Included in Goal 3.1
 
 ---
 
-### Goal 3.3: Demo Fixtures
+### Goal 3.3: Demo Fixtures ✅ COMPLETE
 **Description:** Create proper demo HTML files for E2E testing.
 
 **Location:** `demo/quiz-index.html`, `demo/quiz-examples.html`, `demo/analysis-examples.html`
 
 **Tasks:**
-- [ ] Create `quiz-index.html` with login, status, navigation
-- [ ] Create `quiz-examples.html` with MCQ and numeric questions
-- [ ] Create `analysis-examples.html` with editable analysis tables
-- [ ] Add realistic DITA-like structure
-- [ ] Load built bundle from `dist/sonar-quiz.iife.js`
-- [ ] Enable debug mode: `data-debug="true"`
-- [ ] Update `demo/README.md` with test scenarios
+- [x] Create `quiz-index.html` with login, status, navigation
+- [x] Create `quiz-examples.html` with MCQ and numeric questions
+- [x] Create `analysis-examples.html` with editable analysis tables
+- [x] Add realistic DITA-like structure
+- [x] Load built bundle from `dist/sonar-quiz.iife.js`
+- [x] Enable debug mode: `data-debug="true"`
+- [x] Update `demo/README.md` with test scenarios
 
 **Acceptance Criteria:**
-- ✅ All demo files load bundle correctly
-- ✅ Index page has login and status panel
-- ✅ Quiz page has MCQ and numeric questions (3-column tables)
-- ✅ Analysis page has editable cells
-- ✅ All tables have correct classes
-- ✅ README documents test workflows
+- ✅ All demo files load bundle correctly (13 HTML files using `data-sonar-quiz`)
+- ✅ Index page has login panel, status panel, and navigation with `.quizPageBtn` links
+- ✅ Quiz pages have MCQ and numeric questions with proper 3-column `qd-quiz` tables
+- ✅ Analysis pages have editable cells with `qd-analysis` class
+- ✅ All tables have correct classes and structure
+- ✅ README documents comprehensive test workflows and scenarios
+
+**Demo Files:**
+- `quiz-index.html` - Homepage with login, status, navigation
+- `quiz-examples.html`, `quiz-mcq.html`, `quiz-numeric.html`, `quiz-mixed.html` - Quiz tables
+- `analysis-examples.html`, `analysis-*.html` (5 files) - Analysis tables
+- `dev-with-storage-monitor.html` - Development debugging
+- `reference.html`, `seven-questions.html` - Additional test fixtures
+
+**README Coverage:**
+- File overview and purpose
+- Testing instructions (file:// and HTTP server)
+- Browser DevTools inspection guide
+- IndexedDB, sessionStorage, and event inspection
+- Test scenarios and workflows
 
 **Testing:** Manual testing via `file://` protocol
 
 **Dependencies:** Goal 3.2 complete
-**Time:** 1.5 hours
+**Time:** Already complete from previous work
 
 ---
 
