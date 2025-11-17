@@ -12,59 +12,92 @@ The system uses a **role-based UI** where the login component determines which i
 
 ## 1. Login Component (`<qd-login>`)
 
-**Purpose**: Unified authentication for both students and instructors
+**Purpose**: Compact authentication for both students and instructors
 
 ### UI Structure
 
+**Default View (Student Login):**
 ```
 ┌─────────────────────────────────────┐
 │  Sonar Quiz System                  │
 │                                     │
-│  Login Mode:                        │
-│  ( ) Student  (•) Instructor        │ ← Radio buttons
+│  Service ID: [________]             │
+│  Name: [________________]           │
 │                                     │
-│  ┌──────────────────────────────┐  │
-│  │ [Password Field]              │  │ ← Instructor mode
-│  └──────────────────────────────┘  │
-│                                     │
-│  Or:                                │
-│                                     │
-│  ┌──────────────────────────────┐  │
-│  │ Service ID: [________]        │  │
-│  │ Name: [________________]      │  │ ← Student mode
-│  └──────────────────────────────┘  │
-│                                     │
-│         [Login Button]              │
+│  [Login]  [Instructor]              │
 └─────────────────────────────────────┘
 ```
 
+**Instructor Modal (shown when "Instructor" button clicked):**
+```
+        ┌───────────────────────────┐
+        │  Instructor Login    [X]  │
+        │                           │
+        │  Password: [__________]   │
+        │                           │
+        │     [Login]  [Cancel]     │
+        └───────────────────────────┘
+```
+
 ### Properties
-- `mode: 'student' | 'instructor'` - Current login mode (default: 'student')
+- None (stateless, manages internal form state only)
 
 ### Behavior
-1. **Radio button selection** switches between student/instructor forms
-2. **Student validation**:
-   - serviceId: 2-10 alphanumeric characters
-   - name: Non-empty string
-3. **Instructor validation**:
-   - Password hashed with SHA-256
+
+#### Student Login (Default)
+1. **Form fields**:
+   - Service ID: 2-10 alphanumeric characters
+   - Name: Non-empty string
+2. **Validation**:
+   - Real-time validation on blur
+   - Submit button disabled until valid
+3. **On "Login" click**:
+   - Creates student session via `SessionService.createSession(serviceId, name, release)`
+   - Emits `qd:login` event with `role: 'student'`
+   - Component removes itself from DOM
+   - Student status panel appears
+
+#### Instructor Login (Modal Popup)
+1. **On "Instructor" button click**:
+   - Opens modal overlay with password field
+   - Focus moves to password input
+   - Escape key or "Cancel" closes modal
+2. **Password validation**:
+   - Hashed with SHA-256
    - Compared against hash from `#instructor.password.hash` element
    - Rate-limited to prevent brute force (5 attempts per 60 seconds)
-4. **On successful login**:
-   - Creates session via `SessionService.createSession()`
-   - If instructor: Also calls `SessionService.unlockInstructor()`
-   - Emits `qd:login` custom event
-   - Component removes itself from DOM
+3. **On successful password entry**:
+   - Creates instructor session via `SessionService.createSession('INSTRUCTOR', 'Instructor', release)`
+   - Calls `SessionService.unlockInstructor()`
+   - Emits `qd:login` event with `role: 'instructor'`
+   - Modal and login component removed from DOM
+   - Instructor status panel appears
+4. **On failed password**:
+   - Shows error message in modal
+   - Password field cleared
+   - Focus returns to password field
+   - Rate limit counter incremented
 
 ### Events Emitted
 - `qd:login` - Fired on successful authentication
   - `detail: { serviceId, name, release, role: 'student' | 'instructor' }`
 
 ### Styling
-- Shadow DOM with CSS variables for theming
-- Responsive design (mobile-friendly)
-- Focus states for accessibility
-- Error messages inline below fields
+- **Login form**: Shadow DOM with minimal vertical footprint
+- **Instructor modal**:
+  - Modal overlay (semi-transparent backdrop)
+  - Centered modal dialog
+  - Esc key to close
+  - Focus trap (tab cycles within modal)
+- **Error messages**: Inline below fields (red text)
+- **Responsive**: Mobile-friendly, touch-optimized buttons
+
+### Accessibility
+- Focus management (modal traps focus)
+- Escape key closes modal
+- ARIA attributes: `role="dialog"`, `aria-modal="true"`, `aria-labelledby`
+- Error messages associated with fields via `aria-describedby`
+- Keyboard navigation (Tab, Enter, Escape)
 
 ---
 

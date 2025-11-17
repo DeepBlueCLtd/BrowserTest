@@ -40,9 +40,12 @@ User Input → DOM Handler → Service Layer → Storage Adapter
 ### Component Architecture
 
 #### **Login Component** (`<qd-login>`)
-Unified login form with two modes (selected via radio buttons):
-- **Student Mode**: Fields for serviceId and name
-- **Instructor Mode**: Single password field
+Compact login interface with modal for instructor access:
+- **Default View**: Student login form (serviceId + name fields, Login + Instructor buttons)
+- **Instructor Modal**: Password entry popup (opens on "Instructor" button click)
+- **Behavior**:
+  - Student login: Validates, creates session, shows student status panel
+  - Instructor login: Opens modal, validates password (SHA-256 + rate limiting), shows instructor status panel
 - Integrates with SessionService and instructor password verification
 - Emits `qd:login` event on successful authentication
 
