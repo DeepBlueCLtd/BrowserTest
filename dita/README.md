@@ -30,11 +30,29 @@ The bundle will then be included in the published WebHelp output.
 
 ## Oxygen WebHelp Parameters
 
-When publishing with Oxygen, ensure these parameters are set:
+When publishing with Oxygen, ensure these parameters are set in your transformation scenario:
 
-- `instructor.password.hash` - SHA-256 hash of instructor password (injected into header)
-- `webhelp.show.protection` - Set to `yes` to show protection header
-- `webhelp.protection.text` - Optional classification banner text
+### Required Parameters
+
+- **`instructor.password.hash`** - SHA-256 hash of instructor password
+  - **Value**: `5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8`
+  - **Description**: Default hash for password "password" (change for production)
+  - **How to set**: In Oxygen transformation scenario → Parameters tab → Add parameter
+  - **Purpose**: XSL template injects this into a hidden span for instructor authentication
+
+### Optional Parameters
+
+- `webhelp.show.protection` - Set to `yes` to show protection header (default: no)
+- `webhelp.protection.text` - Classification banner text (e.g., "COMMERCIAL IN CONFIDENCE")
+- `webhelp.protection.background.color` - CSS color for protection banner background
+
+### Setting Parameters in Oxygen
+
+1. Open transformation scenario (Configure Transformation Scenario)
+2. Click **Parameters** tab
+3. Click **New** to add `instructor.password.hash`
+4. Set **Value** to the SHA-256 hash above
+5. Apply and run transformation
 
 ## Content Authoring
 
