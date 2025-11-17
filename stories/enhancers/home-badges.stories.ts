@@ -44,22 +44,16 @@ type Story = StoryObj;
  */
 function createCacheWithStates(states: Record<string, 'unstarted' | 'incomplete' | 'complete'>) {
   const cache: SessionCache = {
-    serviceId: 'RN9999',
-    name: 'Storybook User',
-    release: '11-2024',
+    totals: { answered: 0, correct: 0 },
     pages: {},
   };
 
   Object.entries(states).forEach(([pageId, state]) => {
     cache.pages[pageId] = {
       state,
+      answered: state === 'unstarted' ? 0 : 3,
+      correct: state === 'complete' ? 3 : state === 'incomplete' ? 1 : 0,
       answers: [],
-      ...(state !== 'unstarted' && {
-        quiz: {
-          attempted: 3,
-          correct: state === 'complete' ? 3 : 1,
-        },
-      }),
     };
   });
 
@@ -305,13 +299,12 @@ export const DynamicUpdates: Story = {
 /**
  * Story: Empty Cache Handling
  *
- * Shows how badges behave when no cache data exists.
- * All links should display red badges (unstarted state).
+ * Shows how badges behave for pages not in cache.
+ * Links without cached state display red badges (unstarted).
  */
 export const EmptyCache: Story = {
   render: () => {
-    // Clear cache to test empty state
-    sessionStorage.removeItem(STORAGE_KEYS.CACHE);
+    // NOTE: Do NOT clear cache - demonstrates default state for uncached pages
 
     setTimeout(() => {
       enhanceHomeBadges();
@@ -339,15 +332,15 @@ export const EmptyCache: Story = {
       </style>
 
       <div class="demo-empty">
-        <h2>Empty Cache (No Session Data)</h2>
-        <p>When no cache exists, all badges default to red (unstarted):</p>
+        <h2>Default Badge State</h2>
+        <p>Pages without cached state show red badges (unstarted):</p>
 
         <a href="#lesson1" class="quizPageBtn" data-page-id="lesson-1">Lesson 1</a>
         <a href="#lesson2" class="quizPageBtn" data-page-id="lesson-2">Lesson 2</a>
         <a href="#lesson3" class="quizPageBtn" data-page-id="lesson-3">Lesson 3</a>
 
         <p style="margin-top: 20px; color: #666;">
-          This demonstrates graceful degradation when users haven't started any quizzes yet.
+          Demonstrates default badge state for pages not yet in cache.
         </p>
       </div>
     `;

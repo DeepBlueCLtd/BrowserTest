@@ -6,7 +6,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { SessionCache } from '../../src/types/contracts.js';
-import { setJSON, clearQuizData } from '../../src/utils/storage-helpers.js';
+import { setJSON } from '../../src/utils/storage-helpers.js';
 import { STORAGE_KEYS } from '../../src/types/contracts.js';
 import { enhanceHomeBadges } from '../../src/enhancers/home-badges.js';
 
@@ -40,13 +40,11 @@ describe('Home Page Badges', () => {
     it('should apply badges to all .quizPageBtn links', () => {
       // Create session cache with states
       const cache: SessionCache = {
-        serviceId: 'RN9999',
-        name: 'Test User',
-        release: '11-2024',
+        totals: { answered: 0, correct: 0 },
         pages: {
-          'page-1': { state: 'complete', answers: [], quiz: { attempted: 2, correct: 2 } },
-          'page-2': { state: 'incomplete', answers: [], quiz: { attempted: 2, correct: 1 } },
-          'page-3': { state: 'unstarted', answers: [] },
+          'page-1': { state: 'complete', answered: 2, correct: 2, answers: [] },
+          'page-2': { state: 'incomplete', answered: 2, correct: 1, answers: [] },
+          'page-3': { state: 'unstarted', answered: 0, correct: 0, answers: [] },
         },
       };
       setJSON(STORAGE_KEYS.CACHE, cache);
@@ -77,9 +75,7 @@ describe('Home Page Badges', () => {
 
     it('should handle missing pageId gracefully', () => {
       const cache: SessionCache = {
-        serviceId: 'RN9999',
-        name: 'Test User',
-        release: '11-2024',
+        totals: { answered: 0, correct: 0 },
         pages: {},
       };
       setJSON(STORAGE_KEYS.CACHE, cache);
@@ -96,9 +92,7 @@ describe('Home Page Badges', () => {
 
     it('should not affect non-quiz links', () => {
       const cache: SessionCache = {
-        serviceId: 'RN9999',
-        name: 'Test User',
-        release: '11-2024',
+        totals: { answered: 0, correct: 0 },
         pages: {},
       };
       setJSON(STORAGE_KEYS.CACHE, cache);
@@ -116,11 +110,9 @@ describe('Home Page Badges', () => {
     it('should update badges when qd:state-changed event fires', () => {
       // Initial cache
       const cache: SessionCache = {
-        serviceId: 'RN9999',
-        name: 'Test User',
-        release: '11-2024',
+        totals: { answered: 0, correct: 0 },
         pages: {
-          'page-1': { state: 'incomplete', answers: [], quiz: { attempted: 2, correct: 1 } },
+          'page-1': { state: 'incomplete', answered: 2, correct: 1, answers: [] },
         },
       };
       setJSON(STORAGE_KEYS.CACHE, cache);
@@ -131,8 +123,9 @@ describe('Home Page Badges', () => {
       expect(link1?.classList.contains('qd-badge-amber')).toBe(true);
 
       // Update cache to complete state
-      cache.pages['page-1'].state = 'complete';
-      cache.pages['page-1'].quiz = { attempted: 2, correct: 2 };
+      cache.pages['page-1']!.state = 'complete';
+      cache.pages['page-1']!.answered = 2;
+      cache.pages['page-1']!.correct = 2;
       setJSON(STORAGE_KEYS.CACHE, cache);
 
       // Emit state changed event
@@ -148,11 +141,9 @@ describe('Home Page Badges', () => {
 
     it('should handle badge transitions: red → amber → green', () => {
       const cache: SessionCache = {
-        serviceId: 'RN9999',
-        name: 'Test User',
-        release: '11-2024',
+        totals: { answered: 0, correct: 0 },
         pages: {
-          'page-1': { state: 'unstarted', answers: [] },
+          'page-1': { state: 'unstarted', answered: 0, correct: 0, answers: [] },
         },
       };
       setJSON(STORAGE_KEYS.CACHE, cache);
@@ -165,8 +156,9 @@ describe('Home Page Badges', () => {
       expect(link1?.classList.contains('qd-badge-red')).toBe(true);
 
       // Transition to incomplete
-      cache.pages['page-1'].state = 'incomplete';
-      cache.pages['page-1'].quiz = { attempted: 1, correct: 0 };
+      cache.pages['page-1']!.state = 'incomplete';
+      cache.pages['page-1']!.answered = 1;
+      cache.pages['page-1']!.correct = 0;
       setJSON(STORAGE_KEYS.CACHE, cache);
 
       const event1 = new CustomEvent('qd:state-changed', {
@@ -178,8 +170,9 @@ describe('Home Page Badges', () => {
       expect(link1?.classList.contains('qd-badge-red')).toBe(false);
 
       // Transition to complete
-      cache.pages['page-1'].state = 'complete';
-      cache.pages['page-1'].quiz = { attempted: 2, correct: 2 };
+      cache.pages['page-1']!.state = 'complete';
+      cache.pages['page-1']!.answered = 2;
+      cache.pages['page-1']!.correct = 2;
       setJSON(STORAGE_KEYS.CACHE, cache);
 
       const event2 = new CustomEvent('qd:state-changed', {
@@ -195,9 +188,7 @@ describe('Home Page Badges', () => {
   describe('Edge Cases', () => {
     it('should handle empty cache pages object', () => {
       const cache: SessionCache = {
-        serviceId: 'RN9999',
-        name: 'Test User',
-        release: '11-2024',
+        totals: { answered: 0, correct: 0 },
         pages: {},
       };
       setJSON(STORAGE_KEYS.CACHE, cache);
@@ -212,9 +203,7 @@ describe('Home Page Badges', () => {
 
     it('should handle state updates for non-existent pageIds', () => {
       const cache: SessionCache = {
-        serviceId: 'RN9999',
-        name: 'Test User',
-        release: '11-2024',
+        totals: { answered: 0, correct: 0 },
         pages: {},
       };
       setJSON(STORAGE_KEYS.CACHE, cache);

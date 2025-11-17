@@ -167,8 +167,8 @@ All demo files load the built bundle from `dist/sonar-quiz.iife.js` and have deb
 **CRITICAL**: Before marking ANY task as complete, ALL of the following must pass with ZERO errors:
 
 ```bash
-# 1. TypeScript compilation (MUST pass)
-npm run build
+# 1. TypeScript type checking (MUST pass)
+npm run typecheck
 
 # 2. Linter (zero errors required, warnings acceptable with justification)
 npm run lint
@@ -181,6 +181,9 @@ npm run test:integration
 
 # 5. Format check (code must be properly formatted)
 npm run format:check
+
+# 6. Build (final verification before commit)
+npm run build
 ```
 
 **No Exceptions**:
@@ -341,11 +344,12 @@ Format: `R{row}C{col}#f:{hash}`
 ### Definition of Done (Pre-Commit Checklist)
 Before committing any code changes, ALL of the following MUST pass:
 
-1. ✅ **Tests pass**: `npm run test:unit` (and `npm run test:integration` if applicable)
-2. ✅ **Linting passes**: `npm run lint` (fix with `npm run lint:fix` if needed)
-3. ✅ **Formatting passes**: `npm run format:check` (fix with `npm run format` if needed)
-4. ✅ **Build succeeds**: `npm run build` (if modifying source files)
-5. ✅ **Bundle size**: Under 25KB min+gzip (verify with `npm run size-check` if needed)
+1. ✅ **Type checking passes**: `npm run typecheck` (fast TypeScript type checking)
+2. ✅ **Tests pass**: `npm run test:unit` (and `npm run test:integration` if applicable)
+3. ✅ **Linting passes**: `npm run lint` (fix with `npm run lint:fix` if needed)
+4. ✅ **Formatting passes**: `npm run format:check` (fix with `npm run format` if needed)
+5. ✅ **Build succeeds**: `npm run build` (if modifying source files)
+6. ✅ **Bundle size**: Under 25KB min+gzip (verify with `npm run size-check` if needed)
 
 **Rationale**: CI will fail if any of these checks fail. Running them locally before committing prevents failed CI builds and reduces feedback cycles.
 

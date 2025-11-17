@@ -9,7 +9,7 @@ import type { Meta, StoryObj } from '@storybook/web-components';
 import { html } from 'lit';
 import '../../src/enhancers/analysis-table.js';
 import { enhanceAnalysisTable } from '../../src/enhancers/analysis-table.js';
-import { setJSON, clearQuizData } from '../../src/utils/storage-helpers.js';
+import { setJSON } from '../../src/utils/storage-helpers.js';
 import { STORAGE_KEYS } from '../../src/types/contracts.js';
 import type { SessionData } from '../../src/types/contracts.js';
 
