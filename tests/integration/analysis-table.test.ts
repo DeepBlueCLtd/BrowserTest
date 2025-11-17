@@ -194,8 +194,10 @@ describe('Analysis Table Enhancement', () => {
       expect(interactiveCells.length).toBe(2);
 
       interactiveCells.forEach((cell) => {
-        expect(cell.contentEditable).toBe('true');
-        expect(cell.classList.contains('qd-editable')).toBe(true);
+        if (cell instanceof HTMLElement) {
+          expect(cell.contentEditable).toBe('true');
+          expect(cell.classList.contains('qd-editable')).toBe(true);
+        }
       });
 
       // Check that cells WITHOUT class="interactive" are NOT editable
@@ -218,10 +220,6 @@ describe('Analysis Table Enhancement', () => {
       setJSON(STORAGE_KEYS.SESSION, session);
 
       // Create cache with existing analysis data
-      const tableRows = table.querySelectorAll('tbody tr');
-      const firstInteractiveCell = tableRows[0]?.querySelectorAll('td')[1];
-      const secondInteractiveCell = tableRows[1]?.querySelectorAll('td')[1];
-
       const cellKey1 = 'R0C1#f:00000000'; // Simplified for test
       const cellKey2 = 'R1C1#f:00000000';
 
@@ -255,7 +253,9 @@ describe('Analysis Table Enhancement', () => {
       // so we just verify cells are editable
       const interactiveCells = table.querySelectorAll('td.interactive');
       interactiveCells.forEach((cell) => {
-        expect(cell.contentEditable).toBe('true');
+        if (cell instanceof HTMLElement) {
+          expect(cell.contentEditable).toBe('true');
+        }
       });
     });
 

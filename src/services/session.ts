@@ -302,6 +302,8 @@ export function buildPageCache(_pageId: string, pageData: PageData): PageCache {
     answered,
     correct,
     last: pageData.lastAttempted,
+    answers: pageData.answers,
+    analysis: pageData.analysis, // Preserve analysis data from analysis tables
   };
 }
 
