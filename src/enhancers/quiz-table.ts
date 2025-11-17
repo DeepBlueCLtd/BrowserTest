@@ -377,8 +377,9 @@ function saveAnswer(
     pages: {},
   };
 
-  // Get or create page data
-  const pageData = cache.pages[pageId] || {
+  // Get existing page data or create default (preserves analysis field from analysis tables)
+  const existingPageData = cache.pages[pageId];
+  const pageData = existingPageData || {
     state: 'unstarted' as CompletionState,
     answered: 0,
     correct: 0,

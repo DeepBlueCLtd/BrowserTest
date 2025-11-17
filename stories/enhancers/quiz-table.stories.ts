@@ -186,6 +186,7 @@ const createNumericTableHTML = () => html`
 
 /**
  * Setup session storage for interactive mode
+ * Preserves any existing cache data to avoid wiping analysis table data
  */
 function setupSession() {
   const session: SessionData = {
@@ -198,13 +199,17 @@ function setupSession() {
     instructorUnlocked: false,
   };
 
-  const cache: SessionCache = {
-    totals: { answered: 0, correct: 0 },
-    pages: {},
-  };
-
   sessionStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(session));
-  sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
+
+  // Preserve existing cache if present (don't wipe analysis table data)
+  const existingCacheJson = sessionStorage.getItem(STORAGE_KEYS.CACHE);
+  if (!existingCacheJson) {
+    const cache: SessionCache = {
+      totals: { answered: 0, correct: 0 },
+      pages: {},
+    };
+    sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
+  }
 }
 
 /**
@@ -337,22 +342,36 @@ export const WithExistingAnswers: Story = {
     // Setup session with pre-existing answers
     setupSession();
 
-    // Add some existing answers to the cache
-    const cache: SessionCache = {
-      totals: { answered: 2, correct: 1 },
-      pages: {
-        'demo-prefilled-page': {
-          state: 'incomplete',
-          answered: 2,
-          correct: 1,
-          answers: [
-            { answer: '1', success: true, timestamp: new Date().toISOString() },
-            { answer: '3', success: false, timestamp: new Date().toISOString() },
-          ],
-        },
-      },
+    // Preserve existing cache and add pre-filled answers for this page
+    const existingCacheJson = sessionStorage.getItem(STORAGE_KEYS.CACHE);
+    const existingCache: SessionCache = existingCacheJson
+      ? (JSON.parse(existingCacheJson) as SessionCache)
+      : {
+          totals: { answered: 0, correct: 0 },
+          pages: {},
+        };
+
+    // Add pre-filled answers for this specific page
+    existingCache.pages['demo-prefilled-page'] = {
+      state: 'incomplete',
+      answered: 2,
+      correct: 1,
+      answers: [
+        { answer: '1', success: true, timestamp: new Date().toISOString() },
+        { answer: '3', success: false, timestamp: new Date().toISOString() },
+      ],
     };
-    sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
+
+    // Recalculate totals across all pages
+    let totalAnswered = 0;
+    let totalCorrect = 0;
+    for (const page of Object.values(existingCache.pages)) {
+      totalAnswered += page.answered;
+      totalCorrect += page.correct;
+    }
+    existingCache.totals = { answered: totalAnswered, correct: totalCorrect };
+
+    sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(existingCache));
 
     setTimeout(() => {
       const table = document.querySelector('table.qd-quiz') as HTMLTableElement;

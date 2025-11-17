@@ -274,8 +274,9 @@ function saveCellData(metadata: AnalysisTableMetadata, cellKey: CellKey, content
     pages: {},
   };
 
-  // Get or create page data
-  const pageData = cache.pages[pageId] || {
+  // Get existing page data or create default (preserves answers field from quiz tables)
+  const existingPageData = cache.pages[pageId];
+  const pageData = existingPageData || {
     state: 'unstarted',
     answered: 0,
     correct: 0,
