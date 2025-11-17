@@ -15,6 +15,11 @@
 				<xref href="Pages/gram-1.dita" outputclass="enterBtn quizPageBtn"/>
 				<xref href="Pages/gram-2.dita" outputclass="enterBtn quizPageBtn"/>
 				<xref href="Pages/gram-3.dita" outputclass="enterBtn quizPageBtn"/>
+				<xref href="Pages/quiz-mcq.dita" outputclass="enterBtn quizPageBtn"/>
+				<xref href="Pages/quiz-numeric.dita" outputclass="enterBtn quizPageBtn"/>
+				<xref href="Pages/quiz-mixed.dita" outputclass="enterBtn quizPageBtn"/>
+				<xref href="Pages/analysis-contact.dita" outputclass="enterBtn quizPageBtn"/>
+				<xref href="Pages/analysis-tactical.dita" outputclass="enterBtn quizPageBtn"/>
 			</div>
 		</section>
 	</refbody>

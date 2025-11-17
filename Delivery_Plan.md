@@ -9,7 +9,7 @@ Exit gate: contracts published in `src/types/contracts.ts`; Storybook renders ba
 
 ## Phase 1 — Quiz Core (no login, no IDB)
 Goal: Interactive quizzes via DOM upgrade.
-- Parse/upgrade `table.qd-quiz.qd-page` (MCQ + numeric + tolerance).
+- Parse/upgrade `table.qd-quiz` (MCQ + numeric + tolerance).
 - `<qd-status>` with R/A/G logic.
 - Storybook stories: Small/Large/Mixed.
 Exit gate: Chromatic interactions pass; unit tests for parsing + state.

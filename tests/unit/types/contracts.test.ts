@@ -26,7 +26,6 @@ describe('Frozen Contracts - Phase 0', () => {
   it('should export CSS_CLASSES constants', () => {
     expect(contracts.CSS_CLASSES).toBeDefined();
     expect(contracts.CSS_CLASSES.QUIZ_TABLE).toBe('qd-quiz');
-    expect(contracts.CSS_CLASSES.PAGE_TABLE).toBe('qd-page');
     expect(contracts.CSS_CLASSES.ANALYSIS_TABLE).toBe('qd-analysis');
     expect(contracts.CSS_CLASSES.TEST_LINK).toBe('quizPageBtn');
   });
