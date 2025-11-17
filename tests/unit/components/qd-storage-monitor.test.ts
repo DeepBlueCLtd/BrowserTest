@@ -71,7 +71,7 @@ describe('qd-storage-monitor', () => {
       sessionStorage.setItem('test-key', 'test-value');
 
       // Trigger refresh
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      await new Promise((resolve) => setTimeout(resolve, 1100));
       await element.updateComplete;
 
       const entries = element.shadowRoot?.querySelectorAll('.entry');
@@ -103,7 +103,9 @@ describe('qd-storage-monitor', () => {
       element['toggleVisibility']();
       await element.updateComplete;
 
-      const closeButton = element.shadowRoot?.querySelector('.controls button') as HTMLButtonElement;
+      const closeButton = element.shadowRoot?.querySelector(
+        '.controls button',
+      ) as HTMLButtonElement;
       closeButton?.click();
       await element.updateComplete;
 
@@ -126,7 +128,7 @@ describe('qd-storage-monitor', () => {
   describe('entry expansion', () => {
     beforeEach(async () => {
       sessionStorage.setItem('test', JSON.stringify({ foo: 'bar' }));
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      await new Promise((resolve) => setTimeout(resolve, 1100));
       await element.updateComplete;
     });
 

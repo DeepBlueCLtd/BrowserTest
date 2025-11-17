@@ -69,7 +69,9 @@ describe('qd-instructor-unlock', () => {
 
   describe('submit button state', () => {
     it('should disable button when password empty', () => {
-      const button = element.shadowRoot?.querySelector('button[type="submit"]') as HTMLButtonElement;
+      const button = element.shadowRoot?.querySelector(
+        'button[type="submit"]',
+      ) as HTMLButtonElement;
       expect(button.disabled).toBe(true);
     });
 
@@ -77,7 +79,9 @@ describe('qd-instructor-unlock', () => {
       element['password'] = 'test123';
       await element.updateComplete;
 
-      const button = element.shadowRoot?.querySelector('button[type="submit"]') as HTMLButtonElement;
+      const button = element.shadowRoot?.querySelector(
+        'button[type="submit"]',
+      ) as HTMLButtonElement;
       expect(button.disabled).toBe(false);
     });
   });
@@ -87,7 +91,9 @@ describe('qd-instructor-unlock', () => {
       element['remainingSeconds'] = 5;
       await element.updateComplete;
 
-      const button = element.shadowRoot?.querySelector('button[type="submit"]') as HTMLButtonElement;
+      const button = element.shadowRoot?.querySelector(
+        'button[type="submit"]',
+      ) as HTMLButtonElement;
       expect(button.textContent).toContain('Locked (5s)');
       expect(button.disabled).toBe(true);
     });

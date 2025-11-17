@@ -52,9 +52,8 @@ export class QdInstructorScores extends LitElement {
   };
 
   private calculateSummary(student: StudentRecord): StudentSummary {
-    const percentage = student.attempted > 0
-      ? Math.round((student.correct / student.attempted) * 100)
-      : 0;
+    const percentage =
+      student.attempted > 0 ? Math.round((student.correct / student.attempted) * 100) : 0;
 
     return {
       serviceId: student.serviceId,
@@ -82,11 +81,15 @@ export class QdInstructorScores extends LitElement {
         </td>
         <td>${summary.serviceId}</td>
         <td>${summary.attempted}</td>
-        <td class=${summary.correct === summary.attempted ? 'correct' : ''}>
-          ${summary.correct}
-        </td>
+        <td class=${summary.correct === summary.attempted ? 'correct' : ''}>${summary.correct}</td>
         <td>
-          <span class=${summary.percentage === 100 ? 'correct' : summary.percentage === 0 ? 'incorrect' : ''}>
+          <span
+            class=${summary.percentage === 100
+              ? 'correct'
+              : summary.percentage === 0
+                ? 'incorrect'
+                : ''}
+          >
             ${summary.percentage}%
           </span>
         </td>
@@ -100,9 +103,7 @@ export class QdInstructorScores extends LitElement {
     if (pages.length === 0) {
       return html`
         <tr>
-          <td colspan="5" style="padding-left: 40px; color: #666;">
-            No quiz pages attempted
-          </td>
+          <td colspan="5" style="padding-left: 40px; color: #666;">No quiz pages attempted</td>
         </tr>
       `;
     }
@@ -122,8 +123,8 @@ export class QdInstructorScores extends LitElement {
             <tbody>
               ${pages.map(([pageId, pageData]) => {
                 const answers = pageData.answers || [];
-                const attempted = answers.filter(a => a !== null).length;
-                const correct = answers.filter(a => a?.success === true).length;
+                const attempted = answers.filter((a) => a !== null).length;
+                const correct = answers.filter((a) => a?.success === true).length;
                 const percentage = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
 
                 return html`
@@ -132,7 +133,13 @@ export class QdInstructorScores extends LitElement {
                     <td>${attempted}</td>
                     <td class=${correct === attempted ? 'correct' : ''}>${correct}</td>
                     <td>
-                      <span class=${percentage === 100 ? 'correct' : percentage === 0 ? 'incorrect' : ''}>
+                      <span
+                        class=${percentage === 100
+                          ? 'correct'
+                          : percentage === 0
+                            ? 'incorrect'
+                            : ''}
+                      >
                         ${percentage}%
                       </span>
                     </td>
@@ -151,9 +158,7 @@ export class QdInstructorScores extends LitElement {
       return html``;
     }
 
-    const sortedStudents = [...this.students].sort((a, b) =>
-      a.name.localeCompare(b.name)
-    );
+    const sortedStudents = [...this.students].sort((a, b) => a.name.localeCompare(b.name));
 
     return html`
       <div class="modal-overlay" @click=${this.handleClose}>
@@ -177,7 +182,7 @@ export class QdInstructorScores extends LitElement {
                     </tr>
                   </thead>
                   <tbody>
-                    ${sortedStudents.map(student => this.renderStudentRow(student))}
+                    ${sortedStudents.map((student) => this.renderStudentRow(student))}
                   </tbody>
                 </table>
               `}

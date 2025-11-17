@@ -60,10 +60,12 @@ export class QdInstructor extends LitElement {
   private handleUnlock = (): void => {
     this.unlocked = true;
     // Forward event to parent
-    this.dispatchEvent(new CustomEvent('qd:instructor-unlock', {
-      bubbles: true,
-      composed: true,
-    }));
+    this.dispatchEvent(
+      new CustomEvent('qd:instructor-unlock', {
+        bubbles: true,
+        composed: true,
+      }),
+    );
   };
 
   private handleViewScores = (): void => {
@@ -76,48 +78,42 @@ export class QdInstructor extends LitElement {
 
   private handleDataCleared = (): void => {
     // Forward event to parent
-    this.dispatchEvent(new CustomEvent('qd:data-cleared', {
-      bubbles: true,
-      composed: true,
-    }));
+    this.dispatchEvent(
+      new CustomEvent('qd:data-cleared', {
+        bubbles: true,
+        composed: true,
+      }),
+    );
     // Refresh students list
     this.students = [];
   };
 
   private handleLogout = (): void => {
     this.lock();
-    this.dispatchEvent(new CustomEvent('qd:logout', {
-      bubbles: true,
-      composed: true,
-    }));
+    this.dispatchEvent(
+      new CustomEvent('qd:logout', {
+        bubbles: true,
+        composed: true,
+      }),
+    );
   };
 
   override render() {
     if (!this.unlocked) {
       return html`
-        <qd-instructor-unlock
-          @qd:instructor-unlock=${this.handleUnlock}
-        ></qd-instructor-unlock>
+        <qd-instructor-unlock @qd:instructor-unlock=${this.handleUnlock}></qd-instructor-unlock>
       `;
     }
 
     return html`
       <div class="instructor-panel">
-        <button @click=${this.handleViewScores} class="primary compact">
-          View Scores
-        </button>
+        <button @click=${this.handleViewScores} class="primary compact">View Scores</button>
 
-        <qd-instructor-export
-          .students=${this.students}
-        ></qd-instructor-export>
+        <qd-instructor-export .students=${this.students}></qd-instructor-export>
 
-        <qd-instructor-manage
-          @qd:data-cleared=${this.handleDataCleared}
-        ></qd-instructor-manage>
+        <qd-instructor-manage @qd:data-cleared=${this.handleDataCleared}></qd-instructor-manage>
 
-        <button @click=${this.handleLogout} class="logout">
-          Logout
-        </button>
+        <button @click=${this.handleLogout} class="logout">Logout</button>
 
         <qd-instructor-scores
           .students=${this.students}

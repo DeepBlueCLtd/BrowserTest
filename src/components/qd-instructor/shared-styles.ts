@@ -11,7 +11,10 @@ import { css } from 'lit';
 export const sharedStyles = css`
   :host {
     display: inline-block;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
     font-size: 14px;
     line-height: 1.5;
   }

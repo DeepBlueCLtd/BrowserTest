@@ -40,25 +40,38 @@ export const Default: Story = {
   render: (args) => {
     // Add some sample sessionStorage data
     if (typeof window !== 'undefined') {
-      sessionStorage.setItem('qd/session', JSON.stringify({
-        serviceId: 'TEST001',
-        name: 'John Doe',
-        release: '01-2025',
-        loginTime: new Date().toISOString(),
-      }));
-      sessionStorage.setItem('qd/cache', JSON.stringify({
-        'quiz-1': { state: 'complete', attempted: 5, correct: 4 },
-        'quiz-2': { state: 'incomplete', attempted: 2, correct: 1 },
-      }));
+      sessionStorage.setItem(
+        'qd/session',
+        JSON.stringify({
+          serviceId: 'TEST001',
+          name: 'John Doe',
+          release: '01-2025',
+          loginTime: new Date().toISOString(),
+        }),
+      );
+      sessionStorage.setItem(
+        'qd/cache',
+        JSON.stringify({
+          'quiz-1': { state: 'complete', attempted: 5, correct: 4 },
+          'quiz-2': { state: 'incomplete', attempted: 2, correct: 1 },
+        }),
+      );
     }
 
     return html`
       <div>
-        <div style="background: #f0f0f0; padding: 16px; margin-bottom: 16px; border-radius: 4px; font-size: 13px;">
-          <strong>🔍 Storage Monitor (Development Tool)</strong><br/>
-          <br/>
-          <strong>Keyboard Shortcut:</strong> Press <kbd style="background: white; padding: 2px 6px; border: 1px solid #ccc; border-radius: 3px;">Ctrl+Shift+D</kbd> to toggle visibility<br/>
-          <br/>
+        <div
+          style="background: #f0f0f0; padding: 16px; margin-bottom: 16px; border-radius: 4px; font-size: 13px;"
+        >
+          <strong>🔍 Storage Monitor (Development Tool)</strong><br />
+          <br />
+          <strong>Keyboard Shortcut:</strong> Press
+          <kbd
+            style="background: white; padding: 2px 6px; border: 1px solid #ccc; border-radius: 3px;"
+            >Ctrl+Shift+D</kbd
+          >
+          to toggle visibility<br />
+          <br />
           <strong>Features:</strong>
           <ul style="margin: 8px 0; padding-left: 20px;">
             <li>Real-time IndexedDB inspection</li>
@@ -66,7 +79,8 @@ export const Default: Story = {
             <li>Expand/collapse JSON objects</li>
             <li>Clear individual keys or all storage</li>
           </ul>
-          <strong>Note:</strong> The monitor starts hidden. Use the keyboard shortcut to show it in the bottom-right corner.
+          <strong>Note:</strong> The monitor starts hidden. Use the keyboard shortcut to show it in
+          the bottom-right corner.
         </div>
         <qd-storage-monitor dbName=${args.dbName}></qd-storage-monitor>
       </div>

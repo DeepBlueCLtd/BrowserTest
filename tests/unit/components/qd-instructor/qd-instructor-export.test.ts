@@ -62,7 +62,9 @@ describe('qd-instructor-export', () => {
   describe('CSV generation', () => {
     it('should generate CSV with header row', () => {
       const csv = element['generateCSV']();
-      expect(csv).toContain('Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp');
+      expect(csv).toContain(
+        'Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp',
+      );
     });
 
     it('should escape fields with commas', () => {

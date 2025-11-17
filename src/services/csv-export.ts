@@ -42,16 +42,18 @@ export function generateCSV(students: StudentRecord[]): string {
       const answers = pageData.answers || [];
       answers.forEach((answer, index) => {
         if (answer) {
-          rows.push([
-            escapeCSVField(student.serviceId),
-            escapeCSVField(student.name),
-            escapeCSVField(student.release),
-            escapeCSVField(pageId),
-            escapeCSVField(index),
-            escapeCSVField(answer.answer),
-            escapeCSVField(answer.success),
-            escapeCSVField(answer.timestamp),
-          ].join(','));
+          rows.push(
+            [
+              escapeCSVField(student.serviceId),
+              escapeCSVField(student.name),
+              escapeCSVField(student.release),
+              escapeCSVField(pageId),
+              escapeCSVField(index),
+              escapeCSVField(answer.answer),
+              escapeCSVField(answer.success),
+              escapeCSVField(answer.timestamp),
+            ].join(','),
+          );
         }
       });
     }

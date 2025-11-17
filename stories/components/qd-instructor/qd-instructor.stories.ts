@@ -38,9 +38,7 @@ const mockStudents: StudentRecord[] = [
       },
       'quiz-2': {
         state: 'incomplete',
-        answers: [
-          { answer: '42', success: false, timestamp: '2025-01-15T09:30:00Z' },
-        ],
+        answers: [{ answer: '42', success: false, timestamp: '2025-01-15T09:30:00Z' }],
       },
     },
   },
@@ -89,18 +87,24 @@ export const Locked: Story = {
         <!-- Hidden password hash element (mimics Oxygen XSL injection) -->
         <span id="instructor.password.hash" style="display:none;">${passwordHash}</span>
 
-        <div style="background: #f0f0f0; padding: 16px; margin-bottom: 16px; border-radius: 4px; font-family: monospace; font-size: 12px;">
-          <strong>🔐 Instructor Password Required</strong><br/>
-          <br/>
-          <strong>Test Password:</strong> <code style="background: #fff; padding: 2px 6px; border-radius: 3px;">instructor123</code><br/>
-          <br/>
-          <strong>Password Storage:</strong> The hash is read from a hidden DOM element <code>&lt;span id="instructor.password.hash"&gt;</code>
-          injected by Oxygen XSL transform. This story includes the hash for "instructor123".<br/>
-          <br/>
-          <strong>Generate a hash:</strong><br/>
-          <code>echo -n "your-password" | openssl dgst -sha256</code><br/>
-          <br/>
-          <strong>Rate Limiting:</strong> After 5 failed attempts, the form will lock with exponential backoff (2s, 4s, 8s, 16s, 30s max).
+        <div
+          style="background: #f0f0f0; padding: 16px; margin-bottom: 16px; border-radius: 4px; font-family: monospace; font-size: 12px;"
+        >
+          <strong>🔐 Instructor Password Required</strong><br />
+          <br />
+          <strong>Test Password:</strong>
+          <code style="background: #fff; padding: 2px 6px; border-radius: 3px;">instructor123</code
+          ><br />
+          <br />
+          <strong>Password Storage:</strong> The hash is read from a hidden DOM element
+          <code>&lt;span id="instructor.password.hash"&gt;</code> injected by Oxygen XSL transform.
+          This story includes the hash for "instructor123".<br />
+          <br />
+          <strong>Generate a hash:</strong><br />
+          <code>echo -n "your-password" | openssl dgst -sha256</code><br />
+          <br />
+          <strong>Rate Limiting:</strong> After 5 failed attempts, the form will lock with
+          exponential backoff (2s, 4s, 8s, 16s, 30s max).
         </div>
         <qd-instructor></qd-instructor>
       </div>
@@ -118,8 +122,11 @@ export const Unlocked: Story = {
   render: () => {
     const container = html`
       <div>
-        <div style="background: #e7f3ff; padding: 12px; margin-bottom: 16px; border-radius: 4px; font-size: 13px;">
-          <strong>ℹ️ Unlocked State:</strong> This story shows the instructor panel with 2 sample students (Alice: 80% completion, Bob: 100% completion).
+        <div
+          style="background: #e7f3ff; padding: 12px; margin-bottom: 16px; border-radius: 4px; font-size: 13px;"
+        >
+          <strong>ℹ️ Unlocked State:</strong> This story shows the instructor panel with 2 sample
+          students (Alice: 80% completion, Bob: 100% completion).
         </div>
         <qd-instructor></qd-instructor>
       </div>
@@ -148,8 +155,11 @@ export const UnlockedNoData: Story = {
   render: () => {
     const container = html`
       <div>
-        <div style="background: #fff3cd; padding: 12px; margin-bottom: 16px; border-radius: 4px; font-size: 13px;">
-          <strong>⚠️ Empty State:</strong> No student data available. Export and View Scores buttons will reflect this state.
+        <div
+          style="background: #fff3cd; padding: 12px; margin-bottom: 16px; border-radius: 4px; font-size: 13px;"
+        >
+          <strong>⚠️ Empty State:</strong> No student data available. Export and View Scores buttons
+          will reflect this state.
         </div>
         <qd-instructor></qd-instructor>
       </div>

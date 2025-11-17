@@ -48,7 +48,7 @@ const STATE_TO_BADGE: Record<CompletionState, keyof typeof BADGE_CLASSES> = {
  */
 function applyBadge(link: HTMLElement, state: CompletionState): void {
   // Remove all existing badge classes
-  Object.values(BADGE_CLASSES).forEach(className => {
+  Object.values(BADGE_CLASSES).forEach((className) => {
     link.classList.remove(className);
   });
 
@@ -93,7 +93,7 @@ function updateLinkBadge(link: HTMLElement): void {
 function updateAllBadges(): void {
   const links = document.querySelectorAll<HTMLElement>('.quizPageBtn');
 
-  links.forEach(link => {
+  links.forEach((link) => {
     updateLinkBadge(link);
   });
 

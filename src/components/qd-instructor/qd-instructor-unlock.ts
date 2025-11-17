@@ -71,7 +71,7 @@ export class QdInstructorUnlock extends LitElement {
       const data = encoder.encode(this.password);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const actualHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      const actualHash = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 
       // Constant-time comparison
       const valid = await constantTimeCompare(actualHash, expectedHash);
@@ -136,11 +136,7 @@ export class QdInstructorUnlock extends LitElement {
 
           ${this.error ? html`<div class="error">${this.error}</div>` : ''}
 
-          <button
-            type="submit"
-            class="primary"
-            ?disabled=${isLocked || !this.password}
-          >
+          <button type="submit" class="primary" ?disabled=${isLocked || !this.password}>
             ${isLocked ? `Locked (${this.remainingSeconds}s)` : 'Unlock'}
           </button>
         </form>

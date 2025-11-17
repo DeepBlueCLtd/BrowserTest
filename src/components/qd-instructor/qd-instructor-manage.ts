@@ -93,12 +93,15 @@ export class QdInstructorManage extends LitElement {
       </button>
 
       ${this.showConfirmDialog ? this.renderConfirmDialog() : ''}
-
-      ${this.success ? html`
-        <div style="position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 12px 16px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-          ${this.success}
-        </div>
-      ` : ''}
+      ${this.success
+        ? html`
+            <div
+              style="position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 12px 16px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);"
+            >
+              ${this.success}
+            </div>
+          `
+        : ''}
     `;
   }
 
@@ -117,13 +120,9 @@ export class QdInstructorManage extends LitElement {
             ⚠️ This will permanently delete all student quiz data, answers, and progress.
           </p>
 
-          <p>
-            This action cannot be undone. All students will need to start over.
-          </p>
+          <p>This action cannot be undone. All students will need to start over.</p>
 
-          <p>
-            Type <strong>DELETE ALL DATA</strong> to confirm:
-          </p>
+          <p>Type <strong>DELETE ALL DATA</strong> to confirm:</p>
 
           <input
             type="text"
@@ -137,14 +136,8 @@ export class QdInstructorManage extends LitElement {
           ${this.error ? html`<div class="error">${this.error}</div>` : ''}
 
           <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px;">
-            <button @click=${this.handleCancelClear}>
-              Cancel
-            </button>
-            <button
-              @click=${this.handleConfirmClear}
-              class="danger"
-              ?disabled=${!isValid}
-            >
+            <button @click=${this.handleCancelClear}>Cancel</button>
+            <button @click=${this.handleConfirmClear} class="danger" ?disabled=${!isValid}>
               Delete All Data
             </button>
           </div>

@@ -227,7 +227,8 @@ export class QdStorageMonitor extends LitElement {
             });
             resolve();
           };
-          request.onerror = () => reject(new Error(request.error?.message || 'IndexedDB request failed'));
+          request.onerror = () =>
+            reject(new Error(request.error?.message || 'IndexedDB request failed'));
         });
       }
 
@@ -265,7 +266,8 @@ export class QdStorageMonitor extends LitElement {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName);
       request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(new Error(request.error?.message || 'Failed to open database'));
+      request.onerror = () =>
+        reject(new Error(request.error?.message || 'Failed to open database'));
     });
   }
 
@@ -308,11 +310,9 @@ export class QdStorageMonitor extends LitElement {
         <div class="entry-key" @click=${() => this.handleToggleEntry(entry)}>
           ${entry.expanded ? '▼' : '▶'} ${entry.key}
         </div>
-        ${entry.expanded ? html`
-          <div class="entry-value">
-            ${JSON.stringify(entry.value, null, 2)}
-          </div>
-        ` : ''}
+        ${entry.expanded
+          ? html` <div class="entry-value">${JSON.stringify(entry.value, null, 2)}</div> `
+          : ''}
       </div>
     `;
   }
@@ -339,7 +339,7 @@ export class QdStorageMonitor extends LitElement {
           </div>
           ${this.indexedDBEntries.length === 0
             ? html`<div class="empty">No entries</div>`
-            : this.indexedDBEntries.map(e => this.renderEntry(e))}
+            : this.indexedDBEntries.map((e) => this.renderEntry(e))}
         </div>
 
         <div class="section">
@@ -355,7 +355,7 @@ export class QdStorageMonitor extends LitElement {
           </div>
           ${this.sessionStorageEntries.length === 0
             ? html`<div class="empty">No entries</div>`
-            : this.sessionStorageEntries.map(e => this.renderEntry(e))}
+            : this.sessionStorageEntries.map((e) => this.renderEntry(e))}
         </div>
       </div>
     `;

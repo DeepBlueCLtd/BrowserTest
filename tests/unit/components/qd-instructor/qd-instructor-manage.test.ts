@@ -51,9 +51,9 @@ describe('qd-instructor-manage', () => {
       element['showConfirmDialog'] = true;
       await element.updateComplete;
 
-      const cancelButton = Array.from(
-        element.shadowRoot?.querySelectorAll('button') || []
-      ).find(btn => btn.textContent?.includes('Cancel')) as HTMLButtonElement;
+      const cancelButton = Array.from(element.shadowRoot?.querySelectorAll('button') || []).find(
+        (btn) => btn.textContent?.includes('Cancel'),
+      ) as HTMLButtonElement;
 
       cancelButton?.click();
       await element.updateComplete;
@@ -66,9 +66,9 @@ describe('qd-instructor-manage', () => {
       element['confirmText'] = 'wrong text';
       await element.updateComplete;
 
-      const confirmButton = Array.from(
-        element.shadowRoot?.querySelectorAll('button') || []
-      ).find(btn => btn.textContent?.includes('Delete All Data')) as HTMLButtonElement;
+      const confirmButton = Array.from(element.shadowRoot?.querySelectorAll('button') || []).find(
+        (btn) => btn.textContent?.includes('Delete All Data'),
+      ) as HTMLButtonElement;
 
       confirmButton?.click();
       await element.updateComplete;
@@ -86,9 +86,9 @@ describe('qd-instructor-manage', () => {
       element['confirmText'] = 'invalid';
       await element.updateComplete;
 
-      const confirmButton = Array.from(
-        element.shadowRoot?.querySelectorAll('button') || []
-      ).find(btn => btn.textContent?.includes('Delete All Data')) as HTMLButtonElement;
+      const confirmButton = Array.from(element.shadowRoot?.querySelectorAll('button') || []).find(
+        (btn) => btn.textContent?.includes('Delete All Data'),
+      ) as HTMLButtonElement;
 
       expect(confirmButton?.disabled).toBe(true);
     });
@@ -98,9 +98,9 @@ describe('qd-instructor-manage', () => {
       element['confirmText'] = 'DELETE ALL DATA';
       await element.updateComplete;
 
-      const confirmButton = Array.from(
-        element.shadowRoot?.querySelectorAll('button') || []
-      ).find(btn => btn.textContent?.includes('Delete All Data')) as HTMLButtonElement;
+      const confirmButton = Array.from(element.shadowRoot?.querySelectorAll('button') || []).find(
+        (btn) => btn.textContent?.includes('Delete All Data'),
+      ) as HTMLButtonElement;
 
       expect(confirmButton?.disabled).toBe(false);
     });
@@ -117,9 +117,9 @@ describe('qd-instructor-manage', () => {
       element['confirmText'] = 'DELETE ALL DATA';
       await element.updateComplete;
 
-      const confirmButton = Array.from(
-        element.shadowRoot?.querySelectorAll('button') || []
-      ).find(btn => btn.textContent?.includes('Delete All Data')) as HTMLButtonElement;
+      const confirmButton = Array.from(element.shadowRoot?.querySelectorAll('button') || []).find(
+        (btn) => btn.textContent?.includes('Delete All Data'),
+      ) as HTMLButtonElement;
 
       confirmButton?.click();
       await element.updateComplete;
@@ -132,9 +132,9 @@ describe('qd-instructor-manage', () => {
       element['confirmText'] = 'DELETE ALL DATA';
       await element.updateComplete;
 
-      const confirmButton = Array.from(
-        element.shadowRoot?.querySelectorAll('button') || []
-      ).find(btn => btn.textContent?.includes('Delete All Data')) as HTMLButtonElement;
+      const confirmButton = Array.from(element.shadowRoot?.querySelectorAll('button') || []).find(
+        (btn) => btn.textContent?.includes('Delete All Data'),
+      ) as HTMLButtonElement;
 
       confirmButton?.click();
       await element.updateComplete;
@@ -147,9 +147,9 @@ describe('qd-instructor-manage', () => {
       element['confirmText'] = 'DELETE ALL DATA';
       await element.updateComplete;
 
-      const confirmButton = Array.from(
-        element.shadowRoot?.querySelectorAll('button') || []
-      ).find(btn => btn.textContent?.includes('Delete All Data')) as HTMLButtonElement;
+      const confirmButton = Array.from(element.shadowRoot?.querySelectorAll('button') || []).find(
+        (btn) => btn.textContent?.includes('Delete All Data'),
+      ) as HTMLButtonElement;
 
       confirmButton?.click();
       await element.updateComplete;

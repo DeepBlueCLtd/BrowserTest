@@ -91,7 +91,9 @@ export class EventCoordinator {
   private registerAnswerHandlers(): void {
     this.addEventListener('qd:answer-saved', (event) => {
       const detail = (event as CustomEvent<AnswerSavedEventDetail>).detail;
-      info(`Answer saved: ${detail.pageId} Q${detail.questionIndex} = ${detail.answer} (${detail.success ? 'correct' : 'incorrect'})`);
+      info(
+        `Answer saved: ${detail.pageId} Q${detail.questionIndex} = ${detail.answer} (${detail.success ? 'correct' : 'incorrect'})`,
+      );
 
       // Trigger cache update
       this.dispatchEvent('qd:cache-update', { pageId: detail.pageId });

@@ -109,7 +109,7 @@ export class SessionCoordinator {
       }, 5000); // Update activity at most once per 5 seconds
     };
 
-    events.forEach(event => {
+    events.forEach((event) => {
       document.addEventListener(event, debouncedHandler, { passive: true });
     });
   }

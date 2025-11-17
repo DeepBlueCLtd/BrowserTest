@@ -123,8 +123,8 @@ export const EmptyState: Story = {
           style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 4px; font-size: 14px;"
         >
           <p style="margin: 0;">
-            📝 This shows a student's initial state before answering any questions. All pages show as
-            "Not Started" (red).
+            📝 This shows a student's initial state before answering any questions. All pages show
+            as "Not Started" (red).
           </p>
         </div>
       </div>
@@ -163,9 +163,7 @@ export const PerfectScore: Story = {
           style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-left: 4px solid #4caf50; border-radius: 4px; font-size: 14px;"
         >
           <p style="margin: 0; font-weight: 500; color: #2e7d32;">✅ Perfect score!</p>
-          <p style="margin: 10px 0 0 0;">
-            20/20 correct (100%). All 4 pages complete (green).
-          </p>
+          <p style="margin: 10px 0 0 0;">20/20 correct (100%). All 4 pages complete (green).</p>
         </div>
       </div>
     `;

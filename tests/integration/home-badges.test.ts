@@ -68,7 +68,7 @@ describe('Home Page Badges', () => {
 
       // Should not throw, all links should have red badge (unstarted)
       const links = document.querySelectorAll('.quizPageBtn');
-      links.forEach(link => {
+      links.forEach((link) => {
         expect(link.classList.contains('qd-badge-red')).toBe(true);
       });
     });
@@ -196,7 +196,7 @@ describe('Home Page Badges', () => {
       enhanceHomeBadges();
 
       const links = document.querySelectorAll('.quizPageBtn');
-      links.forEach(link => {
+      links.forEach((link) => {
         expect(link.classList.contains('qd-badge-red')).toBe(true);
       });
     });

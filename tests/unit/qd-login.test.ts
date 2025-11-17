@@ -87,7 +87,9 @@ describe('QdLogin Component', () => {
 
   describe('Form Input', () => {
     it('should update state when name input changes', async () => {
-      const nameInput = element.shadowRoot?.querySelectorAll('input[type="text"]')[0] as HTMLInputElement;
+      const nameInput = element.shadowRoot?.querySelectorAll(
+        'input[type="text"]',
+      )[0] as HTMLInputElement;
 
       nameInput.value = 'John Doe';
       nameInput.dispatchEvent(new Event('input'));
@@ -97,7 +99,9 @@ describe('QdLogin Component', () => {
     });
 
     it('should update state when serviceId input changes', async () => {
-      const serviceIdInput = element.shadowRoot?.querySelectorAll('input[type="text"]')[1] as HTMLInputElement;
+      const serviceIdInput = element.shadowRoot?.querySelectorAll(
+        'input[type="text"]',
+      )[1] as HTMLInputElement;
 
       serviceIdInput.value = 'RN2344';
       serviceIdInput.dispatchEvent(new Event('input'));
@@ -107,7 +111,9 @@ describe('QdLogin Component', () => {
     });
 
     it('should clear error message on input', async () => {
-      const nameInput = element.shadowRoot?.querySelectorAll('input[type="text"]')[0] as HTMLInputElement;
+      const nameInput = element.shadowRoot?.querySelectorAll(
+        'input[type="text"]',
+      )[0] as HTMLInputElement;
       const form = element.shadowRoot?.querySelector('form');
 
       // Trigger validation error by submitting empty form
@@ -127,8 +133,12 @@ describe('QdLogin Component', () => {
 
   describe('Validation', () => {
     it('should validate serviceId format (2-10 alphanumeric)', async () => {
-      const nameInput = element.shadowRoot?.querySelectorAll('input[type="text"]')[0] as HTMLInputElement;
-      const serviceIdInput = element.shadowRoot?.querySelectorAll('input[type="text"]')[1] as HTMLInputElement;
+      const nameInput = element.shadowRoot?.querySelectorAll(
+        'input[type="text"]',
+      )[0] as HTMLInputElement;
+      const serviceIdInput = element.shadowRoot?.querySelectorAll(
+        'input[type="text"]',
+      )[1] as HTMLInputElement;
       const form = element.shadowRoot?.querySelector('form');
 
       // Valid data except serviceId too short
@@ -151,8 +161,12 @@ describe('QdLogin Component', () => {
         eventFired = true;
       });
 
-      const nameInput = element.shadowRoot?.querySelectorAll('input[type="text"]')[0] as HTMLInputElement;
-      const serviceIdInput = element.shadowRoot?.querySelectorAll('input[type="text"]')[1] as HTMLInputElement;
+      const nameInput = element.shadowRoot?.querySelectorAll(
+        'input[type="text"]',
+      )[0] as HTMLInputElement;
+      const serviceIdInput = element.shadowRoot?.querySelectorAll(
+        'input[type="text"]',
+      )[1] as HTMLInputElement;
       const form = element.shadowRoot?.querySelector('form');
 
       nameInput.value = 'John Doe';
@@ -168,7 +182,9 @@ describe('QdLogin Component', () => {
     });
 
     it('should show error for missing name', async () => {
-      const serviceIdInput = element.shadowRoot?.querySelectorAll('input[type="text"]')[1] as HTMLInputElement;
+      const serviceIdInput = element.shadowRoot?.querySelectorAll(
+        'input[type="text"]',
+      )[1] as HTMLInputElement;
       const form = element.shadowRoot?.querySelector('form');
 
       serviceIdInput.value = 'RN2344';
@@ -190,8 +206,12 @@ describe('QdLogin Component', () => {
         eventDetail = e.detail;
       }) as EventListener);
 
-      const nameInput = element.shadowRoot?.querySelectorAll('input[type="text"]')[0] as HTMLInputElement;
-      const serviceIdInput = element.shadowRoot?.querySelectorAll('input[type="text"]')[1] as HTMLInputElement;
+      const nameInput = element.shadowRoot?.querySelectorAll(
+        'input[type="text"]',
+      )[0] as HTMLInputElement;
+      const serviceIdInput = element.shadowRoot?.querySelectorAll(
+        'input[type="text"]',
+      )[1] as HTMLInputElement;
       const form = element.shadowRoot?.querySelector('form');
 
       nameInput.value = 'John Doe';
@@ -217,8 +237,12 @@ describe('QdLogin Component', () => {
         eventDetail = e.detail;
       }) as EventListener);
 
-      const nameInput = element.shadowRoot?.querySelectorAll('input[type="text"]')[0] as HTMLInputElement;
-      const serviceIdInput = element.shadowRoot?.querySelectorAll('input[type="text"]')[1] as HTMLInputElement;
+      const nameInput = element.shadowRoot?.querySelectorAll(
+        'input[type="text"]',
+      )[0] as HTMLInputElement;
+      const serviceIdInput = element.shadowRoot?.querySelectorAll(
+        'input[type="text"]',
+      )[1] as HTMLInputElement;
       const form = element.shadowRoot?.querySelector('form');
 
       nameInput.value = 'Test';
@@ -240,8 +264,12 @@ describe('QdLogin Component', () => {
         eventDetail = e.detail;
       }) as EventListener);
 
-      const nameInput = element.shadowRoot?.querySelectorAll('input[type="text"]')[0] as HTMLInputElement;
-      const serviceIdInput = element.shadowRoot?.querySelectorAll('input[type="text"]')[1] as HTMLInputElement;
+      const nameInput = element.shadowRoot?.querySelectorAll(
+        'input[type="text"]',
+      )[0] as HTMLInputElement;
+      const serviceIdInput = element.shadowRoot?.querySelectorAll(
+        'input[type="text"]',
+      )[1] as HTMLInputElement;
       const form = element.shadowRoot?.querySelector('form');
 
       nameInput.value = '  John Doe  ';
@@ -262,7 +290,9 @@ describe('QdLogin Component', () => {
   describe('Instructor Modal', () => {
     it('should open instructor modal when Instructor button clicked', async () => {
       const buttons = element.shadowRoot?.querySelectorAll('button');
-      const instructorBtn = Array.from(buttons!).find((b) => b.textContent?.includes('Instructor')) as HTMLButtonElement;
+      const instructorBtn = Array.from(buttons!).find((b) =>
+        b.textContent?.includes('Instructor'),
+      ) as HTMLButtonElement;
 
       instructorBtn.click();
       await element.updateComplete;
@@ -273,7 +303,9 @@ describe('QdLogin Component', () => {
 
     it('should render password input in modal', async () => {
       const buttons = element.shadowRoot?.querySelectorAll('button');
-      const instructorBtn = Array.from(buttons!).find((b) => b.textContent?.includes('Instructor')) as HTMLButtonElement;
+      const instructorBtn = Array.from(buttons!).find((b) =>
+        b.textContent?.includes('Instructor'),
+      ) as HTMLButtonElement;
 
       instructorBtn.click();
       await element.updateComplete;
@@ -284,7 +316,9 @@ describe('QdLogin Component', () => {
 
     it('should close modal on Cancel button click', async () => {
       const buttons = element.shadowRoot?.querySelectorAll('button');
-      const instructorBtn = Array.from(buttons!).find((b) => b.textContent?.includes('Instructor')) as HTMLButtonElement;
+      const instructorBtn = Array.from(buttons!).find((b) =>
+        b.textContent?.includes('Instructor'),
+      ) as HTMLButtonElement;
 
       instructorBtn.click();
       await element.updateComplete;
@@ -302,7 +336,9 @@ describe('QdLogin Component', () => {
 
     it('should close modal on overlay click', async () => {
       const buttons = element.shadowRoot?.querySelectorAll('button');
-      const instructorBtn = Array.from(buttons!).find((b) => b.textContent?.includes('Instructor')) as HTMLButtonElement;
+      const instructorBtn = Array.from(buttons!).find((b) =>
+        b.textContent?.includes('Instructor'),
+      ) as HTMLButtonElement;
 
       instructorBtn.click();
       await element.updateComplete;
@@ -338,11 +374,15 @@ describe('QdLogin Component', () => {
         }) as EventListener);
 
         const buttons = element.shadowRoot?.querySelectorAll('button');
-        const instructorBtn = Array.from(buttons!).find((b) => b.textContent?.includes('Instructor')) as HTMLButtonElement;
+        const instructorBtn = Array.from(buttons!).find((b) =>
+          b.textContent?.includes('Instructor'),
+        ) as HTMLButtonElement;
 
         instructorBtn.click();
         void element.updateComplete.then(() => {
-          const passwordInput = element.shadowRoot?.querySelector('input[type="password"]') as HTMLInputElement;
+          const passwordInput = element.shadowRoot?.querySelector(
+            'input[type="password"]',
+          ) as HTMLInputElement;
           passwordInput.value = 'test123';
           passwordInput.dispatchEvent(new Event('input'));
 
@@ -360,12 +400,16 @@ describe('QdLogin Component', () => {
       document.body.appendChild(hashElement);
 
       const buttons = element.shadowRoot?.querySelectorAll('button');
-      const instructorBtn = Array.from(buttons!).find((b) => b.textContent?.includes('Instructor')) as HTMLButtonElement;
+      const instructorBtn = Array.from(buttons!).find((b) =>
+        b.textContent?.includes('Instructor'),
+      ) as HTMLButtonElement;
 
       instructorBtn.click();
       await element.updateComplete;
 
-      const passwordInput = element.shadowRoot?.querySelector('input[type="password"]') as HTMLInputElement;
+      const passwordInput = element.shadowRoot?.querySelector(
+        'input[type="password"]',
+      ) as HTMLInputElement;
       passwordInput.value = 'wrongpassword';
       passwordInput.dispatchEvent(new Event('input'));
 
@@ -399,8 +443,12 @@ describe('QdLogin Component', () => {
     });
 
     it('should enable Login button when form is valid', async () => {
-      const nameInput = element.shadowRoot?.querySelectorAll('input[type="text"]')[0] as HTMLInputElement;
-      const serviceIdInput = element.shadowRoot?.querySelectorAll('input[type="text"]')[1] as HTMLInputElement;
+      const nameInput = element.shadowRoot?.querySelectorAll(
+        'input[type="text"]',
+      )[0] as HTMLInputElement;
+      const serviceIdInput = element.shadowRoot?.querySelectorAll(
+        'input[type="text"]',
+      )[1] as HTMLInputElement;
 
       nameInput.value = 'John Doe';
       nameInput.dispatchEvent(new Event('input'));

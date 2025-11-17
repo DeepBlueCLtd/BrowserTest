@@ -82,7 +82,7 @@ export const Default: Story = {
       const loginComponent = document.querySelector('qd-login');
       if (loginComponent) {
         loginComponent.addEventListener('qd:login', ((e: CustomEvent) => {
-        console.log('Login event:', e.detail);
+          console.log('Login event:', e.detail);
           const detail = e.detail as {
             role: string;
             serviceId: string;
@@ -188,8 +188,7 @@ export const InstructorPasswordDemo: Story = {
       const hashElement = document.createElement('div');
       hashElement.id = 'instructor.password.hash';
       hashElement.style.display = 'none';
-      hashElement.textContent =
-        'ecd71870d1963316a97e3ac3408c9835ad8cf0f3c1bc703527c30265534f75ae';
+      hashElement.textContent = 'ecd71870d1963316a97e3ac3408c9835ad8cf0f3c1bc703527c30265534f75ae';
       document.body.appendChild(hashElement);
     }
 
@@ -336,11 +335,15 @@ export const MissingReleaseTitle: Story = {
             ⚠️ Release title element is missing
           </p>
           <p style="margin: 0;">
-            Try logging in - you'll see an error: "Release not found (missing .wh_publication_title .title element)"
+            Try logging in - you'll see an error: "Release not found (missing .wh_publication_title
+            .title element)"
           </p>
           <p style="margin: 15px 0 0 0; color: #666;">
             Required:
-            <code>&lt;div class="wh_publication_title"&gt;&lt;span class="title"&gt;TRV Connectors Autumn 2025&lt;/span&gt;&lt;/div&gt;</code>
+            <code
+              >&lt;div class="wh_publication_title"&gt;&lt;span class="title"&gt;TRV Connectors
+              Autumn 2025&lt;/span&gt;&lt;/div&gt;</code
+            >
           </p>
         </div>
       </div>

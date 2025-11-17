@@ -85,7 +85,7 @@ export function injectInstructorComponent(containerSelector: string): HTMLElemen
  * Inject storage monitor for debugging
  */
 export function injectStorageMonitor(
-  config: Pick<ComponentInjectorConfig, 'storageMonitorContainer' | 'dbName' | 'debug'>
+  config: Pick<ComponentInjectorConfig, 'storageMonitorContainer' | 'dbName' | 'debug'>,
 ): HTMLElement | null {
   if (!config.debug) {
     return null;

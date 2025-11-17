@@ -51,7 +51,10 @@ export class QdStatus extends LitElement {
   static styles = css`
     :host {
       display: block;
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
     }
 
     .status-panel {

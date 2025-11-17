@@ -37,7 +37,10 @@ export class QdErrorBanner extends LitElement {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
       font-size: 14px;
       line-height: 1.5;
     }
@@ -126,10 +129,12 @@ export class QdErrorBanner extends LitElement {
   };
 
   private dismiss(): void {
-    this.dispatchEvent(new CustomEvent('dismiss', {
-      bubbles: true,
-      composed: true,
-    }));
+    this.dispatchEvent(
+      new CustomEvent('dismiss', {
+        bubbles: true,
+        composed: true,
+      }),
+    );
     this.hidden = true;
   }
 
@@ -139,21 +144,15 @@ export class QdErrorBanner extends LitElement {
     }
 
     return html`
-      <div
-        class="banner ${this.severity}"
-        role="alert"
-        aria-live="polite"
-      >
+      <div class="banner ${this.severity}" role="alert" aria-live="polite">
         <div class="message">${this.message}</div>
-        ${this.dismissable ? html`
-          <button
-            class="close-button"
-            @click=${this.handleClose}
-            aria-label="Dismiss"
-          >
-            ✕
-          </button>
-        ` : ''}
+        ${this.dismissable
+          ? html`
+              <button class="close-button" @click=${this.handleClose} aria-label="Dismiss">
+                ✕
+              </button>
+            `
+          : ''}
       </div>
     `;
   }

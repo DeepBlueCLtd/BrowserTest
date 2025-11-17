@@ -29,9 +29,7 @@ describe('csv-export', () => {
         },
         'page-2': {
           state: 'incomplete',
-          answers: [
-            { answer: '42', success: true, timestamp: '2025-01-01T10:05:00Z' },
-          ],
+          answers: [{ answer: '42', success: true, timestamp: '2025-01-01T10:05:00Z' }],
         },
       },
     };
@@ -41,7 +39,9 @@ describe('csv-export', () => {
     it('should generate CSV with header row', () => {
       const csv = generateCSV([mockStudent]);
 
-      expect(csv).toContain('Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp');
+      expect(csv).toContain(
+        'Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp',
+      );
     });
 
     it('should generate data rows for each answer', () => {
@@ -103,9 +103,7 @@ describe('csv-export', () => {
         pages: {
           'page-1': {
             state: 'complete',
-            answers: [
-              { answer: 'a, b, c', success: true, timestamp: '2025-01-01T10:00:00Z' },
-            ],
+            answers: [{ answer: 'a, b, c', success: true, timestamp: '2025-01-01T10:00:00Z' }],
           },
         },
       };
@@ -124,9 +122,7 @@ describe('csv-export', () => {
         pages: {
           'page-1': {
             state: 'complete',
-            answers: [
-              { answer: 'Say "hello"', success: true, timestamp: '2025-01-01T10:00:00Z' },
-            ],
+            answers: [{ answer: 'Say "hello"', success: true, timestamp: '2025-01-01T10:00:00Z' }],
           },
         },
       };
@@ -170,9 +166,7 @@ describe('csv-export', () => {
         pages: {
           'page-1': {
             state: 'complete',
-            answers: [
-              { answer: 'x', success: true, timestamp: '2025-01-01T11:00:00Z' },
-            ],
+            answers: [{ answer: 'x', success: true, timestamp: '2025-01-01T11:00:00Z' }],
           },
         },
       };
@@ -242,9 +236,7 @@ describe('csv-export', () => {
       downloadCSV(csv);
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(global.URL.createObjectURL).toHaveBeenCalledWith(
-        expect.any(Blob)
-      );
+      expect(global.URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
     });
 
     it('should create download link with blob URL', () => {

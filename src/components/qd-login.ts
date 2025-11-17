@@ -86,7 +86,10 @@ export class QdLogin extends LitElement {
   static styles = css`
     :host {
       display: block;
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
     }
 
     .login-container {
@@ -317,9 +320,7 @@ export class QdLogin extends LitElement {
             Instructor
           </button>
 
-          ${this.errorMessage
-            ? html`<div class="error-message">${this.errorMessage}</div>`
-            : ''}
+          ${this.errorMessage ? html`<div class="error-message">${this.errorMessage}</div>` : ''}
         </form>
       </div>
 
@@ -514,7 +515,10 @@ export class QdLogin extends LitElement {
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     // Return first 12 characters for author-friendly Oxygen dialogs
-    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('').substring(0, 12);
+    return hashArray
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+      .substring(0, 12);
   }
 
   /**

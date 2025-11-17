@@ -45,16 +45,18 @@ export class QdInstructorExport extends LitElement {
         const answers = pageData.answers || [];
         answers.forEach((answer, index) => {
           if (answer) {
-            rows.push([
-              this.escapeCSVField(student.serviceId),
-              this.escapeCSVField(student.name),
-              this.escapeCSVField(student.release),
-              this.escapeCSVField(pageId),
-              this.escapeCSVField(index),
-              this.escapeCSVField(answer.answer),
-              this.escapeCSVField(answer.success),
-              this.escapeCSVField(answer.timestamp),
-            ].join(','));
+            rows.push(
+              [
+                this.escapeCSVField(student.serviceId),
+                this.escapeCSVField(student.name),
+                this.escapeCSVField(student.release),
+                this.escapeCSVField(pageId),
+                this.escapeCSVField(index),
+                this.escapeCSVField(answer.answer),
+                this.escapeCSVField(answer.success),
+                this.escapeCSVField(answer.timestamp),
+              ].join(','),
+            );
           }
         });
       }

@@ -164,9 +164,7 @@ describe('qd-instructor-scores', () => {
         },
         'page-2': {
           state: 'incomplete',
-          answers: [
-            { answer: '42', success: true, timestamp: '2025-01-01T00:00:02Z' },
-          ],
+          answers: [{ answer: '42', success: true, timestamp: '2025-01-01T00:00:02Z' }],
         },
       },
     };
