@@ -26,12 +26,12 @@ describe('qd-instructor', () => {
   });
 
   describe('rendering', () => {
-    it('should render unlock component when locked', async () => {
+    it('should render unlock component when locked', () => {
       const unlock = element.shadowRoot?.querySelector('qd-instructor-unlock');
       expect(unlock).toBeTruthy();
     });
 
-    it('should not render controls when locked', async () => {
+    it('should not render controls when locked', () => {
       const panel = element.shadowRoot?.querySelector('.instructor-panel');
       expect(panel).toBeNull();
     });

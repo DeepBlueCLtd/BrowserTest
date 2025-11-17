@@ -200,7 +200,7 @@ describe('qd-instructor-scores', () => {
       expect(element['expandedStudents'].has('TEST1')).toBe(true);
 
       // Re-render should show pages
-      await element.requestUpdate();
+      element.requestUpdate();
       await element.updateComplete;
 
       const text = element.shadowRoot?.textContent;

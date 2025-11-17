@@ -68,7 +68,7 @@ describe('qd-instructor-unlock', () => {
   });
 
   describe('submit button state', () => {
-    it('should disable button when password empty', async () => {
+    it('should disable button when password empty', () => {
       const button = element.shadowRoot?.querySelector('button[type="submit"]') as HTMLButtonElement;
       expect(button.disabled).toBe(true);
     });

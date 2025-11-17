@@ -77,7 +77,7 @@ export class QdInstructorManage extends LitElement {
       setTimeout(() => {
         this.success = '';
       }, 3000);
-    } catch (err) {
+    } catch {
       this.error = 'Failed to clear data';
     }
   };
