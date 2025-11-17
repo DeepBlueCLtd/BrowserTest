@@ -319,8 +319,8 @@ describe('QdLogin Component', () => {
       // Add instructor password hash element
       const hashElement = document.createElement('div');
       hashElement.id = 'instructor.password.hash';
-      // SHA-256 hash of "test123"
-      hashElement.textContent = 'ecd71870d1963316a97e3ac3408c9835ad8cf0f3c1bc703527c30265534f75ae';
+      // SHA-256 hash of "test123" (first 12 characters)
+      hashElement.textContent = 'ecd71870d196';
       document.body.appendChild(hashElement);
 
       return new Promise<void>((resolve) => {

@@ -85,20 +85,24 @@ describe('qd-instructor-scores', () => {
     const mockStudents: StudentRecord[] = [
       {
         schema: 1,
+        docId: 'qd/01-2025/uTEST1',
         serviceId: 'TEST1',
         name: 'Alice',
         release: '01-2025',
         attempted: 10,
         correct: 8,
+        updated: new Date().toISOString(),
         pages: {},
       },
       {
         schema: 1,
+        docId: 'qd/01-2025/uTEST2',
         serviceId: 'TEST2',
         name: 'Bob',
         release: '01-2025',
         attempted: 5,
         correct: 5,
+        updated: new Date().toISOString(),
         pages: {},
       },
     ];
@@ -143,11 +147,13 @@ describe('qd-instructor-scores', () => {
   describe('expandable details', () => {
     const mockStudentWithPages: StudentRecord = {
       schema: 1,
+      docId: 'qd/01-2025/uTEST1',
       serviceId: 'TEST1',
       name: 'Alice',
       release: '01-2025',
       attempted: 5,
       correct: 3,
+      updated: new Date().toISOString(),
       pages: {
         'page-1': {
           state: 'complete',
@@ -194,7 +200,7 @@ describe('qd-instructor-scores', () => {
       expect(element['expandedStudents'].has('TEST1')).toBe(true);
 
       // Re-render should show pages
-      await element.requestUpdate();
+      element.requestUpdate();
       await element.updateComplete;
 
       const text = element.shadowRoot?.textContent;
@@ -207,11 +213,13 @@ describe('qd-instructor-scores', () => {
     it('should return 0% when no attempts', () => {
       const student: StudentRecord = {
         schema: 1,
+        docId: 'qd/01-2025/uTEST',
         serviceId: 'TEST',
         name: 'Test',
         release: '01-2025',
         attempted: 0,
         correct: 0,
+        updated: new Date().toISOString(),
         pages: {},
       };
 
@@ -222,11 +230,13 @@ describe('qd-instructor-scores', () => {
     it('should calculate correct percentage', () => {
       const student: StudentRecord = {
         schema: 1,
+        docId: 'qd/01-2025/uTEST',
         serviceId: 'TEST',
         name: 'Test',
         release: '01-2025',
         attempted: 10,
         correct: 7,
+        updated: new Date().toISOString(),
         pages: {},
       };
 
@@ -237,11 +247,13 @@ describe('qd-instructor-scores', () => {
     it('should round percentage', () => {
       const student: StudentRecord = {
         schema: 1,
+        docId: 'qd/01-2025/uTEST',
         serviceId: 'TEST',
         name: 'Test',
         release: '01-2025',
         attempted: 3,
         correct: 2,
+        updated: new Date().toISOString(),
         pages: {},
       };
 

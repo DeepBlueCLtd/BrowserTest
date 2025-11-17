@@ -146,7 +146,7 @@ Document Root
 │   └── Status Panel (#qd-status) [INJECTED]
 │
 ├── Content Area
-│   ├── Quiz Tables (table.qd-quiz.qd-page)
+│   ├── Quiz Tables (table.qd-quiz)
 │   │   ├── Question Rows
 │   │   └── Answer Controls [ENHANCED]
 │   │
@@ -163,7 +163,7 @@ Document Root
 
 | CSS Class | Purpose | Detection Method | Enhancement |
 |-----------|---------|------------------|-------------|
-| `.qd-quiz.qd-page` | Quiz table marker | `querySelectorAll('table.qd-quiz')` | Convert to interactive quiz |
+| `.qd-quiz` | Quiz table marker | `querySelectorAll('table.qd-quiz')` | Convert to interactive quiz |
 | `.qd-analysis` | Analysis table marker | `querySelectorAll('table.qd-analysis')` | Add editable inputs |
 | `.quizPageBtn` | Navigation links | `querySelectorAll('.quizPageBtn')` | Inject R/A/G badges |
 | `.wh_top_menu_and_indexterms_link` | Status panel container | `querySelector(config.statusPanelContainer)` | Append qd-status |

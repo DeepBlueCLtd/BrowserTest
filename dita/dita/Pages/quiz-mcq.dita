@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<topic id="quiz-mcq" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="urn:oasis:names:tc:dita:xsd:topic.xsd">
+    <title>MCQ Questions Only</title>
+    <body>
+        <p>This quiz contains only multiple-choice questions with 1-indexed answers.</p>
+        <p>
+            <simpletable frame="all" relcolwidth="2.0* 0.5* 2.5*" outputclass="qd-quiz">
+                <sthead>
+                    <stentry>Question</stentry>
+                    <stentry>Answer</stentry>
+                    <stentry>Options</stentry>
+                </sthead>
+                <strow>
+                    <stentry>What does SONAR stand for?</stentry>
+                    <stentry>1</stentry>
+                    <stentry>
+                        <ol>
+                            <li>Sound Navigation And Ranging</li>
+                            <li>Sonic Navigation And Recording</li>
+                            <li>Sound Observation And Recognition</li>
+                            <li>Subsea Object Navigation And Reporting</li>
+                        </ol>
+                    </stentry>
+                </strow>
+                <strow>
+                    <stentry>Which maritime force first developed practical sonar?</stentry>
+                    <stentry>3</stentry>
+                    <stentry>
+                        <ol>
+                            <li>United States Navy</li>
+                            <li>German Kriegsmarine</li>
+                            <li>British Royal Navy</li>
+                            <li>French Marine Nationale</li>
+                        </ol>
+                    </stentry>
+                </strow>
+                <strow>
+                    <stentry>What environmental factor most affects sonar performance?</stentry>
+                    <stentry>1</stentry>
+                    <stentry>
+                        <ol>
+                            <li>Water temperature and salinity</li>
+                            <li>Moon phase</li>
+                            <li>Atmospheric pressure</li>
+                            <li>Time of day</li>
+                        </ol>
+                    </stentry>
+                </strow>
+                <strow>
+                    <stentry>Which type of sonar uses reflections to detect objects?</stentry>
+                    <stentry>1</stentry>
+                    <stentry>
+                        <ol>
+                            <li>Active sonar</li>
+                            <li>Passive sonar</li>
+                            <li>Side-scan sonar</li>
+                            <li>Doppler sonar</li>
+                        </ol>
+                    </stentry>
+                </strow>
+                <strow>
+                    <stentry>What is the primary function of a sonar transducer?</stentry>
+                    <stentry>2</stentry>
+                    <stentry>
+                        <ol>
+                            <li>Amplify electrical signals</li>
+                            <li>Convert electrical energy to sound waves</li>
+                            <li>Display sonar returns</li>
+                            <li>Filter background noise</li>
+                        </ol>
+                    </stentry>
+                </strow>
+            </simpletable>
+        </p>
+    </body>
+</topic>

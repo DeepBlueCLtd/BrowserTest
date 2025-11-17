@@ -1,26 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <topic id="Untitled" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="urn:oasis:names:tc:dita:xsd:topic.xsd">
-    <title>Gramless Gram 2</title>
+    <title>Gramless Analysis 2</title>
     <body>
-        <p>Some background to this set of questions.</p>
+        <p>Some background to this set of questions. Analyze operational parameters and system performance.</p>
         <p>
-            <simpletable frame="all" relcolwidth="1.0* 2.7*" id="simpletable_lfd_vym_bgc" outputclass="qd-quiz">
-                <strow>
+            <simpletable frame="all" relcolwidth="2.0* 0.5* 2.0*" outputclass="qd-quiz">
+                <sthead>
                     <stentry>Question</stentry>
-                    <stentry>Theory</stentry>
+                    <stentry>Answer</stentry>
+                    <stentry>Detail</stentry>
+                </sthead>
+                <strow>
+                    <stentry>What is the optimal operating frequency (in kHz) for this scenario?</stentry>
+                    <stentry>5</stentry>
+                    <stentry>1</stentry>
                 </strow>
                 <strow>
-                    <stentry>Have you considered depth?</stentry>
-                    <stentry/>
+                    <stentry>Which sonar mode is most appropriate for this environment?</stentry>
+                    <stentry>1</stentry>
+                    <stentry>
+                        <ol>
+                            <li>Active search mode with medium pulse length</li>
+                            <li>Passive listen-only mode</li>
+                            <li>High-frequency imaging mode</li>
+                            <li>Doppler velocity tracking</li>
+                        </ol>
+                    </stentry>
                 </strow>
                 <strow>
-                    <stentry>Have you considered height?</stentry>
-                    <stentry/>
+                    <stentry>What is the expected maximum detection range (in meters)?</stentry>
+                    <stentry>5000</stentry>
+                    <stentry>500</stentry>
                 </strow>
                 <strow>
-                    <stentry>Have you considered the weather?</stentry>
-                    <stentry/>
+                    <stentry>Should you adjust power levels for ambient noise?</stentry>
+                    <stentry>1</stentry>
+                    <stentry>
+                        <ol>
+                            <li>Yes, increase power to overcome background noise</li>
+                            <li>No, keep power constant regardless of conditions</li>
+                            <li>Only during night operations</li>
+                            <li>Power adjustment is not permitted</li>
+                        </ol>
+                    </stentry>
                 </strow>
             </simpletable>
         </p>

@@ -87,7 +87,7 @@ export class QdInstructorUnlock extends LitElement {
         this.error = 'Invalid password';
         this.password = '';
       }
-    } catch (err) {
+    } catch {
       this.error = 'Authentication failed';
       this.password = '';
     }

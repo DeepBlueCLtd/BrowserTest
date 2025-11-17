@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <topic id="Untitled" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="urn:oasis:names:tc:dita:xsd:topic.xsd">
-    <title>Gram 1</title>
+    <title>Gram Analysis 1</title>
     <body>
-        <p/>
-        <p>Some background content on this gram goes in here.</p>
+        <p>Analyze the spectrogram below and complete your analysis in the table.</p>
         <div id="section_r1z_rym_bgc">
             <table frame="all" rowsep="1" colsep="1" id="table_uyb_bym_bgc"
                 outputclass="gram-config">
@@ -39,22 +38,27 @@
             </table>
         </div>
         <div id="questions">
-            <simpletable frame="all" relcolwidth="1.0* 3.4*" id="simpletable_lfd_vym_bgc">
-                <strow>
-                    <stentry>Question</stentry>
-                    <stentry>Theory</stentry>
-                </strow>
+            <p>Complete your analysis based on the spectrogram above:</p>
+            <simpletable frame="all" relcolwidth="1.5* 3.0*" outputclass="qd-analysis">
                 <strow>
                     <stentry>What is dominant source?</stentry>
-                    <stentry/>
+                    <stentry outputclass="interactive"/>
                 </strow>
                 <strow>
-                    <stentry>Have you considered height?</stentry>
-                    <stentry/>
+                    <stentry>Frequency range (Hz):</stentry>
+                    <stentry outputclass="interactive"/>
                 </strow>
                 <strow>
-                    <stentry>Have you considered the weather?</stentry>
-                    <stentry/>
+                    <stentry>Signal characteristics:</stentry>
+                    <stentry outputclass="interactive"/>
+                </strow>
+                <strow>
+                    <stentry>Environmental factors considered:</stentry>
+                    <stentry outputclass="interactive"/>
+                </strow>
+                <strow>
+                    <stentry>Confidence level:</stentry>
+                    <stentry outputclass="interactive"/>
                 </strow>
             </simpletable>
         </div>

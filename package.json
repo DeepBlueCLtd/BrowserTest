@@ -11,6 +11,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:dita": "npm run build && npm run copy-to-dita",
+    "copy-to-dita": "cp dist/sonar-quiz.iife.js dita/template/resources/",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "test": "npm run test:unit && npm run test:integration",

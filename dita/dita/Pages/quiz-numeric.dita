@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<topic id="quiz-numeric" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="urn:oasis:names:tc:dita:xsd:topic.xsd">
+    <title>Numeric Questions Only</title>
+    <body>
+        <p>This quiz contains only numeric questions with tolerance values (±).</p>
+        <p>
+            <simpletable frame="all" relcolwidth="2.5* 0.75* 0.75*" outputclass="qd-quiz">
+                <sthead>
+                    <stentry>Question</stentry>
+                    <stentry>Correct Value</stentry>
+                    <stentry>Tolerance (±)</stentry>
+                </sthead>
+                <strow>
+                    <stentry>What is the typical beam width (in degrees) for a narrow-beam sonar?</stentry>
+                    <stentry>15</stentry>
+                    <stentry>2</stentry>
+                </strow>
+                <strow>
+                    <stentry>What is the maximum detection range (in meters) for a standard hull-mounted sonar?</stentry>
+                    <stentry>5000</stentry>
+                    <stentry>500</stentry>
+                </strow>
+                <strow>
+                    <stentry>What pulse length (in milliseconds) is typical for a medium-range sonar?</stentry>
+                    <stentry>10</stentry>
+                    <stentry>2</stentry>
+                </strow>
+                <strow>
+                    <stentry>At what depth (in meters) does the thermocline typically occur in temperate waters?</stentry>
+                    <stentry>50</stentry>
+                    <stentry>10</stentry>
+                </strow>
+                <strow>
+                    <stentry>What is the speed of sound in seawater (in m/s)?</stentry>
+                    <stentry>1500</stentry>
+                    <stentry>50</stentry>
+                </strow>
+                <strow>
+                    <stentry>At what frequency (in kHz) does a typical hull-mounted sonar operate?</stentry>
+                    <stentry>5</stentry>
+                    <stentry>0.5</stentry>
+                </strow>
+            </simpletable>
+        </p>
+    </body>
+</topic>

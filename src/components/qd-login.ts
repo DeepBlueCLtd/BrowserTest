@@ -513,7 +513,8 @@ export class QdLogin extends LitElement {
     const data = encoder.encode(password);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    // Return first 12 characters for author-friendly Oxygen dialogs
+    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('').substring(0, 12);
   }
 
   /**

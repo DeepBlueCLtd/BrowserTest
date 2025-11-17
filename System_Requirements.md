@@ -49,7 +49,7 @@ Documents are published quarterly and used by individual students. Instructors c
 - Next session rebuilds cache from IndexedDB after login.
 
 ### 4.2 Quiz Tables
-- Each page may contain one table: `table.qd-quiz.qd-page`.
+- Each page may contain one table: `table.qd-quiz`.
 - Columns (strict order):  
   1. **Question text**  
   2. **Answer** (number or MCQ index)  
@@ -198,7 +198,7 @@ Backup/export options:
 
 | Table Type | Class | Author Instructions |
 |-------------|--------|--------------------|
-| Quiz | `qd-quiz qd-page` | One per page, 3 columns (question, answer, detail). Use `<ol>` for MCQ options. |
+| Quiz | `qd-quiz` | One per page, 3 columns (question, answer, detail). Use `<ol>` for MCQ options. |
 | Analysis | `qd-analysis` | One per page. Cells with `background-color:` remain static; others become text inputs. |
 | Status Panel | `#qd-status` | Empty floating div on quiz pages. JS injects status summary. |
 

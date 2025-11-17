@@ -112,6 +112,17 @@ npm run chromatic        # Run visual regression tests (requires API token)
 npm test                 # Runs unit + integration tests
 ```
 
+## DITA Publishing
+
+To prepare the bundle for DITA publishing with Oxygen WebHelp:
+
+```bash
+# Build and copy to DITA template resources
+npm run build:dita
+```
+
+This copies `dist/sonar-quiz.iife.js` to `dita/template/resources/` for inclusion in WebHelp output. See [dita/README.md](./dita/README.md) for DITA authoring guidelines and template customization.
+
 ## Project Documentation
 
 | Document | Description |
