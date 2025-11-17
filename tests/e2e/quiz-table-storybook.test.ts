@@ -263,7 +263,9 @@ test.describe('Quiz Table - Storybook Stories', () => {
 
   test.describe('Pre-filled Answers', () => {
     test('should load pre-filled answers from cache', async ({ page }) => {
-      await page.goto(`${STORYBOOK_URL}/iframe.html?id=enhancers-quiz-table--with-existing-answers`);
+      await page.goto(
+        `${STORYBOOK_URL}/iframe.html?id=enhancers-quiz-table--with-existing-answers`,
+      );
       await page.waitForSelector('table.qd-quiz');
       await page.waitForTimeout(200);
 

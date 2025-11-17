@@ -44,7 +44,12 @@ test.describe('Analysis Table - Storybook Stories', () => {
       // Verify NO cells are contenteditable
       for (let i = 0; i < cellCount; i++) {
         const cell = cells.nth(i);
-        const isEditable = await cell.evaluate((el) => el.contentEditable === 'true');
+        const isEditable = await cell.evaluate((el) => {
+          if (el instanceof HTMLElement) {
+            return el.contentEditable === 'true';
+          }
+          return false;
+        });
         expect(isEditable).toBe(false);
       }
     });
@@ -53,9 +58,7 @@ test.describe('Analysis Table - Storybook Stories', () => {
   test.describe('Interactive Mode', () => {
     test('should enable editing only for cells with interactive class', async ({ page }) => {
       // Navigate to the InteractiveMode story
-      await page.goto(
-        `${STORYBOOK_URL}/iframe.html?id=enhancers-analysis-table--interactive-mode`,
-      );
+      await page.goto(`${STORYBOOK_URL}/iframe.html?id=enhancers-analysis-table--interactive-mode`);
 
       // Wait for the table to be rendered and enhanced
       await page.waitForSelector('table.qd-analysis');
@@ -72,7 +75,12 @@ test.describe('Analysis Table - Storybook Stories', () => {
 
       for (let i = 0; i < interactiveCellCount; i++) {
         const cell = interactiveCells.nth(i);
-        const isEditable = await cell.evaluate((el) => el.contentEditable === 'true');
+        const isEditable = await cell.evaluate((el) => {
+          if (el instanceof HTMLElement) {
+            return el.contentEditable === 'true';
+          }
+          return false;
+        });
         expect(isEditable).toBe(true);
         await expect(cell).toHaveClass(/qd-editable/);
       }
@@ -88,7 +96,12 @@ test.describe('Analysis Table - Storybook Stories', () => {
         );
 
         if (!hasInteractiveClass) {
-          const isEditable = await cell.evaluate((el) => el.contentEditable === 'true');
+          const isEditable = await cell.evaluate((el) => {
+            if (el instanceof HTMLElement) {
+              return el.contentEditable === 'true';
+            }
+            return false;
+          });
           expect(isEditable).toBe(false);
         }
       }
@@ -96,9 +109,7 @@ test.describe('Analysis Table - Storybook Stories', () => {
 
     test('should allow editing and saving in interactive cells', async ({ page }) => {
       // Navigate to the InteractiveMode story
-      await page.goto(
-        `${STORYBOOK_URL}/iframe.html?id=enhancers-analysis-table--interactive-mode`,
-      );
+      await page.goto(`${STORYBOOK_URL}/iframe.html?id=enhancers-analysis-table--interactive-mode`);
 
       // Wait for the table to be rendered and enhanced
       await page.waitForSelector('table.qd-analysis');
@@ -129,8 +140,11 @@ test.describe('Analysis Table - Storybook Stories', () => {
         const cacheData = sessionStorage.getItem('qd/cache');
         if (!cacheData) return false;
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const cache = JSON.parse(cacheData);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
         const pageData = cache.pages['storybook-analysis-1'];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         return pageData?.analysis?.cells != null;
       });
 
@@ -141,9 +155,7 @@ test.describe('Analysis Table - Storybook Stories', () => {
       page,
     }) => {
       // 1. Navigate to Analysis Table Interactive Mode
-      await page.goto(
-        `${STORYBOOK_URL}/iframe.html?id=enhancers-analysis-table--interactive-mode`,
-      );
+      await page.goto(`${STORYBOOK_URL}/iframe.html?id=enhancers-analysis-table--interactive-mode`);
       await page.waitForSelector('table.qd-analysis');
       await page.waitForTimeout(200);
 
@@ -160,16 +172,12 @@ test.describe('Analysis Table - Storybook Stories', () => {
       expect(savedContent).toBe(testText1);
 
       // 4. Navigate to a Quiz Table story
-      await page.goto(
-        `${STORYBOOK_URL}/iframe.html?id=enhancers-quiz-table--interactive-mode`,
-      );
+      await page.goto(`${STORYBOOK_URL}/iframe.html?id=enhancers-quiz-table--interactive-mode`);
       await page.waitForSelector('table.qd-quiz');
       await page.waitForTimeout(200);
 
       // 5. Navigate BACK to Analysis Table
-      await page.goto(
-        `${STORYBOOK_URL}/iframe.html?id=enhancers-analysis-table--interactive-mode`,
-      );
+      await page.goto(`${STORYBOOK_URL}/iframe.html?id=enhancers-analysis-table--interactive-mode`);
       await page.waitForSelector('table.qd-analysis');
       await page.waitForTimeout(200);
 
@@ -183,8 +191,11 @@ test.describe('Analysis Table - Storybook Stories', () => {
         const cacheData = sessionStorage.getItem('qd/cache');
         if (!cacheData) return false;
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const cache = JSON.parse(cacheData);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
         const pageData = cache.pages['storybook-analysis-1'];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         return pageData?.analysis?.cells != null;
       });
 
@@ -195,9 +206,7 @@ test.describe('Analysis Table - Storybook Stories', () => {
       page,
     }) => {
       // 1. Navigate to Interactive Mode story
-      await page.goto(
-        `${STORYBOOK_URL}/iframe.html?id=enhancers-analysis-table--interactive-mode`,
-      );
+      await page.goto(`${STORYBOOK_URL}/iframe.html?id=enhancers-analysis-table--interactive-mode`);
       await page.waitForSelector('table.qd-analysis');
       await page.waitForTimeout(200);
 
@@ -221,9 +230,7 @@ test.describe('Analysis Table - Storybook Stories', () => {
       await page.waitForTimeout(200);
 
       // 5. Navigate BACK to Interactive Mode story
-      await page.goto(
-        `${STORYBOOK_URL}/iframe.html?id=enhancers-analysis-table--interactive-mode`,
-      );
+      await page.goto(`${STORYBOOK_URL}/iframe.html?id=enhancers-analysis-table--interactive-mode`);
       await page.waitForSelector('table.qd-analysis');
       await page.waitForTimeout(200);
 
@@ -258,7 +265,12 @@ test.describe('Analysis Table - Storybook Stories', () => {
         const hasInteractiveClass = await cell.evaluate((el) =>
           el.classList.contains('interactive'),
         );
-        const isEditable = await cell.evaluate((el) => el.contentEditable === 'true');
+        const isEditable = await cell.evaluate((el) => {
+          if (el instanceof HTMLElement) {
+            return el.contentEditable === 'true';
+          }
+          return false;
+        });
 
         if (hasInteractiveClass) {
           expect(isEditable).toBe(true);

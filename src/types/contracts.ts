@@ -294,7 +294,9 @@ export interface QuizEvents {
   'qd:logout': { detail: { serviceId: ServiceId } };
   'qd:answer-saved': { detail: { pageId: PageId; answer: AnswerRecord } };
   'qd:state-changed': { detail: { pageId: PageId; state: CompletionState } };
-  'qd:analysis-saved': { detail: { pageId: PageId; tableId: TableId; cellKey: CellKey; content: string } };
+  'qd:analysis-saved': {
+    detail: { pageId: PageId; tableId: TableId; cellKey: CellKey; content: string };
+  };
   'qd:instructor-unlock': { detail: { timestamp: string } };
   'qd:instructor-lock': { detail: { timestamp: string } };
   'qd:data-cleared': { detail: { timestamp: string } };

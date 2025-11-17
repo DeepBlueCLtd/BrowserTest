@@ -46,7 +46,12 @@ export { STORAGE_KEYS, SCHEMA_VERSION, SESSION_TIMEOUT_MS } from './types/contra
 
 // Export services
 export { parseQuizTable, validateAnswer } from './services/quiz-parser.js';
-export { parseAnalysisTable, generateTableId, generateCellKey, isCellEditable } from './services/analysis-parser.js';
+export {
+  parseAnalysisTable,
+  generateTableId,
+  generateCellKey,
+  isCellEditable,
+} from './services/analysis-parser.js';
 export { calculateCompletionState } from './services/state-calculator.js';
 
 // Export utilities

@@ -254,11 +254,7 @@ function handleCellEdit(
  * @param cellKey - Cell key
  * @param content - Cell content
  */
-function saveCellData(
-  metadata: AnalysisTableMetadata,
-  cellKey: CellKey,
-  content: string,
-): void {
+function saveCellData(metadata: AnalysisTableMetadata, cellKey: CellKey, content: string): void {
   const { pageId, parsed } = metadata;
 
   if (!pageId) {

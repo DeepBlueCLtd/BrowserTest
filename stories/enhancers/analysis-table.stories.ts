@@ -75,43 +75,33 @@ export const NonInteractiveMode: Story = {
       <div style="padding: 20px; max-width: 800px;">
         <h2>Analysis Table - Non-Interactive Mode</h2>
         <p>
-          <strong>Note:</strong> This is the pre-login state. Cells with
-          class="interactive" are marked but not editable.
+          <strong>Note:</strong> This is the pre-login state. Cells with class="interactive" are
+          marked but not editable.
         </p>
 
         <table class="qd-analysis" style="width: 100%; border-collapse: collapse;">
           <thead>
             <tr>
-              <th style="border: 1px solid #ccc; padding: 8px; background: #f0f0f0;">
-                Question
-              </th>
+              <th style="border: 1px solid #ccc; padding: 8px; background: #f0f0f0;">Question</th>
               <th style="border: 1px solid #ccc; padding: 8px; background: #f0f0f0;">
                 Student Answer
               </th>
-              <th style="border: 1px solid #ccc; padding: 8px; background: #f0f0f0;">
-                Notes
-              </th>
+              <th style="border: 1px solid #ccc; padding: 8px; background: #f0f0f0;">Notes</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td style="border: 1px solid #ccc; padding: 8px;">
-                What is 2+2?
-              </td>
+              <td style="border: 1px solid #ccc; padding: 8px;">What is 2+2?</td>
               <td
                 class="interactive"
                 style="border: 1px solid #ccc; padding: 8px; background: #fff8dc;"
               >
                 <!-- Empty, ready for student input -->
               </td>
-              <td style="border: 1px solid #ccc; padding: 8px;">
-                Verify basic arithmetic
-              </td>
+              <td style="border: 1px solid #ccc; padding: 8px;">Verify basic arithmetic</td>
             </tr>
             <tr>
-              <td style="border: 1px solid #ccc; padding: 8px;">
-                Explain photosynthesis
-              </td>
+              <td style="border: 1px solid #ccc; padding: 8px;">Explain photosynthesis</td>
               <td
                 class="interactive"
                 style="border: 1px solid #ccc; padding: 8px; background: #fff8dc;"
@@ -123,9 +113,7 @@ export const NonInteractiveMode: Story = {
               </td>
             </tr>
             <tr>
-              <td style="border: 1px solid #ccc; padding: 8px;">
-                Define democracy
-              </td>
+              <td style="border: 1px solid #ccc; padding: 8px;">Define democracy</td>
               <td
                 class="interactive"
                 style="border: 1px solid #ccc; padding: 8px; background: #fff8dc;"
@@ -140,13 +128,13 @@ export const NonInteractiveMode: Story = {
         </table>
 
         <div style="margin-top: 20px; padding: 10px; background: #f0f0f0;">
-          <strong>Cells marked with class="interactive":</strong> Column 2 (Student Answer) -
-          shown with light yellow background for visualization
+          <strong>Cells marked with class="interactive":</strong> Column 2 (Student Answer) - shown
+          with light yellow background for visualization
         </div>
       </div>
     `;
   },
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const table = canvasElement.querySelector('table.qd-analysis') as HTMLTableElement;
     if (table) {
       enhanceAnalysisTable(table, { interactive: false });
@@ -181,9 +169,7 @@ export const InteractiveMode: Story = {
         <table class="qd-analysis" style="width: 100%; border-collapse: collapse;">
           <thead>
             <tr>
-              <th style="border: 1px solid #ccc; padding: 8px; background: #f0f0f0;">
-                Question
-              </th>
+              <th style="border: 1px solid #ccc; padding: 8px; background: #f0f0f0;">Question</th>
               <th style="border: 1px solid #ccc; padding: 8px; background: #f0f0f0;">
                 Student Answer (editable)
               </th>
@@ -194,23 +180,17 @@ export const InteractiveMode: Story = {
           </thead>
           <tbody>
             <tr>
-              <td style="border: 1px solid #ccc; padding: 8px;">
-                What is 2+2?
-              </td>
+              <td style="border: 1px solid #ccc; padding: 8px;">What is 2+2?</td>
               <td
                 class="interactive"
                 style="border: 1px solid #ccc; padding: 8px; background: #fff8dc;"
               >
                 <!-- Empty, ready for editing -->
               </td>
-              <td style="border: 1px solid #ccc; padding: 8px;">
-                Verify basic arithmetic
-              </td>
+              <td style="border: 1px solid #ccc; padding: 8px;">Verify basic arithmetic</td>
             </tr>
             <tr>
-              <td style="border: 1px solid #ccc; padding: 8px;">
-                Explain photosynthesis
-              </td>
+              <td style="border: 1px solid #ccc; padding: 8px;">Explain photosynthesis</td>
               <td
                 class="interactive"
                 style="border: 1px solid #ccc; padding: 8px; background: #fff8dc;"
@@ -222,9 +202,7 @@ export const InteractiveMode: Story = {
               </td>
             </tr>
             <tr>
-              <td style="border: 1px solid #ccc; padding: 8px;">
-                Define democracy
-              </td>
+              <td style="border: 1px solid #ccc; padding: 8px;">Define democracy</td>
               <td
                 class="interactive"
                 style="border: 1px solid #ccc; padding: 8px; background: #fff8dc;"
@@ -246,7 +224,7 @@ export const InteractiveMode: Story = {
       </div>
     `;
   },
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const table = canvasElement.querySelector('table.qd-analysis') as HTMLTableElement;
     if (table) {
       enhanceAnalysisTable(table, {
@@ -254,8 +232,9 @@ export const InteractiveMode: Story = {
         pageId: 'storybook-analysis-1',
       });
 
-      // Listen for save events
+      // Listen for save events (log to console for debugging)
       document.addEventListener('qd:analysis-saved', ((e: CustomEvent) => {
+        // eslint-disable-next-line no-console
         console.log('Analysis cell saved:', e.detail);
       }) as EventListener);
     }
@@ -285,12 +264,8 @@ export const MixedEditability: Story = {
         <table class="qd-analysis" style="width: 100%; border-collapse: collapse;">
           <thead>
             <tr>
-              <th style="border: 1px solid #ccc; padding: 8px; background: #f0f0f0;">
-                Item
-              </th>
-              <th style="border: 1px solid #ccc; padding: 8px; background: #f0f0f0;">
-                Value
-              </th>
+              <th style="border: 1px solid #ccc; padding: 8px; background: #f0f0f0;">Item</th>
+              <th style="border: 1px solid #ccc; padding: 8px; background: #f0f0f0;">Value</th>
               <th style="border: 1px solid #ccc; padding: 8px; background: #f0f0f0;">
                 Description
               </th>
@@ -298,54 +273,36 @@ export const MixedEditability: Story = {
           </thead>
           <tbody>
             <tr>
-              <td style="border: 1px solid #ccc; padding: 8px;">
-                Name
-              </td>
+              <td style="border: 1px solid #ccc; padding: 8px;">Name</td>
               <td
                 class="interactive"
                 style="border: 1px solid #ccc; padding: 8px; background: #fff8dc;"
               >
                 <!-- Editable -->
               </td>
-              <td style="border: 1px solid #ccc; padding: 8px;">
-                Enter your name
-              </td>
+              <td style="border: 1px solid #ccc; padding: 8px;">Enter your name</td>
             </tr>
             <tr>
-              <td style="border: 1px solid #ccc; padding: 8px;">
-                Student ID
-              </td>
-              <td style="border: 1px solid #ccc; padding: 8px; background: #f5f5f5;">
-                RN9999
-              </td>
+              <td style="border: 1px solid #ccc; padding: 8px;">Student ID</td>
+              <td style="border: 1px solid #ccc; padding: 8px; background: #f5f5f5;">RN9999</td>
               <td style="border: 1px solid #ccc; padding: 8px;">
                 Pre-filled (read-only, no 'interactive' class)
               </td>
             </tr>
             <tr>
-              <td style="border: 1px solid #ccc; padding: 8px;">
-                Comments
-              </td>
+              <td style="border: 1px solid #ccc; padding: 8px;">Comments</td>
               <td
                 class="interactive"
                 style="border: 1px solid #ccc; padding: 8px; background: #fff8dc;"
               >
                 <!-- Editable -->
               </td>
-              <td style="border: 1px solid #ccc; padding: 8px;">
-                Add your feedback
-              </td>
+              <td style="border: 1px solid #ccc; padding: 8px;">Add your feedback</td>
             </tr>
             <tr>
-              <td style="border: 1px solid #ccc; padding: 8px;">
-                Grade
-              </td>
-              <td style="border: 1px solid #ccc; padding: 8px; background: #f5f5f5;">
-                A
-              </td>
-              <td style="border: 1px solid #ccc; padding: 8px;">
-                Instructor-assigned (read-only)
-              </td>
+              <td style="border: 1px solid #ccc; padding: 8px;">Grade</td>
+              <td style="border: 1px solid #ccc; padding: 8px; background: #f5f5f5;">A</td>
+              <td style="border: 1px solid #ccc; padding: 8px;">Instructor-assigned (read-only)</td>
             </tr>
           </tbody>
         </table>
@@ -353,18 +310,14 @@ export const MixedEditability: Story = {
         <div style="margin-top: 20px; padding: 10px; background: #fff3e0;">
           <strong>Legend:</strong>
           <ul style="margin: 5px 0;">
-            <li>
-              <strong>Light yellow background:</strong> Editable cells (class="interactive")
-            </li>
-            <li>
-              <strong>Gray background:</strong> Read-only cells (no 'interactive' class)
-            </li>
+            <li><strong>Light yellow background:</strong> Editable cells (class="interactive")</li>
+            <li><strong>Gray background:</strong> Read-only cells (no 'interactive' class)</li>
           </ul>
         </div>
       </div>
     `;
   },
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const table = canvasElement.querySelector('table.qd-analysis') as HTMLTableElement;
     if (table) {
       enhanceAnalysisTable(table, {
