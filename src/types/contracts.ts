@@ -173,6 +173,8 @@ export interface PageCache {
   last?: string;
   /** Answer records (ADDED in v1.1.0) */
   answers?: AnswerRecord[];
+  /** Analysis table data if present (ADDED in v1.2.0) */
+  analysis?: AnalysisData;
 }
 
 /** Session cache for quick access */
@@ -292,6 +294,7 @@ export interface QuizEvents {
   'qd:logout': { detail: { serviceId: ServiceId } };
   'qd:answer-saved': { detail: { pageId: PageId; answer: AnswerRecord } };
   'qd:state-changed': { detail: { pageId: PageId; state: CompletionState } };
+  'qd:analysis-saved': { detail: { pageId: PageId; tableId: TableId; cellKey: CellKey; content: string } };
   'qd:instructor-unlock': { detail: { timestamp: string } };
   'qd:instructor-lock': { detail: { timestamp: string } };
   'qd:data-cleared': { detail: { timestamp: string } };
