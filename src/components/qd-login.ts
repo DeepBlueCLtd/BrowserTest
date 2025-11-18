@@ -552,7 +552,7 @@ export class QdLogin extends LitElement {
     form.appendChild(footer);
     form.onsubmit = (e) => {
       e.preventDefault();
-      console.log('[instructor] Form submitted, password:', this.instructorPassword );
+      console.log('[instructor] Form submitted, password:', this.instructorPassword);
       void this.handleInstructorLogin(e);
     };
 

@@ -145,12 +145,16 @@ test.describe('DITA Instructor Flow', () => {
     await page.waitForTimeout(500);
 
     // Fill password in modal (modal is appended to body, not in shadow DOM)
-    const modalPassword = page.locator('body > div[style*="position: fixed"] input[type="password"]');
+    const modalPassword = page.locator(
+      'body > div[style*="position: fixed"] input[type="password"]',
+    );
     await expect(modalPassword).toBeVisible({ timeout: 2000 });
     await modalPassword.fill(TEST_PASSWORD);
 
     // Click login in modal
-    const modalLoginButton = page.locator('body > div[style*="position: fixed"] button[type="submit"]');
+    const modalLoginButton = page.locator(
+      'body > div[style*="position: fixed"] button[type="submit"]',
+    );
     await modalLoginButton.click();
 
     // Wait for instructor panel to appear

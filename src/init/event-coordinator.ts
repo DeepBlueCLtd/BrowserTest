@@ -133,7 +133,9 @@ export class EventCoordinator {
     // Check if instructor - instructors don't need interactive tables
     const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
     if (isInstructor) {
-      info('Instructor session detected, tables remain in non-interactive mode with answers visible');
+      info(
+        'Instructor session detected, tables remain in non-interactive mode with answers visible',
+      );
       // Tables are already enhanced during bootstrap, no need to re-enhance
       // Event listeners for instructor features are already set up
       return;
