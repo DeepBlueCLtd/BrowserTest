@@ -90,7 +90,7 @@ describe('Quiz Table Enhancement', () => {
       };
 
       const cache: SessionCache = {
-        totals: { answered: 0, correct: 0 },
+        totals: { total: 0, answered: 0, correct: 0 },
         pages: {},
       };
 
@@ -133,10 +133,11 @@ describe('Quiz Table Enhancement', () => {
 
       // Setup existing answers in cache
       const cache: SessionCache = {
-        totals: { answered: 1, correct: 1 },
+        totals: { total: 1, answered: 1, correct: 1 },
         pages: {
           'test-page-1': {
             state: 'incomplete',
+      total: 5,
             answered: 1,
             correct: 1,
             answers: [{ answer: '1', success: true, timestamp: new Date().toISOString() }],

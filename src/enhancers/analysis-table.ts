@@ -270,14 +270,15 @@ function saveCellData(metadata: AnalysisTableMetadata, cellKey: CellKey, content
 
   // Get or create cache
   const cache = getJSON<SessionCache>(STORAGE_KEYS.CACHE) || {
-    totals: { answered: 0, correct: 0 },
+    totals: { total: 0, answered: 0, correct: 0 },
     pages: {},
   };
 
   // Get existing page data or create default (preserves answers field from quiz tables)
   const existingPageData = cache.pages[pageId];
-  const pageData = existingPageData || {
+  const pageData: import('../types/contracts.js').PageCache = existingPageData || {
     state: 'unstarted',
+    total: 0,
     answered: 0,
     correct: 0,
     answers: [],

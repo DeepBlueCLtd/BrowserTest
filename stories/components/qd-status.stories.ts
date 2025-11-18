@@ -52,12 +52,12 @@ export const Default: Story = {
   render: () => {
     // Set up session cache with sample data
     const cache: SessionCache = {
-      totals: { answered: 15, correct: 12 },
+      totals: { total: 15, answered: 15, correct: 12 },
       pages: {
-        'page-1': { state: 'complete', answered: 5, correct: 5, answers: [] },
-        'page-2': { state: 'incomplete', answered: 5, correct: 4, answers: [] },
-        'page-3': { state: 'incomplete', answered: 5, correct: 3, answers: [] },
-        'page-4': { state: 'unstarted', answered: 0, correct: 0, answers: [] },
+        'page-1': { state: 'complete', total: 5, answered: 5, correct: 5, answers: [] },
+        'page-2': { state: 'incomplete', total: 5, answered: 5, correct: 4, answers: [] },
+        'page-3': { state: 'incomplete', total: 5, answered: 5, correct: 3, answers: [] },
+        'page-4': { state: 'unstarted', total: 0, answered: 0, correct: 0, answers: [] },
       },
     };
     sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
@@ -101,11 +101,11 @@ export const Default: Story = {
 export const EmptyState: Story = {
   render: () => {
     const cache: SessionCache = {
-      totals: { answered: 0, correct: 0 },
+      totals: { total: 0, answered: 0, correct: 0 },
       pages: {
-        'page-1': { state: 'unstarted', answered: 0, correct: 0, answers: [] },
-        'page-2': { state: 'unstarted', answered: 0, correct: 0, answers: [] },
-        'page-3': { state: 'unstarted', answered: 0, correct: 0, answers: [] },
+        'page-1': { state: 'unstarted', total: 0, answered: 0, correct: 0, answers: [] },
+        'page-2': { state: 'unstarted', total: 0, answered: 0, correct: 0, answers: [] },
+        'page-3': { state: 'unstarted', total: 0, answered: 0, correct: 0, answers: [] },
       },
     };
     sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
@@ -140,12 +140,12 @@ export const EmptyState: Story = {
 export const PerfectScore: Story = {
   render: () => {
     const cache: SessionCache = {
-      totals: { answered: 20, correct: 20 },
+      totals: { total: 20, answered: 20, correct: 20 },
       pages: {
-        'page-1': { state: 'complete', answered: 5, correct: 5, answers: [] },
-        'page-2': { state: 'complete', answered: 5, correct: 5, answers: [] },
-        'page-3': { state: 'complete', answered: 5, correct: 5, answers: [] },
-        'page-4': { state: 'complete', answered: 5, correct: 5, answers: [] },
+        'page-1': { state: 'complete', total: 5, answered: 5, correct: 5, answers: [] },
+        'page-2': { state: 'complete', total: 5, answered: 5, correct: 5, answers: [] },
+        'page-3': { state: 'complete', total: 5, answered: 5, correct: 5, answers: [] },
+        'page-4': { state: 'complete', total: 5, answered: 5, correct: 5, answers: [] },
       },
     };
     sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
@@ -178,12 +178,12 @@ export const PerfectScore: Story = {
 export const LowScore: Story = {
   render: () => {
     const cache: SessionCache = {
-      totals: { answered: 20, correct: 6 },
+      totals: { total: 20, answered: 20, correct: 6 },
       pages: {
-        'page-1': { state: 'incomplete', answered: 5, correct: 2, answers: [] },
-        'page-2': { state: 'incomplete', answered: 5, correct: 1, answers: [] },
-        'page-3': { state: 'incomplete', answered: 5, correct: 2, answers: [] },
-        'page-4': { state: 'incomplete', answered: 5, correct: 1, answers: [] },
+        'page-1': { state: 'incomplete', total: 5, answered: 5, correct: 2, answers: [] },
+        'page-2': { state: 'incomplete', total: 5, answered: 5, correct: 1, answers: [] },
+        'page-3': { state: 'incomplete', total: 5, answered: 5, correct: 2, answers: [] },
+        'page-4': { state: 'incomplete', total: 5, answered: 5, correct: 1, answers: [] },
       },
     };
     sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
@@ -222,10 +222,11 @@ export const RealTimeUpdates: Story = {
 
     const updateCache = () => {
       const cache: SessionCache = {
-        totals: { answered: answerCount, correct: correctCount },
+        totals: { total: 5, answered: answerCount, correct: correctCount },
         pages: {
           'page-1': {
             state: answerCount >= 5 && correctCount === answerCount ? 'complete' : 'incomplete',
+            total: 5,
             answered: Math.min(answerCount, 5),
             correct: Math.min(correctCount, 5),
             answers: [],
@@ -298,10 +299,10 @@ export const RealTimeUpdates: Story = {
 export const MinimalExample: Story = {
   render: () => {
     const cache: SessionCache = {
-      totals: { answered: 10, correct: 7 },
+      totals: { total: 10, answered: 10, correct: 7 },
       pages: {
-        'page-1': { state: 'complete', answered: 5, correct: 5, answers: [] },
-        'page-2': { state: 'incomplete', answered: 5, correct: 2, answers: [] },
+        'page-1': { state: 'complete', total: 5, answered: 5, correct: 5, answers: [] },
+        'page-2': { state: 'incomplete', total: 5, answered: 5, correct: 2, answers: [] },
       },
     };
     sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));

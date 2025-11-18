@@ -44,13 +44,14 @@ type Story = StoryObj;
  */
 function createCacheWithStates(states: Record<string, 'unstarted' | 'incomplete' | 'complete'>) {
   const cache: SessionCache = {
-    totals: { answered: 0, correct: 0 },
+    totals: { total: 0, answered: 0, correct: 0 },
     pages: {},
   };
 
   Object.entries(states).forEach(([pageId, state]) => {
     cache.pages[pageId] = {
       state,
+      total: 3,
       answered: state === 'unstarted' ? 0 : 3,
       correct: state === 'complete' ? 3 : state === 'incomplete' ? 1 : 0,
       answers: [],

@@ -205,7 +205,7 @@ function setupSession() {
   const existingCacheJson = sessionStorage.getItem(STORAGE_KEYS.CACHE);
   if (!existingCacheJson) {
     const cache: SessionCache = {
-      totals: { answered: 0, correct: 0 },
+      totals: { total: 0, answered: 0, correct: 0 },
       pages: {},
     };
     sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
@@ -338,13 +338,14 @@ export const WithExistingAnswers: Story = {
     const existingCache: SessionCache = existingCacheJson
       ? (JSON.parse(existingCacheJson) as SessionCache)
       : {
-          totals: { answered: 0, correct: 0 },
+          totals: { total: 0, answered: 0, correct: 0 },
           pages: {},
         };
 
     // Add pre-filled answers for this specific page
     existingCache.pages['demo-prefilled-page'] = {
       state: 'incomplete',
+      total: 5,
       answered: 2,
       correct: 1,
       answers: [
@@ -356,11 +357,13 @@ export const WithExistingAnswers: Story = {
     // Recalculate totals across all pages
     let totalAnswered = 0;
     let totalCorrect = 0;
+    let totalQuestions = 0;
     for (const page of Object.values(existingCache.pages)) {
+      totalQuestions += page.total;
       totalAnswered += page.answered;
       totalCorrect += page.correct;
     }
-    existingCache.totals = { answered: totalAnswered, correct: totalCorrect };
+    existingCache.totals = { total: totalQuestions, answered: totalAnswered, correct: totalCorrect };
 
     sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(existingCache));
 

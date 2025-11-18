@@ -313,6 +313,58 @@ export function buildPageCache(_pageId: string, pageData: PageData): PageCache {
 }
 
 /**
+ * Register page questions in cache
+ *
+ * Called when a quiz page loads to register the total number of questions.
+ * This ensures the status panel shows total registered questions, not just answered.
+ *
+ * @param cache - Current cache to update
+ * @param pageId - Page identifier
+ * @param totalQuestions - Total number of questions on the page
+ * @returns Updated cache
+ */
+export function registerPageQuestions(
+  cache: SessionCache,
+  pageId: string,
+  totalQuestions: number,
+): SessionCache {
+  // Get existing page cache or create new one
+  const existingPage = cache.pages[pageId];
+
+  // If page already registered with same or higher total, don't update
+  if (existingPage && existingPage.total >= totalQuestions) {
+    return cache;
+  }
+
+  // Calculate delta for totals update
+  const oldTotal = existingPage?.total || 0;
+  const delta = totalQuestions - oldTotal;
+
+  // Create/update page entry
+  const updatedPage: PageCache = {
+    state: existingPage?.state || ('unstarted' as const),
+    total: totalQuestions,
+    answered: existingPage?.answered || 0,
+    correct: existingPage?.correct || 0,
+    last: existingPage?.last,
+    answers: existingPage?.answers,
+    analysis: existingPage?.analysis,
+  };
+
+  return {
+    totals: {
+      total: cache.totals.total + delta,
+      answered: cache.totals.answered,
+      correct: cache.totals.correct,
+    },
+    pages: {
+      ...cache.pages,
+      [pageId]: updatedPage,
+    },
+  };
+}
+
+/**
  * Update cache with a new answer
  *
  * This incrementally updates the cache when a new answer is submitted,
@@ -335,6 +387,7 @@ export function updateCacheWithAnswer(
   // Get or create page entry
   const pageCache = cache.pages[pageId] || {
     state: 'incomplete' as const,
+    total: 0,
     answered: 0,
     correct: 0,
   };
@@ -350,6 +403,7 @@ export function updateCacheWithAnswer(
 
   // Update totals
   const updatedTotals = {
+    total: cache.totals.total,
     answered: cache.totals.answered + 1,
     correct: cache.totals.correct + (isCorrect ? 1 : 0),
   };

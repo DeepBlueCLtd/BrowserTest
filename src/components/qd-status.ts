@@ -26,10 +26,10 @@ import { SessionService } from '../services/session.js';
 @customElement('qd-status')
 export class QdStatus extends LitElement {
   /**
-   * Total questions answered
+   * Total questions registered
    */
   @state()
-  private answered = 0;
+  private total = 0;
 
   /**
    * Total correct answers
@@ -146,7 +146,7 @@ export class QdStatus extends LitElement {
         <div class="status-indicator ${this.statusColor}"></div>
         <div class="progress-label">Progress:</div>
         <div class="progress-text">
-          ${this.correct}/${this.answered} Correct (${this.percentage}%)
+          ${this.correct}/${this.total} Correct (${this.percentage}%)
         </div>
         <button class="logout-button" @click=${() => this.handleLogout()}>Logout</button>
       </div>
@@ -159,36 +159,36 @@ export class QdStatus extends LitElement {
   private loadCache() {
     const cache = getJSON<SessionCache>(STORAGE_KEYS.CACHE);
     if (!cache) {
-      this.answered = 0;
+      this.total = 0;
       this.correct = 0;
       this.percentage = 0;
       this.statusColor = 'red';
       return;
     }
 
-    this.answered = cache.totals.answered;
+    this.total = cache.totals.total;
     this.correct = cache.totals.correct;
-    this.percentage = this.calculatePercentage(cache.totals.answered, cache.totals.correct);
-    this.statusColor = this.calculateStatusColor(cache.totals.answered, cache.totals.correct);
+    this.percentage = this.calculatePercentage(cache.totals.total, cache.totals.correct);
+    this.statusColor = this.calculateStatusColor(cache.totals.total, cache.totals.correct);
   }
 
   /**
-   * Calculate percentage from answered/correct
+   * Calculate percentage from total/correct
    */
-  private calculatePercentage(answered: number, correct: number): number {
-    if (answered === 0) return 0;
-    return Math.round((correct / answered) * 100);
+  private calculatePercentage(total: number, correct: number): number {
+    if (total === 0) return 0;
+    return Math.round((correct / total) * 100);
   }
 
   /**
    * Calculate status indicator color
-   * Red: No answers
-   * Green: All correct
+   * Red: No questions registered or no answers
+   * Green: All questions answered correctly
    * Amber: Some answered but not all correct
    */
-  private calculateStatusColor(answered: number, correct: number): 'red' | 'amber' | 'green' {
-    if (answered === 0) return 'red';
-    if (correct === answered) return 'green';
+  private calculateStatusColor(total: number, correct: number): 'red' | 'amber' | 'green' {
+    if (total === 0 || correct === 0) return 'red';
+    if (correct === total) return 'green';
     return 'amber';
   }
 

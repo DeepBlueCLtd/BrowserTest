@@ -40,11 +40,11 @@ describe('Home Page Badges', () => {
     it('should apply badges to all .quizPageBtn links', () => {
       // Create session cache with states
       const cache: SessionCache = {
-        totals: { answered: 0, correct: 0 },
+        totals: { total: 0, answered: 0, correct: 0 },
         pages: {
-          'page-1': { state: 'complete', answered: 2, correct: 2, answers: [] },
-          'page-2': { state: 'incomplete', answered: 2, correct: 1, answers: [] },
-          'page-3': { state: 'unstarted', answered: 0, correct: 0, answers: [] },
+          'page-1': { state: 'complete', total: 2, answered: 2, correct: 2, answers: [] },
+          'page-2': { state: 'incomplete', total: 2, answered: 2, correct: 1, answers: [] },
+          'page-3': { state: 'unstarted', total: 0, answered: 0, correct: 0, answers: [] },
         },
       };
       setJSON(STORAGE_KEYS.CACHE, cache);
@@ -75,7 +75,7 @@ describe('Home Page Badges', () => {
 
     it('should handle missing pageId gracefully', () => {
       const cache: SessionCache = {
-        totals: { answered: 0, correct: 0 },
+        totals: { total: 0, answered: 0, correct: 0 },
         pages: {},
       };
       setJSON(STORAGE_KEYS.CACHE, cache);
@@ -92,7 +92,7 @@ describe('Home Page Badges', () => {
 
     it('should not affect non-quiz links', () => {
       const cache: SessionCache = {
-        totals: { answered: 0, correct: 0 },
+        totals: { total: 0, answered: 0, correct: 0 },
         pages: {},
       };
       setJSON(STORAGE_KEYS.CACHE, cache);
@@ -110,9 +110,9 @@ describe('Home Page Badges', () => {
     it('should update badges when qd:state-changed event fires', () => {
       // Initial cache
       const cache: SessionCache = {
-        totals: { answered: 0, correct: 0 },
+        totals: { total: 0, answered: 0, correct: 0 },
         pages: {
-          'page-1': { state: 'incomplete', answered: 2, correct: 1, answers: [] },
+          'page-1': { state: 'incomplete', total: 2, answered: 2, correct: 1, answers: [] },
         },
       };
       setJSON(STORAGE_KEYS.CACHE, cache);
@@ -141,9 +141,9 @@ describe('Home Page Badges', () => {
 
     it('should handle badge transitions: red → amber → green', () => {
       const cache: SessionCache = {
-        totals: { answered: 0, correct: 0 },
+        totals: { total: 0, answered: 0, correct: 0 },
         pages: {
-          'page-1': { state: 'unstarted', answered: 0, correct: 0, answers: [] },
+          'page-1': { state: 'unstarted', total: 0, answered: 0, correct: 0, answers: [] },
         },
       };
       setJSON(STORAGE_KEYS.CACHE, cache);
@@ -188,7 +188,7 @@ describe('Home Page Badges', () => {
   describe('Edge Cases', () => {
     it('should handle empty cache pages object', () => {
       const cache: SessionCache = {
-        totals: { answered: 0, correct: 0 },
+        totals: { total: 0, answered: 0, correct: 0 },
         pages: {},
       };
       setJSON(STORAGE_KEYS.CACHE, cache);
@@ -203,7 +203,7 @@ describe('Home Page Badges', () => {
 
     it('should handle state updates for non-existent pageIds', () => {
       const cache: SessionCache = {
-        totals: { answered: 0, correct: 0 },
+        totals: { total: 0, answered: 0, correct: 0 },
         pages: {},
       };
       setJSON(STORAGE_KEYS.CACHE, cache);

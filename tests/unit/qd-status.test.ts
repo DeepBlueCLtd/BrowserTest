@@ -43,7 +43,7 @@ describe('QdStatus Component', () => {
     it('should display session info when cache exists', async () => {
       // Set up session cache
       const cache: SessionCache = {
-        totals: { answered: 10, correct: 8 },
+        totals: { total: 10, answered: 10, correct: 8 },
         pages: {},
       };
       setJSON(STORAGE_KEYS.CACHE, cache);
@@ -63,7 +63,7 @@ describe('QdStatus Component', () => {
 
     it('should calculate and display percentage', async () => {
       const cache: SessionCache = {
-        totals: { answered: 10, correct: 8 },
+        totals: { total: 10, answered: 10, correct: 8 },
         pages: {},
       };
       setJSON(STORAGE_KEYS.CACHE, cache);
@@ -81,7 +81,7 @@ describe('QdStatus Component', () => {
 
     it('should display 0% when no questions answered', async () => {
       const cache: SessionCache = {
-        totals: { answered: 0, correct: 0 },
+        totals: { total: 0, answered: 0, correct: 0 },
         pages: {},
       };
       setJSON(STORAGE_KEYS.CACHE, cache);
@@ -104,7 +104,7 @@ describe('QdStatus Component', () => {
     it('should update when cache changes', async () => {
       // Initial cache
       const cache: SessionCache = {
-        totals: { answered: 5, correct: 3 },
+        totals: { total: 5, answered: 5, correct: 3 },
         pages: {},
       };
       setJSON(STORAGE_KEYS.CACHE, cache);
@@ -184,7 +184,7 @@ describe('QdStatus Component', () => {
 
     it('should handle empty pages object', async () => {
       const cache: SessionCache = {
-        totals: { answered: 0, correct: 0 },
+        totals: { total: 0, answered: 0, correct: 0 },
         pages: {},
       };
       setJSON(STORAGE_KEYS.CACHE, cache);
@@ -198,7 +198,7 @@ describe('QdStatus Component', () => {
 
     it('should handle division by zero for percentage', async () => {
       const cache: SessionCache = {
-        totals: { answered: 0, correct: 0 },
+        totals: { total: 0, answered: 0, correct: 0 },
         pages: {},
       };
       setJSON(STORAGE_KEYS.CACHE, cache);
@@ -217,9 +217,9 @@ describe('QdStatus Component', () => {
   describe('Real-time Updates', () => {
     it('should listen for qd:state-changed events', async () => {
       const cache: SessionCache = {
-        totals: { answered: 5, correct: 3 },
+        totals: { total: 5, answered: 5, correct: 3 },
         pages: {
-          'page-1': { state: 'incomplete', answered: 5, correct: 3, answers: [] },
+          'page-1': { state: 'incomplete', total: 5, answered: 5, correct: 3, answers: [] },
         },
       };
       setJSON(STORAGE_KEYS.CACHE, cache);

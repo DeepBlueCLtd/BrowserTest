@@ -190,7 +190,7 @@ describe('Session Service', () => {
     it('should remove cache from sessionStorage', () => {
       service.createSession('RN2344', 'Alice', '11-2024');
       service.saveCache({
-        totals: { answered: 5, correct: 3 },
+        totals: { total: 5, answered: 5, correct: 3 },
         pages: {},
       });
 
@@ -321,7 +321,7 @@ describe('Session Service', () => {
 
       it('should return cache if it exists', () => {
         const cache: SessionCache = {
-          totals: { answered: 5, correct: 3 },
+          totals: { total: 5, answered: 5, correct: 3 },
           pages: {},
         };
         service.saveCache(cache);
@@ -339,7 +339,7 @@ describe('Session Service', () => {
     describe('saveCache()', () => {
       it('should save cache to sessionStorage', () => {
         const cache: SessionCache = {
-          totals: { answered: 5, correct: 3 },
+          totals: { total: 5, answered: 5, correct: 3 },
           pages: {},
         };
 
@@ -357,7 +357,7 @@ describe('Session Service', () => {
     describe('clearCache()', () => {
       it('should remove cache from sessionStorage', () => {
         service.saveCache({
-          totals: { answered: 5, correct: 3 },
+          totals: { total: 5, answered: 5, correct: 3 },
           pages: {},
         });
 
@@ -519,10 +519,11 @@ describe('Cache Building Utilities', () => {
   describe('updateCacheWithAnswer()', () => {
     it('should increment answered count', () => {
       const cache: SessionCache = {
-        totals: { answered: 5, correct: 3 },
+        totals: { total: 5, answered: 5, correct: 3 },
         pages: {
           'page-1': {
             state: 'incomplete',
+      total: 5,
             answered: 2,
             correct: 1,
           },
@@ -537,10 +538,11 @@ describe('Cache Building Utilities', () => {
 
     it('should increment correct count for correct answer', () => {
       const cache: SessionCache = {
-        totals: { answered: 5, correct: 3 },
+        totals: { total: 5, answered: 5, correct: 3 },
         pages: {
           'page-1': {
             state: 'incomplete',
+      total: 5,
             answered: 2,
             correct: 1,
           },
@@ -555,10 +557,11 @@ describe('Cache Building Utilities', () => {
 
     it('should not increment correct count for incorrect answer', () => {
       const cache: SessionCache = {
-        totals: { answered: 5, correct: 3 },
+        totals: { total: 5, answered: 5, correct: 3 },
         pages: {
           'page-1': {
             state: 'incomplete',
+      total: 5,
             answered: 2,
             correct: 1,
           },
@@ -573,10 +576,11 @@ describe('Cache Building Utilities', () => {
 
     it('should update state', () => {
       const cache: SessionCache = {
-        totals: { answered: 5, correct: 3 },
+        totals: { total: 5, answered: 5, correct: 3 },
         pages: {
           'page-1': {
             state: 'incomplete',
+      total: 5,
             answered: 2,
             correct: 1,
           },
@@ -590,7 +594,7 @@ describe('Cache Building Utilities', () => {
 
     it('should create new page entry if it does not exist', () => {
       const cache: SessionCache = {
-        totals: { answered: 0, correct: 0 },
+        totals: { total: 0, answered: 0, correct: 0 },
         pages: {},
       };
 
@@ -603,10 +607,11 @@ describe('Cache Building Utilities', () => {
 
     it('should not mutate original cache', () => {
       const cache: SessionCache = {
-        totals: { answered: 5, correct: 3 },
+        totals: { total: 5, answered: 5, correct: 3 },
         pages: {
           'page-1': {
             state: 'incomplete',
+      total: 5,
             answered: 2,
             correct: 1,
           },

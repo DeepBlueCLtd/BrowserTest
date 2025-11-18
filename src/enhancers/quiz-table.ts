@@ -25,6 +25,7 @@ import type {
 import { parseQuizTable } from '../services/quiz-parser.js';
 import { validateAnswer } from '../services/quiz-parser.js';
 import { calculateCompletionState } from '../services/state-calculator.js';
+import { registerPageQuestions } from '../services/session.js';
 import { Debouncer } from '../utils/debouncer.js';
 import { createElement, addClass, removeClass } from '../utils/dom-helpers.js';
 import { emitCustomEvent } from '../utils/event-helpers.js';
@@ -131,6 +132,9 @@ export function enhanceQuizTable(
  * @returns true if successful
  */
 function enhanceNonInteractive(table: HTMLTableElement): boolean {
+  // Remove colgroup to allow auto-sizing of columns
+  removeColgroup(table);
+
   // Hide answer column (column index 1) - security: hide correct answers before login
   hideAnswerColumn(table);
 
@@ -177,7 +181,19 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
   }
 
   // Get session cache
-  const cache = getJSON<SessionCache>(STORAGE_KEYS.CACHE);
+  let cache = getJSON<SessionCache>(STORAGE_KEYS.CACHE);
+  if (!cache) {
+    cache = {
+      totals: { total: 0, answered: 0, correct: 0 },
+      pages: {},
+    };
+  }
+
+  // Register page questions (updates total count in cache)
+  const totalQuestions = parsed.questions.length;
+  cache = registerPageQuestions(cache, pageId, totalQuestions);
+  setJSON(STORAGE_KEYS.CACHE, cache);
+
   const pageCache = cache?.pages[pageId];
   const existingAnswers = pageCache?.answers || [];
 
@@ -376,7 +392,7 @@ function saveAnswer(
 
   // Get or create cache
   const cache = getJSON<SessionCache>(STORAGE_KEYS.CACHE) || {
-    totals: { answered: 0, correct: 0 },
+    totals: { total: 0, answered: 0, correct: 0 },
     pages: {},
   };
 
@@ -384,38 +400,46 @@ function saveAnswer(
   const existingPageData = cache.pages[pageId];
   const pageData = existingPageData || {
     state: 'unstarted' as CompletionState,
+    total: 0,
     answered: 0,
     correct: 0,
     answers: [],
   };
 
+  // Ensure answers array exists (may be missing from older cache or analysis-only pages)
+  if (!pageData.answers) {
+    pageData.answers = [];
+  }
+
   // Update answer at index (fill sparse array if needed)
-  while (pageData.answers!.length <= questionIndex) {
-    pageData.answers!.push({
+  while (pageData.answers.length <= questionIndex) {
+    pageData.answers.push({
       answer: '',
       success: false,
       timestamp: new Date().toISOString(),
     });
   }
-  pageData.answers![questionIndex] = answerRecord;
+  pageData.answers[questionIndex] = answerRecord;
 
   // Recalculate page state
   const totalQuestions = parsed.questions.length;
-  pageData.state = calculateCompletionState(pageData.answers!, totalQuestions);
-  pageData.answered = pageData.answers!.filter((a) => a.answer.trim() !== '').length;
-  pageData.correct = pageData.answers!.filter((a) => a.success).length;
+  pageData.state = calculateCompletionState(pageData.answers, totalQuestions);
+  pageData.answered = pageData.answers.filter((a) => a.answer.trim() !== '').length;
+  pageData.correct = pageData.answers.filter((a) => a.success).length;
 
   // Update cache
   cache.pages[pageId] = pageData;
 
   // Recalculate totals across all pages
+  let totalQuestionsSum = 0;
   let totalAnswered = 0;
   let totalCorrect = 0;
   for (const page of Object.values(cache.pages)) {
+    totalQuestionsSum += page.total;
     totalAnswered += page.answered;
     totalCorrect += page.correct;
   }
-  cache.totals = { answered: totalAnswered, correct: totalCorrect };
+  cache.totals = { total: totalQuestionsSum, answered: totalAnswered, correct: totalCorrect };
 
   // Save updated cache
   setJSON(STORAGE_KEYS.CACHE, cache);
@@ -454,6 +478,22 @@ function saveAnswer(
 function applyValidationStyling(cell: Element, success: boolean): void {
   removeClass(cell, 'qd-answer-correct', 'qd-answer-incorrect');
   addClass(cell, success ? 'qd-answer-correct' : 'qd-answer-incorrect');
+}
+
+/**
+ * Remove colgroup element to allow automatic column sizing
+ *
+ * Fixed column widths (e.g., 40%/10%/50%) don't work well when
+ * columns are hidden or contain interactive controls. Removing
+ * the colgroup lets the browser auto-size based on content.
+ *
+ * @param table - Quiz table element
+ */
+function removeColgroup(table: HTMLTableElement): void {
+  const colgroup = table.querySelector('colgroup');
+  if (colgroup) {
+    colgroup.remove();
+  }
 }
 
 /**
