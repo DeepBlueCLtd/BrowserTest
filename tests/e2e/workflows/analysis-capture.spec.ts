@@ -31,8 +31,8 @@ interface PagesRecord {
  * Wait for bootstrap to complete and inject components
  */
 async function waitForBootstrap(page: Page): Promise<void> {
-  // Wait for qd-login element AND its shadow content to render
-  await page.locator('qd-login input[name="serviceId"]').waitFor({ timeout: 5000 });
+  // Wait for qd-login element AND its shadow DOM to be ready
+  await page.locator('qd-login[data-ready]').waitFor({ timeout: 5000 });
 }
 
 test.describe('Analysis Capture Workflow', () => {
@@ -51,7 +51,6 @@ test.describe('Analysis Capture Workflow', () => {
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
-    await login.locator('input[name="release"]').fill('01-2025');
     await login.locator('button[type="submit"]').click();
     await expect(page.locator('qd-status')).toBeVisible();
   });
