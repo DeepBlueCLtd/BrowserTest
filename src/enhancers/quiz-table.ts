@@ -272,7 +272,9 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
     }
 
     // Setup auto-save on input change
-    input.addEventListener('input', () => {
+    // Use 'change' for select elements (MCQ), 'input' for text inputs (numeric)
+    const eventType = input.tagName === 'SELECT' ? 'change' : 'input';
+    input.addEventListener(eventType, () => {
       handleAnswerInput(table, metadata, index, input.value);
     });
   });
