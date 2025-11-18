@@ -285,14 +285,17 @@ export class QdLogin extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    console.log('[qd-login] Component connected');
     this.updateVisibility();
     // Listen for Escape key to close modal
     document.addEventListener('keydown', this.handleEscape);
     document.addEventListener('qd:logout', this.handleLogoutEvent);
+    console.log('[qd-login] Event listeners registered');
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    console.log('[qd-login] Component disconnected');
     document.removeEventListener('keydown', this.handleEscape);
     document.removeEventListener('qd:logout', this.handleLogoutEvent);
     this.cleanupModal();
@@ -302,9 +305,11 @@ export class QdLogin extends LitElement {
    * Remove modal from document.body if present
    */
   private cleanupModal(): void {
+    console.log('[qd-login] cleanupModal called, overlay exists:', !!this.modalOverlay);
     if (this.modalOverlay) {
       this.modalOverlay.remove();
       this.modalOverlay = null;
+      console.log('[qd-login] Modal overlay removed');
     }
   }
 
@@ -320,9 +325,12 @@ export class QdLogin extends LitElement {
    */
   private updateVisibility(): void {
     const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
+    console.log('[qd-login] updateVisibility - session:', session ? 'exists' : 'null');
     if (!session) {
+      console.log('[qd-login] Showing login form');
       this.setAttribute('data-show', '');
     } else {
+      console.log('[qd-login] Hiding login form');
       this.removeAttribute('data-show');
     }
   }
@@ -331,7 +339,23 @@ export class QdLogin extends LitElement {
    * Handle logout event - show login form again
    */
   private handleLogoutEvent = (): void => {
+    console.log('[qd-login] Received logout event');
+
+    // Reset component state
+    this.name = '';
+    this.serviceId = '';
+    this.instructorPassword = '';
+    this.errorMessage = '';
+    this.instructorError = '';
+    this.isSubmitting = false;
+    this.showInstructorModal = false;
+
+    // Clean up any lingering modal
+    this.cleanupModal();
+
+    // Show login form
     this.updateVisibility();
+    console.log('[qd-login] Component state reset, login form shown');
   };
 
   render() {
@@ -385,6 +409,7 @@ export class QdLogin extends LitElement {
    * Render instructor modal to document.body (outside shadow DOM)
    */
   private renderInstructorModalToBody(): void {
+    console.log('[qd-login] Creating instructor modal overlay');
     // Create overlay
     const overlay = document.createElement('div');
     overlay.className = 'qd-instructor-modal-overlay';
@@ -412,6 +437,9 @@ export class QdLogin extends LitElement {
       min-width: 320px;
       max-width: 400px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      pointer-events: auto;
+      position: relative;
+      z-index: 100000;
     `;
 
     // Header
@@ -438,6 +466,9 @@ export class QdLogin extends LitElement {
       width: 28px;
       height: 28px;
       line-height: 1;
+      pointer-events: auto;
+      position: relative;
+      z-index: 1;
     `;
     closeBtn.onclick = () => this.closeInstructorModal();
     header.appendChild(title);
@@ -459,6 +490,9 @@ export class QdLogin extends LitElement {
       border: 1px solid #ccc;
       border-radius: 4px;
       font-size: 11px;
+      pointer-events: auto;
+      position: relative;
+      z-index: 1;
     `;
     input.oninput = (e) => {
       this.instructorPassword = (e.target as HTMLInputElement).value;
@@ -499,6 +533,9 @@ export class QdLogin extends LitElement {
       font-weight: 500;
       cursor: pointer;
       padding: 6px 12px;
+      pointer-events: auto;
+      position: relative;
+      z-index: 1;
     `;
     cancelBtn.onclick = () => this.closeInstructorModal();
 
@@ -514,6 +551,9 @@ export class QdLogin extends LitElement {
       font-weight: 500;
       cursor: pointer;
       padding: 6px 12px;
+      pointer-events: auto;
+      position: relative;
+      z-index: 1;
     `;
 
     footer.appendChild(cancelBtn);
@@ -628,8 +668,8 @@ export class QdLogin extends LitElement {
       });
       this.dispatchEvent(event);
 
-      // Remove component from DOM on successful login
-      this.remove();
+      // Hide component on successful login (don't remove - need to show again on logout)
+      this.updateVisibility();
     } catch (err) {
       this.errorMessage = 'Login failed. Please try again.';
       console.error('Student login error:', err);
@@ -651,6 +691,7 @@ export class QdLogin extends LitElement {
    * Close instructor modal
    */
   private closeInstructorModal() {
+    console.log('[qd-login] Closing instructor modal');
     this.showInstructorModal = false;
     this.instructorPassword = '';
     this.instructorError = '';
@@ -737,9 +778,9 @@ export class QdLogin extends LitElement {
       });
       this.dispatchEvent(event);
 
-      // Close modal and remove component
+      // Close modal and hide component (don't remove - need to show again on logout)
       this.closeInstructorModal();
-      this.remove();
+      this.updateVisibility();
     } catch (err) {
       this.instructorError = 'Login failed. Please try again.';
       console.error('Instructor login error:', err);

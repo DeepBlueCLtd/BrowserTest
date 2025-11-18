@@ -89,10 +89,24 @@ function updateLinkBadge(link: HTMLElement): void {
 
 /**
  * Update all badges from current session cache
+ * If no session exists, remove all badges
  */
 function updateAllBadges(): void {
   const links = document.querySelectorAll<HTMLElement>('.quizPageBtn');
+  const cache = getJSON<SessionCache>(STORAGE_KEYS.CACHE);
 
+  // If no cache exists (not logged in), remove all badge styling
+  if (!cache) {
+    links.forEach((link) => {
+      Object.values(BADGE_CLASSES).forEach((className) => {
+        link.classList.remove(className);
+      });
+    });
+    info(`Removed badge styling from ${links.length} page links (no session)`);
+    return;
+  }
+
+  // Cache exists, apply badges based on state
   links.forEach((link) => {
     updateLinkBadge(link);
   });
@@ -116,6 +130,31 @@ function handleStateChanged(event: Event): void {
     updateLinkBadge(link);
     info(`Updated badge for page ${pageId}`);
   }
+}
+
+/**
+ * Handle qd:cache-rebuild event - refresh all badges after cache is ready
+ */
+function handleCacheRebuild(): void {
+  info('Cache rebuilt, refreshing all badges');
+  updateAllBadges();
+}
+
+/**
+ * Handle qd:logout event - remove all badge styling
+ */
+function handleLogout(): void {
+  info('Logout detected, removing all badge styling');
+  const links = document.querySelectorAll<HTMLElement>('.quizPageBtn');
+
+  links.forEach((link) => {
+    // Remove all badge classes to revert to native button styling
+    Object.values(BADGE_CLASSES).forEach((className) => {
+      link.classList.remove(className);
+    });
+  });
+
+  info(`Removed badge styling from ${links.length} page links`);
 }
 
 /**
@@ -185,5 +224,11 @@ export function enhanceHomeBadges(): void {
   // Listen for state changes and update badges in real-time
   document.addEventListener('qd:state-changed', handleStateChanged);
 
-  info('Home page badges enhanced');
+  // Listen for cache rebuild (after login) to refresh badges
+  document.addEventListener('qd:cache-rebuild', handleCacheRebuild);
+
+  // Listen for logout events to reset badges
+  document.addEventListener('qd:logout', handleLogout);
+
+  info('Home page badges enhanced with event listeners');
 }
