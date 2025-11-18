@@ -80,6 +80,11 @@ jobs:
           # Pull latest changes
           git pull origin gh-pages || echo "No remote changes"
 
+          # Clean up: Remove all root-level files and non-folder items
+          # Keep only main/ and pr-*/ directories
+          find . -maxdepth 1 -type f -delete
+          find . -maxdepth 1 -type d ! -name '.' ! -name '.git' ! -name 'main' ! -name 'pr-*' -exec rm -rf {} +
+
           # Remove old main/ folder and recreate
           rm -rf main/
           mkdir -p main
@@ -88,8 +93,8 @@ jobs:
           cp -r ../_site/* main/
 
           # Add and commit
-          git add main/
-          git commit -m "Deploy demo from main branch to main/" || echo "No changes to commit"
+          git add -A
+          git commit -m "Deploy demo from main branch to main/ (cleaned root)" || echo "No changes to commit"
 
           # Push to gh-pages
           git push origin gh-pages
