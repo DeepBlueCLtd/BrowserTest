@@ -152,8 +152,8 @@ npm run size-check      # Verify bundle <35KB min+gzip
 **Branch-based**: Both workflows push to `gh-pages` branch, GitHub Pages serves from there.
 
 ### Production (Main Branch)
-Live at: `https://DeepBlueCLtd.github.io/BrowserTest/`
-- Deploys demo files to root of `gh-pages` branch
+Live at: `https://DeepBlueCLtd.github.io/BrowserTest/main/`
+- Deploys demo files to `main/` folder in `gh-pages` branch
 - Auto-deploys on every push to `main`
 - Workflow: `.github/workflows/pages.yml`
 - Content: demo HTML files + dist/ bundle
@@ -178,15 +178,19 @@ Each PR automatically gets a preview deployment:
 - After building DITA output: `npm run update-dita-demo` to sync `dita/out/oxygen/` → `dita-demo/`
 - Commit updated `dita-demo/` before pushing PR for preview deployment
 
-**Path structure**:
+**Path structure on gh-pages branch**:
 ```
-/ (root)                     # Production demo (main branch)
-├── quiz-index.html
-├── dist/
+gh-pages/
+├── main/                    # Production demo (main branch)
+│   ├── quiz-index.html
+│   ├── dist/
+│   └── ...
 ├── pr-123/                  # PR #123 preview
-│   ├── oxygen-webhelp/      # DITA output
+│   ├── oxygen-webhelp/      # DITA output (from dita-demo/)
 │   └── storybook/           # Storybook static build
 ├── pr-124/                  # PR #124 preview
+│   ├── oxygen-webhelp/
+│   └── storybook/
 ...
 ```
 

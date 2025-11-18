@@ -37,9 +37,9 @@ jobs:
             - Build ignores test failures (only requires successful compilation)
 
             **📦 Production Demo (main branch):**
-            - 🏠 [Quiz Index (Home)](https://${owner}.github.io/${repo}/quiz-index.html)
-            - 📝 [Quiz Examples](https://${owner}.github.io/${repo}/quiz-examples.html)
-            - 📊 [Analysis Examples](https://${owner}.github.io/${repo}/analysis-examples.html)
+            - 🏠 [Quiz Index (Home)](https://${owner}.github.io/${repo}/main/quiz-index.html)
+            - 📝 [Quiz Examples](https://${owner}.github.io/${repo}/main/quiz-examples.html)
+            - 📊 [Analysis Examples](https://${owner}.github.io/${repo}/main/analysis-examples.html)
 
             **🧪 Testing Locally:**
             \`\`\`bash
