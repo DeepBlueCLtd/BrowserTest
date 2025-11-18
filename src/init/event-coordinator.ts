@@ -130,6 +130,24 @@ export class EventCoordinator {
       return;
     }
 
+    // Check if instructor - instructors get non-interactive tables with answers revealed
+    const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
+    if (isInstructor) {
+      info('Instructor session detected, enhancing tables in non-interactive mode (answers visible)');
+      // Enhance quiz tables in non-interactive mode (sets up event listeners for student answers display)
+      const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
+      quizTables.forEach((table) => {
+        enhanceQuizTable(table, { interactive: false, pageId });
+      });
+
+      // Enhance analysis tables in non-interactive mode
+      const analysisTables = document.querySelectorAll<HTMLTableElement>('table.qd-analysis');
+      analysisTables.forEach((table) => {
+        enhanceAnalysisTable(table, { interactive: false, pageId });
+      });
+      return;
+    }
+
     // Upgrade quiz tables
     const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
     if (quizTables.length > 0) {

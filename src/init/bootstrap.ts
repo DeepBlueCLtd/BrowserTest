@@ -283,6 +283,24 @@ async function checkExistingSessionAndUpgradeTables(): Promise<void> {
     return;
   }
 
+  // Check if instructor mode - instructors don't need interactive tables
+  const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
+  if (isInstructor) {
+    info('Instructor session detected, revealing answers in non-interactive tables');
+    // Reveal answer and detail columns for instructor (they're hidden by default in non-interactive mode)
+    const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
+    quizTables.forEach((table) => {
+      // Remove qd-hidden class from answer column (column 1)
+      const answerCells = table.querySelectorAll('td:nth-child(2), th:nth-child(2)');
+      answerCells.forEach((cell) => cell.classList.remove('qd-hidden'));
+
+      // Remove qd-hidden class from detail column (column 2)
+      const detailCells = table.querySelectorAll('td:nth-child(3), th:nth-child(3)');
+      detailCells.forEach((cell) => cell.classList.remove('qd-hidden'));
+    });
+    return;
+  }
+
   info(`Existing session detected for ${session.serviceId}, upgrading tables to interactive mode`);
 
   // Load or rebuild cache from IndexedDB

@@ -6,8 +6,10 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { sharedStyles } from './shared-styles.js';
-import type { StudentRecord } from '../../types/contracts.js';
+import type { StudentRecord, SessionData } from '../../types/contracts.js';
 import { STORAGE_KEYS } from '../../types/contracts.js';
+import { getJSON } from '../../utils/storage-helpers.js';
+import { SessionService } from '../../services/session.js';
 import './qd-instructor-unlock.js';
 import './qd-instructor-scores.js';
 import './qd-instructor-export.js';
@@ -53,6 +55,12 @@ export class QdInstructor extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this.updateVisibility();
+
+    // Auto-unlock if instructor is already logged in
+    const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
+    if (isInstructor) {
+      this.unlock();
+    }
 
     // Restore toggle state from sessionStorage
     const savedState = sessionStorage.getItem('qd/instructor/showAnswers');
@@ -132,7 +140,21 @@ export class QdInstructor extends LitElement {
     );
   };
 
-  private handleViewScores = (): void => {
+  private handleViewScores = async (): Promise<void> => {
+    // Load all students for current release before showing scores
+    const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
+    if (!session) return;
+
+    try {
+      const { getStorageService } = await import('../../services/storage-service.js');
+      const storageService = getStorageService();
+      const students = await storageService.getStudentsByRelease(session.release);
+      this.students = students;
+    } catch (err) {
+      console.error('Failed to load students:', err);
+      this.students = [];
+    }
+
     this.showScores = true;
   };
 
@@ -153,9 +175,18 @@ export class QdInstructor extends LitElement {
   };
 
   private handleLogout = (): void => {
-    this.lock();
+    const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
+
+    // Clear session from storage (this will also emit qd:logout event)
+    const sessionService = new SessionService();
+    sessionService.clearSession();
+
+    // Dispatch event for any additional listeners
     this.dispatchEvent(
       new CustomEvent('qd:logout', {
+        detail: {
+          serviceId: session?.serviceId || 'unknown',
+        },
         bubbles: true,
         composed: true,
       }),

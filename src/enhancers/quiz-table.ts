@@ -86,6 +86,19 @@ export function enhanceQuizTable(
   table: HTMLTableElement,
   options: EnhanceQuizTableOptions,
 ): boolean {
+  // Check if already enhanced
+  const existing = tableMetadata.get(table);
+  if (existing) {
+    // If upgrading from non-interactive to interactive, proceed
+    if (!existing.interactive && options.interactive) {
+      info('Upgrading quiz table from non-interactive to interactive mode');
+    } else {
+      // Already enhanced in same or higher mode, skip
+      info('Quiz table already enhanced, skipping');
+      return true;
+    }
+  }
+
   // Parse the table
   const parsed = parseQuizTable(table);
 
