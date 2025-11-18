@@ -54,6 +54,25 @@ This directory contains standalone HTML test files that load and test the built 
 - 500 character cell limit
 - Storage persistence
 
+## Required DOM Structure
+
+### Publication Title Element (CRITICAL)
+All demo HTML files MUST include the publication title element for Release ID extraction:
+
+```html
+<div class="wh_publication_title">
+  <span class="title">TRV Connectors Autumn 2025</span>
+</div>
+```
+
+**Why it matters**:
+- The `ReleaseId` is extracted from `.wh_publication_title .title` textContent
+- This element is automatically added by DITA/Oxygen WebHelp publishing
+- Login will FAIL without this element: "Release not found (missing .wh_publication_title .title element)"
+- There is NO release input field in the login form - release comes from this DOM element only
+
+**Common mistake**: Attempting to read release from a form input. The login form only has `serviceId` and `name` fields.
+
 ## How to Test
 
 ### Prerequisites
