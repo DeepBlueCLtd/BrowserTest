@@ -22,6 +22,7 @@ import { customElement, state, property } from 'lit/decorators.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
 import type { SessionData } from '../types/contracts.js';
 import { getJSON } from '../utils/storage-helpers.js';
+import { SessionService } from '../services/session.js';
 
 /**
  * Login event data
@@ -480,6 +481,10 @@ export class QdLogin extends LitElement {
         return;
       }
 
+      // Create session in storage
+      const sessionService = new SessionService();
+      sessionService.createSession(this.serviceId.trim(), this.name.trim(), release);
+
       const loginData: LoginData = {
         serviceId: this.serviceId.trim(),
         name: this.name.trim(),
@@ -596,6 +601,11 @@ export class QdLogin extends LitElement {
 
       // Success
       const release = this.getRelease();
+
+      // Create session in storage
+      const sessionService = new SessionService();
+      sessionService.createSession('INSTRUCTOR', 'Instructor', release || '');
+
       const loginData: LoginData = {
         serviceId: 'INSTRUCTOR',
         name: 'Instructor',

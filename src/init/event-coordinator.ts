@@ -4,6 +4,8 @@
  */
 
 import { info } from '../utils/logger.js';
+import { enhanceQuizTable } from '../enhancers/quiz-table.js';
+import { enhanceAnalysisTable } from '../enhancers/analysis-table.js';
 
 /**
  * Custom event detail types
@@ -69,7 +71,43 @@ export class EventCoordinator {
 
       // Trigger cache rebuild
       this.dispatchEvent('qd:cache-rebuild', {});
+
+      // Upgrade tables to interactive mode
+      this.upgradeTablesAfterLogin();
     });
+  }
+
+  /**
+   * Upgrade all tables to interactive mode after login
+   */
+  private upgradeTablesAfterLogin(): void {
+    // Extract pageId from URL filename
+    const pathname = window.location.pathname;
+    const filename = pathname.substring(pathname.lastIndexOf('/') + 1);
+    const pageId = filename.replace(/\.html?$/i, '');
+
+    if (!pageId) {
+      info('No pageId found, skipping table upgrade to interactive mode');
+      return;
+    }
+
+    // Upgrade quiz tables
+    const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
+    if (quizTables.length > 0) {
+      info(`Upgrading ${quizTables.length} quiz table(s) to interactive mode...`);
+      quizTables.forEach((table) => {
+        enhanceQuizTable(table, { interactive: true, pageId });
+      });
+    }
+
+    // Upgrade analysis tables
+    const analysisTables = document.querySelectorAll<HTMLTableElement>('table.qd-analysis');
+    if (analysisTables.length > 0) {
+      info(`Upgrading ${analysisTables.length} analysis table(s) to interactive mode...`);
+      analysisTables.forEach((table) => {
+        enhanceAnalysisTable(table, { interactive: true, pageId });
+      });
+    }
   }
 
   /**

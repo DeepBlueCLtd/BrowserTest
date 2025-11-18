@@ -12,6 +12,48 @@ import { enhanceAnalysisTable } from '../enhancers/analysis-table.js';
 import { enhanceHomeBadges } from '../enhancers/home-badges.js';
 
 /**
+ * Inject global CSS styles required by the quiz system
+ * Must be called before any table enhancement
+ */
+function injectGlobalStyles(): void {
+  // Check if styles already injected
+  if (document.getElementById('qd-global-styles')) {
+    return;
+  }
+
+  const style = document.createElement('style');
+  style.id = 'qd-global-styles';
+  style.textContent = `
+    /* Sonar Quiz System - Global Styles */
+    .qd-hidden {
+      display: none !important;
+    }
+
+    /* Quiz table interactive mode styles */
+    .qd-quiz-interactive .qd-quiz-input {
+      width: 100%;
+      padding: 0.5rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .qd-quiz-interactive .qd-correct {
+      background-color: #d4edda;
+      border-color: #28a745;
+    }
+
+    .qd-quiz-interactive .qd-incorrect {
+      background-color: #f8d7da;
+      border-color: #dc3545;
+    }
+  `;
+
+  document.head.appendChild(style);
+  info('Global styles injected');
+}
+
+/**
  * Bootstrap configuration options
  */
 export interface BootstrapConfig extends ComponentInjectorConfig {
@@ -48,6 +90,9 @@ export function bootstrap(config: BootstrapConfig = {}): void {
   }
 
   info('Bootstrapping Sonar Quiz System...');
+
+  // 0. Inject required global styles
+  injectGlobalStyles();
 
   // 1. Initialize event coordinator
   const eventCoordinator = new EventCoordinator();
@@ -86,6 +131,8 @@ export function bootstrap(config: BootstrapConfig = {}): void {
 
 /**
  * Enhance all quiz tables found in the document
+ * Initially enhances in non-interactive mode (hide answers for security)
+ * Upgraded to interactive mode after login via event coordinator
  */
 function enhanceAllQuizTables(): void {
   const tables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
@@ -95,23 +142,25 @@ function enhanceAllQuizTables(): void {
     return;
   }
 
-  info(`Enhancing ${tables.length} quiz table(s)...`);
+  info(`Enhancing ${tables.length} quiz table(s) in non-interactive mode...`);
 
   let enhanced = 0;
   for (const table of Array.from(tables)) {
     try {
-      enhanceQuizTable(table, { interactive: true });
+      enhanceQuizTable(table, { interactive: false });
       enhanced++;
     } catch (err) {
       warn(`Failed to enhance quiz table: ${(err as Error).message}`);
     }
   }
 
-  info(`Enhanced ${enhanced} of ${tables.length} quiz table(s)`);
+  info(`Enhanced ${enhanced} of ${tables.length} quiz table(s) (non-interactive)`);
 }
 
 /**
  * Enhance all analysis tables found in the document
+ * Initially enhances in non-interactive mode (read-only)
+ * Upgraded to interactive mode after login via event coordinator
  */
 function enhanceAllAnalysisTables(): void {
   const tables = document.querySelectorAll<HTMLTableElement>('table.qd-analysis');
@@ -121,19 +170,19 @@ function enhanceAllAnalysisTables(): void {
     return;
   }
 
-  info(`Enhancing ${tables.length} analysis table(s)...`);
+  info(`Enhancing ${tables.length} analysis table(s) in non-interactive mode...`);
 
   let enhanced = 0;
   for (const table of Array.from(tables)) {
     try {
-      enhanceAnalysisTable(table, { interactive: true });
+      enhanceAnalysisTable(table, { interactive: false });
       enhanced++;
     } catch (err) {
       warn(`Failed to enhance analysis table: ${(err as Error).message}`);
     }
   }
 
-  info(`Enhanced ${enhanced} of ${tables.length} analysis table(s)`);
+  info(`Enhanced ${enhanced} of ${tables.length} analysis table(s) (non-interactive)`);
 }
 
 /**

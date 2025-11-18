@@ -161,6 +161,9 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
     return false;
   }
 
+  // Show answer column (remove qd-hidden class from non-interactive mode)
+  showAnswerColumn(table);
+
   // Hide detail column in interactive mode
   // - MCQ options are now in the select dropdown
   // - Numeric tolerance is applied automatically
@@ -474,6 +477,31 @@ function hideAnswerColumn(table: HTMLTableElement): void {
     const cells = row.querySelectorAll('td');
     if (cells[1]) {
       addClass(cells[1], 'qd-hidden');
+    }
+  });
+}
+
+/**
+ * Show answer column (column index 1) for interactive mode
+ *
+ * Removes qd-hidden class to reveal answer cells with input controls.
+ * Called when upgrading from non-interactive to interactive mode.
+ *
+ * @param table - Quiz table element
+ */
+function showAnswerColumn(table: HTMLTableElement): void {
+  // Show header cell (Answer is column 1)
+  const headerCells = table.querySelectorAll('thead th, thead td');
+  if (headerCells[1]) {
+    removeClass(headerCells[1], 'qd-hidden');
+  }
+
+  // Show answer cells in all rows
+  const rows = table.querySelectorAll('tbody tr');
+  rows.forEach((row) => {
+    const cells = row.querySelectorAll('td');
+    if (cells[1]) {
+      removeClass(cells[1], 'qd-hidden');
     }
   });
 }
