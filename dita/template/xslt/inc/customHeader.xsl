@@ -34,6 +34,9 @@
             <span id="qd-title-selector" style="display:none;">
                 <xsl:value-of select="oxyf:getParameter('qd-title-selector')"/>
             </span>
+            <span id="qd-db-name" style="display:none;">
+                <xsl:value-of select="oxyf:getParameter('qd-db-name')"/>
+            </span>
         </xsl:copy>
     </xsl:template>
 

@@ -16965,6 +16965,29 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                                         </ditaParameter>
                                         <ditaParameter>
                                             <field name="name">
+                                                <String>qd-db-name</String>
+                                            </field>
+                                            <field name="description">
+                                                <String>Name used for IndexedDb in-browser data store.</String>
+                                            </field>
+                                            <field name="value">
+                                                <String>BrowserTestDB</String>
+                                            </field>
+                                            <field name="defaultValue">
+                                                <null/>
+                                            </field>
+                                            <field name="type">
+                                                <Integer>5</Integer>
+                                            </field>
+                                            <field name="possibleValues">
+                                                <null/>
+                                            </field>
+                                            <field name="possibleValuesDescriptions">
+                                                <null/>
+                                            </field>
+                                        </ditaParameter>
+                                        <ditaParameter>
+                                            <field name="name">
                                                 <String>qd-instructor-hash</String>
                                             </field>
                                             <field name="description">
