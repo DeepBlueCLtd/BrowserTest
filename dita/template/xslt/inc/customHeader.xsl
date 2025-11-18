@@ -25,8 +25,14 @@
             <xsl:copy-of select="@*"/>
             <xsl:apply-templates mode="copy_template"/>
             <!-- Hidden span with instructor password hash parameter -->
-            <span id="instructor.password.hash" style="display:none;">
-                <xsl:value-of select="oxyf:getParameter('instructor.password.hash')"/>
+            <span id="qd-instructor-hash" style="display:none;">
+                <xsl:value-of select="oxyf:getParameter('qd-instructor-hash')"/>
+            </span>
+            <span id="qd-status-container" style="display:none;">
+                <xsl:value-of select="oxyf:getParameter('qd-status-container')"/>
+            </span>
+            <span id="qd-title-selector" style="display:none;">
+                <xsl:value-of select="oxyf:getParameter('qd-title-selector')"/>
             </span>
         </xsl:copy>
     </xsl:template>

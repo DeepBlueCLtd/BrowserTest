@@ -16965,13 +16965,59 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                                         </ditaParameter>
                                         <ditaParameter>
                                             <field name="name">
-                                                <String>instructor.password.hash</String>
+                                                <String>qd-instructor-hash</String>
                                             </field>
                                             <field name="description">
                                                 <String>The hashed version of the instructor password.  Generate the hash using the `Hash-Generator.html` file. Provide the raw password (not hashed) in the documentation accompanying the release.</String>
                                             </field>
                                             <field name="value">
                                                 <String>password</String>
+                                            </field>
+                                            <field name="defaultValue">
+                                                <null/>
+                                            </field>
+                                            <field name="type">
+                                                <Integer>5</Integer>
+                                            </field>
+                                            <field name="possibleValues">
+                                                <null/>
+                                            </field>
+                                            <field name="possibleValuesDescriptions">
+                                                <null/>
+                                            </field>
+                                        </ditaParameter>
+                                        <ditaParameter>
+                                            <field name="name">
+                                                <String>qd-status-container</String>
+                                            </field>
+                                            <field name="description">
+                                                <String>The parent element for the login/status panel.  The panel will be appended to the children of this control</String>
+                                            </field>
+                                            <field name="value">
+                                                <String>.wh_top_menu_and_indexterms_link</String>
+                                            </field>
+                                            <field name="defaultValue">
+                                                <null/>
+                                            </field>
+                                            <field name="type">
+                                                <Integer>5</Integer>
+                                            </field>
+                                            <field name="possibleValues">
+                                                <null/>
+                                            </field>
+                                            <field name="possibleValuesDescriptions">
+                                                <null/>
+                                            </field>
+                                        </ditaParameter>
+                                        <ditaParameter>
+                                            <field name="name">
+                                                <String>qd-title-selector</String>
+                                            </field>
+                                            <field name="description">
+                                                <String>CSS selector used to determine the document release id (full docset title)</String>
+                                            </field>
+                                            <field name="value">
+                                                <String>.wh_publication_title .title</String>
                                             </field>
                                             <field name="defaultValue">
                                                 <null/>
