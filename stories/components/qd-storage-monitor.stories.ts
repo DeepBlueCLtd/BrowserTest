@@ -30,12 +30,12 @@ type Story = StoryObj;
  *
  * **Usage:**
  * ```html
- * <qd-storage-monitor dbName="SonarQuizDB"></qd-storage-monitor>
+ * <qd-storage-monitor dbName="BrowserTest"></qd-storage-monitor>
  * ```
  */
 export const Default: Story = {
   args: {
-    dbName: 'SonarQuizDB',
+    dbName: 'BrowserTest',
   },
   render: (args) => {
     // Add some sample sessionStorage data
@@ -114,7 +114,7 @@ export const CustomDatabase: Story = {
  */
 export const AlwaysVisible: Story = {
   args: {
-    dbName: 'SonarQuizDB',
+    dbName: 'BrowserTest',
   },
   render: (args) => {
     // Add sample data

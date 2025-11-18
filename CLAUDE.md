@@ -26,7 +26,7 @@ User Input → DOM Handler → Service Layer → Storage Adapter
 
 **Storage Strategy**:
 - **IndexedDB**: Primary persistence with composite keys `qd/{release}/u{serviceId}`
-  - Database name: `SonarQuizDB` (defined in `src/services/storage/indexeddb.ts`)
+  - Database name: `BrowserTest` (defined in `src/services/storage/indexeddb.ts`)
   - Object stores: `students`, `backups`
 - **sessionStorage**: Active session + R/A/G cache (expires 30 min)
 - **No network**: All data remains local, no telemetry/CDN/remote config
@@ -106,14 +106,14 @@ Modal overlay (Esc to close) showing:
 
 ### Storage Monitor (Development Tool)
 The `<qd-storage-monitor>` component provides real-time inspection of browser storage during development:
-- **Auto-injected** when `data-debug="true"` is set on the script tag
+- **Auto-injected** when `DEBUG_MODE = true` in `src/index.ts`
 - **Configuration**: Set `dbName` attribute to specify the IndexedDB database to monitor
   - Default: `'quiz-scores'` (generic default for reusability)
-  - Sonar Quiz System: `'SonarQuizDB'` (automatically set when auto-injected)
+  - Sonar Quiz System: `'BrowserTest'` (automatically set when auto-injected)
 - **Usage examples**:
   ```html
-  <!-- Auto-injected by system (uses SonarQuizDB) -->
-  <script src="sonar-quiz.iife.js" data-sonar-quiz data-debug="true"></script>
+  <!-- Auto-injected by system (uses BrowserTest) -->
+  <script defer src="sonar-quiz.iife.js"></script>
 
   <!-- Manual usage with custom database -->
   <qd-storage-monitor dbName="MyCustomDB"></qd-storage-monitor>
@@ -165,9 +165,10 @@ python3 -m http.server 8000
 # Visit: http://localhost:8000/demo/quiz-index.html
 ```
 
-All demo files load the built bundle from `dist/sonar-quiz.iife.js` and have debug mode enabled (`data-debug="true"`). See **demo/README.md** for:
+All demo files load the built bundle from `dist/sonar-quiz.iife.js` with configuration provided via hidden `<span>` elements. Debug mode is controlled by `DEBUG_MODE` constant in `src/index.ts`. See **demo/README.md** for:
 - Detailed test scenarios (login, quiz interaction, analysis tables, session management)
 - Browser DevTools inspection tips (IndexedDB, sessionStorage, custom events)
+- Configuration examples using hidden span elements
 - Troubleshooting common issues
 - E2E testing integration guidance
 
@@ -242,9 +243,39 @@ npm run build
 - Complete data erasure capability for cohort reset
 
 ### VII. Zero Configuration Deployment
-- Single `<script>` tag in DITA template
-- Auto-init on DOMContentLoaded
-- No setup, no config, no dependencies
+- Single `<script defer src="sonar-quiz.iife.js"></script>` tag in DITA template (no attributes required)
+- Auto-init on DOMContentLoaded (always runs when script loads)
+- Configuration via hidden `<span>` elements injected by DITA/Oxygen transform:
+  - `#qd-status-container`: CSS selector for status panel (default: `.wh_top_menu_and_indexterms_link`)
+  - `#qd-title-selector`: CSS selector for publication title/Release ID (default: `.wh_publication_title .title`)
+  - `#qd-db-name`: IndexedDB database name (default: `BrowserTest`)
+  - `#qd-instructor-hash`: SHA-256 hash of instructor password (optional)
+- Debug mode controlled by `DEBUG_MODE` constant in `src/index.ts` (single toggle point)
+- No setup, no manual config, no network dependencies
+
+**Example HTML Structure** (injected by DITA/Oxygen transform):
+```html
+<body>
+  <!-- Configuration spans (hidden, injected by Oxygen XSL transform) -->
+  <span id="qd-status-container" style="display:none;">.wh_top_menu_and_indexterms_link</span>
+  <span id="qd-title-selector" style="display:none;">.wh_publication_title .title</span>
+  <span id="qd-db-name" style="display:none;">BrowserTest</span>
+  <span id="qd-instructor-hash" style="display:none;">5e884898da28...</span>
+
+  <!-- Page content -->
+  <div id="page-content">
+    <nav class="wh_top_menu_and_indexterms_link">
+      <div class="wh_publication_title">
+        <span class="title">TRV Connectors Autumn 2025</span>
+      </div>
+    </nav>
+    <!-- ... rest of content ... -->
+  </div>
+
+  <!-- Script tag (no attributes required) -->
+  <script defer src="sonar-quiz.iife.js"></script>
+</body>
+```
 
 ### VIII. Answer Security
 - **CRITICAL**: Quiz answers MUST be removed from DOM immediately on component load
@@ -308,11 +339,12 @@ Content authors must follow these rules (runtime validation enforces):
 ### Home Page
 - Status panel: Auto-injected as last child of configured navbar container
   - Default: `.wh_top_menu_and_indexterms_link` (Oxygen WebHelp)
-  - Configure via `statusPanelContainer` option in `init()` or `data-status-panel-container` attribute
+  - Configure via hidden `<span id="qd-status-container">selector</span>` element
   - **Not logged in**: Shows login form within status panel
   - **Logged in**: Shows quiz progress (R/A/G state, counts, percentage)
   - **Logout**: Button at bottom-right clears sessionStorage and shows login form
 - Navigation links: Add class `quizPageBtn` for R/A/G badges
+- Publication title: Must have element matching selector in `<span id="qd-title-selector">` (default: `.wh_publication_title .title`) for Release ID extraction
 
 ## Data Model Key Points
 

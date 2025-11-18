@@ -31,7 +31,7 @@ test.describe('Cohort Management Workflow', () => {
     await page.goto(`file://${demoPath}/quiz-index.html`);
     await page.evaluate(() => {
       sessionStorage.clear();
-      indexedDB.deleteDatabase('SonarQuizDB');
+      indexedDB.deleteDatabase('BrowserTest');
     });
 
     // Wait for bootstrap to inject qd-login component
@@ -57,7 +57,7 @@ test.describe('Cohort Management Workflow', () => {
     await expect(async () => {
       const dataBefore = await page.evaluate(async () => {
         return new Promise((resolve) => {
-          const request = indexedDB.open('SonarQuizDB');
+          const request = indexedDB.open('BrowserTest');
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction('students', 'readonly');
@@ -109,7 +109,7 @@ test.describe('Cohort Management Workflow', () => {
     // Verify IndexedDB cleared
     const dataAfter = await page.evaluate(async () => {
       return new Promise((resolve) => {
-        const request = indexedDB.open('SonarQuizDB');
+        const request = indexedDB.open('BrowserTest');
         request.onsuccess = () => {
           const db = request.result;
           const tx = db.transaction('students', 'readonly');
@@ -145,7 +145,7 @@ test.describe('Cohort Management Workflow', () => {
     await expect(async () => {
       const savedData = await page.evaluate(async () => {
         return new Promise((resolve) => {
-          const request = indexedDB.open('SonarQuizDB');
+          const request = indexedDB.open('BrowserTest');
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction('students', 'readonly');
@@ -194,7 +194,7 @@ test.describe('Cohort Management Workflow', () => {
     // Verify data still exists
     const dataAfter = await page.evaluate(async () => {
       return new Promise<unknown[]>((resolve) => {
-        const request = indexedDB.open('SonarQuizDB');
+        const request = indexedDB.open('BrowserTest');
         request.onsuccess = () => {
           const db = request.result;
           const tx = db.transaction('students', 'readonly');
@@ -227,7 +227,7 @@ test.describe('Cohort Management Workflow', () => {
     await expect(async () => {
       const savedData = await page.evaluate(async () => {
         return new Promise((resolve) => {
-          const request = indexedDB.open('SonarQuizDB');
+          const request = indexedDB.open('BrowserTest');
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction('students', 'readonly');
@@ -264,7 +264,7 @@ test.describe('Cohort Management Workflow', () => {
     await expect(async () => {
       const studentsBefore = await page.evaluate(async () => {
         return new Promise<unknown[]>((resolve) => {
-          const request = indexedDB.open('SonarQuizDB');
+          const request = indexedDB.open('BrowserTest');
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction('students', 'readonly');
@@ -311,7 +311,7 @@ test.describe('Cohort Management Workflow', () => {
     // Verify all students cleared
     const studentsAfter = await page.evaluate(async () => {
       return new Promise((resolve) => {
-        const request = indexedDB.open('SonarQuizDB');
+        const request = indexedDB.open('BrowserTest');
         request.onsuccess = () => {
           const db = request.result;
           const tx = db.transaction('students', 'readonly');

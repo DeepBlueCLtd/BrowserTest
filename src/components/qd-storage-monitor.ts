@@ -25,7 +25,7 @@ interface StorageEntry {
  *
  * @example
  * ```html
- * <qd-storage-monitor dbName="SonarQuizDB"></qd-storage-monitor>
+ * <qd-storage-monitor dbName="BrowserTest"></qd-storage-monitor>
  * ```
  */
 @customElement('qd-storage-monitor')

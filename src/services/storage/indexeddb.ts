@@ -4,7 +4,7 @@
  * Provides persistent storage for student records using browser IndexedDB.
  * Implements atomic transactions and proper error handling.
  *
- * Database: SonarQuizDB
+ * Database: BrowserTest
  * Stores: students (main data), backups (backup copies)
  * Keys: qd/{release}/u{serviceId}
  */
@@ -19,7 +19,7 @@ import {
 import { warn as logWarn } from '../../utils/logger.js';
 
 /** Database name */
-const DB_NAME = 'SonarQuizDB';
+const DB_NAME = 'BrowserTest';
 
 /** Database version */
 const DB_VERSION = 1;

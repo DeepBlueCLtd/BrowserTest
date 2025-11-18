@@ -8,6 +8,19 @@
 
 import { bootstrap } from './init/bootstrap.js';
 import { info } from './utils/logger.js';
+import { readDOMConfig } from './config/dom-config-reader.js';
+
+/**
+ * Debug mode toggle
+ *
+ * Set to `true` to enable:
+ * - Console logging
+ * - Storage monitor component
+ * - Diagnostic output
+ *
+ * Set to `false` for production (silent operation)
+ */
+const DEBUG_MODE = true;
 
 // Export quiz table enhancer (Phase 2.1)
 export {
@@ -79,44 +92,34 @@ export const BUILD_DATE = typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__
 declare const __BUILD_DATE__: string;
 
 /**
- * Auto-initialize on DOMContentLoaded if script tag has data-sonar-quiz attribute
+ * Auto-initialize on DOMContentLoaded
+ *
+ * System always initializes when script loads. Configuration is read from
+ * hidden DOM elements injected by DITA publishing (see dom-config-reader.ts).
  */
 if (typeof window !== 'undefined') {
-  // Check for data-sonar-quiz attribute on script tag
-  const scripts = document.querySelectorAll('script[data-sonar-quiz]');
+  const init = () => {
+    info('Auto-initializing Sonar Quiz System');
 
-  if (scripts.length > 0) {
-    const scriptEl = scripts[0] as HTMLScriptElement;
+    // Read configuration from hidden DOM elements
+    const domConfig = readDOMConfig();
 
-    // Read configuration from data attributes
-    const debug = scriptEl.getAttribute('data-debug') === 'true';
-    const dbName = scriptEl.getAttribute('data-db-name') || 'SonarQuizDB';
-    const statusPanelContainer = scriptEl.getAttribute('data-status-panel-container');
+    // Bootstrap with DOM config and debug mode
+    bootstrap({
+      debug: DEBUG_MODE,
+      dbName: domConfig.dbName,
+      statusPanelContainer: domConfig.statusPanelContainer,
+      autoEnhanceQuizTables: true,
+      autoEnhanceAnalysisTables: true,
+      autoEnhanceHomeBadges: true,
+    });
+  };
 
-    // Auto-initialize on DOMContentLoaded
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => {
-        info('Auto-initializing Sonar Quiz System from script tag');
-        bootstrap({
-          debug,
-          dbName,
-          statusPanelContainer: statusPanelContainer || undefined,
-          autoEnhanceQuizTables: true,
-          autoEnhanceAnalysisTables: true,
-          autoEnhanceHomeBadges: true,
-        });
-      });
-    } else {
-      // DOM already loaded
-      info('Auto-initializing Sonar Quiz System (DOM already loaded)');
-      bootstrap({
-        debug,
-        dbName,
-        statusPanelContainer: statusPanelContainer || undefined,
-        autoEnhanceQuizTables: true,
-        autoEnhanceAnalysisTables: true,
-        autoEnhanceHomeBadges: true,
-      });
-    }
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    // DOM already loaded
+    init();
   }
 }

@@ -37,7 +37,7 @@ test.describe('Progress Tracking Workflow', () => {
     await page.goto(`file://${demoPath}/quiz-index.html`);
     await page.evaluate(() => {
       sessionStorage.clear();
-      indexedDB.deleteDatabase('SonarQuizDB');
+      indexedDB.deleteDatabase('BrowserTest');
     });
 
     // Wait for bootstrap to inject qd-login component
@@ -88,7 +88,7 @@ test.describe('Progress Tracking Workflow', () => {
     await expect(async () => {
       const savedData = await page.evaluate(async () => {
         return new Promise((resolve) => {
-          const request = indexedDB.open('SonarQuizDB');
+          const request = indexedDB.open('BrowserTest');
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction('students', 'readonly');
@@ -122,7 +122,7 @@ test.describe('Progress Tracking Workflow', () => {
     await expect(async () => {
       const savedData = await page.evaluate(async () => {
         return new Promise((resolve) => {
-          const request = indexedDB.open('SonarQuizDB');
+          const request = indexedDB.open('BrowserTest');
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction('students', 'readonly');
@@ -207,7 +207,7 @@ test.describe('Progress Tracking Workflow', () => {
     await expect(async () => {
       const completionState = await page.evaluate(async () => {
         return new Promise<string>((resolve) => {
-          const request = indexedDB.open('SonarQuizDB');
+          const request = indexedDB.open('BrowserTest');
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction('students', 'readonly');

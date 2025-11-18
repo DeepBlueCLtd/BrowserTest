@@ -44,17 +44,16 @@ test.describe('Combined Tables - AnalysisAndQuiz Story', () => {
     const cacheData = await page.evaluate(() => {
       const cacheJson = sessionStorage.getItem('qd/cache');
       if (!cacheJson) return null;
-       
-       
+
       return JSON.parse(cacheJson);
     });
 
     expect(cacheData).toBeDefined();
-     
+
     expect(cacheData.pages['combined-page-1']).toBeDefined();
-     
+
     expect(cacheData.pages['combined-page-1'].analysis).toBeDefined();
-     
+
     expect(cacheData.pages['combined-page-1'].analysis.cells).toBeDefined();
   });
 
@@ -80,7 +79,7 @@ test.describe('Combined Tables - AnalysisAndQuiz Story', () => {
     const cacheData = await page.evaluate(() => {
       const cacheJson = sessionStorage.getItem('qd/cache');
       if (!cacheJson) return null;
-       
+
       return JSON.parse(cacheJson);
     });
 
@@ -112,7 +111,7 @@ test.describe('Combined Tables - AnalysisAndQuiz Story', () => {
     const cacheData = await page.evaluate(() => {
       const cacheJson = sessionStorage.getItem('qd/cache');
       if (!cacheJson) return null;
-       
+
       return JSON.parse(cacheJson);
     });
 
