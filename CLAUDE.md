@@ -43,6 +43,15 @@ User Input → DOM Handler → Service Layer → Storage Adapter
 Compact login interface with modal for instructor access:
 - **Default View**: Student login form (serviceId + name fields, Login + Instructor buttons)
 - **Instructor Modal**: Password entry popup (opens on "Instructor" button click)
+- **Release ID Extraction**: **CRITICAL** - Release ID comes from `.wh_publication_title .title` element in the document DOM, NOT from any form input
+  - DOM selector: `document.querySelector('.wh_publication_title .title')`
+  - Example HTML structure required:
+    ```html
+    <div class="wh_publication_title">
+      <span class="title">TRV Connectors Autumn 2025</span>
+    </div>
+    ```
+  - If missing, login will fail with error: "Release not found (missing .wh_publication_title .title element)"
 - **Behavior**:
   - Student login: Validates, creates session, shows student status panel
   - Instructor login: Opens modal, validates password (SHA-256 + rate limiting), shows instructor status panel
@@ -417,6 +426,27 @@ Enable via `data-qd-debug` attribute on quiz/analysis tables:
 - **specs/001-sonar-quiz-system/**: Feature spec, plan, data model, contracts
 
 ## Common Patterns
+
+### Release ID Extraction
+**CRITICAL**: The `ReleaseId` is ALWAYS extracted from the DOM, never from user input.
+
+```typescript
+// CORRECT: Extract from DOM
+const titleElement = document.querySelector('.wh_publication_title .title');
+const release = titleElement?.textContent?.trim() || '';
+
+// WRONG: There is NO release input field in forms
+// const release = form.elements.release.value; // ❌ DOES NOT EXIST
+```
+
+**Required DOM Structure** (added by DITA publishing):
+```html
+<div class="wh_publication_title">
+  <span class="title">TRV Connectors Autumn 2025</span>
+</div>
+```
+
+**Testing/Storybook**: All stories MUST inject this element into the DOM before rendering login components.
 
 ### Storage Key Generation
 ```typescript
