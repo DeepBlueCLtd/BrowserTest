@@ -130,21 +130,12 @@ export class EventCoordinator {
       return;
     }
 
-    // Check if instructor - instructors get non-interactive tables with answers revealed
+    // Check if instructor - instructors don't need interactive tables
     const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
     if (isInstructor) {
-      info('Instructor session detected, enhancing tables in non-interactive mode (answers visible)');
-      // Enhance quiz tables in non-interactive mode (sets up event listeners for student answers display)
-      const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
-      quizTables.forEach((table) => {
-        enhanceQuizTable(table, { interactive: false, pageId });
-      });
-
-      // Enhance analysis tables in non-interactive mode
-      const analysisTables = document.querySelectorAll<HTMLTableElement>('table.qd-analysis');
-      analysisTables.forEach((table) => {
-        enhanceAnalysisTable(table, { interactive: false, pageId });
-      });
+      info('Instructor session detected, tables remain in non-interactive mode with answers visible');
+      // Tables are already enhanced during bootstrap, no need to re-enhance
+      // Event listeners for instructor features are already set up
       return;
     }
 

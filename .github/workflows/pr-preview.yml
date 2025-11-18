@@ -43,12 +43,12 @@ jobs:
           PR_NUMBER=${{ github.event.pull_request.number }}
           mkdir -p _site/pr-${PR_NUMBER}
 
-          # Copy DITA output to PR directory
-          if [ -d "dita/out/oxygen" ]; then
-            cp -r dita/out/oxygen/* _site/pr-${PR_NUMBER}/
-            echo "✅ DITA output copied to _site/pr-${PR_NUMBER}/"
+          # Copy DITA demo to PR directory
+          if [ -d "dita-demo" ]; then
+            cp -r dita-demo/* _site/pr-${PR_NUMBER}/
+            echo "✅ DITA demo copied to _site/pr-${PR_NUMBER}/"
           else
-            echo "⚠️ Warning: dita/out/oxygen not found, skipping DITA deployment"
+            echo "⚠️ Warning: dita-demo not found, skipping DITA deployment"
           fi
 
           # Copy Storybook build to PR directory

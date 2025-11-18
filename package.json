@@ -13,6 +13,7 @@
     "build": "tsc && vite build",
     "build:dita": "npm run build && npm run copy-to-dita",
     "copy-to-dita": "cp dist/sonar-quiz.iife.* dita/template/resources/ && cp dist/sonar-quiz.iife.* dita/out/oxygen/oxygen-webhelp/template/resources/",
+    "update-dita-demo": "rm -rf dita-demo && mkdir -p dita-demo && cp -r dita/out/oxygen/* dita-demo/",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "test": "npm run test:unit && npm run test:integration",

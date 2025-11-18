@@ -137,6 +137,8 @@ npm run chromatic       # Visual regression tests
 
 # Building
 npm run build           # Production build (IIFE + ESM)
+npm run build:dita      # Build + copy bundle to DITA directories
+npm run update-dita-demo # Sync dita/out/oxygen → dita-demo/ (for PR previews)
 npm run lint            # TypeScript + ESLint checks
 npm run format:check    # Prettier formatting verification
 
@@ -169,7 +171,12 @@ Each PR automatically gets a preview deployment:
 **Prerequisites**:
 - GitHub Pages enabled with "Deploy from a branch" → `gh-pages` branch (Settings → Pages)
 - Workflow permissions: "Read and write" (Settings → Actions → General → Workflow permissions)
-- `dita/out/oxygen/` directory populated (assumed pre-built)
+- `dita-demo/` directory populated (run `npm run update-dita-demo` after DITA builds)
+
+**DITA Demo Sync**:
+- `dita-demo/` is version-controlled and deployed by CI
+- After building DITA output: `npm run update-dita-demo` to sync `dita/out/oxygen/` → `dita-demo/`
+- Commit updated `dita-demo/` before pushing PR for preview deployment
 
 **Path structure**:
 ```
