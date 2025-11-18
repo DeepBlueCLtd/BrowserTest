@@ -223,9 +223,13 @@ test.describe('Progress Tracking Workflow', () => {
               const students = getRequest.result as StudentRecord[];
               if (students.length > 0) {
                 const student = students[0];
-                const pages = student.pages as PagesRecord;
-                const pagesArray = Object.values(pages);
-                resolve(pagesArray[0]?.state || 'unknown');
+                if (student) {
+                  const pages = student.pages as PagesRecord;
+                  const pagesArray = Object.values(pages);
+                  resolve(pagesArray[0]?.state || 'unknown');
+                } else {
+                  resolve('no-data');
+                }
               } else {
                 resolve('no-data');
               }

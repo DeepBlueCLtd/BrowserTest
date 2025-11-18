@@ -101,12 +101,15 @@ test.describe('Analysis Capture Workflow', () => {
             getRequest.onsuccess = () => {
               const students = getRequest.result as StudentRecord[];
               if (students.length > 0) {
-                const pages = students[0].pages as PagesRecord;
-                const pageKeys = Object.keys(pages);
-                if (pageKeys.length > 0) {
-                  const pageData: PageData = pages[pageKeys[0]] as PageData;
-                  const analysis = pageData.analysis;
-                  resolve(analysis?.cells || {});
+                const pages = students[0]?.pages as PagesRecord | undefined;
+                if (pages) {
+                  const pageKeys = Object.keys(pages);
+                  const firstKey = pageKeys[0];
+                  if (firstKey) {
+                    const pageData: PageData = pages[firstKey] as PageData;
+                    const analysis = pageData?.analysis;
+                    resolve(analysis?.cells || {});
+                  }
                 }
               }
               resolve({});
@@ -323,14 +326,17 @@ test.describe('Analysis Capture Workflow', () => {
             getRequest.onsuccess = () => {
               const students = getRequest.result as StudentRecord[];
               if (students.length > 0) {
-                const pages = students[0].pages as PagesRecord;
-                const pageKeys = Object.keys(pages);
-                if (pageKeys.length > 0) {
-                  const pageData: PageData = pages[pageKeys[0]] as PageData;
-                  const cells = pageData.analysis?.cells || {};
-                  const firstKey = Object.keys(cells)[0];
-                  if (firstKey) {
-                    resolve(cells[firstKey] ?? null);
+                const pages = students[0]?.pages as PagesRecord | undefined;
+                if (pages) {
+                  const pageKeys = Object.keys(pages);
+                  const firstPageKey = pageKeys[0];
+                  if (firstPageKey) {
+                    const pageData: PageData = pages[firstPageKey] as PageData;
+                    const cells = pageData?.analysis?.cells || {};
+                    const firstKey = Object.keys(cells)[0];
+                    if (firstKey) {
+                      resolve(cells[firstKey] ?? null);
+                    }
                   }
                 }
               }

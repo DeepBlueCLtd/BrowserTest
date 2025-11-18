@@ -4,22 +4,34 @@
  * Tests the complete login workflows via Storybook
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 const STORYBOOK_URL = 'http://localhost:6006';
 
+/**
+ * Wait for web component shadow content to render
+ */
+async function waitForBootstrap(page: Page): Promise<void> {
+  // Wait for qd-login shadow content to be ready (using placeholder since no name attribute)
+  await page
+    .locator('qd-login input[placeholder="Service ID (30012345)"]')
+    .waitFor({ timeout: 5000 });
+}
+
 test.describe('Login Flow - Storybook Stories', () => {
   test('Student Login Flow - should complete login and show status', async ({ page }) => {
-    await page.goto(`${STORYBOOK_URL}/iframe.html?id=workflows-login-flow--student-login-flow&viewMode=story`);
+    await page.goto(
+      `${STORYBOOK_URL}/iframe.html?id=workflows-login-flow--student-login-flow&viewMode=story`,
+    );
+    await waitForBootstrap(page);
 
     // Wait for story to load
     const login = page.locator('qd-login');
     await expect(login).toBeVisible();
 
     // Fill in student credentials
-    await login.locator('input[name="serviceId"]').fill('TEST001');
-    await login.locator('input[name="name"]').fill('John Doe');
-    await login.locator('input[name="release"]').fill('01-2025');
+    await login.locator('input[placeholder="Service ID (30012345)"]').fill('TEST001');
+    await login.locator('input[placeholder="Name (J Smith)"]').fill('John Doe');
 
     // Submit login
     await login.locator('button[type="submit"]').click();
@@ -32,7 +44,10 @@ test.describe('Login Flow - Storybook Stories', () => {
   });
 
   test('Instructor Login Flow - should unlock with password', async ({ page }) => {
-    await page.goto(`${STORYBOOK_URL}/iframe.html?id=workflows-login-flow--instructor-login-flow&viewMode=story`);
+    await page.goto(
+      `${STORYBOOK_URL}/iframe.html?id=workflows-login-flow--instructor-login-flow&viewMode=story`,
+    );
+    await waitForBootstrap(page);
 
     // Wait for story to load
     const login = page.locator('qd-login');
@@ -61,7 +76,10 @@ test.describe('Login Flow - Storybook Stories', () => {
   });
 
   test('Instructor Login Flow - should enforce rate limiting', async ({ page }) => {
-    await page.goto(`${STORYBOOK_URL}/iframe.html?id=workflows-login-flow--instructor-login-flow&viewMode=story`);
+    await page.goto(
+      `${STORYBOOK_URL}/iframe.html?id=workflows-login-flow--instructor-login-flow&viewMode=story`,
+    );
+    await waitForBootstrap(page);
 
     const login = page.locator('qd-login');
     await expect(login).toBeVisible();
@@ -88,7 +106,10 @@ test.describe('Login Flow - Storybook Stories', () => {
   });
 
   test('Full Page - should show login then status in header', async ({ page }) => {
-    await page.goto(`${STORYBOOK_URL}/iframe.html?id=workflows-login-flow--full-page-with-login-status&viewMode=story`);
+    await page.goto(
+      `${STORYBOOK_URL}/iframe.html?id=workflows-login-flow--full-page-with-login-status&viewMode=story`,
+    );
+    await waitForBootstrap(page);
 
     // Verify page header and nav
     const header = page.locator('.page-header');
@@ -100,9 +121,8 @@ test.describe('Login Flow - Storybook Stories', () => {
     await expect(login).toBeVisible();
 
     // Login
-    await login.locator('input[name="serviceId"]').fill('TEST001');
-    await login.locator('input[name="name"]').fill('Jane Smith');
-    await login.locator('input[name="release"]').fill('01-2025');
+    await login.locator('input[placeholder="Service ID (30012345)"]').fill('TEST001');
+    await login.locator('input[placeholder="Name (J Smith)"]').fill('Jane Smith');
     await login.locator('button[type="submit"]').click();
 
     // Verify status panel appears in same container
@@ -112,11 +132,16 @@ test.describe('Login Flow - Storybook Stories', () => {
 
     // Verify welcome section
     await expect(page.locator('.welcome-section')).toBeVisible();
-    await expect(page.locator('.welcome-section')).toContainText('Welcome to the Sonar Quiz System');
+    await expect(page.locator('.welcome-section')).toContainText(
+      'Welcome to the Sonar Quiz System',
+    );
   });
 
   test('Instructor Mode Full Controls - should show all control buttons', async ({ page }) => {
-    await page.goto(`${STORYBOOK_URL}/iframe.html?id=workflows-login-flow--instructor-mode-full-controls&viewMode=story`);
+    await page.goto(
+      `${STORYBOOK_URL}/iframe.html?id=workflows-login-flow--instructor-mode-full-controls&viewMode=story`,
+    );
+    await waitForBootstrap(page);
 
     const login = page.locator('qd-login');
     await expect(login).toBeVisible();
@@ -149,7 +174,10 @@ test.describe('Login Flow - Storybook Stories', () => {
   });
 
   test('Login to Status Transition - should show both states', async ({ page }) => {
-    await page.goto(`${STORYBOOK_URL}/iframe.html?id=workflows-login-flow--login-to-status-transition&viewMode=story`);
+    await page.goto(
+      `${STORYBOOK_URL}/iframe.html?id=workflows-login-flow--login-to-status-transition&viewMode=story`,
+    );
+    await waitForBootstrap(page);
 
     // Verify transition demo container
     const transitionDemo = page.locator('.transition-demo');
@@ -160,9 +188,8 @@ test.describe('Login Flow - Storybook Stories', () => {
     await expect(login).toBeVisible();
 
     // Login
-    await login.locator('input[name="serviceId"]').fill('TEST123');
-    await login.locator('input[name="name"]').fill('Test User');
-    await login.locator('input[name="release"]').fill('01-2025');
+    await login.locator('input[placeholder="Service ID (30012345)"]').fill('TEST123');
+    await login.locator('input[placeholder="Name (J Smith)"]').fill('Test User');
     await login.locator('button[type="submit"]').click();
 
     // Verify status panel appears
@@ -172,15 +199,17 @@ test.describe('Login Flow - Storybook Stories', () => {
   });
 
   test('Student Logout - should return to login form', async ({ page }) => {
-    await page.goto(`${STORYBOOK_URL}/iframe.html?id=workflows-login-flow--login-to-status-transition&viewMode=story`);
+    await page.goto(
+      `${STORYBOOK_URL}/iframe.html?id=workflows-login-flow--login-to-status-transition&viewMode=story`,
+    );
+    await waitForBootstrap(page);
 
     const login = page.locator('qd-login');
     await expect(login).toBeVisible();
 
     // Login
-    await login.locator('input[name="serviceId"]').fill('TEST001');
-    await login.locator('input[name="name"]').fill('John Doe');
-    await login.locator('input[name="release"]').fill('01-2025');
+    await login.locator('input[placeholder="Service ID (30012345)"]').fill('TEST001');
+    await login.locator('input[placeholder="Name (J Smith)"]').fill('John Doe');
     await login.locator('button[type="submit"]').click();
 
     // Verify status visible

@@ -27,6 +27,11 @@ type Story = StoryObj;
  */
 export const StudentLoginFlow: Story = {
   render: () => html`
+    <!-- Release title element (required by qd-login) -->
+    <div class="wh_publication_title" style="display:none;">
+      <span class="title">Test Release 01-2025</span>
+    </div>
+
     <style>
       .demo-container {
         padding: 2rem;
@@ -83,6 +88,11 @@ export const StudentLoginFlow: Story = {
  */
 export const InstructorLoginFlow: Story = {
   render: () => html`
+    <!-- Release title element -->
+    <div class="wh_publication_title" style="display:none;">
+      <span class="title">Test Release 01-2025</span>
+    </div>
+
     <style>
       .demo-container {
         padding: 2rem;
@@ -118,7 +128,9 @@ export const InstructorLoginFlow: Story = {
     </style>
 
     <!-- Inject password hash (simulating Oxygen XSL) -->
-    <span id="instructor.password.hash" style="display:none;">c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5</span>
+    <span id="instructor.password.hash" style="display:none;"
+      >c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5</span
+    >
 
     <div class="demo-container">
       <div class="demo-instructions">
@@ -131,7 +143,7 @@ export const InstructorLoginFlow: Story = {
           <li>Observe instructor panel with controls</li>
         </ol>
         <div class="password-info">
-          Test Password: <strong>instructor123</strong><br>
+          Test Password: <strong>instructor123</strong><br />
           Hash: c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5
         </div>
       </div>
@@ -155,6 +167,11 @@ export const InstructorLoginFlow: Story = {
  */
 export const FullPageWithLoginStatus: Story = {
   render: () => html`
+    <!-- Release title element -->
+    <div class="wh_publication_title" style="display:none;">
+      <span class="title">Test Release 01-2025</span>
+    </div>
+
     <style>
       body {
         margin: 0;
@@ -264,14 +281,17 @@ export const FullPageWithLoginStatus: Story = {
       <div class="demo-instructions">
         <strong>Full Page Demo:</strong>
         <p>This story shows a complete quiz index page with integrated login/status panels.</p>
-        <p><strong>Try it:</strong> Login as a student to see the status panel replace the login form in the header.</p>
+        <p>
+          <strong>Try it:</strong> Login as a student to see the status panel replace the login form
+          in the header.
+        </p>
       </div>
 
       <div class="welcome-section">
         <h2>Welcome to the Sonar Quiz System</h2>
         <p>
-          This offline-first training platform helps you master sonar operations through
-          interactive quizzes and analysis exercises.
+          This offline-first training platform helps you master sonar operations through interactive
+          quizzes and analysis exercises.
         </p>
         <ul>
           <li><strong>Login:</strong> Enter your credentials in the header to begin</li>
@@ -309,6 +329,11 @@ export const FullPageWithLoginStatus: Story = {
  */
 export const InstructorModeFullControls: Story = {
   render: () => html`
+    <!-- Release title element -->
+    <div class="wh_publication_title" style="display:none;">
+      <span class="title">Test Release 01-2025</span>
+    </div>
+
     <style>
       .demo-container {
         padding: 2rem;
@@ -358,12 +383,17 @@ export const InstructorModeFullControls: Story = {
     </style>
 
     <!-- Inject password hash -->
-    <span id="instructor.password.hash" style="display:none;">c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5</span>
+    <span id="instructor.password.hash" style="display:none;"
+      >c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5</span
+    >
 
     <div class="demo-container">
       <div class="demo-instructions">
         <strong>Instructor Control Panel:</strong>
-        <p>After unlocking (password: <code>instructor123</code>), the instructor panel provides these controls:</p>
+        <p>
+          After unlocking (password: <code>instructor123</code>), the instructor panel provides
+          these controls:
+        </p>
       </div>
 
       <div class="demo-section">
@@ -402,6 +432,11 @@ export const InstructorModeFullControls: Story = {
  */
 export const LoginToStatusTransition: Story = {
   render: () => html`
+    <!-- Release title element -->
+    <div class="wh_publication_title" style="display:none;">
+      <span class="title">Test Release 01-2025</span>
+    </div>
+
     <style>
       .demo-container {
         padding: 2rem;
@@ -438,22 +473,21 @@ export const LoginToStatusTransition: Story = {
     <div class="demo-container">
       <div class="demo-instructions">
         <strong>Watch the Transition:</strong>
-        <p>When you login, the login form will hide and the status panel will appear in the same space.</p>
+        <p>
+          When you login, the login form will hide and the status panel will appear in the same
+          space.
+        </p>
         <p>This is the behavior you'll see in the header of the actual quiz pages.</p>
       </div>
 
-      <div class="state-indicator">
-        Not Logged In → Login Form Visible
-      </div>
+      <div class="state-indicator">Not Logged In → Login Form Visible</div>
 
       <div class="transition-demo">
         <qd-login></qd-login>
         <qd-status></qd-status>
       </div>
 
-      <div class="state-indicator">
-        After Login → Status Panel Visible
-      </div>
+      <div class="state-indicator">After Login → Status Panel Visible</div>
     </div>
   `,
 };

@@ -19,6 +19,9 @@
 
 import { LitElement, html, css } from 'lit';
 import { customElement, state, property } from 'lit/decorators.js';
+import { STORAGE_KEYS } from '../types/contracts.js';
+import type { SessionData } from '../types/contracts.js';
+import { getJSON } from '../utils/storage-helpers.js';
 
 /**
  * Login event data
@@ -85,11 +88,15 @@ export class QdLogin extends LitElement {
 
   static styles = css`
     :host {
-      display: block;
+      display: none; /* Hidden if already logged in */
       font-family:
         system-ui,
         -apple-system,
         sans-serif;
+    }
+
+    :host([data-show]) {
+      display: block;
     }
 
     .login-container {
@@ -272,14 +279,36 @@ export class QdLogin extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    this.updateVisibility();
     // Listen for Escape key to close modal
     document.addEventListener('keydown', this.handleEscape);
+    document.addEventListener('qd:logout', this.handleLogoutEvent);
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     document.removeEventListener('keydown', this.handleEscape);
+    document.removeEventListener('qd:logout', this.handleLogoutEvent);
   }
+
+  /**
+   * Update visibility - show only if NOT logged in
+   */
+  private updateVisibility(): void {
+    const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
+    if (!session) {
+      this.setAttribute('data-show', '');
+    } else {
+      this.removeAttribute('data-show');
+    }
+  }
+
+  /**
+   * Handle logout event - show login form again
+   */
+  private handleLogoutEvent = (): void => {
+    this.updateVisibility();
+  };
 
   render() {
     return html`

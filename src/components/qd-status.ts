@@ -16,7 +16,7 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
-import type { SessionCache } from '../types/contracts.js';
+import type { SessionCache, SessionData } from '../types/contracts.js';
 import { getJSON } from '../utils/storage-helpers.js';
 
 /**
@@ -50,11 +50,15 @@ export class QdStatus extends LitElement {
 
   static styles = css`
     :host {
-      display: block;
+      display: none; /* Hidden by default, shown when logged in */
       font-family:
         system-ui,
         -apple-system,
         sans-serif;
+    }
+
+    :host([data-show]) {
+      display: block;
     }
 
     .status-panel {
@@ -119,15 +123,20 @@ export class QdStatus extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    this.updateVisibility();
     this.loadCache();
 
-    // Listen for state changes
+    // Listen for state changes and login/logout
     document.addEventListener('qd:state-changed', this.handleStateChanged);
+    document.addEventListener('qd:login', this.handleLogin);
+    document.addEventListener('qd:logout', this.handleLogoutEvent);
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     document.removeEventListener('qd:state-changed', this.handleStateChanged);
+    document.removeEventListener('qd:login', this.handleLogin);
+    document.removeEventListener('qd:logout', this.handleLogoutEvent);
   }
 
   render() {
@@ -183,10 +192,40 @@ export class QdStatus extends LitElement {
   }
 
   /**
+   * Update visibility based on session state
+   * Show only if logged in as student (not instructor)
+   */
+  private updateVisibility() {
+    const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
+    const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
+
+    if (session && !isInstructor) {
+      this.setAttribute('data-show', '');
+    } else {
+      this.removeAttribute('data-show');
+    }
+  }
+
+  /**
    * Handle state changed event
    */
   private handleStateChanged = () => {
     this.loadCache();
+  };
+
+  /**
+   * Handle login event
+   */
+  private handleLogin = () => {
+    this.updateVisibility();
+    this.loadCache();
+  };
+
+  /**
+   * Handle logout event
+   */
+  private handleLogoutEvent = () => {
+    this.updateVisibility();
   };
 
   /**

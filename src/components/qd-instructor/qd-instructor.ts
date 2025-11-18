@@ -3,10 +3,11 @@
  * Delegates to sub-components based on unlock state
  */
 
-import { LitElement, html } from 'lit';
+import { LitElement, html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { sharedStyles } from './shared-styles.js';
 import type { StudentRecord } from '../../types/contracts.js';
+import { STORAGE_KEYS } from '../../types/contracts.js';
 import './qd-instructor-unlock.js';
 import './qd-instructor-scores.js';
 import './qd-instructor-export.js';
@@ -24,7 +25,18 @@ import './qd-instructor-manage.js';
  */
 @customElement('qd-instructor')
 export class QdInstructor extends LitElement {
-  static override styles = sharedStyles;
+  static override styles = [
+    sharedStyles,
+    css`
+      :host {
+        display: none; /* Hidden by default, shown when instructor logged in */
+      }
+
+      :host([data-show]) {
+        display: block;
+      }
+    `,
+  ];
 
   @state()
   private unlocked = false;
@@ -34,6 +46,40 @@ export class QdInstructor extends LitElement {
 
   @state()
   private students: StudentRecord[] = [];
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.updateVisibility();
+    document.addEventListener('qd:login', this.handleLoginEvent);
+    document.addEventListener('qd:logout', this.handleLogoutEvent);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    document.removeEventListener('qd:login', this.handleLoginEvent);
+    document.removeEventListener('qd:logout', this.handleLogoutEvent);
+  }
+
+  /**
+   * Update visibility based on instructor session state
+   */
+  private updateVisibility(): void {
+    const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
+    if (isInstructor) {
+      this.setAttribute('data-show', '');
+    } else {
+      this.removeAttribute('data-show');
+    }
+  }
+
+  private handleLoginEvent = (): void => {
+    this.updateVisibility();
+  };
+
+  private handleLogoutEvent = (): void => {
+    this.updateVisibility();
+    this.lock();
+  };
 
   /**
    * Set student data for display
