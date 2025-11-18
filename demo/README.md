@@ -11,7 +11,7 @@ This directory contains standalone HTML test files that load and test the built 
 - Status panel (`qd-status` component) showing progress
 - Navigation links with R/A/G (Red/Amber/Green) status badges
 - Links to quiz and analysis pages
-- Metadata tags for release and document ID
+- **Publication title element** (`.wh_publication_title .title`) - **REQUIRED** for Release ID extraction
 
 **What it tests**:
 - Login component rendering and interaction
