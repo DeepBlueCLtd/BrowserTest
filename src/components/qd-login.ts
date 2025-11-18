@@ -292,6 +292,13 @@ export class QdLogin extends LitElement {
   }
 
   /**
+   * Lifecycle: Called after first render completes (shadow DOM ready)
+   */
+  firstUpdated() {
+    this.setAttribute('data-ready', '');
+  }
+
+  /**
    * Update visibility - show only if NOT logged in
    */
   private updateVisibility(): void {
@@ -318,6 +325,7 @@ export class QdLogin extends LitElement {
         <form class="login-form" @submit=${(e: Event) => this.handleStudentLogin(e)}>
           <input
             type="text"
+            name="name"
             placeholder="Name (J Smith)"
             .value=${this.name}
             @input=${(e: Event) => this.handleNameInput(e)}
@@ -327,6 +335,7 @@ export class QdLogin extends LitElement {
 
           <input
             type="text"
+            name="serviceId"
             placeholder="Service ID (30012345)"
             .value=${this.serviceId}
             @input=${(e: Event) => this.handleServiceIdInput(e)}
