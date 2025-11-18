@@ -146,11 +146,15 @@ npm run size-check      # Verify bundle <35KB min+gzip
 
 ## GitHub Pages Deployment
 
+### Deployment Method
+**Branch-based**: Both workflows push to `gh-pages` branch, GitHub Pages serves from there.
+
 ### Production (Main Branch)
 Live at: `https://DeepBlueCLtd.github.io/BrowserTest/`
-- Deploys demo files from `demo/` folder
+- Deploys demo files to root of `gh-pages` branch
 - Auto-deploys on every push to `main`
 - Workflow: `.github/workflows/pages.yml`
+- Content: demo HTML files + dist/ bundle
 
 ### PR Preview Deployments
 Each PR automatically gets a preview deployment:
@@ -160,10 +164,11 @@ Each PR automatically gets a preview deployment:
 - **Auto-cleanup**: Preview deleted when PR closes/merges
 - **Build policy**: Requires successful compilation, ignores test failures
 - **Workflow**: `.github/workflows/pr-preview.yml`
+- Content: DITA output + Storybook static build
 
 **Prerequisites**:
-- GitHub Pages enabled with "GitHub Actions" source (Settings → Pages)
-- Workflow permissions: "Read and write" (Settings → Actions → General)
+- GitHub Pages enabled with "Deploy from a branch" → `gh-pages` branch (Settings → Pages)
+- Workflow permissions: "Read and write" (Settings → Actions → General → Workflow permissions)
 - `dita/out/oxygen/` directory populated (assumed pre-built)
 
 **Path structure**:

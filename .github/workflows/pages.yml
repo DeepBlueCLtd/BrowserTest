@@ -3,28 +3,26 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+# Permissions for pushing to gh-pages branch
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 # Allow one concurrent deployment
 concurrency:
-  group: "pages-${{ github.ref }}"
+  group: "pages"
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build Demo Site
+  deploy:
+    name: Build and Deploy Demo to gh-pages
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout main branch
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
@@ -35,7 +33,7 @@ jobs:
       - name: Build bundle
         run: npm run build
 
-      - name: Create pages directory
+      - name: Create demo site directory
         run: |
           mkdir -p _site
           cp -r demo/* _site/
@@ -43,21 +41,55 @@ jobs:
           # Update paths in demo HTML files to use relative dist path
           find _site -name "*.html" -type f -exec sed -i 's|../dist/|dist/|g' {} \;
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
         with:
-          path: '_site'
+          ref: gh-pages
+          path: gh-pages-repo
+          fetch-depth: 0
+        continue-on-error: true
 
-  deploy:
-    name: Deploy to GitHub Pages
-    # Only deploy on push to main, not on PRs
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Initialize gh-pages branch if needed
+        run: |
+          if [ ! -d "gh-pages-repo/.git" ]; then
+            echo "📦 gh-pages branch doesn't exist, creating..."
+            mkdir -p gh-pages-repo
+            cd gh-pages-repo
+            git init
+            git checkout -b gh-pages
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            echo "# GitHub Pages" > README.md
+            git add README.md
+            git commit -m "Initialize gh-pages branch"
+            git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+            git push -u origin gh-pages
+            echo "✅ gh-pages branch created"
+          else
+            echo "✅ gh-pages branch already exists"
+          fi
+
+      - name: Deploy demo to gh-pages root
+        run: |
+          cd gh-pages-repo
+
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Pull latest changes
+          git pull origin gh-pages || echo "No remote changes"
+
+          # Remove old demo files (but keep pr-* directories)
+          find . -maxdepth 1 -type f -delete
+          rm -rf dist/
+
+          # Copy new demo files to root
+          cp -r ../_site/* .
+
+          # Add and commit
+          git add .
+          git commit -m "Deploy demo from main branch" || echo "No changes to commit"
+
+          # Push to gh-pages
+          git push origin gh-pages
