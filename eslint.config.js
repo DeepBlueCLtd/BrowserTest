@@ -18,6 +18,7 @@ export default tseslint.config(
       'playwright-report/**',
       'test-results/**',
       'dita/**',
+      'dita-demo/**',
       '.rewrite-reference/**',
     ],
   },
