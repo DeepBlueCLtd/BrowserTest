@@ -119,25 +119,66 @@ function handleStateChanged(event: Event): void {
 }
 
 /**
+ * Extract pageId from link href attribute
+ *
+ * @param link - Link element with href
+ * @returns PageId extracted from href, or null if invalid
+ *
+ * @example
+ * href="Pages/quiz-mcq.html" → "quiz-mcq"
+ * href="gram-1.html" → "gram-1"
+ */
+function extractPageIdFromHref(link: HTMLAnchorElement): PageId | null {
+  const href = link.getAttribute('href');
+  if (!href) {
+    return null;
+  }
+
+  // Extract filename from href (last segment after /)
+  const filename = href.substring(href.lastIndexOf('/') + 1);
+
+  // Remove .html or .htm extension
+  const pageId = filename.replace(/\.html?$/i, '');
+
+  return pageId || null;
+}
+
+/**
  * Enhance home page with R/A/G badges on navigation links
  *
  * This function:
  * 1. Queries all links with class .quizPageBtn
- * 2. Reads SessionCache to determine page completion states
- * 3. Applies appropriate badge CSS classes
- * 4. Sets up event listener for real-time updates
+ * 2. Extracts pageId from href attribute and sets data-page-id
+ * 3. Reads SessionCache to determine page completion states
+ * 4. Applies appropriate badge CSS classes
+ * 5. Sets up event listener for real-time updates
  *
  * @example
  * ```html
- * <a href="lesson1.html" class="quizPageBtn" data-page-id="lesson-1">Lesson 1</a>
+ * <a href="Pages/quiz-mcq.html" class="quizPageBtn">MCQ Questions</a>
  * ```
  *
  * After enhancement:
+ * - data-page-id attribute set: data-page-id="quiz-mcq"
  * - Unstarted pages: class="quizPageBtn qd-badge-red"
  * - Incomplete pages: class="quizPageBtn qd-badge-amber"
  * - Complete pages: class="quizPageBtn qd-badge-green"
  */
 export function enhanceHomeBadges(): void {
+  // Find all navigation links
+  const links = document.querySelectorAll<HTMLAnchorElement>('.quizPageBtn');
+
+  // Extract pageId from href and set data-page-id attribute
+  links.forEach((link) => {
+    const pageId = extractPageIdFromHref(link);
+    if (pageId) {
+      link.setAttribute('data-page-id', pageId);
+      info(`Set data-page-id="${pageId}" for link: ${link.textContent?.trim()}`);
+    } else {
+      info(`Failed to extract pageId from href: ${link.getAttribute('href')}`);
+    }
+  });
+
   // Apply initial badges
   updateAllBadges();
 

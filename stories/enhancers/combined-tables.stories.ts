@@ -328,7 +328,11 @@ export const WithExistingData: Story = {
       totalAnswered += page.answered;
       totalCorrect += page.correct;
     }
-    existingCache.totals = { total: totalQuestions, answered: totalAnswered, correct: totalCorrect };
+    existingCache.totals = {
+      total: totalQuestions,
+      answered: totalAnswered,
+      correct: totalCorrect,
+    };
 
     sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(existingCache));
 

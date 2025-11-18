@@ -43,13 +43,15 @@ export class QdStorageMonitor extends LitElement {
       box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
       font-family: monospace;
       font-size: 12px;
-      z-index: 10000;
+      z-index: 9999; /* Below modal overlays (10001) */
       display: flex;
       flex-direction: column;
+      pointer-events: auto;
     }
 
     :host([hidden]) {
       display: none;
+      pointer-events: none;
     }
 
     .header {

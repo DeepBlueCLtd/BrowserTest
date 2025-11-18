@@ -10,6 +10,9 @@ import { injectComponents, type ComponentInjectorConfig } from './component-inje
 import { enhanceQuizTable } from '../enhancers/quiz-table.js';
 import { enhanceAnalysisTable } from '../enhancers/analysis-table.js';
 import { enhanceHomeBadges } from '../enhancers/home-badges.js';
+import { getStorageService } from '../services/storage-service.js';
+import { getJSON, setJSON } from '../utils/storage-helpers.js';
+import { STORAGE_KEYS, type SessionData, type SessionCache } from '../types/contracts.js';
 
 /**
  * Inject global CSS styles required by the quiz system
@@ -48,6 +51,22 @@ function injectGlobalStyles(): void {
       background-color: #f8d7da !important;
       border-color: #dc3545 !important;
     }
+
+    /* Home page badge styles (R/A/G indicators) */
+    .qd-badge-red {
+      border-left: 4px solid #d32f2f !important;
+      background-color: #ffebee !important;
+    }
+
+    .qd-badge-amber {
+      border-left: 4px solid #ff9800 !important;
+      background-color: #fff3e0 !important;
+    }
+
+    .qd-badge-green {
+      border-left: 4px solid #4caf50 !important;
+      background-color: #e8f5e9 !important;
+    }
   `;
 
   document.head.appendChild(style);
@@ -84,7 +103,7 @@ const state: BootstrapState = {
  *
  * @param config - Bootstrap configuration
  */
-export function bootstrap(config: BootstrapConfig = {}): void {
+export async function bootstrap(config: BootstrapConfig = {}): Promise<void> {
   if (state.initialized) {
     warn('Bootstrap already initialized, skipping');
     return;
@@ -95,17 +114,22 @@ export function bootstrap(config: BootstrapConfig = {}): void {
   // 0. Inject required global styles
   injectGlobalStyles();
 
-  // 1. Initialize event coordinator
+  // 1. Initialize storage service (IndexedDB)
+  const dbName = config.dbName || 'BrowserTest';
+  const storageService = getStorageService(dbName);
+  await storageService.init();
+
+  // 2. Initialize event coordinator
   const eventCoordinator = new EventCoordinator();
   eventCoordinator.initialize();
   state.eventCoordinator = eventCoordinator;
 
-  // 2. Initialize session coordinator
+  // 3. Initialize session coordinator
   const sessionCoordinator = new SessionCoordinator();
   sessionCoordinator.initialize();
   state.sessionCoordinator = sessionCoordinator;
 
-  // 3. Inject UI components
+  // 4. Inject UI components
   injectComponents({
     statusPanelContainer: config.statusPanelContainer,
     storageMonitorContainer: config.storageMonitorContainer,
@@ -113,7 +137,7 @@ export function bootstrap(config: BootstrapConfig = {}): void {
     debug: config.debug,
   });
 
-  // 4. Auto-enhance tables if enabled
+  // 5. Auto-enhance tables if enabled
   if (config.autoEnhanceQuizTables !== false) {
     enhanceAllQuizTables();
   }
@@ -125,6 +149,9 @@ export function bootstrap(config: BootstrapConfig = {}): void {
   if (config.autoEnhanceHomeBadges !== false) {
     enhanceHomeBadgesIfPresent();
   }
+
+  // 6. Check for existing session and upgrade tables if logged in
+  await checkExistingSessionAndUpgradeTables();
 
   state.initialized = true;
   info('Bootstrap complete');
@@ -204,6 +231,70 @@ function enhanceHomeBadgesIfPresent(): void {
     info('Home page badges enhanced');
   } catch (err) {
     warn(`Failed to enhance home badges: ${(err as Error).message}`);
+  }
+}
+
+/**
+ * Check for existing session and upgrade tables to interactive mode
+ * Called during bootstrap to handle page navigation with active session
+ */
+async function checkExistingSessionAndUpgradeTables(): Promise<void> {
+  // Check if session exists
+  const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
+  if (!session) {
+    info('No existing session, tables remain in non-interactive mode');
+    return;
+  }
+
+  info(`Existing session detected for ${session.serviceId}, upgrading tables to interactive mode`);
+
+  // Load or rebuild cache from IndexedDB
+  const storageService = getStorageService();
+  let cache = getJSON<SessionCache>(STORAGE_KEYS.CACHE);
+
+  if (!cache) {
+    info('Cache not found, rebuilding from IndexedDB...');
+    try {
+      const studentRecord = await storageService.loadStudentRecord(session);
+      cache = storageService.buildCache(studentRecord);
+      setJSON(STORAGE_KEYS.CACHE, cache);
+      info(`Cache rebuilt from IndexedDB: ${cache.totals.total} total questions`);
+    } catch (err) {
+      warn('Failed to rebuild cache from IndexedDB, using empty cache');
+      cache = {
+        totals: { total: 0, answered: 0, correct: 0 },
+        pages: {},
+      };
+      setJSON(STORAGE_KEYS.CACHE, cache);
+    }
+  }
+
+  // Extract pageId from URL filename
+  const pathname = window.location.pathname;
+  const filename = pathname.substring(pathname.lastIndexOf('/') + 1);
+  const pageId = filename.replace(/\.html?$/i, '');
+
+  if (!pageId) {
+    info('No pageId found, skipping table upgrade');
+    return;
+  }
+
+  // Upgrade quiz tables to interactive mode
+  const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
+  if (quizTables.length > 0) {
+    info(`Upgrading ${quizTables.length} quiz table(s) to interactive mode...`);
+    quizTables.forEach((table) => {
+      enhanceQuizTable(table, { interactive: true, pageId });
+    });
+  }
+
+  // Upgrade analysis tables to interactive mode
+  const analysisTables = document.querySelectorAll<HTMLTableElement>('table.qd-analysis');
+  if (analysisTables.length > 0) {
+    info(`Upgrading ${analysisTables.length} analysis table(s) to interactive mode...`);
+    analysisTables.forEach((table) => {
+      enhanceAnalysisTable(table, { interactive: true, pageId });
+    });
   }
 }
 

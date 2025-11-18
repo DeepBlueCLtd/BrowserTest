@@ -17,21 +17,20 @@ import type {
   ParsedQuizTable,
   QuizQuestion,
   AnswerRecord,
-  CompletionState,
   PageId,
   SessionData,
   SessionCache,
 } from '../types/contracts.js';
 import { parseQuizTable } from '../services/quiz-parser.js';
 import { validateAnswer } from '../services/quiz-parser.js';
-import { calculateCompletionState } from '../services/state-calculator.js';
 import { registerPageQuestions } from '../services/session.js';
 import { Debouncer } from '../utils/debouncer.js';
 import { createElement, addClass, removeClass } from '../utils/dom-helpers.js';
 import { emitCustomEvent } from '../utils/event-helpers.js';
 import { getJSON, setJSON } from '../utils/storage-helpers.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
-import { info, error as logError } from '../utils/logger.js';
+import { info, error as logError, warn } from '../utils/logger.js';
+import { getStorageService } from '../services/storage-service.js';
 
 /**
  * Enhancement options
@@ -108,6 +107,8 @@ export function enhanceQuizTable(
       return false;
     }
 
+    info(`Preparing interactive enhancement for pageId: ${options.pageId}`);
+
     // Initialize debouncer for auto-save
     metadata.debouncer = new Debouncer();
     metadata.inputs = [];
@@ -117,7 +118,13 @@ export function enhanceQuizTable(
 
   // Apply enhancement based on mode
   if (options.interactive) {
-    return enhanceInteractive(table, metadata);
+    const result = enhanceInteractive(table, metadata);
+    if (result) {
+      info(`Interactive enhancement succeeded for table with ${parsed.questions.length} questions`);
+    } else {
+      logError('Interactive enhancement failed');
+    }
+    return result;
   } else {
     return enhanceNonInteractive(table);
   }
@@ -183,10 +190,13 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
   // Get session cache
   let cache = getJSON<SessionCache>(STORAGE_KEYS.CACHE);
   if (!cache) {
+    info('No cache found, creating empty cache');
     cache = {
       totals: { total: 0, answered: 0, correct: 0 },
       pages: {},
     };
+  } else {
+    info(`Cache loaded: ${cache.totals.total} total questions, ${Object.keys(cache.pages).length} pages`);
   }
 
   // Register page questions (updates total count in cache)
@@ -196,6 +206,9 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
 
   const pageCache = cache?.pages[pageId];
   const existingAnswers = pageCache?.answers || [];
+  info(
+    `Page ${pageId}: ${existingAnswers.length} existing answers, state: ${pageCache?.state || 'none'}`,
+  );
 
   // Get all tbody rows
   const tbody = table.querySelector('tbody');
@@ -222,6 +235,11 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
 
     // Get existing answer for this question
     const existingAnswer = existingAnswers[index];
+    if (existingAnswer && existingAnswer.answer) {
+      info(
+        `Q${index + 1}: Pre-filling with "${existingAnswer.answer}" (${existingAnswer.success ? 'correct' : 'incorrect'})`,
+      );
+    }
 
     // Create input control based on question type
     const input = createQuestionInput(question, existingAnswer);
@@ -338,7 +356,7 @@ function handleAnswerInput(
   debouncer.debounce(
     `save-answer-${questionIndex}`,
     () => {
-      saveAnswer(table, metadata, questionIndex, answer);
+      void saveAnswer(table, metadata, questionIndex, answer);
     },
     200,
   );
@@ -352,12 +370,12 @@ function handleAnswerInput(
  * @param questionIndex - Question index
  * @param answer - User's answer
  */
-function saveAnswer(
+async function saveAnswer(
   table: HTMLTableElement,
   metadata: QuizTableMetadata,
   questionIndex: number,
   answer: string,
-): void {
+): Promise<void> {
   const { pageId, parsed, inputs } = metadata;
 
   if (!pageId || !inputs) {
@@ -387,61 +405,36 @@ function saveAnswer(
   };
 
   // Load student record from IndexedDB
-  // TODO: Replace with actual IndexedDB adapter call
-  // For now, we'll update sessionStorage cache
-
-  // Get or create cache
-  const cache = getJSON<SessionCache>(STORAGE_KEYS.CACHE) || {
-    totals: { total: 0, answered: 0, correct: 0 },
-    pages: {},
-  };
-
-  // Get existing page data or create default (preserves analysis field from analysis tables)
-  const existingPageData = cache.pages[pageId];
-  const pageData = existingPageData || {
-    state: 'unstarted' as CompletionState,
-    total: 0,
-    answered: 0,
-    correct: 0,
-    answers: [],
-  };
-
-  // Ensure answers array exists (may be missing from older cache or analysis-only pages)
-  if (!pageData.answers) {
-    pageData.answers = [];
+  const storageService = getStorageService();
+  let studentRecord;
+  try {
+    studentRecord = await storageService.loadStudentRecord(session);
+  } catch (err) {
+    warn('Failed to load student record, answer not saved', err);
+    return;
   }
 
-  // Update answer at index (fill sparse array if needed)
-  while (pageData.answers.length <= questionIndex) {
-    pageData.answers.push({
-      answer: '',
-      success: false,
-      timestamp: new Date().toISOString(),
-    });
-  }
-  pageData.answers[questionIndex] = answerRecord;
-
-  // Recalculate page state
+  // Update record with new answer
   const totalQuestions = parsed.questions.length;
-  pageData.state = calculateCompletionState(pageData.answers, totalQuestions);
-  pageData.answered = pageData.answers.filter((a) => a.answer.trim() !== '').length;
-  pageData.correct = pageData.answers.filter((a) => a.success).length;
+  const updatedRecord = storageService.updateRecordWithAnswer(
+    studentRecord,
+    pageId,
+    questionIndex,
+    answerRecord,
+    totalQuestions,
+  );
 
-  // Update cache
-  cache.pages[pageId] = pageData;
-
-  // Recalculate totals across all pages
-  let totalQuestionsSum = 0;
-  let totalAnswered = 0;
-  let totalCorrect = 0;
-  for (const page of Object.values(cache.pages)) {
-    totalQuestionsSum += page.total;
-    totalAnswered += page.answered;
-    totalCorrect += page.correct;
+  // Save updated record to IndexedDB
+  try {
+    await storageService.saveStudentRecord(updatedRecord);
+  } catch (err) {
+    warn('Failed to save student record to IndexedDB', err);
   }
-  cache.totals = { total: totalQuestionsSum, answered: totalAnswered, correct: totalCorrect };
 
-  // Save updated cache
+  // Build cache from updated record
+  const cache = storageService.buildCache(updatedRecord);
+
+  // Save cache to sessionStorage for quick access
   setJSON(STORAGE_KEYS.CACHE, cache);
 
   // Apply validation styling
@@ -459,10 +452,13 @@ function saveAnswer(
     answer: answerRecord,
   });
 
-  emitCustomEvent('qd:state-changed', {
-    pageId,
-    state: pageData.state,
-  });
+  const pageData = updatedRecord.pages[pageId];
+  if (pageData) {
+    emitCustomEvent('qd:state-changed', {
+      pageId,
+      state: pageData.state,
+    });
+  }
 
   info(
     `Answer saved for question ${questionIndex + 1} on page ${pageId}: ${success ? 'correct' : 'incorrect'}`,

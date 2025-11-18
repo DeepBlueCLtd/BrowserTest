@@ -70,6 +70,11 @@ export class QdLogin extends LitElement {
   private showInstructorModal = false;
 
   /**
+   * Reference to modal overlay element in document.body
+   */
+  private modalOverlay: HTMLDivElement | null = null;
+
+  /**
    * Error message to display
    */
   @state()
@@ -199,7 +204,7 @@ export class QdLogin extends LitElement {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
+      z-index: 10001; /* Above storage monitor (10000) */
     }
 
     .modal {
@@ -290,6 +295,17 @@ export class QdLogin extends LitElement {
     super.disconnectedCallback();
     document.removeEventListener('keydown', this.handleEscape);
     document.removeEventListener('qd:logout', this.handleLogoutEvent);
+    this.cleanupModal();
+  }
+
+  /**
+   * Remove modal from document.body if present
+   */
+  private cleanupModal(): void {
+    if (this.modalOverlay) {
+      this.modalOverlay.remove();
+      this.modalOverlay = null;
+    }
   }
 
   /**
@@ -362,48 +378,170 @@ export class QdLogin extends LitElement {
           ${this.errorMessage ? html`<div class="error-message">${this.errorMessage}</div>` : ''}
         </form>
       </div>
-
-      ${this.showInstructorModal ? this.renderInstructorModal() : ''}
     `;
   }
 
-  private renderInstructorModal() {
-    return html`
-      <div class="modal-overlay" @click=${() => this.handleOverlayClick()}>
-        <div class="modal" @click=${(e: Event) => this.stopPropagation(e)}>
-          <div class="modal-header">
-            <h3 class="modal-title">Instructor Login</h3>
-            <button type="button" class="close-btn" @click=${() => this.closeInstructorModal()}>
-              ×
-            </button>
-          </div>
-
-          <form @submit=${(e: Event) => this.handleInstructorLogin(e)}>
-            <div class="modal-body">
-              <input
-                type="password"
-                placeholder="Password"
-                .value=${this.instructorPassword}
-                @input=${(e: Event) => this.handleInstructorPasswordInput(e)}
-                required
-                autofocus
-              />
-
-              ${this.instructorError
-                ? html`<div class="error-message">${this.instructorError}</div>`
-                : ''}
-            </div>
-
-            <div class="modal-footer">
-              <button type="button" class="cancel-btn" @click=${() => this.closeInstructorModal()}>
-                Cancel
-              </button>
-              <button type="submit" class="login-btn">Login</button>
-            </div>
-          </form>
-        </div>
-      </div>
+  /**
+   * Render instructor modal to document.body (outside shadow DOM)
+   */
+  private renderInstructorModalToBody(): void {
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'qd-instructor-modal-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      font-family: system-ui, -apple-system, sans-serif;
     `;
+
+    // Create modal
+    const modal = document.createElement('div');
+    modal.className = 'qd-instructor-modal';
+    modal.style.cssText = `
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      min-width: 320px;
+      max-width: 400px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    `;
+
+    // Header
+    const header = document.createElement('div');
+    header.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    `;
+    const title = document.createElement('h3');
+    title.textContent = 'Instructor Login';
+    title.style.cssText = `font-size: 18px; font-weight: 600; color: #333; margin: 0;`;
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '×';
+    closeBtn.type = 'button';
+    closeBtn.style.cssText = `
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #666;
+      cursor: pointer;
+      padding: 0;
+      width: 28px;
+      height: 28px;
+      line-height: 1;
+    `;
+    closeBtn.onclick = () => this.closeInstructorModal();
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+
+    // Form
+    const form = document.createElement('form');
+    const bodyDiv = document.createElement('div');
+    bodyDiv.style.marginBottom = '20px';
+
+    const input = document.createElement('input');
+    input.type = 'password';
+    input.placeholder = 'Password';
+    input.required = true;
+    input.style.cssText = `
+      width: 100%;
+      box-sizing: border-box;
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 11px;
+    `;
+    input.oninput = (e) => {
+      this.instructorPassword = (e.target as HTMLInputElement).value;
+      this.instructorError = '';
+      if (errorDiv) errorDiv.remove();
+    };
+    bodyDiv.appendChild(input);
+
+    let errorDiv: HTMLDivElement | null = null;
+    if (this.instructorError) {
+      errorDiv = document.createElement('div');
+      errorDiv.textContent = this.instructorError;
+      errorDiv.style.cssText = `
+        color: #d32f2f;
+        font-size: 11px;
+        margin-top: 3px;
+        padding: 4px 8px;
+        background: #ffebee;
+        border-radius: 3px;
+        border-left: 3px solid #d32f2f;
+      `;
+      bodyDiv.appendChild(errorDiv);
+    }
+
+    // Footer
+    const footer = document.createElement('div');
+    footer.style.cssText = `display: flex; gap: 8px; justify-content: flex-end;`;
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.type = 'button';
+    cancelBtn.style.cssText = `
+      background: #e0e0e0;
+      color: #333;
+      border: none;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      padding: 6px 12px;
+    `;
+    cancelBtn.onclick = () => this.closeInstructorModal();
+
+    const loginBtn = document.createElement('button');
+    loginBtn.textContent = 'Login';
+    loginBtn.type = 'submit';
+    loginBtn.style.cssText = `
+      background: #0066cc;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      padding: 6px 12px;
+    `;
+
+    footer.appendChild(cancelBtn);
+    footer.appendChild(loginBtn);
+
+    form.appendChild(bodyDiv);
+    form.appendChild(footer);
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      void this.handleInstructorLogin(e);
+    };
+
+    // Assemble
+    modal.appendChild(header);
+    modal.appendChild(form);
+    overlay.appendChild(modal);
+
+    // Click outside to close
+    overlay.onclick = (e) => {
+      if (e.target === overlay) this.closeInstructorModal();
+    };
+
+    // Append to body
+    document.body.appendChild(overlay);
+    this.modalOverlay = overlay;
+
+    // Focus input
+    setTimeout(() => input.focus(), 50);
   }
 
   /**
@@ -422,15 +560,6 @@ export class QdLogin extends LitElement {
     const input = e.target as HTMLInputElement;
     this.serviceId = input.value;
     this.errorMessage = '';
-  }
-
-  /**
-   * Handle instructor password input
-   */
-  private handleInstructorPasswordInput(e: Event) {
-    const input = e.target as HTMLInputElement;
-    this.instructorPassword = input.value;
-    this.instructorError = '';
   }
 
   /**
@@ -515,6 +644,7 @@ export class QdLogin extends LitElement {
     this.showInstructorModal = true;
     this.instructorPassword = '';
     this.instructorError = '';
+    this.renderInstructorModalToBody();
   }
 
   /**
@@ -524,20 +654,7 @@ export class QdLogin extends LitElement {
     this.showInstructorModal = false;
     this.instructorPassword = '';
     this.instructorError = '';
-  }
-
-  /**
-   * Handle click on modal overlay
-   */
-  private handleOverlayClick() {
-    this.closeInstructorModal();
-  }
-
-  /**
-   * Stop event propagation (prevent closing on modal click)
-   */
-  private stopPropagation(e: Event) {
-    e.stopPropagation();
+    this.cleanupModal();
   }
 
   /**

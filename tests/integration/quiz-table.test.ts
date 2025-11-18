@@ -137,7 +137,7 @@ describe('Quiz Table Enhancement', () => {
         pages: {
           'test-page-1': {
             state: 'incomplete',
-      total: 5,
+            total: 5,
             answered: 1,
             correct: 1,
             answers: [{ answer: '1', success: true, timestamp: new Date().toISOString() }],

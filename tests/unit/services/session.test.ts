@@ -523,7 +523,7 @@ describe('Cache Building Utilities', () => {
         pages: {
           'page-1': {
             state: 'incomplete',
-      total: 5,
+            total: 5,
             answered: 2,
             correct: 1,
           },
@@ -542,7 +542,7 @@ describe('Cache Building Utilities', () => {
         pages: {
           'page-1': {
             state: 'incomplete',
-      total: 5,
+            total: 5,
             answered: 2,
             correct: 1,
           },
@@ -561,7 +561,7 @@ describe('Cache Building Utilities', () => {
         pages: {
           'page-1': {
             state: 'incomplete',
-      total: 5,
+            total: 5,
             answered: 2,
             correct: 1,
           },
@@ -580,7 +580,7 @@ describe('Cache Building Utilities', () => {
         pages: {
           'page-1': {
             state: 'incomplete',
-      total: 5,
+            total: 5,
             answered: 2,
             correct: 1,
           },
@@ -611,7 +611,7 @@ describe('Cache Building Utilities', () => {
         pages: {
           'page-1': {
             state: 'incomplete',
-      total: 5,
+            total: 5,
             answered: 2,
             correct: 1,
           },

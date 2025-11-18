@@ -145,9 +145,7 @@ export class QdStatus extends LitElement {
       <div class="status-panel">
         <div class="status-indicator ${this.statusColor}"></div>
         <div class="progress-label">Progress:</div>
-        <div class="progress-text">
-          ${this.correct}/${this.total} Correct (${this.percentage}%)
-        </div>
+        <div class="progress-text">${this.correct}/${this.total} Correct (${this.percentage}%)</div>
         <button class="logout-button" @click=${() => this.handleLogout()}>Logout</button>
       </div>
     `;

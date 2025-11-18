@@ -6,6 +6,10 @@
 import { info } from '../utils/logger.js';
 import { enhanceQuizTable } from '../enhancers/quiz-table.js';
 import { enhanceAnalysisTable } from '../enhancers/analysis-table.js';
+import { getStorageService } from '../services/storage-service.js';
+import { STORAGE_KEYS } from '../types/contracts.js';
+import { setJSON, getJSON } from '../utils/storage-helpers.js';
+import type { SessionData, SessionCache } from '../types/contracts.js';
 
 /**
  * Custom event detail types
@@ -66,14 +70,49 @@ export class EventCoordinator {
    */
   private registerLoginHandlers(): void {
     this.addEventListener('qd:login', (event) => {
-      const detail = (event as CustomEvent<LoginEventDetail>).detail;
-      info(`Login event: ${detail.serviceId} (${detail.name})`);
+      void (async () => {
+        const detail = (event as CustomEvent<LoginEventDetail>).detail;
+        info(`Login event: ${detail.serviceId} (${detail.name})`);
 
-      // Trigger cache rebuild
-      this.dispatchEvent('qd:cache-rebuild', {});
+        // Get session from storage (already created by SessionService)
+        const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
+        if (!session) {
+          info('No session found in storage, skipping cache rebuild');
+          return;
+        }
 
-      // Upgrade tables to interactive mode
-      this.upgradeTablesAfterLogin();
+        // Load student record from IndexedDB
+        const storageService = getStorageService();
+        let studentRecord;
+        let cache;
+
+        try {
+          studentRecord = await storageService.loadStudentRecord(session);
+
+          // Save student record to IndexedDB (creates if new, updates if exists)
+          await storageService.saveStudentRecord(studentRecord);
+
+          cache = storageService.buildCache(studentRecord);
+
+          // Save cache to sessionStorage
+          setJSON(STORAGE_KEYS.CACHE, cache);
+          info(`Cache built from IndexedDB: ${cache.totals.total} total questions`);
+        } catch (err) {
+          info('Failed to load from IndexedDB, initializing empty cache');
+          // Create empty cache for first-time users
+          const emptyCache: SessionCache = {
+            totals: { total: 0, answered: 0, correct: 0 },
+            pages: {},
+          };
+          setJSON(STORAGE_KEYS.CACHE, emptyCache);
+        }
+
+        // Trigger cache rebuild event
+        this.dispatchEvent('qd:cache-rebuild', {});
+
+        // Upgrade tables to interactive mode
+        this.upgradeTablesAfterLogin();
+      })();
     });
   }
 

@@ -16,13 +16,13 @@ import {
   StorageError,
   StorageQuotaError,
 } from './adapter-utils.js';
-import { warn as logWarn } from '../../utils/logger.js';
+import { info, warn as logWarn, error as logError } from '../../utils/logger.js';
 
-/** Database name */
-const DB_NAME = 'BrowserTest';
+/** Default database name */
+const DEFAULT_DB_NAME = 'BrowserTest';
 
-/** Database version */
-const DB_VERSION = 1;
+/** Database version - increment to force schema upgrade */
+const DB_VERSION = 2;
 
 /** Object store names */
 const STORE_STUDENTS = 'students';
@@ -50,6 +50,16 @@ interface BackupRecord extends StudentRecord {
 export class IndexedDBStorageAdapter implements StorageAdapter {
   private db: IDBDatabase | null = null;
   private initPromise: Promise<void> | null = null;
+  private dbName: string;
+
+  /**
+   * Create a new IndexedDB storage adapter
+   *
+   * @param dbName - Database name (defaults to 'BrowserTest')
+   */
+  constructor(dbName: string = DEFAULT_DB_NAME) {
+    this.dbName = dbName;
+  }
 
   /**
    * Initialize the IndexedDB database
@@ -71,7 +81,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     }
 
     this.initPromise = new Promise<void>((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      const request = indexedDB.open(this.dbName, DB_VERSION);
 
       request.onerror = () => {
         this.initPromise = null;
@@ -80,29 +90,91 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
       request.onsuccess = () => {
         this.db = request.result;
+
+        info(
+          `IndexedDB opened: ${this.dbName} v${this.db.version}, stores: [${Array.from(this.db.objectStoreNames).join(', ')}]`,
+        );
+
+        // Verify object stores exist - if not, database is corrupted
+        if (
+          !this.db.objectStoreNames.contains(STORE_STUDENTS) ||
+          !this.db.objectStoreNames.contains(STORE_BACKUPS)
+        ) {
+          // Database exists but stores missing - delete and recreate
+          logWarn(
+            `Database corrupted (missing stores). Found: [${Array.from(this.db.objectStoreNames).join(', ')}]`,
+          );
+          this.db.close();
+          this.db = null;
+
+          // Delete corrupted database
+          const deleteRequest = indexedDB.deleteDatabase(this.dbName);
+          deleteRequest.onsuccess = () => {
+            logWarn('Corrupted database deleted, retrying init...');
+            // Retry initialization
+            this.initPromise = null;
+            this.init()
+              .then(resolve)
+              .catch(reject);
+          };
+          deleteRequest.onerror = () => {
+            this.initPromise = null;
+            reject(
+              new StorageError(
+                'Failed to delete corrupted database',
+                'init',
+                deleteRequest.error as Error,
+              ),
+            );
+          };
+          return;
+        }
+
         this.initPromise = null;
         resolve();
       };
 
       request.onupgradeneeded = (event) => {
+        const upgradeEvent = event as IDBVersionChangeEvent;
         const db = (event.target as IDBOpenDBRequest).result;
 
-        // Create students object store
-        if (!db.objectStoreNames.contains(STORE_STUDENTS)) {
-          const studentsStore = db.createObjectStore(STORE_STUDENTS, { keyPath: null });
+        info(
+          `IndexedDB upgrade: ${this.dbName} v${upgradeEvent.oldVersion} → v${upgradeEvent.newVersion}`,
+        );
 
-          // Create indexes for efficient queries
-          studentsStore.createIndex('by-release', 'release', { unique: false });
-          studentsStore.createIndex('by-service-id', 'serviceId', { unique: false });
-        }
+        try {
+          // Create students object store
+          if (!db.objectStoreNames.contains(STORE_STUDENTS)) {
+            info('Creating students object store...');
+            const studentsStore = db.createObjectStore(STORE_STUDENTS, { keyPath: null });
 
-        // Create backups object store
-        if (!db.objectStoreNames.contains(STORE_BACKUPS)) {
-          const backupsStore = db.createObjectStore(STORE_BACKUPS, { keyPath: null });
+            // Create indexes for efficient queries
+            studentsStore.createIndex('by-release', 'release', { unique: false });
+            studentsStore.createIndex('by-service-id', 'serviceId', { unique: false });
+            info('Students store created with indexes');
+          } else {
+            info('Students store already exists, skipping');
+          }
 
-          // Create indexes for backup queries
-          backupsStore.createIndex('by-original-key', 'originalKey', { unique: false });
-          backupsStore.createIndex('by-timestamp', 'timestamp', { unique: false });
+          // Create backups object store
+          if (!db.objectStoreNames.contains(STORE_BACKUPS)) {
+            info('Creating backups object store...');
+            const backupsStore = db.createObjectStore(STORE_BACKUPS, { keyPath: null });
+
+            // Create indexes for backup queries
+            backupsStore.createIndex('by-original-key', 'originalKey', { unique: false });
+            backupsStore.createIndex('by-timestamp', 'timestamp', { unique: false });
+            info('Backups store created with indexes');
+          } else {
+            info('Backups store already exists, skipping');
+          }
+
+          info(
+            `Upgrade complete. Stores: [${Array.from(db.objectStoreNames).join(', ')}]`,
+          );
+        } catch (err) {
+          logError('Error during database upgrade', err as Error);
+          throw err;
         }
       };
 
@@ -394,17 +466,27 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
  * Singleton storage adapter instance
  */
 let storageInstance: IndexedDBStorageAdapter | null = null;
+let currentDbName: string | null = null;
 
 /**
  * Get the singleton storage adapter instance
  *
  * Creates a new instance on first call, reuses it thereafter.
+ * If dbName changes, closes old instance and creates new one.
  *
+ * @param dbName - Database name (defaults to 'BrowserTest')
  * @returns IndexedDB storage adapter
  */
-export function getStorageAdapter(): IndexedDBStorageAdapter {
+export function getStorageAdapter(dbName: string = DEFAULT_DB_NAME): IndexedDBStorageAdapter {
+  // If dbName changed, close old instance and create new one
+  if (storageInstance && currentDbName !== dbName) {
+    storageInstance.close();
+    storageInstance = null;
+  }
+
   if (!storageInstance) {
-    storageInstance = new IndexedDBStorageAdapter();
+    storageInstance = new IndexedDBStorageAdapter(dbName);
+    currentDbName = dbName;
   }
   return storageInstance;
 }
@@ -418,5 +500,6 @@ export function resetStorageAdapter(): void {
   if (storageInstance) {
     storageInstance.close();
     storageInstance = null;
+    currentDbName = null;
   }
 }
