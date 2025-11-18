@@ -165,6 +165,8 @@ export interface SessionData {
 export interface PageCache {
   /** Page completion state */
   state: CompletionState;
+  /** Total number of questions registered on this page */
+  total: number;
   /** Number of questions answered */
   answered: number;
   /** Number of correct answers */
@@ -181,6 +183,7 @@ export interface PageCache {
 export interface SessionCache {
   /** Aggregated totals */
   totals: {
+    total: number;
     answered: number;
     correct: number;
   };

@@ -267,6 +267,7 @@ export class SessionService {
 export function buildCacheFromRecord(record: StudentRecord): SessionCache {
   const cache: SessionCache = {
     totals: {
+      total: 0,
       answered: 0,
       correct: 0,
     },
@@ -279,6 +280,7 @@ export function buildCacheFromRecord(record: StudentRecord): SessionCache {
     cache.pages[pageId] = pageCache;
 
     // Accumulate totals
+    cache.totals.total += pageCache.total;
     cache.totals.answered += pageCache.answered;
     cache.totals.correct += pageCache.correct;
   }
@@ -294,11 +296,14 @@ export function buildCacheFromRecord(record: StudentRecord): SessionCache {
  * @returns Page cache entry
  */
 export function buildPageCache(_pageId: string, pageData: PageData): PageCache {
-  const answered = pageData.answers.length;
+  // Total is the length of answers array (includes empty/placeholder answers)
+  const total = pageData.answers.length;
+  const answered = pageData.answers.filter((a) => a.answer.trim() !== '').length;
   const correct = pageData.answers.filter((a) => a.success).length;
 
   return {
     state: pageData.state,
+    total,
     answered,
     correct,
     last: pageData.lastAttempted,

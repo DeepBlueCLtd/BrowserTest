@@ -38,14 +38,15 @@ function injectGlobalStyles(): void {
       border-radius: 4px;
     }
 
-    .qd-quiz-interactive .qd-correct {
-      background-color: #d4edda;
-      border-color: #28a745;
+    /* Validation styling for answer cells */
+    .qd-quiz-interactive .qd-answer-correct {
+      background-color: #d4edda !important;
+      border-color: #28a745 !important;
     }
 
-    .qd-quiz-interactive .qd-incorrect {
-      background-color: #f8d7da;
-      border-color: #dc3545;
+    .qd-quiz-interactive .qd-answer-incorrect {
+      background-color: #f8d7da !important;
+      border-color: #dc3545 !important;
     }
   `;
 

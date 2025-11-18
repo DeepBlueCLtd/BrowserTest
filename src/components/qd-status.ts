@@ -18,6 +18,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
 import type { SessionCache, SessionData } from '../types/contracts.js';
 import { getJSON } from '../utils/storage-helpers.js';
+import { SessionService } from '../services/session.js';
 
 /**
  * Status panel component for student progress tracking
@@ -232,7 +233,16 @@ export class QdStatus extends LitElement {
    * Handle logout button click
    */
   private handleLogout() {
+    const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
+
+    // Clear session from storage
+    const sessionService = new SessionService();
+    sessionService.clearSession();
+
     const event = new CustomEvent('qd:logout', {
+      detail: {
+        serviceId: session?.serviceId || 'unknown',
+      },
       bubbles: true,
       composed: true,
     });
