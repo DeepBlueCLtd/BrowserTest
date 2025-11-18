@@ -88,14 +88,6 @@ function setupSession() {
 }
 
 /**
- * Helper: Clear session storage
- */
-function clearSession() {
-  sessionStorage.removeItem(STORAGE_KEYS.SESSION);
-  sessionStorage.removeItem(STORAGE_KEYS.CACHE);
-}
-
-/**
  * Combined: Analysis Table + Quiz Table (Interactive Mode)
  *
  * Demonstrates both table types on the same page, sharing the same pageId.
@@ -304,6 +296,8 @@ export const WithExistingData: Story = {
         };
 
     // Add pre-existing data for this page
+    // NOTE: Cell keys use hash of INITIAL (empty) content
+    // Empty string hash (DJB2): 5381 -> hex "1505" -> padded "00001505"
     existingCache.pages['combined-page-2'] = {
       state: 'incomplete',
       answered: 1,
@@ -315,8 +309,9 @@ export const WithExistingData: Story = {
       analysis: {
         tableId: 'test-table-id',
         cells: {
-          'R0C1#f:12345678': '100',
-          'R1C1#f:23456789': '2.5',
+          'R0C1#f:00001505': '100', // Row 0, Col 1 (Total Resistance)
+          'R1C1#f:00001505': '2.5', // Row 1, Col 1 (Total Current)
+          // Row 2, Col 1 (Power) left empty
         },
         firstEdited: new Date(Date.now() - 300000).toISOString(), // 5 minutes ago
         lastEdited: new Date(Date.now() - 60000).toISOString(), // 1 minute ago
@@ -493,10 +488,12 @@ export const WithExistingData: Story = {
  * Non-Interactive Mode
  *
  * Shows both tables in read-only mode (pre-login state).
+ * NOTE: Do NOT clear storage - students may navigate to reference pages while working.
+ * Non-interactive mode just means tables aren't editable, not that we should wipe session data.
  */
 export const NonInteractive: Story = {
   render: () => {
-    clearSession();
+    // NOTE: Do NOT manipulate storage - enhancer handles mode via interactive parameter
 
     return html`
       <div style="padding: 20px; max-width: 900px;">
