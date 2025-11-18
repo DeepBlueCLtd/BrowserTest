@@ -98,14 +98,14 @@ declare const __BUILD_DATE__: string;
  * hidden DOM elements injected by DITA publishing (see dom-config-reader.ts).
  */
 if (typeof window !== 'undefined') {
-  const init = async () => {
+  const init = () => {
     info('Auto-initializing Sonar Quiz System');
 
     // Read configuration from hidden DOM elements
     const domConfig = readDOMConfig();
 
     // Bootstrap with DOM config and debug mode
-     bootstrap({
+    void bootstrap({
       debug: DEBUG_MODE,
       dbName: domConfig.dbName,
       statusPanelContainer: domConfig.statusPanelContainer,

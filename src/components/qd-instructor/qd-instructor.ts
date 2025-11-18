@@ -91,7 +91,7 @@ export class QdInstructor extends LitElement {
   }
 
   private handleLoginEvent = (event: Event): void => {
-    const customEvent = event as CustomEvent;
+    const customEvent = event as CustomEvent<{ role?: string }>;
     const role = customEvent.detail?.role;
 
     this.updateVisibility();
