@@ -26,6 +26,29 @@ export const sharedStyles = css`
     gap: 8px;
   }
 
+  .instructor-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: #333;
+    margin-right: 8px;
+  }
+
+  .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #555;
+    user-select: none;
+  }
+
+  .toggle-label input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+
   button {
     padding: 8px 16px;
     border: 1px solid #ccc;

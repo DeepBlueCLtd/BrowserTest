@@ -231,13 +231,11 @@ export class QdStatus extends LitElement {
    * Handle logout button click
    */
   private handleLogout() {
-    console.log('[qd-status] Logout button clicked');
     const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
 
     // Clear session from storage
     const sessionService = new SessionService();
     sessionService.clearSession();
-    console.log('[qd-status] Session cleared');
 
     const event = new CustomEvent('qd:logout', {
       detail: {
@@ -246,7 +244,6 @@ export class QdStatus extends LitElement {
       bubbles: true,
       composed: true,
     });
-    console.log('[qd-status] Dispatching qd:logout event');
     this.dispatchEvent(event);
   }
 }

@@ -121,6 +121,7 @@ export class SessionService {
     const session = this.getSession();
     sessionStorage.removeItem(STORAGE_KEYS.SESSION);
     sessionStorage.removeItem(STORAGE_KEYS.CACHE);
+    sessionStorage.removeItem(STORAGE_KEYS.INSTRUCTOR);
 
     if (session) {
       info(`Session cleared for ${session.serviceId}`);

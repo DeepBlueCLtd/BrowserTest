@@ -67,6 +67,43 @@ function injectGlobalStyles(): void {
       border-left: 4px solid #4caf50 !important;
       background-color: #e8f5e9 !important;
     }
+
+    /* Instructor mode: Student answers display */
+    .qd-student-answers {
+      margin-top: 12px;
+      padding: 8px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      border: 1px solid #dee2e6;
+    }
+
+    .qd-student-answer {
+      font-size: 12px;
+      padding: 4px 0;
+      line-height: 1.4;
+    }
+
+    .qd-student-answer.qd-correct {
+      color: #28a745;
+    }
+
+    .qd-student-answer.qd-incorrect {
+      color: #dc3545;
+    }
+
+    .qd-student-name {
+      font-weight: 600;
+    }
+
+    .qd-student-answer-text {
+      margin: 0 4px;
+    }
+
+    .qd-timestamp {
+      color: #6c757d;
+      font-size: 11px;
+      margin-left: 8px;
+    }
   `;
 
   document.head.appendChild(style);

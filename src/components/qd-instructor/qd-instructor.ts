@@ -47,9 +47,19 @@ export class QdInstructor extends LitElement {
   @state()
   private students: StudentRecord[] = [];
 
+  @state()
+  private showStudentAnswers = false;
+
   connectedCallback() {
     super.connectedCallback();
     this.updateVisibility();
+
+    // Restore toggle state from sessionStorage
+    const savedState = sessionStorage.getItem('qd/instructor/showAnswers');
+    if (savedState !== null) {
+      this.showStudentAnswers = savedState === 'true';
+    }
+
     document.addEventListener('qd:login', this.handleLoginEvent);
     document.addEventListener('qd:logout', this.handleLogoutEvent);
   }
@@ -72,8 +82,16 @@ export class QdInstructor extends LitElement {
     }
   }
 
-  private handleLoginEvent = (): void => {
+  private handleLoginEvent = (event: Event): void => {
+    const customEvent = event as CustomEvent;
+    const role = customEvent.detail?.role;
+
     this.updateVisibility();
+
+    // Auto-unlock if instructor logged in
+    if (role === 'instructor') {
+      this.unlock();
+    }
   };
 
   private handleLogoutEvent = (): void => {
@@ -144,6 +162,26 @@ export class QdInstructor extends LitElement {
     );
   };
 
+  private handleToggleStudentAnswers = (e: Event): void => {
+    const checkbox = e.target as HTMLInputElement;
+    this.showStudentAnswers = checkbox.checked;
+
+    // Emit event to notify table enhancers
+    const eventName = this.showStudentAnswers
+      ? 'qd:instructor-show-answers'
+      : 'qd:instructor-hide-answers';
+
+    this.dispatchEvent(
+      new CustomEvent(eventName, {
+        bubbles: true,
+        composed: true,
+      }),
+    );
+
+    // Persist toggle state in sessionStorage
+    sessionStorage.setItem('qd/instructor/showAnswers', String(this.showStudentAnswers));
+  };
+
   override render() {
     if (!this.unlocked) {
       return html`
@@ -153,7 +191,18 @@ export class QdInstructor extends LitElement {
 
     return html`
       <div class="instructor-panel">
-        <button @click=${this.handleViewScores} class="primary compact">View Scores</button>
+        <div class="instructor-title">Instructor Mode</div>
+
+        <label class="toggle-label">
+          <input
+            type="checkbox"
+            .checked=${this.showStudentAnswers}
+            @change=${this.handleToggleStudentAnswers}
+          />
+          Show student answers on page
+        </label>
+
+        <button @click=${this.handleViewScores} class="primary compact">View All Scores</button>
 
         <qd-instructor-export .students=${this.students}></qd-instructor-export>
 

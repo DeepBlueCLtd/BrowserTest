@@ -56,6 +56,8 @@ interface QuizTableMetadata {
   inputs?: (HTMLInputElement | HTMLSelectElement)[];
   /** Debouncer for auto-save */
   debouncer?: Debouncer;
+  /** Cleanup function for instructor event listeners */
+  cleanupInstructorListeners?: () => void;
 }
 
 // WeakMap to store table metadata without polluting DOM
@@ -264,6 +266,30 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
 
   // Store input references
   metadata.inputs = inputs;
+
+  // Setup instructor answer display listeners
+  const showAnswersHandler = () => {
+    void showStudentAnswersForTable(table, metadata);
+  };
+  const hideAnswersHandler = () => {
+    hideStudentAnswersForTable(table);
+  };
+
+  document.addEventListener('qd:instructor-show-answers', showAnswersHandler);
+  document.addEventListener('qd:instructor-hide-answers', hideAnswersHandler);
+
+  // Check if instructor mode with toggle already enabled
+  const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
+  const showAnswers = sessionStorage.getItem('qd/instructor/showAnswers') === 'true';
+  if (isInstructor && showAnswers) {
+    void showStudentAnswersForTable(table, metadata);
+  }
+
+  // Store cleanup function in metadata
+  metadata.cleanupInstructorListeners = () => {
+    document.removeEventListener('qd:instructor-show-answers', showAnswersHandler);
+    document.removeEventListener('qd:instructor-hide-answers', hideAnswersHandler);
+  };
 
   addClass(table, 'qd-quiz-interactive');
   info(`Quiz table enhanced in interactive mode for page ${pageId}`);
@@ -587,4 +613,122 @@ export function getQuizTableMetadata(table: HTMLTableElement): QuizTableMetadata
  */
 export function isQuizTableEnhanced(table: HTMLTableElement): boolean {
   return tableMetadata.has(table);
+}
+
+/**
+ * Show student answers for all questions in table (instructor mode)
+ *
+ * @param table - Quiz table element
+ * @param metadata - Table metadata
+ */
+async function showStudentAnswersForTable(
+  table: HTMLTableElement,
+  metadata: QuizTableMetadata,
+): Promise<void> {
+  const { pageId, parsed } = metadata;
+  if (!pageId) return;
+
+  const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
+  if (!session) return;
+
+  // Get storage service to load all student records
+  const { getStorageService } = await import('../services/storage-service.js');
+  const storageService = getStorageService();
+
+  try {
+    // Load all student records for current release
+    const students = await storageService.getStudentsByRelease(session.release);
+
+    // Get tbody rows
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    // For each question, collect student answers and display
+    parsed.questions.forEach((_question, questionIndex) => {
+      const row = rows[questionIndex];
+      if (!row) return;
+
+      const cells = Array.from(row.querySelectorAll('td'));
+      const answerCell = cells[1];
+      if (!answerCell) return;
+
+      // Remove any existing student answers display
+      const existingDisplay = answerCell.querySelector('.qd-student-answers');
+      if (existingDisplay) {
+        existingDisplay.remove();
+      }
+
+      // Collect answers from all students for this question
+      const studentAnswers: Array<{
+        name: string;
+        serviceId: string;
+        answer: string;
+        success: boolean;
+        timestamp: string;
+      }> = [];
+
+      students.forEach((student) => {
+        const pageData = student.pages[pageId];
+        if (!pageData || !pageData.answers) return;
+
+        const answerRecord = pageData.answers[questionIndex];
+        if (!answerRecord) return;
+
+        studentAnswers.push({
+          name: student.name,
+          serviceId: student.serviceId,
+          answer: answerRecord.answer,
+          success: answerRecord.success,
+          timestamp: answerRecord.timestamp,
+        });
+      });
+
+      // Create display element
+      if (studentAnswers.length > 0) {
+        const display = document.createElement('div');
+        display.className = 'qd-student-answers';
+
+        studentAnswers.forEach((sa) => {
+          const answerDiv = document.createElement('div');
+          answerDiv.className = `qd-student-answer ${sa.success ? 'qd-correct' : 'qd-incorrect'}`;
+
+          // Format: Name (last 4 of serviceId): answer [timestamp]
+          const last4 = sa.serviceId.slice(-4);
+          const timestamp = new Date(sa.timestamp).toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+
+          answerDiv.innerHTML = `
+            <span class="qd-student-name">${sa.name} (${last4})</span>:
+            <span class="qd-student-answer-text">${sa.answer}</span>
+            <span class="qd-timestamp">${timestamp}</span>
+          `;
+
+          display.appendChild(answerDiv);
+        });
+
+        answerCell.appendChild(display);
+      }
+    });
+
+    info(`Displayed student answers for ${students.length} students on page ${pageId}`);
+  } catch (err) {
+    logError('Failed to load student answers', err as Error);
+  }
+}
+
+/**
+ * Hide student answers for all questions in table
+ *
+ * @param table - Quiz table element
+ */
+function hideStudentAnswersForTable(table: HTMLTableElement): void {
+  const displays = table.querySelectorAll('.qd-student-answers');
+  displays.forEach((display) => display.remove());
+  info('Hid student answers from quiz table');
 }

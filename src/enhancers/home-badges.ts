@@ -94,19 +94,24 @@ function updateLinkBadge(link: HTMLElement): void {
 function updateAllBadges(): void {
   const links = document.querySelectorAll<HTMLElement>('.quizPageBtn');
   const cache = getJSON<SessionCache>(STORAGE_KEYS.CACHE);
+  const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
 
-  // If no cache exists (not logged in), remove all badge styling
-  if (!cache) {
+  // If instructor mode OR no cache, remove all badge styling
+  if (!cache || isInstructor) {
     links.forEach((link) => {
       Object.values(BADGE_CLASSES).forEach((className) => {
         link.classList.remove(className);
       });
     });
-    info(`Removed badge styling from ${links.length} page links (no session)`);
+    if (isInstructor) {
+      info(`Removed badge styling from ${links.length} page links (instructor mode)`);
+    } else {
+      info(`Removed badge styling from ${links.length} page links (no session)`);
+    }
     return;
   }
 
-  // Cache exists, apply badges based on state
+  // Cache exists and not instructor, apply badges based on state
   links.forEach((link) => {
     updateLinkBadge(link);
   });

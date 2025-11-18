@@ -23,6 +23,7 @@ import { STORAGE_KEYS } from '../types/contracts.js';
 import type { SessionData } from '../types/contracts.js';
 import { getJSON } from '../utils/storage-helpers.js';
 import { SessionService } from '../services/session.js';
+import { CONFIG_IDS } from '../config/dom-config-reader.js';
 
 /**
  * Login event data
@@ -285,17 +286,14 @@ export class QdLogin extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    console.log('[qd-login] Component connected');
     this.updateVisibility();
     // Listen for Escape key to close modal
     document.addEventListener('keydown', this.handleEscape);
     document.addEventListener('qd:logout', this.handleLogoutEvent);
-    console.log('[qd-login] Event listeners registered');
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    console.log('[qd-login] Component disconnected');
     document.removeEventListener('keydown', this.handleEscape);
     document.removeEventListener('qd:logout', this.handleLogoutEvent);
     this.cleanupModal();
@@ -305,11 +303,9 @@ export class QdLogin extends LitElement {
    * Remove modal from document.body if present
    */
   private cleanupModal(): void {
-    console.log('[qd-login] cleanupModal called, overlay exists:', !!this.modalOverlay);
     if (this.modalOverlay) {
       this.modalOverlay.remove();
       this.modalOverlay = null;
-      console.log('[qd-login] Modal overlay removed');
     }
   }
 
@@ -325,12 +321,9 @@ export class QdLogin extends LitElement {
    */
   private updateVisibility(): void {
     const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
-    console.log('[qd-login] updateVisibility - session:', session ? 'exists' : 'null');
     if (!session) {
-      console.log('[qd-login] Showing login form');
       this.setAttribute('data-show', '');
     } else {
-      console.log('[qd-login] Hiding login form');
       this.removeAttribute('data-show');
     }
   }
@@ -339,8 +332,6 @@ export class QdLogin extends LitElement {
    * Handle logout event - show login form again
    */
   private handleLogoutEvent = (): void => {
-    console.log('[qd-login] Received logout event');
-
     // Reset component state
     this.name = '';
     this.serviceId = '';
@@ -355,7 +346,6 @@ export class QdLogin extends LitElement {
 
     // Show login form
     this.updateVisibility();
-    console.log('[qd-login] Component state reset, login form shown');
   };
 
   render() {
@@ -409,7 +399,6 @@ export class QdLogin extends LitElement {
    * Render instructor modal to document.body (outside shadow DOM)
    */
   private renderInstructorModalToBody(): void {
-    console.log('[qd-login] Creating instructor modal overlay');
     // Create overlay
     const overlay = document.createElement('div');
     overlay.className = 'qd-instructor-modal-overlay';
@@ -563,6 +552,7 @@ export class QdLogin extends LitElement {
     form.appendChild(footer);
     form.onsubmit = (e) => {
       e.preventDefault();
+      console.log('[instructor] Form submitted, password:', this.instructorPassword );
       void this.handleInstructorLogin(e);
     };
 
@@ -621,10 +611,15 @@ export class QdLogin extends LitElement {
 
   /**
    * Get release from document title
-   * Looks for: .wh_publication_title .title span
+   * Reads selector from config, then queries document
    */
   private getRelease(): string {
-    const titleElement = document.querySelector('.wh_publication_title .title');
+    // Read title selector from config element
+    const selectorElement = document.getElementById(CONFIG_IDS.titleSelector);
+    const selector = selectorElement?.textContent?.trim() || '.wh_publication_title .title';
+
+    // Use selector to find title element
+    const titleElement = document.querySelector(selector);
     return titleElement?.textContent?.trim() || '';
   }
 
@@ -645,7 +640,7 @@ export class QdLogin extends LitElement {
     try {
       const release = this.getRelease();
       if (!release) {
-        this.errorMessage = 'Release not found (missing .wh_publication_title .title element)';
+        this.errorMessage = 'Release not found (missing publication title element)';
         this.isSubmitting = false;
         return;
       }
@@ -691,7 +686,6 @@ export class QdLogin extends LitElement {
    * Close instructor modal
    */
   private closeInstructorModal() {
-    console.log('[qd-login] Closing instructor modal');
     this.showInstructorModal = false;
     this.instructorPassword = '';
     this.instructorError = '';
@@ -726,7 +720,7 @@ export class QdLogin extends LitElement {
    * Get expected password hash from hidden element
    */
   private getExpectedHash(): string {
-    const hashElement = document.getElementById('instructor.password.hash');
+    const hashElement = document.getElementById(CONFIG_IDS.instructorHash);
     return hashElement?.textContent?.trim() || '';
   }
 
@@ -738,6 +732,7 @@ export class QdLogin extends LitElement {
 
     if (!this.instructorPassword) {
       this.instructorError = 'Password is required';
+      console.log('[instructor] Password empty');
       return;
     }
 
@@ -745,17 +740,24 @@ export class QdLogin extends LitElement {
       const passwordHash = await this.hashPassword(this.instructorPassword);
       const expectedHash = this.getExpectedHash();
 
+      console.log('[instructor] Password hash:', passwordHash);
+      console.log('[instructor] Expected hash:', expectedHash);
+
       if (!expectedHash) {
         this.instructorError = 'Instructor password not configured';
+        console.log('[instructor] No expected hash configured');
         return;
       }
 
       if (passwordHash !== expectedHash) {
         this.instructorError = 'Incorrect password';
         this.instructorPassword = '';
+        console.log('[instructor] Password mismatch');
         // TODO: Implement rate limiting (5 attempts per 60 seconds)
         return;
       }
+
+      console.log('[instructor] Password match! Creating session...');
 
       // Success
       const release = this.getRelease();
@@ -763,6 +765,9 @@ export class QdLogin extends LitElement {
       // Create session in storage
       const sessionService = new SessionService();
       sessionService.createSession('INSTRUCTOR', 'Instructor', release || '');
+
+      // Set instructor flag
+      sessionStorage.setItem(STORAGE_KEYS.INSTRUCTOR, 'true');
 
       const loginData: LoginData = {
         serviceId: 'INSTRUCTOR',
@@ -778,9 +783,13 @@ export class QdLogin extends LitElement {
       });
       this.dispatchEvent(event);
 
+      console.log('[instructor] Login event dispatched, closing modal...');
+
       // Close modal and hide component (don't remove - need to show again on logout)
       this.closeInstructorModal();
       this.updateVisibility();
+
+      console.log('[instructor] Login complete');
     } catch (err) {
       this.instructorError = 'Login failed. Please try again.';
       console.error('Instructor login error:', err);

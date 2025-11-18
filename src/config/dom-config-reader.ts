@@ -55,7 +55,7 @@ const DEFAULT_CONFIG: DOMConfig = {
 /**
  * Configuration element IDs
  */
-const CONFIG_IDS = {
+export const CONFIG_IDS = {
   statusPanelContainer: 'qd-status-container',
   titleSelector: 'qd-title-selector',
   instructorHash: 'qd-instructor-hash',
