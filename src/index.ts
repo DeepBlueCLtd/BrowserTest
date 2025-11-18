@@ -105,7 +105,7 @@ if (typeof window !== 'undefined') {
     const domConfig = readDOMConfig();
 
     // Bootstrap with DOM config and debug mode
-    await bootstrap({
+     bootstrap({
       debug: DEBUG_MODE,
       dbName: domConfig.dbName,
       statusPanelContainer: domConfig.statusPanelContainer,
