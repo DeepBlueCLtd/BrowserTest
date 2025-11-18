@@ -259,7 +259,7 @@ async function checkExistingSessionAndUpgradeTables(): Promise<void> {
       cache = storageService.buildCache(studentRecord);
       setJSON(STORAGE_KEYS.CACHE, cache);
       info(`Cache rebuilt from IndexedDB: ${cache.totals.total} total questions`);
-    } catch (err) {
+    } catch {
       warn('Failed to rebuild cache from IndexedDB, using empty cache');
       cache = {
         totals: { total: 0, answered: 0, correct: 0 },

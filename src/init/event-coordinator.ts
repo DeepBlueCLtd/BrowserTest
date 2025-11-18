@@ -97,7 +97,7 @@ export class EventCoordinator {
           // Save cache to sessionStorage
           setJSON(STORAGE_KEYS.CACHE, cache);
           info(`Cache built from IndexedDB: ${cache.totals.total} total questions`);
-        } catch (err) {
+        } catch {
           info('Failed to load from IndexedDB, initializing empty cache');
           // Create empty cache for first-time users
           const emptyCache: SessionCache = {

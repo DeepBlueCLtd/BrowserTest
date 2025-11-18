@@ -196,7 +196,9 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
       pages: {},
     };
   } else {
-    info(`Cache loaded: ${cache.totals.total} total questions, ${Object.keys(cache.pages).length} pages`);
+    info(
+      `Cache loaded: ${cache.totals.total} total questions, ${Object.keys(cache.pages).length} pages`,
+    );
   }
 
   // Register page questions (updates total count in cache)

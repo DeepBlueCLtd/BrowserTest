@@ -113,9 +113,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             logWarn('Corrupted database deleted, retrying init...');
             // Retry initialization
             this.initPromise = null;
-            this.init()
-              .then(resolve)
-              .catch(reject);
+            this.init().then(resolve).catch(reject);
           };
           deleteRequest.onerror = () => {
             this.initPromise = null;
@@ -135,7 +133,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
       };
 
       request.onupgradeneeded = (event) => {
-        const upgradeEvent = event as IDBVersionChangeEvent;
+        const upgradeEvent = event;
         const db = (event.target as IDBOpenDBRequest).result;
 
         info(
@@ -169,9 +167,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             info('Backups store already exists, skipping');
           }
 
-          info(
-            `Upgrade complete. Stores: [${Array.from(db.objectStoreNames).join(', ')}]`,
-          );
+          info(`Upgrade complete. Stores: [${Array.from(db.objectStoreNames).join(', ')}]`);
         } catch (err) {
           logError('Error during database upgrade', err as Error);
           throw err;

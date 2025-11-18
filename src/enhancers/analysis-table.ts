@@ -32,7 +32,8 @@ import { getTableRows, getRowCells, addClass, getTextContent } from '../utils/do
 import { emitCustomEvent } from '../utils/event-helpers.js';
 import { getJSON, setJSON } from '../utils/storage-helpers.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
-import { info, error as logError } from '../utils/logger.js';
+import { info, error as logError, warn } from '../utils/logger.js';
+import { getStorageService } from '../services/storage-service.js';
 
 /**
  * Enhancement options
@@ -241,20 +242,24 @@ function handleCellEdit(
   debouncer.debounce(
     `save-cell-${cellKey}`,
     () => {
-      saveCellData(metadata, cellKey, content);
+      void saveCellData(metadata, cellKey, content);
     },
     500,
   );
 }
 
 /**
- * Save cell data to storage
+ * Save cell data to storage (sessionStorage + IndexedDB)
  *
  * @param metadata - Table metadata
  * @param cellKey - Cell key
  * @param content - Cell content
  */
-function saveCellData(metadata: AnalysisTableMetadata, cellKey: CellKey, content: string): void {
+async function saveCellData(
+  metadata: AnalysisTableMetadata,
+  cellKey: CellKey,
+  content: string,
+): Promise<void> {
   const { pageId, parsed } = metadata;
 
   if (!pageId) {
@@ -268,20 +273,20 @@ function saveCellData(metadata: AnalysisTableMetadata, cellKey: CellKey, content
     return;
   }
 
-  // Get or create cache
-  const cache = getJSON<SessionCache>(STORAGE_KEYS.CACHE) || {
-    totals: { total: 0, answered: 0, correct: 0 },
-    pages: {},
-  };
+  // Load student record from IndexedDB
+  const storageService = getStorageService();
+  let studentRecord;
+  try {
+    studentRecord = await storageService.loadStudentRecord(session);
+  } catch (err) {
+    warn('Failed to load student record, analysis not saved', err);
+    return;
+  }
 
-  // Get existing page data or create default (preserves answers field from quiz tables)
-  const existingPageData = cache.pages[pageId];
-  const pageData: import('../types/contracts.js').PageCache = existingPageData || {
-    state: 'unstarted',
-    total: 0,
-    answered: 0,
-    correct: 0,
+  // Get or create page data in student record
+  const pageData = studentRecord.pages[pageId] || {
     answers: [],
+    state: 'unstarted' as const,
   };
 
   // Get or create analysis data
@@ -300,11 +305,24 @@ function saveCellData(metadata: AnalysisTableMetadata, cellKey: CellKey, content
   }
   analysisData.lastEdited = now;
 
-  // Store analysis data
+  // Store analysis data in page
   pageData.analysis = analysisData;
-  cache.pages[pageId] = pageData;
 
-  // Save updated cache
+  // Update student record
+  studentRecord.pages[pageId] = pageData;
+  studentRecord.updated = now;
+
+  // Save updated record to IndexedDB
+  try {
+    await storageService.saveStudentRecord(studentRecord);
+  } catch (err) {
+    warn('Failed to save student record to IndexedDB', err);
+  }
+
+  // Build cache from updated record
+  const cache = storageService.buildCache(studentRecord);
+
+  // Save cache to sessionStorage for quick access
   setJSON(STORAGE_KEYS.CACHE, cache);
 
   // Emit event
