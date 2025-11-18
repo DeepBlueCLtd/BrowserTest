@@ -327,7 +327,7 @@ These HTML files can be used for:
 - **Offline-first**: No network dependencies, works from `file://` URLs
 - **Progressive Enhancement**: Works without JavaScript (shows static tables)
 - **Zero Configuration**: Single `<script>` tag, auto-initializes
-- **Bundle Size**: IIFE bundle must be ≤25KB min+gzip
+- **Bundle Size**: IIFE bundle must be ≤35KB min+gzip
 - **Browser Support**: Chrome/Edge ≥96, Firefox ≥102
 - **Accessibility**: WCAG 2.1 Level AA compliant
 

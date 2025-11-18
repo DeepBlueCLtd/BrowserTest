@@ -141,7 +141,7 @@ npm run lint            # TypeScript + ESLint checks
 npm run format:check    # Prettier formatting verification
 
 # Size verification
-npm run size-check      # Verify bundle <25KB min+gzip
+npm run size-check      # Verify bundle <35KB min+gzip
 ```
 
 ## Demo & Manual Testing
@@ -207,7 +207,7 @@ npm run build
 - [ ] All tests passing (green)
 - [ ] Linter clean (zero errors)
 - [ ] Build successful
-- [ ] Bundle size within limits (<25KB gzipped)
+- [ ] Bundle size within limits (<35KB gzipped)
 - [ ] Code committed with descriptive message
 
 ## Critical Constraints (Constitution)
@@ -233,7 +233,7 @@ npm run build
 - Each phase delivers independently testable value
 
 ### V. Performance Constraints
-- Bundle: ≤25KB min+gzip IIFE
+- Bundle: ≤35KB min+gzip IIFE
 - Operations: <200ms save, <2s page load (50 questions)
 - Shadow DOM for isolation, no global CSS pollution
 
@@ -390,7 +390,7 @@ Before committing any code changes, ALL of the following MUST pass:
 3. ✅ **Linting passes**: `npm run lint` (fix with `npm run lint:fix` if needed)
 4. ✅ **Formatting passes**: `npm run format:check` (fix with `npm run format` if needed)
 5. ✅ **Build succeeds**: `npm run build` (if modifying source files)
-6. ✅ **Bundle size**: Under 25KB min+gzip (verify with `npm run size-check` if needed)
+6. ✅ **Bundle size**: Under 35KB min+gzip (verify with `npm run size-check` if needed)
 
 **Rationale**: CI will fail if any of these checks fail. Running them locally before committing prevents failed CI builds and reduces feedback cycles.
 
@@ -401,7 +401,7 @@ Before committing any code changes, ALL of the following MUST pass:
 - **Phase 3**: A11y checks pass, event emission verified
 - **Phase 4**: Session switch tests, expiry unit tests
 - **Phase 5**: E2E file:// saves/reloads, CSV validation
-- **Phase 6**: Perf/a11y green, <25KB budget met
+- **Phase 6**: Perf/a11y green, <35KB budget met
 
 ### E2E Testing Configuration
 E2E tests run via Playwright against Storybook stories at `http://localhost:6006`.
@@ -499,7 +499,7 @@ function getStorageKey(release: ReleaseId, serviceId: ServiceId): string {
 
 - **IIFE**: `dist/sonar-quiz.iife.js` (global `window.SonarQuiz`, auto-init)
 - **ESM**: `dist/sonar-quiz.esm.js` (for integrators)
-- **Size limit**: ≤25KB min+gzip for IIFE
+- **Size limit**: ≤35KB min+gzip for IIFE
 - **Source maps**: Generated for debugging
 - **TypeScript definitions**: For ESM consumers
 

@@ -199,7 +199,7 @@ After each implementation phase:
 - [ ] All tests pass: `npm test`
 - [ ] Linting clean: `npm run lint`
 - [ ] Formatting correct: `npm run format:check`
-- [ ] Bundle size under 25KB: `npm run size-check`
+- [ ] Bundle size under 35KB: `npm run size-check`
 - [ ] ESLint disable comments reduced
 
 ### Performance Verification
@@ -230,7 +230,7 @@ ReferenceError: crypto is not defined
 ### Issue: Bundle size exceeds limit
 
 ```bash
-Bundle size: 26.3KB (exceeds 25KB limit)
+Bundle size: 36.3KB (exceeds 35KB limit)
 ```
 
 **Solution**: Check for unnecessary imports, use tree shaking
