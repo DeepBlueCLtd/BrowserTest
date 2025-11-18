@@ -60,26 +60,50 @@ jobs:
             echo "⚠️ Warning: storybook-static not found, skipping Storybook deployment"
           fi
 
-      - name: Checkout gh-pages branch
+      - name: Checkout gh-pages branch (or create if missing)
         uses: actions/checkout@v4
         with:
           ref: gh-pages
           path: gh-pages-repo
           fetch-depth: 0
+        continue-on-error: true
 
-      - name: Merge PR preview into gh-pages
+      - name: Initialize gh-pages branch if needed
+        run: |
+          if [ ! -d "gh-pages-repo/.git" ]; then
+            echo "📦 gh-pages branch doesn't exist, creating..."
+            mkdir -p gh-pages-repo
+            cd gh-pages-repo
+            git init
+            git checkout -b gh-pages
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            echo "# GitHub Pages" > README.md
+            git add README.md
+            git commit -m "Initialize gh-pages branch"
+            git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+            git push -u origin gh-pages
+            echo "✅ gh-pages branch created"
+          else
+            echo "✅ gh-pages branch already exists"
+          fi
+
+      - name: Deploy PR preview to gh-pages
         run: |
           PR_NUMBER=${{ github.event.pull_request.number }}
 
-          # Copy new PR preview into gh-pages checkout
-          mkdir -p gh-pages-repo/pr-${PR_NUMBER}
-          cp -r _site/pr-${PR_NUMBER}/* gh-pages-repo/pr-${PR_NUMBER}/
-
           cd gh-pages-repo
 
-          # Configure git
+          # Configure git if not already done
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Pull latest changes
+          git pull origin gh-pages || echo "No remote changes"
+
+          # Copy new PR preview
+          mkdir -p pr-${PR_NUMBER}
+          cp -r ../_site/pr-${PR_NUMBER}/* pr-${PR_NUMBER}/
 
           # Add and commit
           git add pr-${PR_NUMBER}
