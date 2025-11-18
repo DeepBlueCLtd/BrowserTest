@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <publishing-template>
-    <name>f13ldMan-p10</name>
+    <name>f13ldMan-CSA</name>
     <description></description>
     <webhelp>
         <preview-image file="oxygen-tiles.png"/>
