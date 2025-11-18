@@ -144,6 +144,40 @@ npm run format:check    # Prettier formatting verification
 npm run size-check      # Verify bundle <35KB min+gzip
 ```
 
+## GitHub Pages Deployment
+
+### Production (Main Branch)
+Live at: `https://DeepBlueCLtd.github.io/BrowserTest/`
+- Deploys demo files from `demo/` folder
+- Auto-deploys on every push to `main`
+- Workflow: `.github/workflows/pages.yml`
+
+### PR Preview Deployments
+Each PR automatically gets a preview deployment:
+- **DITA WebHelp**: `https://DeepBlueCLtd.github.io/BrowserTest/pr-{number}/`
+- **Storybook**: `https://DeepBlueCLtd.github.io/BrowserTest/pr-{number}/storybook/`
+- **Auto-posted**: PR comment includes live preview links
+- **Auto-cleanup**: Preview deleted when PR closes/merges
+- **Build policy**: Requires successful compilation, ignores test failures
+- **Workflow**: `.github/workflows/pr-preview.yml`
+
+**Prerequisites**:
+- GitHub Pages enabled with "GitHub Actions" source (Settings → Pages)
+- Workflow permissions: "Read and write" (Settings → Actions → General)
+- `dita/out/oxygen/` directory populated (assumed pre-built)
+
+**Path structure**:
+```
+/ (root)                     # Production demo (main branch)
+├── quiz-index.html
+├── dist/
+├── pr-123/                  # PR #123 preview
+│   ├── oxygen-webhelp/      # DITA output
+│   └── storybook/           # Storybook static build
+├── pr-124/                  # PR #124 preview
+...
+```
+
 ## Demo & Manual Testing
 
 The `demo/` directory contains standalone HTML files for manual testing and demonstration:

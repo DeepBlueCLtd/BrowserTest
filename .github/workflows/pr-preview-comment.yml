@@ -22,22 +22,26 @@ jobs:
             const repo = context.repo.repo;
             const prNumber = context.issue.number;
 
-            const comment = `## 📦 Demo Build Status
+            const comment = `## 🚀 PR Preview Deployment
 
-            ✅ Your changes will be built and tested automatically.
+            ✅ Your changes are being built and deployed to a preview environment.
 
-            **📋 Live Demo Links (available after merge to main):**
+            **📋 Live PR Preview Links:**
+            - 🌐 [DITA WebHelp Preview](https://${owner}.github.io/${repo}/pr-${prNumber}/)
+            - 📚 [Storybook Preview](https://${owner}.github.io/${repo}/pr-${prNumber}/storybook/)
+
+            **ℹ️ About PR Previews:**
+            - Preview deploys automatically when you push commits to this PR
+            - Preview URL is unique to this PR (#${prNumber})
+            - Preview will be automatically deleted when this PR is closed/merged
+            - Build ignores test failures (only requires successful compilation)
+
+            **📦 Production Demo (main branch):**
             - 🏠 [Quiz Index (Home)](https://${owner}.github.io/${repo}/quiz-index.html)
             - 📝 [Quiz Examples](https://${owner}.github.io/${repo}/quiz-examples.html)
             - 📊 [Analysis Examples](https://${owner}.github.io/${repo}/analysis-examples.html)
 
-            **ℹ️ Note:** GitHub Pages deploys from the \`main\` branch only.
-            - The demo links above show the current production version
-            - Your changes will be reflected after this PR is merged
-            - The build artifacts from this PR can be downloaded from the [CI workflow runs](https://github.com/${owner}/${repo}/actions)
-
             **🧪 Testing Locally:**
-            To test your changes before merging:
             \`\`\`bash
             npm install
             npm run build
@@ -56,7 +60,7 @@ jobs:
 
             const botComment = comments.find(comment =>
               comment.user.type === 'Bot' &&
-              comment.body.includes('Demo Build Status')
+              comment.body.includes('PR Preview Deployment')
             );
 
             if (botComment) {
