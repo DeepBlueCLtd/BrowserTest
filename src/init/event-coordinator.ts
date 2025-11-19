@@ -4,7 +4,11 @@
  */
 
 import { info } from '../utils/logger.js';
-import { enhanceQuizTable, getQuizTableMetadata } from '../enhancers/quiz-table.js';
+import {
+  enhanceQuizTable,
+  getQuizTableMetadata,
+  resetQuizTableToNonInteractive,
+} from '../enhancers/quiz-table.js';
 import { enhanceAnalysisTable } from '../enhancers/analysis-table.js';
 import { getStorageService } from '../services/storage-service.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
@@ -191,23 +195,10 @@ export class EventCoordinator {
       const detail = (event as CustomEvent<LogoutEventDetail>).detail;
       info(`Logout event: ${detail.serviceId}`);
 
-      // Hide answer and detail columns on all quiz tables (instructor cleanup)
+      // Reset all quiz tables to non-interactive mode
       const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
       quizTables.forEach((table) => {
-        // Hide and clear answer column (column 1)
-        const answerCells = table.querySelectorAll('td:nth-child(2), th:nth-child(2)');
-        answerCells.forEach((cell) => {
-          cell.classList.add('qd-hidden');
-          if (cell instanceof HTMLTableCellElement && cell.tagName === 'TD') {
-            cell.textContent = ''; // Clear restored content
-          }
-        });
-
-        // Hide detail column (column 2)
-        const detailCells = table.querySelectorAll('td:nth-child(3), th:nth-child(3)');
-        detailCells.forEach((cell) => {
-          cell.classList.add('qd-hidden');
-        });
+        resetQuizTableToNonInteractive(table);
       });
 
       // Clear any cached data

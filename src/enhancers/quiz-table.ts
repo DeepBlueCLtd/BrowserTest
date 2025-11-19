@@ -89,24 +89,28 @@ export function enhanceQuizTable(
 ): boolean {
   // Check if already enhanced
   const existing = tableMetadata.get(table);
+  let parsed: ParsedQuizTable;
+
   if (existing) {
     // If upgrading from non-interactive to interactive, proceed
     if (!existing.interactive && options.interactive) {
       info('Upgrading quiz table from non-interactive to interactive mode');
+      // Reuse existing parsed data (answers already extracted before clearing DOM)
+      parsed = existing.parsed;
     } else {
       // Already enhanced in same or higher mode, skip
       info('Quiz table already enhanced, skipping');
       return true;
     }
-  }
+  } else {
+    // Parse the table (first enhancement)
+    parsed = parseQuizTable(table);
 
-  // Parse the table
-  const parsed = parseQuizTable(table);
-
-  // Check for parsing errors
-  if (parsed.errors && parsed.errors.length > 0) {
-    logError('Quiz table has validation errors:', parsed.errors);
-    // Still continue enhancement to show errors visually
+    // Check for parsing errors
+    if (parsed.errors && parsed.errors.length > 0) {
+      logError('Quiz table has validation errors:', parsed.errors);
+      // Still continue enhancement to show errors visually
+    }
   }
 
   // Store metadata in WeakMap
@@ -648,6 +652,35 @@ export function getQuizTableMetadata(table: HTMLTableElement): QuizTableMetadata
  */
 export function isQuizTableEnhanced(table: HTMLTableElement): boolean {
   return tableMetadata.has(table);
+}
+
+/**
+ * Reset quiz table to non-interactive mode
+ * Called on logout to allow re-enhancement on next login
+ *
+ * @param table - Quiz table element
+ */
+export function resetQuizTableToNonInteractive(table: HTMLTableElement): void {
+  const metadata = tableMetadata.get(table);
+  if (!metadata) return;
+
+  // Update metadata to mark as non-interactive
+  metadata.interactive = false;
+  metadata.pageId = undefined;
+  metadata.inputs = undefined;
+
+  // Cleanup event listeners if they exist
+  metadata.cleanupInstructorListeners?.();
+  metadata.cleanupInstructorListeners = undefined;
+
+  // Hide answer and detail columns
+  hideAnswerColumn(table);
+  hideDetailColumn(table);
+
+  // Remove interactive class
+  removeClass(table, 'qd-quiz-interactive');
+
+  info('Quiz table reset to non-interactive mode');
 }
 
 /**
