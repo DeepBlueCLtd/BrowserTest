@@ -23,7 +23,6 @@ import type {
   StudentRecord,
 } from '../types/contracts.js';
 import { parseQuizTable } from '../services/quiz-parser.js';
-import { validateAnswer } from '../services/quiz-parser.js';
 import { registerPageQuestions } from '../services/session.js';
 import { Debouncer } from '../utils/debouncer.js';
 import { createElement, addClass, removeClass } from '../utils/dom-helpers.js';
@@ -31,7 +30,7 @@ import { emitCustomEvent } from '../utils/event-helpers.js';
 import { getJSON, setJSON } from '../utils/storage-helpers.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
 import { info, error as logError, warn } from '../utils/logger.js';
-import { getStorageService } from '../services/storage-service.js';
+import { getQuizAnswerService } from '../services/quiz-answer-service.js';
 
 /**
  * Enhancement options
@@ -409,6 +408,9 @@ function handleAnswerInput(
 /**
  * Save answer to storage and update UI
  *
+ * Uses QuizAnswerService to orchestrate storage operations,
+ * then handles UI updates and event emission.
+ *
  * @param table - Quiz table element
  * @param metadata - Table metadata
  * @param questionIndex - Question index
@@ -438,74 +440,50 @@ async function saveAnswer(
     return;
   }
 
-  // Validate answer
-  const success = validateAnswer(question, answer);
-
-  // Create answer record
-  const answerRecord: AnswerRecord = {
-    answer: answer.trim(),
-    success,
-    timestamp: new Date().toISOString(),
-  };
-
-  // Load student record from IndexedDB
-  const storageService = getStorageService();
-  let studentRecord;
+  // Use service to save answer and handle all storage operations
+  const answerService = getQuizAnswerService();
+  let result;
   try {
-    studentRecord = await storageService.loadStudentRecord(session);
+    result = await answerService.saveAnswer({
+      session,
+      pageId,
+      questionIndex,
+      answer,
+      question,
+      totalQuestions: parsed.questions.length,
+    });
   } catch (err) {
-    warn('Failed to load student record, answer not saved', err);
+    warn('Failed to save answer', err);
     return;
   }
 
-  // Update record with new answer
-  const totalQuestions = parsed.questions.length;
-  const updatedRecord = storageService.updateRecordWithAnswer(
-    studentRecord,
-    pageId,
-    questionIndex,
-    answerRecord,
-    totalQuestions,
-  );
-
-  // Save updated record to IndexedDB
-  try {
-    await storageService.saveStudentRecord(updatedRecord);
-  } catch (err) {
-    warn('Failed to save student record to IndexedDB', err);
-  }
-
-  // Build cache from updated record
-  const cache = storageService.buildCache(updatedRecord);
-
   // Save cache to sessionStorage for quick access
-  setJSON(STORAGE_KEYS.CACHE, cache);
+  setJSON(STORAGE_KEYS.CACHE, result.cache);
 
-  // Apply validation styling
+  // Apply validation styling to UI
   const row = table.querySelector(`tbody tr:nth-child(${questionIndex + 1})`);
   if (row) {
     const answerCell = row.querySelector('td:nth-child(2)');
     if (answerCell) {
-      applyValidationStyling(answerCell, success);
+      applyValidationStyling(answerCell, result.success);
     }
   }
 
-  // Emit events
+  // Emit events for other components to react
   emitCustomEvent('qd:answer-saved', {
     pageId,
-    answer: answerRecord,
+    answer: result.answerRecord,
   });
 
-  const pageData = updatedRecord.pages[pageId];
-  if (pageData) {
+  if (result.pageState) {
     emitCustomEvent('qd:state-changed', {
       pageId,
-      state: pageData.state,
+      state: result.pageState,
     });
   }
 
   info(
-    `Answer saved for question ${questionIndex + 1} on page ${pageId}: ${success ? 'correct' : 'incorrect'}`,
+    `Answer saved for question ${questionIndex + 1} on page ${pageId}: ${result.success ? 'correct' : 'incorrect'}`,
   );
 }
 
