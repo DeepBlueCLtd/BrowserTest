@@ -8,6 +8,8 @@ import {
   enhanceQuizTable,
   getQuizTableMetadata,
   resetQuizTableToNonInteractive,
+  showStudentAnswersForTable,
+  hideStudentAnswersForTable,
 } from '../enhancers/quiz-table.js';
 import { enhanceAnalysisTable } from '../enhancers/analysis-table.js';
 import { getStorageService } from '../services/storage-service.js';
@@ -152,6 +154,10 @@ export class EventCoordinator {
           return;
         }
 
+        // Update metadata with pageId for instructor toggle
+        metadata.pageId = pageId;
+        info(`[DIAGNOSTIC] Updated metadata with pageId: ${pageId}`);
+
         info(`Restoring ${metadata.parsed.questions.length} answers from metadata`);
 
         // Remove qd-hidden class from answer column (column 1)
@@ -177,21 +183,24 @@ export class EventCoordinator {
         detailCells.forEach((cell) => cell.classList.remove('qd-hidden'));
 
         // Set up instructor toggle event listeners (since table is non-interactive)
-        const showAnswersHandler = async () => {
-          const { showStudentAnswersForTable } = await import('../enhancers/quiz-table.js');
-          await showStudentAnswersForTable(table, metadata);
+        const showAnswersHandler = () => {
+          info('[DIAGNOSTIC] Show answers handler called for instructor table');
+          void showStudentAnswersForTable(table, metadata);
         };
         const hideAnswersHandler = () => {
-          const { hideStudentAnswersForTable } = await import('../enhancers/quiz-table.js');
+          info('[DIAGNOSTIC] Hide answers handler called for instructor table');
           hideStudentAnswersForTable(table);
         };
 
+        info('[DIAGNOSTIC] Setting up instructor toggle listeners');
         document.addEventListener('qd:instructor-show-answers', showAnswersHandler);
         document.addEventListener('qd:instructor-hide-answers', hideAnswersHandler);
+        info('[DIAGNOSTIC] Instructor toggle listeners registered');
 
         // Check if toggle already enabled
         const showAnswers = sessionStorage.getItem('qd/instructor/showAnswers') === 'true';
         if (showAnswers) {
+          info('[DIAGNOSTIC] Toggle already enabled, calling show handler');
           void showAnswersHandler();
         }
 

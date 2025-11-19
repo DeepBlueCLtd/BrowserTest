@@ -689,15 +689,24 @@ export function resetQuizTableToNonInteractive(table: HTMLTableElement): void {
  * @param table - Quiz table element
  * @param metadata - Table metadata
  */
-async function showStudentAnswersForTable(
+export async function showStudentAnswersForTable(
   table: HTMLTableElement,
   metadata: QuizTableMetadata,
 ): Promise<void> {
+  info('[DIAGNOSTIC] showStudentAnswersForTable() called');
   const { pageId, parsed } = metadata;
-  if (!pageId) return;
+  if (!pageId) {
+    info('[DIAGNOSTIC] No pageId in metadata, exiting');
+    return;
+  }
+  info(`[DIAGNOSTIC] PageId: ${pageId}, Questions: ${parsed.questions.length}`);
 
   const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
-  if (!session) return;
+  if (!session) {
+    info('[DIAGNOSTIC] No session found, exiting');
+    return;
+  }
+  info(`[DIAGNOSTIC] Session found: ${session.serviceId}, Release: ${session.release}`);
 
   // Get storage service to load all student records
   const { getStorageService } = await import('../services/storage-service.js');
@@ -706,26 +715,50 @@ async function showStudentAnswersForTable(
   try {
     // Load all student records for current release
     const students = await storageService.getStudentsByRelease(session.release);
+    info(`[DIAGNOSTIC] Loaded ${students.length} students for release ${session.release}`);
+
+    // Check if there are any students
+    if (students.length === 0) {
+      info('No student data available for this release');
+      alert('No student data available for this release. Students need to log in and answer questions first.');
+      return;
+    }
+
+    // Log student details
+    students.forEach((s) => {
+      info(`[DIAGNOSTIC] Student: ${s.name} (${s.serviceId}), Pages: ${Object.keys(s.pages).join(', ')}`);
+    });
 
     // Get tbody rows
     const tbody = table.querySelector('tbody');
-    if (!tbody) return;
+    if (!tbody) {
+      info('[DIAGNOSTIC] No tbody found in table');
+      return;
+    }
 
     const rows = Array.from(tbody.querySelectorAll('tr'));
+    info(`[DIAGNOSTIC] Found ${rows.length} rows, checking pageId: ${pageId}`);
 
     // For each question, collect student answers and display
     parsed.questions.forEach((_question, questionIndex) => {
       const row = rows[questionIndex];
-      if (!row) return;
+      if (!row) {
+        info(`[DIAGNOSTIC] No row found for question ${questionIndex}`);
+        return;
+      }
 
       const cells = Array.from(row.querySelectorAll('td'));
       const answerCell = cells[1];
-      if (!answerCell) return;
+      if (!answerCell) {
+        info(`[DIAGNOSTIC] No answer cell found for question ${questionIndex}`);
+        return;
+      }
 
       // Remove any existing student answers display
       const existingDisplay = answerCell.querySelector('.qd-student-answers');
       if (existingDisplay) {
         existingDisplay.remove();
+        info(`[DIAGNOSTIC] Removed existing display for question ${questionIndex}`);
       }
 
       // Collect answers from all students for this question
@@ -739,11 +772,22 @@ async function showStudentAnswersForTable(
 
       students.forEach((student) => {
         const pageData = student.pages[pageId];
-        if (!pageData || !pageData.answers) return;
+        if (!pageData) {
+          info(`[DIAGNOSTIC] Student ${student.name} has no data for page ${pageId}`);
+          return;
+        }
+        if (!pageData.answers) {
+          info(`[DIAGNOSTIC] Student ${student.name} has no answers for page ${pageId}`);
+          return;
+        }
 
         const answerRecord = pageData.answers[questionIndex];
-        if (!answerRecord) return;
+        if (!answerRecord) {
+          info(`[DIAGNOSTIC] Student ${student.name} has no answer for question ${questionIndex} on page ${pageId}`);
+          return;
+        }
 
+        info(`[DIAGNOSTIC] Student ${student.name} answered Q${questionIndex + 1}: ${answerRecord.answer}`);
         studentAnswers.push({
           name: student.name,
           serviceId: student.serviceId,
@@ -752,6 +796,8 @@ async function showStudentAnswersForTable(
           timestamp: answerRecord.timestamp,
         });
       });
+
+      info(`[DIAGNOSTIC] Q${questionIndex + 1}: Collected ${studentAnswers.length} student answers`);
 
       // Create display element
       if (studentAnswers.length > 0) {
@@ -776,10 +822,11 @@ async function showStudentAnswersForTable(
         });
 
         answerCell.appendChild(display);
+        info(`[DIAGNOSTIC] Appended display element to answer cell for Q${questionIndex + 1}`);
       }
     });
 
-    info(`Displayed student answers for ${students.length} students on page ${pageId}`);
+    info(`[DIAGNOSTIC] Completed displaying student answers for ${students.length} students on page ${pageId}`);
   } catch (err) {
     logError('Failed to load student answers', err as Error);
   }
@@ -790,7 +837,7 @@ async function showStudentAnswersForTable(
  *
  * @param table - Quiz table element
  */
-function hideStudentAnswersForTable(table: HTMLTableElement): void {
+export function hideStudentAnswersForTable(table: HTMLTableElement): void {
   const displays = table.querySelectorAll('.qd-student-answers');
   displays.forEach((display) => display.remove());
   info('Hid student answers from quiz table');

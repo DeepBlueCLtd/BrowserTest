@@ -217,12 +217,14 @@ export class QdInstructor extends LitElement {
       ? 'qd:instructor-show-answers'
       : 'qd:instructor-hide-answers';
 
+    console.log(`[DIAGNOSTIC] Dispatching event: ${eventName}`);
     this.dispatchEvent(
       new CustomEvent(eventName, {
         bubbles: true,
         composed: true,
       }),
     );
+    console.log(`[DIAGNOSTIC] Event dispatched: ${eventName}`);
 
     // Persist toggle state in sessionStorage
     sessionStorage.setItem('qd/instructor/showAnswers', String(this.showStudentAnswers));
