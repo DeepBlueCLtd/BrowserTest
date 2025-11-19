@@ -326,7 +326,9 @@ describe('QdLogin Component', () => {
       let modal = document.querySelector('.qd-instructor-modal-overlay');
       expect(modal).toBeDefined();
 
-      const cancelBtn = document.querySelector('.qd-instructor-modal .cancel-btn') as HTMLButtonElement;
+      const cancelBtn = document.querySelector(
+        '.qd-instructor-modal .cancel-btn',
+      ) as HTMLButtonElement;
       cancelBtn.click();
       await element.updateComplete;
 
