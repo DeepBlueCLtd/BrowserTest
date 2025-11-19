@@ -25,7 +25,8 @@
       "Bash(git rev-parse:*)",
       "Bash(test:*)",
       "Bash(npm run typecheck:*)",
-      "Bash(npm run lint:fix:*)"
+      "Bash(npm run lint:fix:*)",
+      "Bash(npm run update-dita-demo:*)"
     ],
     "deny": [],
     "ask": []
