@@ -188,18 +188,27 @@ export async function constantTimeCompare(a: string, b: string): Promise<boolean
  * Hash a password using SHA-256
  *
  * @param password - Password to hash
- * @returns Promise<string> - Hex-encoded SHA-256 hash
+ * @param length - Optional length to truncate hash to (for author-friendly Oxygen dialogs, use 12)
+ * @returns Promise<string> - Hex-encoded SHA-256 hash (optionally truncated)
  *
  * @example
  * ```typescript
+ * // Full hash
  * const hash = await hashPassword('my-secure-password');
  * console.log(hash); // "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"
+ *
+ * // Truncated hash (for Oxygen configuration)
+ * const shortHash = await hashPassword('my-secure-password', 12);
+ * console.log(shortHash); // "5e884898da28"
  * ```
  */
-export async function hashPassword(password: string): Promise<string> {
+export async function hashPassword(password: string, length?: number): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(password);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  const fullHash = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+
+  // Return truncated hash if length specified, otherwise full hash
+  return length !== undefined ? fullHash.substring(0, length) : fullHash;
 }
