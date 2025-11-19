@@ -66,6 +66,19 @@ export class QdInstructor extends LitElement {
     const savedState = sessionStorage.getItem('qd/instructor/showAnswers');
     if (savedState !== null) {
       this.showStudentAnswers = savedState === 'true';
+
+      // If toggle was enabled and instructor is logged in, dispatch event to show answers
+      if (this.showStudentAnswers && isInstructor) {
+        // Dispatch after tables are enhanced (use setTimeout to defer)
+        setTimeout(() => {
+          this.dispatchEvent(
+            new CustomEvent('qd:instructor-show-answers', {
+              bubbles: true,
+              composed: true,
+            }),
+          );
+        }, 100);
+      }
     }
 
     document.addEventListener('qd:login', this.handleLoginEvent);

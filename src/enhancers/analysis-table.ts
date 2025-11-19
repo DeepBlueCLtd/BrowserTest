@@ -458,28 +458,28 @@ export function createStudentEntriesDisplay(entries: CellEntry[]): HTMLDivElemen
   // Sort entries before displaying (newest first)
   const sortedEntries = sortByTimestamp(entries);
 
-  // FR-012: Display each student entry
+  // FR-012: Display each student entry (single line format)
   sortedEntries.forEach((entry) => {
     const entryDiv = document.createElement('div');
     entryDiv.className = 'qd-entry';
     entryDiv.style.cssText =
-      'padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-size: 13px;';
+      'padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-size: 13px; color: #1f2937;';
 
     // Student name with last 4 digits of serviceId
     const last4 = entry.serviceId.slice(-4);
     const timestamp = formatStoredTimestamp(entry.timestamp);
 
-    const header = document.createElement('div');
-    header.style.cssText = 'font-weight: 600; color: #374151; margin-bottom: 4px;';
-    header.textContent = `${entry.name} (${last4}) • ${timestamp}`;
+    // Single line: name (id) • timestamp: content
+    const nameSpan = document.createElement('span');
+    nameSpan.style.cssText = 'font-weight: 600; color: #374151;';
+    nameSpan.textContent = `${entry.name} (${last4}) • ${timestamp}: `;
 
-    // Student's content
-    const content = document.createElement('div');
-    content.style.cssText = 'color: #1f2937; white-space: pre-wrap;';
-    content.textContent = entry.content;
+    const contentSpan = document.createElement('span');
+    contentSpan.style.cssText = 'white-space: pre-wrap;';
+    contentSpan.textContent = entry.content;
 
-    entryDiv.appendChild(header);
-    entryDiv.appendChild(content);
+    entryDiv.appendChild(nameSpan);
+    entryDiv.appendChild(contentSpan);
     container.appendChild(entryDiv);
   });
 
@@ -570,6 +570,48 @@ function hideStudentEntriesForTable(table: HTMLTableElement): void {
   displays.forEach((display) => display.remove());
 
   info('Hidden student entries from analysis table');
+}
+
+/**
+ * Reset analysis table to non-interactive mode
+ * Called on logout to clear student/instructor UI state
+ *
+ * @param table - Analysis table element
+ */
+export function resetAnalysisTableToNonInteractive(table: HTMLTableElement): void {
+  const metadata = tableMetadata.get(table);
+  if (!metadata) return;
+
+  // Hide any displayed student entries (instructor view)
+  hideStudentEntriesForTable(table);
+
+  // If table was interactive, disable editing and clear content
+  if (metadata.interactive) {
+    // Find all editable cells, clear content, and disable contentEditable
+    const editableCells = table.querySelectorAll('.qd-editable');
+    editableCells.forEach((cell) => {
+      if (cell instanceof HTMLTableCellElement) {
+        cell.contentEditable = 'false';
+        cell.classList.remove('qd-editable');
+        // Clear student-entered content on logout
+        cell.textContent = '';
+      }
+    });
+
+    // Remove interactive class from table
+    table.classList.remove('qd-analysis-interactive');
+
+    // Cancel any pending saves
+    metadata.debouncer?.cancelAll();
+  }
+
+  // Update metadata to mark as non-interactive
+  metadata.interactive = false;
+  metadata.pageId = undefined;
+  metadata.debouncer = undefined;
+  metadata.cellKeyMap = undefined;
+
+  info('Reset analysis table to non-interactive mode');
 }
 
 /**

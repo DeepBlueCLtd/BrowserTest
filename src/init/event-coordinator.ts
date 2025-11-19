@@ -11,7 +11,7 @@ import {
   showStudentAnswersForTable,
   hideStudentAnswersForTable,
 } from '../enhancers/quiz-table.js';
-import { enhanceAnalysisTable } from '../enhancers/analysis-table.js';
+import { enhanceAnalysisTable, resetAnalysisTableToNonInteractive } from '../enhancers/analysis-table.js';
 import { getStorageService } from '../services/storage-service.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
 import { setJSON, getJSON } from '../utils/storage-helpers.js';
@@ -223,6 +223,12 @@ export class EventCoordinator {
       const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
       quizTables.forEach((table) => {
         resetQuizTableToNonInteractive(table);
+      });
+
+      // Reset all analysis tables to non-interactive mode
+      const analysisTables = document.querySelectorAll<HTMLTableElement>('table.qd-analysis');
+      analysisTables.forEach((table) => {
+        resetAnalysisTableToNonInteractive(table);
       });
 
       // Clear any cached data
