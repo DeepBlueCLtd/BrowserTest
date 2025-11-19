@@ -29,7 +29,7 @@ export const sharedStyles = css`
   .instructor-title {
     font-weight: 600;
     font-size: 14px;
-    color: #333;
+    color: var(--qd-text-on-dark, #fff);
     margin-right: 8px;
   }
 
@@ -39,7 +39,7 @@ export const sharedStyles = css`
     gap: 6px;
     cursor: pointer;
     font-size: 13px;
-    color: var(--qd-text-on-light, #1f2937);
+    color: var(--qd-text-on-dark, #fff);
     user-select: none;
   }
 
