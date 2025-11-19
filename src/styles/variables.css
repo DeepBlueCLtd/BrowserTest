@@ -1,0 +1,43 @@
+/**
+ * Global CSS custom properties for BrowserTest/Sonar Quiz System
+ * Used across Lit components for consistent styling
+ */
+
+:root {
+  /* Z-Index Management */
+  --qd-modal-z-index: 10000;
+  --qd-modal-overlay-z-index: 9999;
+  --qd-status-panel-z-index: 1000;
+
+  /* Color Palette */
+  --qd-correct-color: #10b981;
+  --qd-incorrect-color: #ef4444;
+  --qd-neutral-color: #6b7280;
+
+  /* Text Contrast (WCAG AA Compliance) */
+  --qd-text-on-dark: #ffffff;
+  --qd-text-on-light: #1f2937;
+  --qd-text-muted: #9ca3af;
+
+  /* Background Colors */
+  --qd-bg-primary: #ffffff;
+  --qd-bg-secondary: #f3f4f6;
+  --qd-bg-dark: #1f2937;
+
+  /* Component Dimensions */
+  --qd-modal-max-width: 800px;
+  --qd-modal-padding: 1.5rem;
+  --qd-spacing-sm: 0.5rem;
+  --qd-spacing-md: 1rem;
+  --qd-spacing-lg: 1.5rem;
+
+  /* Typography */
+  --qd-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --qd-font-size-sm: 0.875rem;
+  --qd-font-size-base: 1rem;
+  --qd-font-size-lg: 1.125rem;
+
+  /* Transitions */
+  --qd-transition-fast: 150ms ease-in-out;
+  --qd-transition-normal: 250ms ease-in-out;
+}

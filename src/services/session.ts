@@ -123,6 +123,9 @@ export class SessionService {
     sessionStorage.removeItem(STORAGE_KEYS.CACHE);
     sessionStorage.removeItem(STORAGE_KEYS.INSTRUCTOR);
 
+    // Clear instructor-specific state (FR-001)
+    sessionStorage.removeItem('qd/instructor/showAnswers');
+
     if (session) {
       info(`Session cleared for ${session.serviceId}`);
 

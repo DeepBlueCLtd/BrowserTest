@@ -25,9 +25,9 @@ Repository uses single project structure:
 
 **Purpose**: Minimal setup - no new infrastructure needed, all fixes use existing patterns
 
-- [ ] T001 Create timestamp formatting utility in src/utils/date-helpers.ts
-- [ ] T002 [P] Add virtual scrolling utility for performance in src/utils/virtual-list.ts
-- [ ] T003 [P] Update CSS custom properties for modal z-index in src/styles/variables.css
+- [X] T001 Create timestamp formatting utility in src/utils/date-helpers.ts
+- [X] T002 [P] Add virtual scrolling utility for performance in src/utils/virtual-list.ts
+- [X] T003 [P] Update CSS custom properties for modal z-index in src/styles/variables.css
 
 ---
 
@@ -37,9 +37,9 @@ Repository uses single project structure:
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Update SessionService to clear instructor state on logout in src/services/session.js
-- [ ] T005 Update StorageService to support answer overwriting for re-submissions in src/services/storage-service.js
-- [ ] T006 Add event listener for logout in quiz table enhancer to clear UI state in src/enhancers/quiz-table.ts
+- [X] T004 Update SessionService to clear instructor state on logout in src/services/session.ts
+- [X] T005 Update StorageService to support answer overwriting for re-submissions in src/services/storage-service.ts
+- [X] T006 Add event listener for logout in quiz table enhancer to clear UI state in src/enhancers/quiz-table.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

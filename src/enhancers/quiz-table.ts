@@ -300,10 +300,27 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
     void showStudentAnswersForTable(table, metadata);
   }
 
+  // Add logout listener to clear student-specific UI state (FR-001, FR-002)
+  const logoutHandler = () => {
+    // Clear student-specific color-coded feedback
+    const answerCells = table.querySelectorAll('td.qd-answer-correct, td.qd-answer-incorrect');
+    answerCells.forEach((cell) => {
+      removeClass(cell, 'qd-answer-correct', 'qd-answer-incorrect');
+    });
+
+    // Clear any displayed student answers
+    hideStudentAnswersForTable(table);
+
+    info('Cleared student UI state from quiz table on logout');
+  };
+
+  document.addEventListener('qd:logout', logoutHandler);
+
   // Store cleanup function in metadata
   metadata.cleanupInstructorListeners = () => {
     document.removeEventListener('qd:instructor-show-answers', showAnswersHandler);
     document.removeEventListener('qd:instructor-hide-answers', hideAnswersHandler);
+    document.removeEventListener('qd:logout', logoutHandler);
   };
 
   addClass(table, 'qd-quiz-interactive');

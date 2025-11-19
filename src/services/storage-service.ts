@@ -163,7 +163,8 @@ export class StorageService {
       });
     }
 
-    // Update answer at index
+    // Update answer at index (FR-015: overwrites previous answer for re-submissions)
+    // Only the most recent answer is stored, with updated timestamp
     pageData.answers[questionIndex] = answer;
 
     // Update timestamps
