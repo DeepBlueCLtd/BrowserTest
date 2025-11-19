@@ -82,6 +82,7 @@ export const Default: Story = {
       const loginComponent = document.querySelector('qd-login');
       if (loginComponent) {
         loginComponent.addEventListener('qd:login', ((e: CustomEvent) => {
+          // eslint-disable-next-line no-console
           console.log('Login event:', e.detail);
           const detail = e.detail as {
             role: string;

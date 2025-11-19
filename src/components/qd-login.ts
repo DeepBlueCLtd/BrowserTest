@@ -552,7 +552,6 @@ export class QdLogin extends LitElement {
     form.appendChild(footer);
     form.onsubmit = (e) => {
       e.preventDefault();
-      console.log('[instructor] Form submitted, password:', this.instructorPassword);
       void this.handleInstructorLogin(e);
     };
 
@@ -732,7 +731,6 @@ export class QdLogin extends LitElement {
 
     if (!this.instructorPassword) {
       this.instructorError = 'Password is required';
-      console.log('[instructor] Password empty');
       return;
     }
 
@@ -740,24 +738,17 @@ export class QdLogin extends LitElement {
       const passwordHash = await this.hashPassword(this.instructorPassword);
       const expectedHash = this.getExpectedHash();
 
-      console.log('[instructor] Password hash:', passwordHash);
-      console.log('[instructor] Expected hash:', expectedHash);
-
       if (!expectedHash) {
         this.instructorError = 'Instructor password not configured';
-        console.log('[instructor] No expected hash configured');
         return;
       }
 
       if (passwordHash !== expectedHash) {
         this.instructorError = 'Incorrect password';
         this.instructorPassword = '';
-        console.log('[instructor] Password mismatch');
         // TODO: Implement rate limiting (5 attempts per 60 seconds)
         return;
       }
-
-      console.log('[instructor] Password match! Creating session...');
 
       // Success
       const release = this.getRelease();
@@ -783,13 +774,9 @@ export class QdLogin extends LitElement {
       });
       this.dispatchEvent(event);
 
-      console.log('[instructor] Login event dispatched, closing modal...');
-
       // Close modal and hide component (don't remove - need to show again on logout)
       this.closeInstructorModal();
       this.updateVisibility();
-
-      console.log('[instructor] Login complete');
     } catch (err) {
       this.instructorError = 'Login failed. Please try again.';
       console.error('Instructor login error:', err);

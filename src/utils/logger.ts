@@ -113,8 +113,10 @@ export function sanitize<T>(obj: T): Partial<T> {
 export function debug(message: string, data?: unknown): void {
   if (debugEnabled) {
     if (data !== undefined) {
+      // eslint-disable-next-line no-console
       console.log(`[DEBUG] ${message}`, sanitize(data));
     } else {
+      // eslint-disable-next-line no-console
       console.log(`[DEBUG] ${message}`);
     }
   }
@@ -128,8 +130,10 @@ export function debug(message: string, data?: unknown): void {
  */
 export function info(message: string, data?: unknown): void {
   if (data !== undefined) {
+    // eslint-disable-next-line no-console
     console.log(`[INFO] ${message}`, sanitize(data));
   } else {
+    // eslint-disable-next-line no-console
     console.log(`[INFO] ${message}`);
   }
 }

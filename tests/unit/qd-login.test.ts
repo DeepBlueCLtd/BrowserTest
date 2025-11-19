@@ -412,8 +412,8 @@ describe('QdLogin Component', () => {
       const passwordInput = document.querySelector(
         '.qd-instructor-modal input[type="password"]',
       ) as HTMLInputElement;
-      passwordInput!.value = 'wrongpassword';
-      passwordInput!.dispatchEvent(new Event('input'));
+      passwordInput.value = 'wrongpassword';
+      passwordInput.dispatchEvent(new Event('input'));
 
       const modalForm = document.querySelector('.qd-instructor-modal form');
       modalForm?.dispatchEvent(new Event('submit'));
