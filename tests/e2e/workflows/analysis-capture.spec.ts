@@ -117,7 +117,9 @@ test.describe('Analysis Capture Workflow', () => {
             const students = getRequest.result as StudentRecord[];
             if (students.length > 0 && students[0]?.pages) {
               const pages = Object.values(students[0].pages);
-              resolve(pages.some(p => p?.analysis?.cells && Object.keys(p.analysis.cells).length > 0));
+              resolve(
+                pages.some((p) => p?.analysis?.cells && Object.keys(p.analysis.cells).length > 0),
+              );
             } else {
               resolve(false);
             }
