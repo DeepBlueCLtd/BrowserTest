@@ -417,7 +417,7 @@ describe('Analysis Table Enhancement', () => {
         bubbles: true,
         composed: true,
       });
-      document.dispatchEvent(logoutEvent);
+      window.dispatchEvent(logoutEvent);
 
       // Wait a tick for event handler to process
       await new Promise((resolve) => setTimeout(resolve, 50));

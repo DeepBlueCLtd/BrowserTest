@@ -219,7 +219,7 @@ function enhanceInteractive(table: HTMLTableElement, metadata: AnalysisTableMeta
     clearAnalysisTableCells(table, metadata);
   };
 
-  document.addEventListener('qd:logout', logoutHandler);
+  window.addEventListener('qd:logout', logoutHandler);
 
   // Store cleanup function in metadata
   metadata.cleanupLogoutListener = logoutHandler;

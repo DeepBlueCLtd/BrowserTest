@@ -305,13 +305,13 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
     clearQuizTableInputs(table, metadata);
   };
 
-  document.addEventListener('qd:logout', logoutHandler);
+  window.addEventListener('qd:logout', logoutHandler);
 
   // Store cleanup function in metadata
   metadata.cleanupInstructorListeners = () => {
     document.removeEventListener('qd:instructor-show-answers', showAnswersHandler);
     document.removeEventListener('qd:instructor-hide-answers', hideAnswersHandler);
-    document.removeEventListener('qd:logout', logoutHandler);
+    window.removeEventListener('qd:logout', logoutHandler);
   };
 
   addClass(table, 'qd-quiz-interactive');
