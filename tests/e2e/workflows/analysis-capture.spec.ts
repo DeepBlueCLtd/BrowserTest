@@ -15,7 +15,7 @@ import type { StudentRecord, PageData } from '../../../src/types/contracts.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const demoPath = path.resolve(__dirname, '../../../demo');
+const demoPath = path.resolve(__dirname, '../../../dita-demo');
 
 const TEST_PASSWORD = 'instructor123';
 
@@ -32,13 +32,13 @@ interface PagesRecord {
  */
 async function waitForBootstrap(page: Page): Promise<void> {
   // Wait for qd-login element AND its shadow DOM to be ready
-  await page.locator('qd-login[data-ready]').waitFor({ timeout: 5000 });
+  await page.locator('qd-login[data-ready]').waitFor({ timeout: 2000 });
 }
 
-test.describe.skip('Analysis Capture Workflow', () => {
+test.describe('Analysis Capture Workflow', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await page.evaluate(() => {
       sessionStorage.clear();
       indexedDB.deleteDatabase('BrowserTest');
@@ -55,8 +55,8 @@ test.describe.skip('Analysis Capture Workflow', () => {
     await expect(page.locator('qd-status')).toBeVisible();
   });
 
-  test('should make interactive cells editable', async ({ page }) => {
-    await page.goto(`file://${demoPath}/analysis-examples.html`);
+  test.skip('should make interactive cells editable', async ({ page }) => {
+    await page.goto(`file://${demoPath}/Pages/gram-1.html`);
 
     // Find interactive cell
     const interactiveCell = page.locator('td.interactive').first();
@@ -67,8 +67,8 @@ test.describe.skip('Analysis Capture Workflow', () => {
     expect(isEditable).toBe('true');
   });
 
-  test('should keep non-interactive cells read-only', async ({ page }) => {
-    await page.goto(`file://${demoPath}/analysis-examples.html`);
+  test.skip('should keep non-interactive cells read-only', async ({ page }) => {
+    await page.goto(`file://${demoPath}/Pages/gram-1.html`);
 
     // Find non-interactive cell (header or regular cell without class)
     const readOnlyCell = page.locator('td:not(.interactive)').first();
@@ -79,49 +79,60 @@ test.describe.skip('Analysis Capture Workflow', () => {
     }
   });
 
-  test('should save cell edits to IndexedDB', async ({ page }) => {
-    await page.goto(`file://${demoPath}/analysis-examples.html`);
+  test.skip('should save cell edits to IndexedDB', async ({ page }) => {
+    await page.goto(`file://${demoPath}/Pages/gram-1.html`);
+
+    // Wait for table enhancement
+    await page.waitForTimeout(500);
+
+    // Verify session and table exist
+    await expect(page.locator('qd-status')).toBeVisible();
+    const analysisTable = page.locator('table.qd-analysis');
+    await expect(analysisTable).toBeVisible();
 
     // Edit an interactive cell
     const interactiveCell = page.locator('td.interactive').first();
+    await expect(interactiveCell).toBeVisible();
+
+    // Verify contenteditable
+    const isEditable = await interactiveCell.getAttribute('contenteditable');
+    expect(isEditable).toBe('true');
+
     await interactiveCell.click();
     await interactiveCell.fill('Test analysis answer');
 
-    // Wait for debounced save
-    await expect(async () => {
-      const savedData = await page.evaluate(async () => {
-        return new Promise<Record<string, unknown>>((resolve) => {
-          const request = indexedDB.open('BrowserTest');
-          request.onsuccess = () => {
-            const db = request.result;
-            const tx = db.transaction('students', 'readonly');
-            const store = tx.objectStore('students');
-            const getRequest = store.getAll();
-            getRequest.onsuccess = () => {
-              const students = getRequest.result as StudentRecord[];
-              if (students.length > 0) {
-                const pages = students[0]?.pages as PagesRecord | undefined;
-                if (pages) {
-                  const pageKeys = Object.keys(pages);
-                  const firstKey = pageKeys[0];
-                  if (firstKey) {
-                    const pageData: PageData = pages[firstKey] as PageData;
-                    const analysis = pageData?.analysis;
-                    resolve(analysis?.cells || {});
-                  }
-                }
-              }
-              resolve({});
-            };
+    // Wait for debounced save (500ms debounce + time to save)
+    await page.waitForTimeout(1500);
+
+    // Verify data saved
+    const savedData = await page.evaluate(async () => {
+      return new Promise<boolean>((resolve) => {
+        const request = indexedDB.open('BrowserTest');
+        request.onsuccess = () => {
+          const db = request.result;
+          const tx = db.transaction('students', 'readonly');
+          const store = tx.objectStore('students');
+          const getRequest = store.getAll();
+          getRequest.onsuccess = () => {
+            const students = getRequest.result as StudentRecord[];
+            if (students.length > 0 && students[0]?.pages) {
+              const pages = Object.values(students[0].pages);
+              resolve(
+                pages.some((p) => p?.analysis?.cells && Object.keys(p.analysis.cells).length > 0),
+              );
+            } else {
+              resolve(false);
+            }
           };
-        });
+        };
       });
-      expect(Object.keys(savedData).length).toBeGreaterThan(0);
-    }).toPass();
+    });
+
+    expect(savedData).toBe(true);
   });
 
-  test('should persist analysis answers across reload', async ({ page }) => {
-    await page.goto(`file://${demoPath}/analysis-examples.html`);
+  test.skip('should persist analysis answers across reload', async ({ page }) => {
+    await page.goto(`file://${demoPath}/Pages/gram-1.html`);
 
     // Edit a cell
     const interactiveCell = page.locator('td.interactive').first();
@@ -149,13 +160,14 @@ test.describe.skip('Analysis Capture Workflow', () => {
     // Reload page
     await page.reload();
 
-    // Verify text persisted
-    const cellContent = await interactiveCell.textContent();
+    // Verify text persisted (re-query after reload)
+    const reloadedCell = page.locator('td.interactive').first();
+    const cellContent = await reloadedCell.textContent();
     expect(cellContent?.trim()).toBe(testText);
   });
 
-  test('should debounce rapid edits', async ({ page }) => {
-    await page.goto(`file://${demoPath}/analysis-examples.html`);
+  test.skip('should debounce rapid edits', async ({ page }) => {
+    await page.goto(`file://${demoPath}/Pages/gram-1.html`);
 
     // Setup save counter
     await page.evaluate(() => {
@@ -184,9 +196,9 @@ test.describe.skip('Analysis Capture Workflow', () => {
     }).toPass({ timeout: 3000 });
   });
 
-  test('should show student entries in instructor mode', async ({ page }) => {
+  test.skip('should show student entries in instructor mode', async ({ page }) => {
     // Student edits analysis cell
-    await page.goto(`file://${demoPath}/analysis-examples.html`);
+    await page.goto(`file://${demoPath}/Pages/gram-1.html`);
 
     const interactiveCell = page.locator('td.interactive').first();
     await interactiveCell.click();
@@ -210,7 +222,7 @@ test.describe.skip('Analysis Capture Workflow', () => {
     }).toPass();
 
     // Unlock instructor mode
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
     await page.evaluate(() => {
       const span = document.createElement('span');
@@ -232,7 +244,7 @@ test.describe.skip('Analysis Capture Workflow', () => {
     await expect(page.locator('qd-instructor .instructor-panel')).toBeVisible();
 
     // Navigate to analysis page
-    await page.goto(`file://${demoPath}/analysis-examples.html`);
+    await page.goto(`file://${demoPath}/Pages/gram-1.html`);
 
     // Toggle "Show Answers" if needed
     const showAnswersToggle = page
@@ -247,8 +259,8 @@ test.describe.skip('Analysis Capture Workflow', () => {
     await expect(studentEntry).toBeVisible();
   });
 
-  test('should calculate table ID from structure', async ({ page }) => {
-    await page.goto(`file://${demoPath}/analysis-examples.html`);
+  test.skip('should calculate table ID from structure', async ({ page }) => {
+    await page.goto(`file://${demoPath}/Pages/gram-1.html`);
 
     // Get table metadata
     const tableId = await page.evaluate(() => {
@@ -264,8 +276,8 @@ test.describe.skip('Analysis Capture Workflow', () => {
     expect(tableId?.length).toBe(16);
   });
 
-  test('should generate unique cell keys', async ({ page }) => {
-    await page.goto(`file://${demoPath}/analysis-examples.html`);
+  test.skip('should generate unique cell keys', async ({ page }) => {
+    await page.goto(`file://${demoPath}/Pages/gram-1.html`);
 
     // Get cell keys
     const cellKeys = await page.evaluate(() => {
@@ -283,8 +295,8 @@ test.describe.skip('Analysis Capture Workflow', () => {
     }
   });
 
-  test('should handle empty cell content', async ({ page }) => {
-    await page.goto(`file://${demoPath}/analysis-examples.html`);
+  test.skip('should handle empty cell content', async ({ page }) => {
+    await page.goto(`file://${demoPath}/Pages/gram-1.html`);
 
     // Edit cell then clear it
     const interactiveCell = page.locator('td.interactive').first();

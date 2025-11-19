@@ -16,7 +16,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const ditaPath = path.resolve(__dirname, '../../../dita/out/oxygen');
+const ditaPath = path.resolve(__dirname, '../../../dita-demo');
 
 /**
  * Wait for bootstrap to complete
@@ -38,7 +38,7 @@ async function clearStorage(page: Page): Promise<void> {
   });
 }
 
-test.describe.skip('DITA Student Flow', () => {
+test.describe('DITA Student Flow', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`file://${ditaPath}/page-index.html`);
     await clearStorage(page);
@@ -330,7 +330,7 @@ test.describe.skip('DITA Student Flow', () => {
     expect(value).toBe(''); // No pre-filled answer
   });
 
-  test('Flow: Analysis table interaction and persistence', async ({ page }) => {
+  test.skip('Flow: Analysis table interaction and persistence', async ({ page }) => {
     // Login
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('IVY09');
