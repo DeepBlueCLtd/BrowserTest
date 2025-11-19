@@ -1,6 +1,6 @@
 # Feature Specification: Instructor Mode Improvements
 
-**Feature Branch**: `001-instructor-mode-improvements`
+**Feature Branch**: `003-instructor-mode-improvements`
 **Created**: 2025-11-19
 **Status**: Draft
 **Input**: User description: "let's discuss some shortcomings of instructor mode"

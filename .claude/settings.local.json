@@ -20,7 +20,8 @@
       "Bash(npm run format:*)",
       "Bash(npm run test:integration:*)",
       "Bash(git pull:*)",
-      "Bash(git worktree:*)"
+      "Bash(git worktree:*)",
+      "Bash(.specify/scripts/bash/setup-plan.sh:*)"
     ],
     "deny": [],
     "ask": []
