@@ -24,7 +24,8 @@
       "Bash(.specify/scripts/bash/setup-plan.sh:*)",
       "Bash(git rev-parse:*)",
       "Bash(test:*)",
-      "Bash(npm run typecheck:*)"
+      "Bash(npm run typecheck:*)",
+      "Bash(npm run lint:fix:*)"
     ],
     "deny": [],
     "ask": []
