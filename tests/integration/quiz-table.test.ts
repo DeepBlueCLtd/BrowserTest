@@ -269,6 +269,42 @@ describe('Quiz Table Enhancement', () => {
       expect(cache.pages['test-page-2']?.answers?.[0]?.success).toBe(false);
     });
 
+    it('should initialize total question count when first answer is saved', async () => {
+      // Create table with 2 questions
+      const table = createMCQTable();
+      container.appendChild(table);
+
+      enhanceQuizTable(table, {
+        interactive: true,
+        pageId: 'test-page-3',
+      });
+
+      // Answer only the first question
+      const selects = table.querySelectorAll<HTMLSelectElement>('select.qd-quiz-input');
+      expect(selects.length).toBe(2);
+
+      selects[0]!.value = '1';
+      selects[0]!.dispatchEvent(new Event('change'));
+
+      // Wait for debounced save
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Check that cache shows total of 2 questions, not just 1
+      const cache = JSON.parse(sessionStorage.getItem(STORAGE_KEYS.CACHE) || '{}') as SessionCache;
+      expect(cache.pages['test-page-3']).toBeDefined();
+      expect(cache.pages['test-page-3']?.total).toBe(2); // Total should be 2, not 1
+      expect(cache.pages['test-page-3']?.answered).toBe(1); // Only 1 answered
+      expect(cache.pages['test-page-3']?.correct).toBe(1); // 1 correct
+
+      // Verify the page is incomplete (not all questions answered)
+      expect(cache.pages['test-page-3']?.state).toBe('incomplete');
+
+      // Verify answers array has entries for all questions
+      expect(cache.pages['test-page-3']?.answers?.length).toBe(2);
+      expect(cache.pages['test-page-3']?.answers?.[0]?.answer).toBe('1');
+      expect(cache.pages['test-page-3']?.answers?.[1]?.answer).toBe(''); // Unanswered
+    });
+
     it.skip('should update state to complete when all answers are correct', async () => {
       const table = createMCQTable();
       container.appendChild(table);

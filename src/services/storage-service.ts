@@ -154,8 +154,9 @@ export class StorageService {
       state: 'unstarted',
     };
 
-    // Ensure answers array is large enough
-    while (pageData.answers.length <= questionIndex) {
+    // Ensure answers array has entries for ALL questions on the page
+    // This prevents students from gaming the system by only answering easy questions
+    while (pageData.answers.length < totalQuestions) {
       pageData.answers.push({
         answer: '',
         success: false,
