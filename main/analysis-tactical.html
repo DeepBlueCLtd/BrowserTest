@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="release" content="02-2025">
+  <meta name="document-id" content="analysis-tactical">
+  <meta name="page-id" content="analysis-tactical">
+  <title>Tactical Decision Matrix - Sonar Quiz System</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    #page-content {
+      flex: 1;
+      padding: 2rem;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 2rem 0;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 0.75rem;
+      text-align: left;
+    }
+    th {
+      background-color: #f5f5f5;
+      font-weight: bold;
+    }
+    .note {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+    .legend {
+      display: flex;
+      gap: 2rem;
+      margin: 1rem 0;
+      padding: 1rem;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .legend-box {
+      width: 30px;
+      height: 20px;
+      border: 1px solid #ddd;
+    }
+    .readonly {
+      background-color: #e9ecef;
+    }
+    .editable {
+      background-color: #ffffff;
+    }
+    nav {
+      background-color: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 2rem;
+    }
+    nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    nav li {
+      margin: 0;
+    }
+    nav a {
+      color: #0066cc;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    nav a:hover {
+      background-color: #e9ecef;
+    }
+    nav a.active {
+      background-color: #0066cc;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <!-- Configuration injected by Oxygen XSL transform from Transformation Scenario parameters -->
+  <span id="qd-status-container" style="display:none;">.wh_top_menu_and_indexterms_link</span>
+  <span id="qd-title-selector" style="display:none;">.wh_publication_title .title</span>
+  <span id="qd-db-name" style="display:none;">BrowserTest</span>
+  <span id="qd-instructor-hash" style="display:none;">5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8</span>
+
+  <div id="page-content">
+  <nav class="wh_top_menu_and_indexterms_link">
+    <div class=" wh_publication_title "><a href="index.html"><span xmlns="" class="title">TRV Connectors Autumn 2025</span></a></div>
+    <ul>
+      <li><a href="quiz-index.html">Home</a></li>
+      <li><a href="seven-questions.html">Seven Questions</a></li>
+      <li><a href="dev-with-storage-monitor.html">Dev Monitor</a></li>
+    </ul>
+  </nav>
+
+  <h1>Tactical Decision Matrix</h1>
+  <p>Students record their tactical analysis decisions based on a given scenario.</p>
+
+  <div class="note">
+    <strong>Demo:</strong> This analysis table is designed for recording tactical decisions.
+    Fill in your recommendations and justifications.
+  </div>
+
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box readonly"></div>
+      <span>Read-only (has background-color style)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box editable"></div>
+      <span>Editable (no background-color)</span>
+    </div>
+  </div>
+
+  <table class="qd-analysis">
+    <tbody>
+      <tr>
+        <td style="background-color: #e9ecef; width: 30%;">Threat Assessment:</td>
+        <td class="interactive"></td>
+      </tr>
+      <tr>
+        <td style="background-color: #e9ecef;">Recommended Action:</td>
+        <td class="interactive"></td>
+      </tr>
+      <tr>
+        <td style="background-color: #e9ecef;">Course Change (if any):</td>
+        <td class="interactive"></td>
+      </tr>
+      <tr>
+        <td style="background-color: #e9ecef;">Speed Change (if any):</td>
+        <td class="interactive"></td>
+      </tr>
+      <tr>
+        <td style="background-color: #e9ecef;">Sonar Mode Selection:</td>
+        <td class="interactive"></td>
+      </tr>
+      <tr>
+        <td style="background-color: #e9ecef;">Justification:</td>
+        <td class="interactive"></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Verification Questions</h2>
+  <p>Based on your tactical analysis above, answer the following:</p>
+
+  <table class="qd-quiz">
+    <thead>
+      <tr>
+        <th>Question</th>
+        <th>Answer</th>
+        <th>Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>What threat level did you assign?</td>
+        <td>2</td>
+        <td>
+          <ol>
+            <li>Low</li>
+            <li>Medium</li>
+            <li>High</li>
+            <li>Critical</li>
+          </ol>
+        </td>
+      </tr>
+      <tr>
+        <td>What is your recommended course change in degrees?</td>
+        <td>45</td>
+        <td>10</td>
+      </tr>
+    </tbody>
+  </table>
+
+  </div>
+
+  <!-- Load the Sonar Quiz System -->
+  <script defer="defer" src="dist/sonar-quiz.iife.js"></script>
+</body>
+</html>

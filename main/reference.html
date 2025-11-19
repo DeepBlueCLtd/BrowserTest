@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="release" content="02-2025">
+  <meta name="document-id" content="passive-sonar-reference">
+  <title>Passive Sonar Reference - Quick Guide</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      line-height: 1.6;
+    }
+
+    nav {
+      background-color: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    nav li {
+      margin: 0;
+    }
+    nav a {
+      color: #0066cc;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    nav a:hover {
+      background-color: #e9ecef;
+    }
+    nav a.active {
+      background-color: #0066cc;
+      color: white;
+    }
+
+    h1 {
+      color: #0066cc;
+      border-bottom: 3px solid #0066cc;
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    h2 {
+      color: #0066cc;
+      margin-top: 2rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .intro {
+      background: #e7f3ff;
+      border-left: 4px solid #0066cc;
+      padding: 1rem 1.5rem;
+      margin: 1.5rem 0;
+      border-radius: 4px;
+      font-size: 1.1rem;
+    }
+
+    .concept-box {
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .concept-box h3 {
+      margin-top: 0;
+      color: #0066cc;
+    }
+
+    .image-placeholder {
+      background: #f8f9fa;
+      border: 2px dashed #dee2e6;
+      border-radius: 8px;
+      padding: 3rem 2rem;
+      text-align: center;
+      color: #6c757d;
+      margin: 1rem 0;
+      font-style: italic;
+    }
+
+    .image-placeholder::before {
+      content: "📊 ";
+      font-size: 2rem;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .key-points {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 1rem 1.5rem;
+      margin: 1.5rem 0;
+      border-radius: 4px;
+    }
+
+    .key-points h3 {
+      margin-top: 0;
+      color: #856404;
+    }
+
+    .key-points ul {
+      margin-bottom: 0;
+    }
+
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin: 1.5rem 0;
+    }
+
+    .comparison-card {
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .comparison-card h4 {
+      margin-top: 0;
+      color: #0066cc;
+      border-bottom: 2px solid #0066cc;
+      padding-bottom: 0.5rem;
+    }
+
+    .comparison-card ul {
+      padding-left: 1.5rem;
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid #e0e0e0;
+      text-align: center;
+      color: #666;
+      font-size: 0.875rem;
+    }
+
+    @media (max-width: 768px) {
+      .comparison {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Configuration injected by Oxygen XSL transform from Transformation Scenario parameters -->
+  <span id="qd-status-container" style="display:none;">.wh_top_menu_and_indexterms_link</span>
+  <span id="qd-title-selector" style="display:none;">.wh_publication_title .title</span>
+  <span id="qd-db-name" style="display:none;">BrowserTest</span>
+  <span id="qd-instructor-hash" style="display:none;">5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8</span>
+
+  <nav class="wh_top_menu_and_indexterms_link">
+    <div class=" wh_publication_title "><a href="index.html"><span xmlns="" class="title">TRV Connectors Autumn 2025</span></a></div>
+    <ul>
+      <li><a href="quiz-index.html">Home</a></li>
+      <li><a href="seven-questions.html">Seven Questions</a></li>
+      <li><a href="dev-with-storage-monitor.html">Dev Monitor</a></li>
+    </ul>
+  </nav>
+
+  <h1>Passive Sonar Quick Reference</h1>
+
+  <div class="intro">
+    <p><strong>Passive sonar</strong> is a listening system that detects and analyzes sounds emitted by targets without transmitting any signals. It is the primary detection method for submarines operating in stealth mode.</p>
+  </div>
+
+  <h2>How Passive Sonar Works</h2>
+
+  <div class="concept-box">
+    <h3>Basic Principle</h3>
+    <p>Passive sonar systems use hydrophones (underwater microphones) to detect acoustic energy radiated by targets. The system analyzes frequency, bearing, and amplitude characteristics to identify and track contacts without revealing the listener's position.</p>
+
+    <div class="image-placeholder">
+      Diagram: Passive Sonar Listening Pattern
+      <br>
+      (Hydrophone array detecting sound from target vessel)
+    </div>
+  </div>
+
+  <h2>Key Components</h2>
+
+  <div class="concept-box">
+    <h3>1. Hydrophones & Arrays</h3>
+    <p>Arrays of hydrophones arranged along the hull, towed behind the vessel, or deployed on the seabed. Multiple hydrophones enable bearing determination through phase comparison.</p>
+
+    <div class="image-placeholder">
+      Diagram: Hydrophone Array Configuration
+      <br>
+      (Hull-mounted, towed, and flank arrays)
+    </div>
+  </div>
+
+  <div class="concept-box">
+    <h3>2. Signal Processing</h3>
+    <p>Advanced algorithms filter noise, perform frequency analysis (FFT), and extract target signatures from background ocean noise. Narrowband and broadband processing techniques identify different sound sources.</p>
+
+    <div class="image-placeholder">
+      Diagram: Frequency Spectrum Display
+      <br>
+      (Broadband vs. narrowband tonals)
+    </div>
+  </div>
+
+  <div class="concept-box">
+    <h3>3. Display Systems</h3>
+    <p>Acoustic data presented on waterfalls, BTR (Bearing-Time-Recorder), and LOFAR (Low Frequency Analysis and Recording) displays for operator analysis.</p>
+
+    <div class="image-placeholder">
+      Screenshot: Waterfall Display
+      <br>
+      (Time-frequency-intensity plot showing contact evolution)
+    </div>
+  </div>
+
+  <h2>Passive vs. Active Sonar</h2>
+
+  <div class="comparison">
+    <div class="comparison-card">
+      <h4>Passive Sonar</h4>
+      <ul>
+        <li><strong>Stealth:</strong> Does not reveal position</li>
+        <li><strong>Range:</strong> Can detect targets at very long ranges</li>
+        <li><strong>Limitation:</strong> Requires target to make noise</li>
+        <li><strong>Data:</strong> Bearing only (no direct range)</li>
+        <li><strong>Use:</strong> Continuous monitoring, classification</li>
+      </ul>
+    </div>
+
+    <div class="comparison-card">
+      <h4>Active Sonar</h4>
+      <ul>
+        <li><strong>Detection:</strong> Can find quiet targets</li>
+        <li><strong>Range:</strong> Provides accurate range data</li>
+        <li><strong>Limitation:</strong> Reveals own position</li>
+        <li><strong>Data:</strong> Bearing and range</li>
+        <li><strong>Use:</strong> Attack, navigation, short-range detection</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Sound Sources Detected</h2>
+
+  <div class="concept-box">
+    <h3>Target Radiated Noise</h3>
+    <ul>
+      <li><strong>Machinery:</strong> Pumps, turbines, generators, reduction gears</li>
+      <li><strong>Propulsion:</strong> Propeller cavitation, blade rate tonals</li>
+      <li><strong>Hydrodynamic:</strong> Flow noise, hull vibrations</li>
+      <li><strong>Transients:</strong> Hatches, torpedoes, dropped objects</li>
+    </ul>
+
+    <div class="image-placeholder">
+      Diagram: Submarine Noise Sources
+      <br>
+      (Cross-section showing machinery, propeller, and flow noise)
+    </div>
+  </div>
+
+  <div class="key-points">
+    <h3>Key Operational Points</h3>
+    <ul>
+      <li><strong>Environmental factors</strong> affect detection: temperature layers, salinity, biologics</li>
+      <li><strong>Target quieting</strong> technology continuously improves, requiring better sensors</li>
+      <li><strong>Classification</strong> relies on acoustic signature databases and operator experience</li>
+      <li><strong>Convergence zones</strong> can provide detection at extended ranges in deep water</li>
+      <li><strong>Own-ship noise</strong> must be minimized for effective passive detection</li>
+    </ul>
+  </div>
+
+  <footer>
+    <p>Sonar Quiz System v0.1.0 | Offline-First Training Platform</p>
+    <p>Passive Sonar Reference | Updated 02-2025</p>
+  </footer>
+
+  <!-- Load the Sonar Quiz System -->
+  <script defer="defer" src="dist/sonar-quiz.iife.js"></script>
+</body>
+</html>
