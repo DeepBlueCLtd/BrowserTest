@@ -52,7 +52,7 @@ As an instructor exporting quiz data to CSV, I need the export to include full t
 
 **Acceptance Scenarios**:
 
-1. **Given** instructor has unlocked instructor mode with student data present, **When** clicking "Export to CSV", **Then** CSV file contains columns: Student Name, Service ID, Page ID, Question #, Question Text, Student Answer, Correct Answer, Is Correct, Timestamp (ISO 8601)
+1. **Given** instructor has unlocked instructor mode with student data present, **When** clicking "Export to CSV", **Then** CSV file contains columns: Student Name, Service ID, Page ID, Question #, Question Text, Student Answer, Correct Answer, Is Correct, Timestamp
 2. **Given** CSV export is downloaded, **When** opening in spreadsheet software, **Then** all timestamps are properly formatted and sortable
 3. **Given** quiz contains special characters (quotes, commas) in questions or answers, **When** exporting to CSV, **Then** all values are properly escaped and parse correctly
 
@@ -114,30 +114,20 @@ As an instructor reviewing analysis tables (free-form student work), I need to s
 - **FR-004**: "Show student answers" toggle MUST correctly load and display all student answers in a fresh browser session (no prior student login required)
 - **FR-005**: "Show student answers" toggle label MUST have sufficient color contrast for readability (minimum WCAG AA contrast ratio 4.5:1)
 - **FR-006**: "Export to CSV" button MUST be enabled when student data exists in IndexedDB for current release, regardless of whether user was previously logged in as student
-- **FR-007**: System MUST use 24-hour time format (HH:mm:ss) for all displayed timestamps, not 12-hour format with AM/PM
+- **FR-007**: System MUST display timestamps in month/date/time format using 24-hour time (e.g., "Nov 19 14:23" or "11/19 14:23:45"), not 12-hour format with AM/PM
 
 #### Feature Enhancements
 
-- **FR-008**: System MUST poll IndexedDB periodically (every 3-5 seconds) when "Show student answers" is enabled to detect new student submissions without page reload
-- **FR-009**: System MUST display new student answers in the instructor view automatically within 5 seconds of submission without requiring manual refresh
-- **FR-010**: Instructors MUST be able to filter displayed student answers by individual student selection (multi-select checkbox/dropdown)
-- **FR-011**: System MUST persist student filter selections in sessionStorage for the duration of the instructor session
-- **FR-012**: System MUST display full ISO 8601 timestamps for all student answer submissions
-- **FR-013**: System MUST provide timestamp tooltips showing full date/time when hovering over shortened timestamp displays
-- **FR-014**: CSV export MUST include columns: Student Name, Service ID, Page ID, Question Number, Question Text, Student Answer, Correct Answer, Is Correct (boolean), Timestamp (ISO 8601)
-- **FR-015**: CSV export MUST properly escape special characters (quotes, commas, newlines) in question text and student answers
-- **FR-016**: System MUST handle CSV export of datasets with 100+ students and 50+ questions without freezing the UI
-- **FR-017**: "Show student answers" toggle state MUST persist across page navigation within the same instructor session
-- **FR-018**: System MUST display analysis table student entries grouped by cell, sorted by submission timestamp (newest first)
-- **FR-019**: System MUST show "(No entries yet)" placeholder for analysis cells with no student submissions
-- **FR-020**: System MUST limit real-time polling to only when instructor is actively viewing a page (pause when tab is inactive)
-- **FR-021**: System MUST provide visual feedback (loading indicator or badge) when new student answers are being loaded
+- **FR-008**: CSV export MUST include columns: Student Name, Service ID, Page ID, Question Number, Question Text, Student Answer, Correct Answer, Is Correct (boolean), Timestamp
+- **FR-009**: CSV export MUST properly escape special characters (quotes, commas, newlines) in question text and student answers
+- **FR-010**: System MUST handle CSV export of datasets with 100+ students and 50+ questions without freezing the UI
+- **FR-011**: "Show student answers" toggle state MUST persist across page navigation within the same instructor session
+- **FR-012**: System MUST display analysis table student entries grouped by cell, sorted by submission timestamp (newest first)
+- **FR-013**: System MUST show "(No entries yet)" placeholder for analysis cells with no student submissions
 
 ### Key Entities
 
-- **StudentAnswerDisplay**: Represents a rendered student answer in the instructor view, containing student name, service ID (last 4 digits), answer text, correctness indicator, and full timestamp
-- **FilterCriteria**: Represents active filtering selections, containing array of selected student service IDs and persistence flag
-- **PollingState**: Represents the real-time update mechanism state, including polling interval, active status, and last update timestamp
+- **StudentAnswerDisplay**: Represents a rendered student answer in the instructor view, containing student name, service ID (last 4 digits), answer text, correctness indicator, and timestamp in month/date/time format
 
 ## Success Criteria *(mandatory)*
 
@@ -148,14 +138,11 @@ As an instructor reviewing analysis tables (free-form student work), I need to s
 - **SC-003**: "Show student answers" toggle works correctly in 100% of fresh browser sessions (no prior student login required)
 - **SC-004**: All instructor UI labels meet WCAG AA contrast requirements (4.5:1 minimum)
 - **SC-005**: "Export to CSV" button is enabled when student data exists for 100% of instructor sessions
-- **SC-006**: All timestamps display in 24-hour format with no AM/PM markers
-- **SC-007**: Instructors can see new student answers appear automatically within 5 seconds of submission without manual page refresh
-- **SC-008**: Instructors can filter a page with 30 students down to 3 selected students in under 3 clicks
-- **SC-009**: CSV export of 100 students × 50 questions completes and downloads within 10 seconds
-- **SC-010**: "Show student answers" toggle state persists correctly across 100% of page navigations within a session
-- **SC-011**: Real-time polling has no measurable performance impact on quiz interaction for students (no degradation in answer submission times)
-- **SC-012**: 95% of instructors report improved ability to monitor student progress during live sessions (post-deployment survey)
-- **SC-013**: Support requests related to instructor mode bugs are reduced by 90% (compared to baseline before P0 fixes)
+- **SC-006**: All timestamps display in month/date/time format with 24-hour time and no AM/PM markers
+- **SC-007**: CSV export of 100 students × 50 questions completes and downloads within 10 seconds
+- **SC-008**: "Show student answers" toggle state persists correctly across 100% of page navigations within a session
+- **SC-009**: Analysis table entries are displayed grouped by cell with newest-first sorting for 100% of cases
+- **SC-010**: Support requests related to instructor mode bugs are reduced by 90% (compared to baseline before P0 fixes)
 
 ## Assumptions
 
@@ -163,14 +150,15 @@ As an instructor reviewing analysis tables (free-form student work), I need to s
 - Quiz pages typically contain 5-15 questions
 - Analysis tables typically have 3-10 interactive cells
 - Instructor sessions typically last 30-120 minutes
-- The system will remain offline-first with no network connectivity for the foreseeable future (real-time updates will be implemented via local storage polling, not WebSockets or SSE)
-- IndexedDB polling every 3-5 seconds is acceptable from a performance perspective given the offline-first architecture
+- The system will remain offline-first with no network connectivity (IndexedDB is single-user, no concurrent access issues)
 - CSV files will be opened primarily in Excel, LibreOffice Calc, or Google Sheets
 - Timestamps should use browser local time (not UTC) for instructor convenience
+- Month/date/time format provides sufficient granularity for tracking student progress
 
 ## Out of Scope
 
-- Network-based real-time synchronization (WebSockets, Server-Sent Events)
+- Real-time answer synchronization across multiple browsers/devices (not needed for offline-first single-user IndexedDB)
+- Per-student filtering controls (visual clutter not a concern for typical cohort sizes)
 - Advanced analytics dashboard with charts/graphs (remains CSV export only)
 - Student identity anonymization features
 - Automated grading or feedback suggestions
