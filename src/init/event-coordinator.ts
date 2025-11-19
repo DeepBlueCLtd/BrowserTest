@@ -4,7 +4,7 @@
  */
 
 import { info } from '../utils/logger.js';
-import { enhanceQuizTable } from '../enhancers/quiz-table.js';
+import { enhanceQuizTable, getQuizTableMetadata } from '../enhancers/quiz-table.js';
 import { enhanceAnalysisTable } from '../enhancers/analysis-table.js';
 import { getStorageService } from '../services/storage-service.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
@@ -136,8 +136,31 @@ export class EventCoordinator {
       info(
         'Instructor session detected, tables remain in non-interactive mode with answers visible',
       );
-      // Tables are already enhanced during bootstrap, no need to re-enhance
-      // Event listeners for instructor features are already set up
+      // Restore answer and detail columns for instructor view
+      const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
+      quizTables.forEach((table) => {
+        // Get parsed metadata (contains correct answers)
+        const metadata = getQuizTableMetadata(table);
+        if (!metadata) return;
+
+        // Remove qd-hidden class from answer column (column 1)
+        const answerCells = table.querySelectorAll('td:nth-child(2), th:nth-child(2)');
+        answerCells.forEach((cell, index) => {
+          cell.classList.remove('qd-hidden');
+          // Restore answer text from parsed metadata (skip header row)
+          if (index > 0 && cell instanceof HTMLTableCellElement) {
+            const questionIndex = index - 1;
+            const question = metadata.parsed.questions[questionIndex];
+            if (question) {
+              cell.textContent = question.correctAnswer;
+            }
+          }
+        });
+
+        // Remove qd-hidden class from detail column (column 2)
+        const detailCells = table.querySelectorAll('td:nth-child(3), th:nth-child(3)');
+        detailCells.forEach((cell) => cell.classList.remove('qd-hidden'));
+      });
       return;
     }
 
@@ -167,6 +190,25 @@ export class EventCoordinator {
     this.addEventListener('qd:logout', (event) => {
       const detail = (event as CustomEvent<LogoutEventDetail>).detail;
       info(`Logout event: ${detail.serviceId}`);
+
+      // Hide answer and detail columns on all quiz tables (instructor cleanup)
+      const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
+      quizTables.forEach((table) => {
+        // Hide and clear answer column (column 1)
+        const answerCells = table.querySelectorAll('td:nth-child(2), th:nth-child(2)');
+        answerCells.forEach((cell) => {
+          cell.classList.add('qd-hidden');
+          if (cell instanceof HTMLTableCellElement && cell.tagName === 'TD') {
+            cell.textContent = ''; // Clear restored content
+          }
+        });
+
+        // Hide detail column (column 2)
+        const detailCells = table.querySelectorAll('td:nth-child(3), th:nth-child(3)');
+        detailCells.forEach((cell) => {
+          cell.classList.add('qd-hidden');
+        });
+      });
 
       // Clear any cached data
       this.dispatchEvent('qd:cache-clear', {});

@@ -7,6 +7,11 @@ import { LitElement, html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { sharedStyles } from './shared-styles.js';
 import type { StudentRecord } from '../../types/contracts.js';
+import {
+  calculateVirtualListState,
+  getVisibleItems,
+  type VirtualListState,
+} from '../../utils/virtual-list.js';
 
 interface StudentSummary {
   serviceId: string;
@@ -38,8 +43,44 @@ export class QdInstructorScores extends LitElement {
   @state()
   private expandedStudents = new Set<string>();
 
+  @state()
+  private virtualListState: VirtualListState | null = null;
+
+  // Virtual scrolling configuration
+  private readonly ITEM_HEIGHT = 40; // Height of each student row in pixels
+  private readonly VIEWPORT_HEIGHT = 400; // Max height of scrollable area
+  private readonly BUFFER_SIZE = 5; // Items to render above/below viewport
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    document.addEventListener('keydown', this.handleEscape);
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    document.removeEventListener('keydown', this.handleEscape);
+  }
+
+  private handleEscape = (e: KeyboardEvent): void => {
+    if (e.key === 'Escape' && this.showModal) {
+      this.handleClose();
+    }
+  };
+
   private handleClose = (): void => {
     this.dispatchEvent(new CustomEvent('close'));
+  };
+
+  private handleScroll = (e: Event): void => {
+    const target = e.target as HTMLElement;
+    const scrollTop = target.scrollTop;
+
+    this.virtualListState = calculateVirtualListState(scrollTop, {
+      totalItems: this.students.length,
+      itemHeight: this.ITEM_HEIGHT,
+      viewportHeight: this.VIEWPORT_HEIGHT,
+      bufferSize: this.BUFFER_SIZE,
+    });
   };
 
   private toggleStudent = (serviceId: string): void => {
@@ -159,32 +200,85 @@ export class QdInstructorScores extends LitElement {
     }
 
     const sortedStudents = [...this.students].sort((a, b) => a.name.localeCompare(b.name));
+    const useVirtualScrolling = sortedStudents.length >= 100;
+
+    // Initialize virtual list state on first render when needed
+    if (useVirtualScrolling && !this.virtualListState) {
+      this.virtualListState = calculateVirtualListState(0, {
+        totalItems: sortedStudents.length,
+        itemHeight: this.ITEM_HEIGHT,
+        viewportHeight: this.VIEWPORT_HEIGHT,
+        bufferSize: this.BUFFER_SIZE,
+      });
+    }
+
+    // Get visible students for virtual scrolling
+    const visibleStudents = useVirtualScrolling && this.virtualListState
+      ? getVisibleItems(sortedStudents, this.virtualListState)
+      : sortedStudents;
+
+    const totalHeight = useVirtualScrolling && this.virtualListState
+      ? this.virtualListState.totalHeight
+      : 0;
+
+    const offsetY = useVirtualScrolling && this.virtualListState
+      ? this.virtualListState.offsetY
+      : 0;
 
     return html`
       <div class="modal-overlay" @click=${this.handleClose}>
-        <div class="modal-content" @click=${(e: Event) => e.stopPropagation()}>
+        <div
+          class="modal-content"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="scores-modal-title"
+          @click=${(e: Event) => e.stopPropagation()}
+        >
           <div class="modal-header">
-            <h2 class="modal-title">Student Scores</h2>
-            <button class="close-button" @click=${this.handleClose}>✕</button>
+            <h2 id="scores-modal-title" class="modal-title">Student Scores</h2>
+            <button class="close-button" @click=${this.handleClose} aria-label="Close scores modal">
+              ✕
+            </button>
           </div>
 
           ${sortedStudents.length === 0
             ? html`<p>No student data available.</p>`
             : html`
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Service ID</th>
-                      <th>Attempted</th>
-                      <th>Correct</th>
-                      <th>Percentage</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${sortedStudents.map((student) => this.renderStudentRow(student))}
-                  </tbody>
-                </table>
+                <div
+                  class="table-container"
+                  style=${useVirtualScrolling
+                    ? `max-height: ${this.VIEWPORT_HEIGHT}px; overflow-y: auto;`
+                    : ''}
+                  @scroll=${useVirtualScrolling ? this.handleScroll : null}
+                >
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Service ID</th>
+                        <th>Attempted</th>
+                        <th>Correct</th>
+                        <th>Percentage</th>
+                      </tr>
+                    </thead>
+                    <tbody
+                      style=${useVirtualScrolling
+                        ? `height: ${totalHeight}px; position: relative;`
+                        : ''}
+                    >
+                      ${useVirtualScrolling
+                        ? html`
+                            <tr style="height: 0;">
+                              <td colspan="5" style="padding: 0; border: none;">
+                                <div style="height: ${offsetY}px;"></div>
+                              </td>
+                            </tr>
+                          `
+                        : ''}
+                      ${visibleStudents.map((student) => this.renderStudentRow(student))}
+                    </tbody>
+                  </table>
+                </div>
               `}
         </div>
       </div>

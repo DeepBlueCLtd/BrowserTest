@@ -59,11 +59,15 @@ describe('qd-instructor - Fresh Session Data Loading (FR-004)', () => {
     // Toggle should be unchecked in fresh session
     expect((toggle as HTMLInputElement)?.checked).toBe(false);
 
-    // User enables toggle
+    // User enables toggle by checking and dispatching change event
     if (toggle) {
-      (toggle as HTMLInputElement).checked = true;
-      toggle.dispatchEvent(new Event('change', { bubbles: true }));
+      const input = toggle as HTMLInputElement;
+      input.checked = true;
+      // Dispatch change event (bubbles so Lit @change binding works)
+      input.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
       await freshElement.updateComplete;
+      // Wait for async handler to complete (loads student data, may fail but still persists state)
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
 
     // Toggle state should now be persisted
@@ -127,8 +131,10 @@ describe('qd-instructor - Fresh Session Data Loading (FR-004)', () => {
       'input[type="checkbox"]',
     ) as HTMLInputElement;
     toggle1.checked = true;
-    toggle1.dispatchEvent(new Event('change', { bubbles: true }));
+    toggle1.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
     await page1Element.updateComplete;
+    // Wait for async handler to complete
+    await new Promise((resolve) => setTimeout(resolve, 150));
 
     // Verify state persisted
     expect(sessionStorage.getItem('qd/instructor/showAnswers')).toBe('true');
@@ -174,19 +180,34 @@ describe('qd-instructor - Fresh Session Data Loading (FR-004)', () => {
     ) as HTMLInputElement;
     expect(toggle.checked).toBe(true);
 
-    // Simulate logout - clear sessionStorage
+    // Simulate logout - clear sessionStorage (mimics what SessionService.clearSession does)
     sessionStorage.clear();
 
-    // Create new component instance (fresh login)
+    // Create new component instance (simulate fresh login after logout)
     loggedInElement.remove();
+
+    // Set up new instructor session (no toggle state this time)
+    const newSession: SessionData = {
+      serviceId: 'INST002',
+      name: 'Instructor',
+      release: '11-2024',
+      loginTime: new Date().toISOString(),
+      lastActivity: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+      instructorUnlocked: true,
+    };
+    sessionStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(newSession));
+    sessionStorage.setItem(STORAGE_KEYS.INSTRUCTOR, 'true');
+
     const freshElement = document.createElement('qd-instructor');
     container.appendChild(freshElement);
     await freshElement.updateComplete;
 
-    // Toggle should be reset to unchecked
+    // Toggle should be reset to unchecked (no saved state)
     const freshToggle = freshElement.shadowRoot?.querySelector(
       'input[type="checkbox"]',
     ) as HTMLInputElement;
+    expect(freshToggle).toBeTruthy();
     expect(freshToggle.checked).toBe(false);
   });
 });

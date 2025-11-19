@@ -7,7 +7,7 @@ import { info, warn } from '../utils/logger.js';
 import { EventCoordinator } from './event-coordinator.js';
 import { SessionCoordinator } from './session-coordinator.js';
 import { injectComponents, type ComponentInjectorConfig } from './component-injector.js';
-import { enhanceQuizTable } from '../enhancers/quiz-table.js';
+import { enhanceQuizTable, getQuizTableMetadata } from '../enhancers/quiz-table.js';
 import { enhanceAnalysisTable } from '../enhancers/analysis-table.js';
 import { enhanceHomeBadges } from '../enhancers/home-badges.js';
 import { getStorageService } from '../services/storage-service.js';
@@ -290,9 +290,23 @@ async function checkExistingSessionAndUpgradeTables(): Promise<void> {
     // Reveal answer and detail columns for instructor (they're hidden by default in non-interactive mode)
     const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
     quizTables.forEach((table) => {
+      // Get parsed metadata (contains correct answers)
+      const metadata = getQuizTableMetadata(table);
+      if (!metadata) return;
+
       // Remove qd-hidden class from answer column (column 1)
       const answerCells = table.querySelectorAll('td:nth-child(2), th:nth-child(2)');
-      answerCells.forEach((cell) => cell.classList.remove('qd-hidden'));
+      answerCells.forEach((cell, index) => {
+        cell.classList.remove('qd-hidden');
+        // Restore answer text from parsed metadata (skip header row)
+        if (index > 0 && cell instanceof HTMLTableCellElement) {
+          const questionIndex = index - 1;
+          const question = metadata.parsed.questions[questionIndex];
+          if (question) {
+            cell.textContent = question.correctAnswer;
+          }
+        }
+      });
 
       // Remove qd-hidden class from detail column (column 2)
       const detailCells = table.querySelectorAll('td:nth-child(3), th:nth-child(3)');

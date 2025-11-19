@@ -4,7 +4,12 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { StudentRecord, CellKey } from '../../src/types/contracts.js';
+import type { StudentRecord } from '../../../src/types/contracts.js';
+import {
+  groupEntriesByCell,
+  sortByTimestamp,
+  createStudentEntriesDisplay,
+} from '../../../src/enhancers/analysis-table.js';
 
 describe('Analysis Table Enhancer - Instructor View (FR-012, FR-013)', () => {
   let table: HTMLTableElement;
@@ -92,19 +97,26 @@ describe('Analysis Table Enhancer - Instructor View (FR-012, FR-013)', () => {
       // Expected grouping: Cell A should have 2 entries, Cell B should have 1 entry
       const grouped = groupEntriesByCell(students, 'page-1');
 
-      expect(grouped['R1C0#f:abc123']).toHaveLength(2);
-      expect(grouped['R1C1#f:def456']).toHaveLength(1);
+      const cellAEntries = grouped['R1C0#f:abc123'];
+      const cellBEntries = grouped['R1C1#f:def456'];
+
+      expect(cellAEntries).toHaveLength(2);
+      expect(cellBEntries).toHaveLength(1);
 
       // Verify Alice's entry for Cell A
-      const aliceEntry = grouped['R1C0#f:abc123'].find((e) => e.serviceId === 'RN2344');
+      const aliceEntry = cellAEntries?.find((e) => e.serviceId === 'RN2344');
       expect(aliceEntry).toBeTruthy();
-      expect(aliceEntry?.content).toBe('Alice answer for Cell A');
-      expect(aliceEntry?.name).toBe('Alice Student');
+      if (aliceEntry) {
+        expect(aliceEntry.content).toBe('Alice answer for Cell A');
+        expect(aliceEntry.name).toBe('Alice Student');
+      }
 
       // Verify Bob's entry for Cell A
-      const bobEntry = grouped['R1C0#f:abc123'].find((e) => e.serviceId === 'RN5678');
+      const bobEntry = cellAEntries?.find((e) => e.serviceId === 'RN5678');
       expect(bobEntry).toBeTruthy();
-      expect(bobEntry?.content).toBe('Bob answer for Cell A');
+      if (bobEntry) {
+        expect(bobEntry.content).toBe('Bob answer for Cell A');
+      }
     });
 
     it('should handle students with no analysis data', () => {
@@ -202,9 +214,10 @@ describe('Analysis Table Enhancer - Instructor View (FR-012, FR-013)', () => {
       const sorted = sortByTimestamp(entries);
 
       // Newest first
-      expect(sorted[0].serviceId).toBe('RN2222'); // 12:00
-      expect(sorted[1].serviceId).toBe('RN3333'); // 11:00
-      expect(sorted[2].serviceId).toBe('RN1111'); // 10:00
+      expect(sorted.length).toBe(3);
+      expect(sorted[0]?.serviceId).toBe('RN2222'); // 12:00
+      expect(sorted[1]?.serviceId).toBe('RN3333'); // 11:00
+      expect(sorted[2]?.serviceId).toBe('RN1111'); // 10:00
     });
 
     it('should handle entries with identical timestamps', () => {
@@ -237,7 +250,6 @@ describe('Analysis Table Enhancer - Instructor View (FR-012, FR-013)', () => {
 
   describe('FR-012: Display Student Entries', () => {
     it('should create display element for cell with student entries', () => {
-      const cell = table.querySelector('td.interactive') as HTMLTableCellElement;
       const entries = [
         {
           serviceId: 'RN2344',
@@ -264,12 +276,16 @@ describe('Analysis Table Enhancer - Instructor View (FR-012, FR-013)', () => {
       expect(entryElements).toHaveLength(2);
 
       // First entry should be Bob (newest)
-      expect(entryElements[0].textContent).toContain('Bob Student');
-      expect(entryElements[0].textContent).toContain('5678'); // Last 4 of serviceId
-      expect(entryElements[0].textContent).toContain('Bob answer');
+      const firstEntry = entryElements[0];
+      expect(firstEntry).toBeTruthy();
+      if (firstEntry) {
+        expect(firstEntry.textContent).toContain('Bob Student');
+        expect(firstEntry.textContent).toContain('5678'); // Last 4 of serviceId
+        expect(firstEntry.textContent).toContain('Bob answer');
 
-      // Should have timestamp in 24-hour format
-      expect(entryElements[0].textContent).toContain('15:30');
+        // Should have timestamp in 24-hour format
+        expect(firstEntry.textContent).toContain('15:30');
+      }
     });
   });
 
@@ -283,30 +299,3 @@ describe('Analysis Table Enhancer - Instructor View (FR-012, FR-013)', () => {
     });
   });
 });
-
-// Helper types for testing
-interface CellEntry {
-  serviceId: string;
-  name: string;
-  content: string;
-  timestamp: string;
-}
-
-// Placeholder functions that will be implemented
-function groupEntriesByCell(
-  students: StudentRecord[],
-  pageId: string,
-): Record<CellKey, CellEntry[]> {
-  // TODO: Implement in analysis-table.ts
-  throw new Error('Not implemented yet');
-}
-
-function sortByTimestamp(entries: CellEntry[]): CellEntry[] {
-  // TODO: Implement in analysis-table.ts
-  throw new Error('Not implemented yet');
-}
-
-function createStudentEntriesDisplay(entries: CellEntry[]): HTMLDivElement {
-  // TODO: Implement in analysis-table.ts
-  throw new Error('Not implemented yet');
-}

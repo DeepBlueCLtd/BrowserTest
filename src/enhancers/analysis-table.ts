@@ -25,6 +25,8 @@ import type {
   SessionData,
   SessionCache,
   CellKey,
+  StudentRecord,
+  ServiceId,
 } from '../types/contracts.js';
 import { parseAnalysisTable, isCellEditable } from '../services/analysis-parser.js';
 import { Debouncer } from '../utils/debouncer.js';
@@ -34,6 +36,7 @@ import { getJSON, setJSON } from '../utils/storage-helpers.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
 import { info, error as logError, warn } from '../utils/logger.js';
 import { getStorageService } from '../services/storage-service.js';
+import { formatStoredTimestamp } from '../utils/date-helpers.js';
 
 /**
  * Enhancement options
@@ -59,6 +62,16 @@ interface AnalysisTableMetadata {
   debouncer?: Debouncer;
   /** Cell element to cell key mapping */
   cellKeyMap?: Map<HTMLTableCellElement, CellKey>;
+}
+
+/**
+ * Student entry for a cell (used in instructor view)
+ */
+export interface CellEntry {
+  serviceId: ServiceId;
+  name: string;
+  content: string;
+  timestamp: string;
 }
 
 // WeakMap to store table metadata without polluting DOM
@@ -128,14 +141,27 @@ export function enhanceAnalysisTable(
 /**
  * Enhance table in non-interactive mode
  * - Read-only display (no contenteditable)
- * - No interaction enabled
+ * - Listen for instructor view events to display student entries
  *
  * @param table - Analysis table element
  * @returns true if successful
  */
 function enhanceNonInteractive(table: HTMLTableElement): boolean {
   addClass(table, 'qd-analysis-non-interactive');
-  info('Analysis table enhanced in non-interactive mode');
+
+  // Add event listeners for instructor view
+  const showHandler = () => {
+    void showStudentEntriesForTable(table);
+  };
+
+  const hideHandler = () => {
+    hideStudentEntriesForTable(table);
+  };
+
+  document.addEventListener('qd:instructor-show-answers', showHandler);
+  document.addEventListener('qd:instructor-hide-answers', hideHandler);
+
+  info('Analysis table enhanced in non-interactive mode with instructor view support');
 
   return true;
 }
@@ -356,4 +382,213 @@ export function getAnalysisTableMetadata(
  */
 export function isAnalysisTableEnhanced(table: HTMLTableElement): boolean {
   return tableMetadata.has(table);
+}
+
+/**
+ * Group student entries by cell key (FR-012)
+ *
+ * @param students - All student records
+ * @param pageId - Page ID to filter by
+ * @returns Map of cell key to array of student entries
+ */
+export function groupEntriesByCell(
+  students: StudentRecord[],
+  pageId: PageId,
+): Record<CellKey, CellEntry[]> {
+  const grouped: Record<CellKey, CellEntry[]> = {};
+
+  students.forEach((student) => {
+    const pageData = student.pages[pageId];
+    if (!pageData || !pageData.analysis) {
+      return;
+    }
+
+    const { cells } = pageData.analysis;
+    const timestamp = pageData.analysis.lastEdited || student.updated;
+
+    Object.entries(cells).forEach(([cellKey, content]) => {
+      if (!grouped[cellKey]) {
+        grouped[cellKey] = [];
+      }
+
+      grouped[cellKey].push({
+        serviceId: student.serviceId,
+        name: student.name,
+        content,
+        timestamp,
+      });
+    });
+  });
+
+  return grouped;
+}
+
+/**
+ * Sort entries by timestamp in descending order (newest first) (FR-012)
+ *
+ * @param entries - Cell entries to sort
+ * @returns Sorted entries (newest first)
+ */
+export function sortByTimestamp(entries: CellEntry[]): CellEntry[] {
+  return [...entries].sort((a, b) => {
+    const dateA = new Date(a.timestamp).getTime();
+    const dateB = new Date(b.timestamp).getTime();
+    return dateB - dateA; // Descending (newest first)
+  });
+}
+
+/**
+ * Create display element for student entries (FR-012, FR-013)
+ *
+ * @param entries - Student entries for a cell (should already be sorted)
+ * @returns HTML div element with entries or placeholder
+ */
+export function createStudentEntriesDisplay(entries: CellEntry[]): HTMLDivElement {
+  const container = document.createElement('div');
+  container.className = 'qd-student-entries';
+
+  if (entries.length === 0) {
+    // FR-013: Placeholder for empty cells
+    container.className += ' qd-no-entries';
+    container.textContent = '(No entries yet)';
+    container.style.cssText = 'color: #9ca3af; font-style: italic; font-size: 13px; padding: 8px 0;';
+    return container;
+  }
+
+  // Sort entries before displaying (newest first)
+  const sortedEntries = sortByTimestamp(entries);
+
+  // FR-012: Display each student entry
+  sortedEntries.forEach((entry) => {
+    const entryDiv = document.createElement('div');
+    entryDiv.className = 'qd-entry';
+    entryDiv.style.cssText =
+      'padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-size: 13px;';
+
+    // Student name with last 4 digits of serviceId
+    const last4 = entry.serviceId.slice(-4);
+    const timestamp = formatStoredTimestamp(entry.timestamp);
+
+    const header = document.createElement('div');
+    header.style.cssText = 'font-weight: 600; color: #374151; margin-bottom: 4px;';
+    header.textContent = `${entry.name} (${last4}) • ${timestamp}`;
+
+    // Student's content
+    const content = document.createElement('div');
+    content.style.cssText = 'color: #1f2937; white-space: pre-wrap;';
+    content.textContent = entry.content;
+
+    entryDiv.appendChild(header);
+    entryDiv.appendChild(content);
+    container.appendChild(entryDiv);
+  });
+
+  container.style.cssText = 'margin-top: 12px; padding-top: 8px; border-top: 2px solid #3b82f6;';
+
+  return container;
+}
+
+/**
+ * Show student entries for all cells in the table (instructor view)
+ *
+ * @param table - Analysis table element
+ */
+async function showStudentEntriesForTable(table: HTMLTableElement): Promise<void> {
+  const metadata = tableMetadata.get(table);
+  if (!metadata) {
+    warn('Cannot show student entries: table not enhanced');
+    return;
+  }
+
+  // Get current page ID from metadata (if interactive) or from document
+  const pageId = metadata.pageId || getCurrentPageId();
+  if (!pageId) {
+    warn('Cannot show student entries: page ID not found');
+    return;
+  }
+
+  // Get session to determine release
+  const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
+  if (!session) {
+    warn('Cannot show student entries: no active session');
+    return;
+  }
+
+  // Load all students for this release
+  const storageService = getStorageService();
+  let students: StudentRecord[];
+  try {
+    students = await storageService.getStudentsByRelease(session.release);
+  } catch (err) {
+    logError('Failed to load students for instructor view:', err);
+    return;
+  }
+
+  // Group entries by cell
+  const grouped = groupEntriesByCell(students, pageId);
+
+  // Get all editable cells from parsed data
+  const { editableCells } = metadata.parsed;
+  const rows = getTableRows(table);
+
+  // Display entries for each editable cell
+  editableCells.forEach(({ row, col, key }) => {
+    const rowElement = rows[row];
+    if (!rowElement) return;
+
+    const cells = getRowCells(rowElement);
+    const cell = cells[col];
+    if (!cell) return;
+
+    // Get entries for this cell
+    const entries = grouped[key] || [];
+
+    // Create and append display element
+    const displayElement = createStudentEntriesDisplay(entries);
+    displayElement.setAttribute('data-qd-student-entries', 'true');
+
+    // Remove any existing display
+    const existing = cell.querySelector('[data-qd-student-entries]');
+    if (existing) {
+      existing.remove();
+    }
+
+    cell.appendChild(displayElement);
+  });
+
+  info(`Displayed student entries for ${editableCells.length} cells`);
+}
+
+/**
+ * Hide student entries for all cells in the table
+ *
+ * @param table - Analysis table element
+ */
+function hideStudentEntriesForTable(table: HTMLTableElement): void {
+  // Remove all student entry displays
+  const displays = table.querySelectorAll('[data-qd-student-entries]');
+  displays.forEach((display) => display.remove());
+
+  info('Hidden student entries from analysis table');
+}
+
+/**
+ * Get current page ID from document
+ * Extracts from body data attribute or URL
+ *
+ * @returns Page ID or undefined
+ */
+function getCurrentPageId(): PageId | undefined {
+  // Try body data attribute first
+  const bodyPageId = document.body.dataset.pageId;
+  if (bodyPageId) {
+    return bodyPageId;
+  }
+
+  // Fallback: extract from URL filename
+  const path = window.location.pathname;
+  const filename = path.split('/').pop() || '';
+  const pageId = filename.replace('.html', '');
+
+  return pageId || undefined;
 }

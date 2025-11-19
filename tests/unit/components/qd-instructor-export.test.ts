@@ -360,10 +360,12 @@ describe('qd-instructor-export - Export Button State (FR-006)', () => {
       element.students = students;
 
       const csv = (element as never as { generateCSV: () => string }).generateCSV();
-      const lines = csv.split('\n');
 
-      // Answer with newlines should be quoted
-      expect(lines[1]).toContain('"Line 1\nLine 2\nLine 3"');
+      // Answer with newlines should be quoted (don't split by \n as it breaks CSV parsing)
+      // Just verify the full CSV contains the properly quoted multi-line answer
+      expect(csv).toContain('"Line 1\nLine 2\nLine 3"');
+      expect(csv).toContain('RN2344');
+      expect(csv).toContain('Alice');
     });
 
     it('should handle empty answers array gracefully', () => {

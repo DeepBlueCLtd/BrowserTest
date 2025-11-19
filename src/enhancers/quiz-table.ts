@@ -556,8 +556,9 @@ function removeColgroup(table: HTMLTableElement): void {
 /**
  * Hide answer column (column index 1)
  *
- * Hides the Answer column which contains the correct answers.
- * This prevents users from seeing correct answers before logging in.
+ * SECURITY: Removes correct answers from DOM to prevent inspection via DevTools/view-source.
+ * Answers are already parsed and stored in memory (WeakMap), so they're available for
+ * validation when needed but not exposed in the DOM.
  *
  * @param table - Quiz table element
  */
@@ -568,12 +569,13 @@ function hideAnswerColumn(table: HTMLTableElement): void {
     addClass(headerCells[1], 'qd-hidden');
   }
 
-  // Hide answer cells in all rows
+  // Hide answer cells and REMOVE content from DOM (security)
   const rows = table.querySelectorAll('tbody tr');
   rows.forEach((row) => {
     const cells = row.querySelectorAll('td');
     if (cells[1]) {
       addClass(cells[1], 'qd-hidden');
+      cells[1].textContent = ''; // Remove answer from DOM
     }
   });
 }
