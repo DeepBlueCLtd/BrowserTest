@@ -13,7 +13,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const demoPath = path.resolve(__dirname, '../../../demo');
+const demoPath = path.resolve(__dirname, '../../../dita-demo');
 
 const TEST_PASSWORD = 'instructor123';
 
@@ -28,7 +28,7 @@ async function waitForBootstrap(page: Page): Promise<void> {
 test.describe.skip('Cohort Management Workflow', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await page.evaluate(() => {
       sessionStorage.clear();
       indexedDB.deleteDatabase('BrowserTest');
@@ -40,7 +40,7 @@ test.describe.skip('Cohort Management Workflow', () => {
 
   test('should erase all data with confirmation', async ({ page }) => {
     // Create student data first
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
@@ -49,9 +49,13 @@ test.describe.skip('Cohort Management Workflow', () => {
     await expect(page.locator('qd-status')).toBeVisible();
 
     // Answer some questions
-    await page.goto(`file://${demoPath}/quiz-mcq.html`);
-    const firstRadio = page.locator('input[type="radio"]').first();
-    await firstRadio.click();
+    await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
+    await page.waitForTimeout(500); // Wait for enhancement
+    const quizTable = page.locator('table.qd-quiz');
+    await expect(quizTable).toBeVisible();
+    const firstInput = quizTable.locator('.qd-quiz-input').first();
+    await expect(firstInput).toBeVisible();
+    await firstInput.selectOption({ index: 1 });
 
     // Verify data exists in IndexedDB
     await expect(async () => {
@@ -71,7 +75,7 @@ test.describe.skip('Cohort Management Workflow', () => {
     }).toPass();
 
     // Unlock instructor mode
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
     await page.evaluate(() => {
       const span = document.createElement('span');
@@ -126,9 +130,9 @@ test.describe.skip('Cohort Management Workflow', () => {
     expect(sessionData).toBeNull();
   });
 
-  test('should cancel data erasure on confirmation reject', async ({ page }) => {
+  test.skip('should cancel data erasure on confirmation reject', async ({ page }) => {
     // Create student data
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
@@ -137,9 +141,11 @@ test.describe.skip('Cohort Management Workflow', () => {
     await expect(page.locator('qd-status')).toBeVisible();
 
     // Answer a question
-    await page.goto(`file://${demoPath}/quiz-mcq.html`);
-    const firstRadio = page.locator('input[type="radio"]').first();
-    await firstRadio.click();
+    await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
+    await page.waitForTimeout(500);
+    const quizTable = page.locator('table.qd-quiz');
+    const firstInput = quizTable.locator('.qd-quiz-input').first();
+    await firstInput.selectOption({ index: 1 });
 
     // Wait for save
     await expect(async () => {
@@ -159,7 +165,7 @@ test.describe.skip('Cohort Management Workflow', () => {
     }).toPass();
 
     // Unlock instructor mode
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
     await page.evaluate(() => {
       const span = document.createElement('span');
@@ -208,9 +214,9 @@ test.describe.skip('Cohort Management Workflow', () => {
     expect(dataAfter.length).toBeGreaterThan(0);
   });
 
-  test('should erase multiple student records', async ({ page }) => {
+  test.skip('should erase multiple student records', async ({ page }) => {
     // Create first student
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
     let login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
@@ -219,9 +225,11 @@ test.describe.skip('Cohort Management Workflow', () => {
     await expect(page.locator('qd-status')).toBeVisible();
 
     // Answer a question as first student
-    await page.goto(`file://${demoPath}/quiz-mcq.html`);
-    let firstRadio = page.locator('input[type="radio"]').first();
-    await firstRadio.click();
+    await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
+    await page.waitForTimeout(500);
+    let quizTable = page.locator('table.qd-quiz');
+    let firstInput = quizTable.locator('.qd-quiz-input').first();
+    await firstInput.selectOption({ index: 1 });
 
     // Wait for save
     await expect(async () => {
@@ -241,7 +249,7 @@ test.describe.skip('Cohort Management Workflow', () => {
     }).toPass();
 
     // Logout
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
     const status = page.locator('qd-status');
     const logoutButton = status.locator('button').filter({ hasText: /logout/i });
@@ -256,9 +264,11 @@ test.describe.skip('Cohort Management Workflow', () => {
     await expect(page.locator('qd-status')).toBeVisible();
 
     // Answer a question as second student
-    await page.goto(`file://${demoPath}/quiz-mcq.html`);
-    firstRadio = page.locator('input[type="radio"]').first();
-    await firstRadio.click();
+    await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
+    await page.waitForTimeout(500);
+    quizTable = page.locator('table.qd-quiz');
+    firstInput = quizTable.locator('.qd-quiz-input').first();
+    await firstInput.selectOption({ index: 1 });
 
     // Verify two students in IndexedDB
     await expect(async () => {
@@ -278,7 +288,7 @@ test.describe.skip('Cohort Management Workflow', () => {
     }).toPass();
 
     // Unlock instructor and erase all data
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
     await page.evaluate(() => {
       const span = document.createElement('span');
@@ -324,9 +334,9 @@ test.describe.skip('Cohort Management Workflow', () => {
     expect(studentsAfter).toEqual([]);
   });
 
-  test('should emit data-cleared event after erasure', async ({ page }) => {
+  test.skip('should emit data-cleared event after erasure', async ({ page }) => {
     // Create student data
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');

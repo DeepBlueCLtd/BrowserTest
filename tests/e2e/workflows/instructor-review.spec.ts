@@ -14,7 +14,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const demoPath = path.resolve(__dirname, '../../../demo');
+const demoPath = path.resolve(__dirname, '../../../dita-demo');
 
 // Test password: "instructor123"
 // Hash: c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5
@@ -31,7 +31,7 @@ async function waitForBootstrap(page: Page): Promise<void> {
 test.describe.skip('Instructor Review Workflow', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await page.evaluate(() => {
       sessionStorage.clear();
       indexedDB.deleteDatabase('BrowserTest');
@@ -51,7 +51,7 @@ test.describe.skip('Instructor Review Workflow', () => {
   });
 
   test('should unlock instructor mode with correct password', async ({ page }) => {
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
 
     // Inject password hash into DOM (simulating Oxygen XSL)
@@ -82,7 +82,7 @@ test.describe.skip('Instructor Review Workflow', () => {
   });
 
   test('should enforce rate limiting after failed attempts', async ({ page }) => {
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
 
     // Inject password hash
@@ -116,10 +116,12 @@ test.describe.skip('Instructor Review Workflow', () => {
 
   test('should display student scores in modal', async ({ page }) => {
     // Answer some questions to create score data
-    await page.goto(`file://${demoPath}/quiz-mcq.html`);
+    await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
 
-    const firstRadio = page.locator('input[type="radio"]').first();
-    await firstRadio.click();
+    await page.waitForTimeout(500);
+    const quizTable = page.locator('table.qd-quiz');
+    const firstInput = quizTable.locator('.qd-quiz-input').first();
+    await firstInput.selectOption({ index: 1 });
 
     // Wait for save to complete
     await expect(async () => {
@@ -139,7 +141,7 @@ test.describe.skip('Instructor Review Workflow', () => {
     }).toPass();
 
     // Go back and unlock instructor
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
 
     await page.evaluate(() => {
@@ -176,10 +178,12 @@ test.describe.skip('Instructor Review Workflow', () => {
 
   test('should export CSV with student data', async ({ page }) => {
     // Answer questions to create data
-    await page.goto(`file://${demoPath}/quiz-mcq.html`);
+    await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
 
-    const firstRadio = page.locator('input[type="radio"]').first();
-    await firstRadio.click();
+    await page.waitForTimeout(500);
+    const quizTable = page.locator('table.qd-quiz');
+    const firstInput = quizTable.locator('.qd-quiz-input').first();
+    await firstInput.selectOption({ index: 1 });
 
     // Wait for save to complete
     await expect(async () => {
@@ -199,7 +203,7 @@ test.describe.skip('Instructor Review Workflow', () => {
     }).toPass();
 
     // Unlock instructor
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
 
     await page.evaluate(() => {
@@ -235,10 +239,12 @@ test.describe.skip('Instructor Review Workflow', () => {
 
   test('should show student answers when instructor mode active', async ({ page }) => {
     // Student answers a question
-    await page.goto(`file://${demoPath}/quiz-mcq.html`);
+    await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
 
-    const firstRadio = page.locator('input[type="radio"]').first();
-    await firstRadio.click();
+    await page.waitForTimeout(500);
+    const quizTable = page.locator('table.qd-quiz');
+    const firstInput = quizTable.locator('.qd-quiz-input').first();
+    await firstInput.selectOption({ index: 1 });
 
     // Wait for save to complete
     await expect(async () => {
@@ -267,7 +273,7 @@ test.describe.skip('Instructor Review Workflow', () => {
     });
 
     // Since we're on quiz page, need to go to index first
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
 
     const instructorButton = page.locator('qd-login button').filter({ hasText: /instructor/i });
@@ -290,7 +296,7 @@ test.describe.skip('Instructor Review Workflow', () => {
   });
 
   test('should close scores modal on close button', async ({ page }) => {
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
 
     await page.evaluate(() => {

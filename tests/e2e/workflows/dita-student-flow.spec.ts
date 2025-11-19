@@ -16,7 +16,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const ditaPath = path.resolve(__dirname, '../../../dita/out/oxygen');
+const ditaPath = path.resolve(__dirname, '../../../dita-demo');
 
 /**
  * Wait for bootstrap to complete
@@ -38,7 +38,7 @@ async function clearStorage(page: Page): Promise<void> {
   });
 }
 
-test.describe.skip('DITA Student Flow', () => {
+test.describe('DITA Student Flow', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`file://${ditaPath}/page-index.html`);
     await clearStorage(page);
@@ -74,7 +74,7 @@ test.describe.skip('DITA Student Flow', () => {
     await expect(indicator).toHaveClass(/red/);
   });
 
-  test('Flow: Answer MCQ question and verify validation', async ({ page }) => {
+  test.skip('Flow: Answer MCQ question and verify validation', async ({ page }) => {
     // Login
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('BOB02');
@@ -111,7 +111,7 @@ test.describe.skip('DITA Student Flow', () => {
     expect(cellClass).toMatch(/qd-answer-(correct|incorrect)/);
   });
 
-  test('Flow: Answer numeric question and verify auto-save', async ({ page }) => {
+  test.skip('Flow: Answer numeric question and verify auto-save', async ({ page }) => {
     // Login
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('CAROL03');
@@ -142,7 +142,7 @@ test.describe.skip('DITA Student Flow', () => {
     expect(cellClass).toMatch(/qd-answer-(correct|incorrect)/);
   });
 
-  test('Flow: Multi-page navigation persists session', async ({ page }) => {
+  test.skip('Flow: Multi-page navigation persists session', async ({ page }) => {
     // Login
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('DAVE04');
@@ -189,7 +189,7 @@ test.describe.skip('DITA Student Flow', () => {
     expect(progressText).toMatch(/\d+\/\d+/); // Should show "X/Y Correct"
   });
 
-  test('Flow: Progress tracking and badge updates', async ({ page }) => {
+  test.skip('Flow: Progress tracking and badge updates', async ({ page }) => {
     // Login
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('EVE05');
@@ -232,7 +232,7 @@ test.describe.skip('DITA Student Flow', () => {
     await expect(indicator).toHaveClass(/amber/);
   });
 
-  test('Flow: Answer persistence across browser reload', async ({ page }) => {
+  test.skip('Flow: Answer persistence across browser reload', async ({ page }) => {
     // Login
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('FRANK06');
@@ -273,7 +273,7 @@ test.describe.skip('DITA Student Flow', () => {
     expect(cellClass).toMatch(/qd-answer-(correct|incorrect)/);
   });
 
-  test('Flow: Logout clears session and shows login form', async ({ page }) => {
+  test.skip('Flow: Logout clears session and shows login form', async ({ page }) => {
     // Login
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('GRACE07');
@@ -330,7 +330,7 @@ test.describe.skip('DITA Student Flow', () => {
     expect(value).toBe(''); // No pre-filled answer
   });
 
-  test('Flow: Analysis table interaction and persistence', async ({ page }) => {
+  test.skip('Flow: Analysis table interaction and persistence', async ({ page }) => {
     // Login
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('IVY09');
