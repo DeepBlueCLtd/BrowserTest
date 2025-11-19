@@ -31,22 +31,25 @@
 
 ## Notes
 
-All checklist items passed after incorporating critical bug fixes. The specification:
+All checklist items passed after incorporating critical bug fixes and removing unnecessary features. The specification:
 
-**Updated 2025-11-19**: Added P0 critical bug fixes based on field testing:
+**Updated 2025-11-19 (Revision 2)**: Refined based on user feedback:
+- Removed "Real-time Student Answer Visibility" (P1) - not needed for offline-first single-user IndexedDB
+- Removed "Per-Page Student Filtering" (P2) - visual clutter not a concern for typical cohort sizes
+- Simplified timestamp format to month/date/time only (not full ISO 8601)
 - User Story 1 (P0): Session transition bugs, modal z-index, toggle failures, button states, text contrast
-- 7 new critical functional requirements (FR-001 to FR-007) for immediate bug fixes
-- 14 additional enhancement requirements (FR-008 to FR-021) for new features
-- 13 measurable success criteria (SC-001 to SC-013) covering both bug fixes and enhancements
+- 7 critical functional requirements (FR-001 to FR-007) for immediate bug fixes
+- 6 enhancement requirements (FR-008 to FR-013) for approved features only
+- 10 measurable success criteria (SC-001 to SC-010) covering bug fixes and enhancements
 
-**Validation results**:
-- Total: 7 prioritized user stories (1 P0, 2 P1, 4 P2-P3) addressing real instructor pain points
-- Total: 21 functional requirements that are testable and implementation-agnostic
-- Total: 13 measurable success criteria focused on user outcomes (6 for P0 bugs, 7 for enhancements)
+**Final Validation Results**:
+- Total: 5 prioritized user stories (1 P0, 2 P2, 2 P3) addressing real instructor pain points
+- Total: 13 functional requirements that are testable and implementation-agnostic
+- Total: 10 measurable success criteria focused on user outcomes (6 for P0 bugs, 4 for enhancements)
 - Documents clear assumptions about the offline-first architecture
-- Properly scopes out network-based features that would violate offline-first constraint
+- Properly scopes out features incompatible with offline-first (real-time sync, filtering)
 - All requirements reference observable behaviors, not technical implementations
-- Edge cases explicitly document known bugs and cover performance, data integrity, multi-user scenarios
-- 24-hour time format requirement added to save screen space
+- Edge cases explicitly document known bugs and cover performance, data integrity scenarios
+- Month/date/time with 24-hour format provides sufficient granularity without wasting space
 
 Ready for `/speckit.plan` phase.
