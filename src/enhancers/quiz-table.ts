@@ -284,24 +284,19 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
 
   // Setup instructor answer display listeners
   const showAnswersHandler = () => {
-    console.log('[DEBUG] qd:instructor-show-answers event received');
     void showStudentAnswersForTable(table, metadata);
   };
   const hideAnswersHandler = () => {
-    console.log('[DEBUG] qd:instructor-hide-answers event received');
     hideStudentAnswersForTable(table);
   };
 
   document.addEventListener('qd:instructor-show-answers', showAnswersHandler);
   document.addEventListener('qd:instructor-hide-answers', hideAnswersHandler);
-  console.log('[DEBUG] Instructor event listeners registered');
 
   // Check if instructor mode with toggle already enabled
   const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
   const showAnswers = sessionStorage.getItem('qd/instructor/showAnswers') === 'true';
-  console.log('[DEBUG] Checking instructor state:', { isInstructor, showAnswers });
   if (isInstructor && showAnswers) {
-    console.log('[DEBUG] Instructor mode with toggle enabled, showing answers immediately');
     void showStudentAnswersForTable(table, metadata);
   }
 
@@ -645,21 +640,11 @@ async function showStudentAnswersForTable(
   table: HTMLTableElement,
   metadata: QuizTableMetadata,
 ): Promise<void> {
-  console.log('[DEBUG] showStudentAnswersForTable called', { metadata });
-
   const { pageId, parsed } = metadata;
-  if (!pageId) {
-    console.log('[DEBUG] No pageId, returning');
-    return;
-  }
-  console.log('[DEBUG] pageId:', pageId);
+  if (!pageId) return;
 
   const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
-  if (!session) {
-    console.log('[DEBUG] No session, returning');
-    return;
-  }
-  console.log('[DEBUG] Session:', { serviceId: session.serviceId, release: session.release });
+  if (!session) return;
 
   // Get storage service to load all student records
   const { getStorageService } = await import('../services/storage-service.js');
@@ -668,7 +653,6 @@ async function showStudentAnswersForTable(
   try {
     // Load all student records for current release
     const students = await storageService.getStudentsByRelease(session.release);
-    console.log('[DEBUG] Students loaded:', students.length, students);
 
     // Get tbody rows
     const tbody = table.querySelector('tbody');
@@ -678,20 +662,12 @@ async function showStudentAnswersForTable(
 
     // For each question, collect student answers and display
     parsed.questions.forEach((_question, questionIndex) => {
-      console.log(`[DEBUG] Processing question ${questionIndex}`);
-
       const row = rows[questionIndex];
-      if (!row) {
-        console.log(`[DEBUG] No row found for question ${questionIndex}`);
-        return;
-      }
+      if (!row) return;
 
       const cells = Array.from(row.querySelectorAll('td'));
       const answerCell = cells[1];
-      if (!answerCell) {
-        console.log(`[DEBUG] No answer cell found for question ${questionIndex}`);
-        return;
-      }
+      if (!answerCell) return;
 
       // Remove any existing student answers display
       const existingDisplay = answerCell.querySelector('.qd-student-answers');
@@ -710,22 +686,10 @@ async function showStudentAnswersForTable(
 
       students.forEach((student) => {
         const pageData = student.pages[pageId];
-        if (!pageData || !pageData.answers) {
-          console.log(
-            `[DEBUG] Student ${student.serviceId} has no data for page ${pageId}`,
-            student.pages,
-          );
-          return;
-        }
+        if (!pageData || !pageData.answers) return;
 
         const answerRecord = pageData.answers[questionIndex];
-        if (!answerRecord) {
-          console.log(
-            `[DEBUG] Student ${student.serviceId} has no answer for Q${questionIndex}`,
-            pageData.answers,
-          );
-          return;
-        }
+        if (!answerRecord) return;
 
         studentAnswers.push({
           name: student.name,
@@ -736,11 +700,8 @@ async function showStudentAnswersForTable(
         });
       });
 
-      console.log(`[DEBUG] Q${questionIndex} student answers collected:`, studentAnswers.length);
-
       // Create display element
       if (studentAnswers.length > 0) {
-        console.log(`[DEBUG] Creating display element for Q${questionIndex}`);
         const display = document.createElement('div');
         display.className = 'qd-student-answers';
 
@@ -767,9 +728,6 @@ async function showStudentAnswersForTable(
         });
 
         answerCell.appendChild(display);
-        console.log(`[DEBUG] Display element appended to answer cell for Q${questionIndex}`);
-      } else {
-        console.log(`[DEBUG] No student answers to display for Q${questionIndex}`);
       }
     });
 
