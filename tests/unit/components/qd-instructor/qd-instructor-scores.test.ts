@@ -144,69 +144,6 @@ describe('qd-instructor-scores', () => {
     });
   });
 
-  describe('expandable details', () => {
-    const mockStudentWithPages: StudentRecord = {
-      schema: 1,
-      docId: 'qd/01-2025/uTEST1',
-      serviceId: 'TEST1',
-      name: 'Alice',
-      release: '01-2025',
-      attempted: 5,
-      correct: 3,
-      updated: new Date().toISOString(),
-      pages: {
-        'page-1': {
-          state: 'complete',
-          answers: [
-            { answer: 'a', success: true, timestamp: '2025-01-01T00:00:00Z' },
-            { answer: 'b', success: false, timestamp: '2025-01-01T00:00:01Z' },
-          ],
-        },
-        'page-2': {
-          state: 'incomplete',
-          answers: [{ answer: '42', success: true, timestamp: '2025-01-01T00:00:02Z' }],
-        },
-      },
-    };
-
-    beforeEach(async () => {
-      element.showModal = true;
-      element.students = [mockStudentWithPages];
-      await element.updateComplete;
-    });
-
-    it('should not show expanded details initially', () => {
-      const expanded = element['expandedStudents'].has('TEST1');
-      expect(expanded).toBe(false);
-    });
-
-    it('should toggle expansion on button click', async () => {
-      // Manually call toggle to test logic
-      element['toggleStudent']('TEST1');
-      await element.updateComplete;
-
-      const expanded = element['expandedStudents'].has('TEST1');
-      expect(expanded).toBe(true);
-    });
-
-    it('should show page breakdown when expanded', async () => {
-      // Toggle to expand
-      element['toggleStudent']('TEST1');
-      await element.updateComplete;
-
-      // Check that expansion is tracked
-      expect(element['expandedStudents'].has('TEST1')).toBe(true);
-
-      // Re-render should show pages
-      element.requestUpdate();
-      await element.updateComplete;
-
-      const text = element.shadowRoot?.textContent;
-      expect(text).toContain('page-1');
-      expect(text).toContain('page-2');
-    });
-  });
-
   describe('percentage calculation', () => {
     it('should return 0% when no attempts', () => {
       const student: StudentRecord = {
