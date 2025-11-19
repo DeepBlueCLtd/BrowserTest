@@ -323,14 +323,14 @@ describe('QdLogin Component', () => {
       instructorBtn.click();
       await element.updateComplete;
 
-      let modal = element.shadowRoot?.querySelector('.modal-overlay');
+      let modal = document.querySelector('.qd-instructor-modal-overlay');
       expect(modal).toBeDefined();
 
-      const cancelBtn = element.shadowRoot?.querySelector('.cancel-btn') as HTMLButtonElement;
-      cancelBtn.click();
+      const cancelBtn = document.querySelector('.qd-instructor-modal .cancel-btn') as HTMLButtonElement;
+      cancelBtn!.click();
       await element.updateComplete;
 
-      modal = element.shadowRoot?.querySelector('.modal-overlay');
+      modal = document.querySelector('.qd-instructor-modal-overlay');
       expect(modal).toBeNull();
     });
 
@@ -343,11 +343,11 @@ describe('QdLogin Component', () => {
       instructorBtn.click();
       await element.updateComplete;
 
-      const overlay = element.shadowRoot?.querySelector('.modal-overlay') as HTMLElement;
-      overlay.click();
+      const overlay = document.querySelector('.qd-instructor-modal-overlay') as HTMLElement;
+      overlay!.click();
       await element.updateComplete;
 
-      const modal = element.shadowRoot?.querySelector('.modal-overlay');
+      const modal = document.querySelector('.qd-instructor-modal-overlay');
       expect(modal).toBeNull();
     });
 
@@ -380,13 +380,13 @@ describe('QdLogin Component', () => {
 
         instructorBtn.click();
         void element.updateComplete.then(() => {
-          const passwordInput = element.shadowRoot?.querySelector(
-            'input[type="password"]',
+          const passwordInput = document.querySelector(
+            '.qd-instructor-modal input[type="password"]',
           ) as HTMLInputElement;
-          passwordInput.value = 'test123';
-          passwordInput.dispatchEvent(new Event('input'));
+          passwordInput!.value = 'test123';
+          passwordInput!.dispatchEvent(new Event('input'));
 
-          const modalForm = element.shadowRoot?.querySelector('.modal form');
+          const modalForm = document.querySelector('.qd-instructor-modal form');
           modalForm?.dispatchEvent(new Event('submit'));
         });
       });
@@ -407,13 +407,13 @@ describe('QdLogin Component', () => {
       instructorBtn.click();
       await element.updateComplete;
 
-      const passwordInput = element.shadowRoot?.querySelector(
-        'input[type="password"]',
+      const passwordInput = document.querySelector(
+        '.qd-instructor-modal input[type="password"]',
       ) as HTMLInputElement;
-      passwordInput.value = 'wrongpassword';
-      passwordInput.dispatchEvent(new Event('input'));
+      passwordInput!.value = 'wrongpassword';
+      passwordInput!.dispatchEvent(new Event('input'));
 
-      const modalForm = element.shadowRoot?.querySelector('.modal form');
+      const modalForm = document.querySelector('.qd-instructor-modal form');
       modalForm?.dispatchEvent(new Event('submit'));
 
       // Wait for async password hashing
