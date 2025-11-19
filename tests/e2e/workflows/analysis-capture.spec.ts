@@ -32,9 +32,14 @@ interface PagesRecord {
  */
 async function waitForBootstrap(page: Page): Promise<void> {
   // Wait for qd-login element AND its shadow DOM to be ready
-  await page.locator('qd-login[data-ready]').waitFor({ timeout: 5000 });
+  await page.locator('qd-login[data-ready]').waitFor({ timeout: 2000 });
 }
 
+// @CHALLENGING: Browser crashes when loading demo pages via file:// protocol
+// Issue: "Test timeout of 15000ms exceeded" during beforeEach hook, then page crashes
+// Fix attempted: Reduced waitForBootstrap timeout to 2000ms, built bundle successfully
+// Specific error: page.evaluate times out, suggests browser crash during page load
+// Recommended: Serve via HTTP (python3 -m http.server) or test via Storybook instead
 test.describe.skip('Analysis Capture Workflow', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage
@@ -181,7 +186,7 @@ test.describe.skip('Analysis Capture Workflow', () => {
         return w.__saveCount || 0;
       });
       expect(saveCount).toBe(1);
-    }).toPass({ timeout: 3000 });
+    }).toPass({ timeout: 1000 });
   });
 
   test('should show student entries in instructor mode', async ({ page }) => {

@@ -25,9 +25,14 @@ const TEST_PASSWORD = 'instructor123';
  */
 async function waitForBootstrap(page: Page): Promise<void> {
   // Wait for qd-login element AND its shadow DOM to be ready
-  await page.locator('qd-login[data-ready]').waitFor({ timeout: 5000 });
+  await page.locator('qd-login[data-ready]').waitFor({ timeout: 2000 });
 }
 
+// @CHALLENGING: Browser crashes when loading demo pages via file:// protocol in headless mode
+// Issue: "Page crashed" error in Playwright when navigating to demo/quiz-index.html
+// Fix attempted: Reduced timeouts, verified bundle built successfully
+// Specific error: Chromium process crashes loading file:// protocol with Web Components
+// Recommended: These tests work better via HTTP server or Storybook (http://localhost:6006)
 test.describe.skip('Instructor Review Workflow', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage

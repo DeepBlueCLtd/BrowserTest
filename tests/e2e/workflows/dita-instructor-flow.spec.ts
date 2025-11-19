@@ -25,12 +25,16 @@ const TEST_PASSWORD = 'pwd';
  */
 async function waitForBootstrap(page: Page): Promise<void> {
   // Wait for qd-login component to be injected (not necessarily visible)
-  await page.waitForSelector('qd-login', { state: 'attached', timeout: 5000 });
+  await page.waitForSelector('qd-login', { state: 'attached', timeout: 2000 });
 
   // Give components time to update visibility
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(200);
 }
 
+// @CHALLENGING: These tests require DITA documentation to be built first
+// Issue: dita/out/oxygen/page-index.html not found (ERR_FILE_NOT_FOUND)
+// Fix attempted: None - requires `npm run build:dita` which depends on DITA-OT
+// Recommended: Skip in CI, run locally after building DITA output
 test.describe.skip('DITA Instructor Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage before each test
@@ -67,7 +71,7 @@ test.describe.skip('DITA Instructor Flow', () => {
 
     // Wait for status panel to appear (login successful)
     const statusPanel = page.locator('qd-status');
-    await expect(statusPanel).toBeVisible({ timeout: 3000 });
+    await expect(statusPanel).toBeVisible({ timeout: 2000 });
 
     // Verify student status shows progress
     await expect(statusPanel.locator('.progress-text')).toContainText('0/');
@@ -118,7 +122,7 @@ test.describe.skip('DITA Instructor Flow', () => {
     await loginForm.locator('input[name="serviceId"]').fill('STU002');
     await loginForm.locator('input[name="name"]').fill('Bob Jones');
     await loginForm.locator('button[type="submit"]').click();
-    await page.locator('qd-status').waitFor({ timeout: 3000 });
+    await page.locator('qd-status').waitFor({ timeout: 2000 });
 
     // Navigate to quiz page and answer a question
     await page.click('a.quizPageBtn[href*="quiz-mcq"]');
@@ -128,7 +132,7 @@ test.describe.skip('DITA Instructor Flow', () => {
     const quizTable = page.locator('table.qd-quiz');
     const firstInput = quizTable.locator('.qd-quiz-input').first();
     await firstInput.selectOption({ index: 1 });
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(400);
 
     // Logout
     await page.goto(`file://${ditaPath}/page-index.html`);
@@ -159,7 +163,7 @@ test.describe.skip('DITA Instructor Flow', () => {
 
     // Wait for instructor panel to appear
     const instructorPanel = page.locator('qd-instructor');
-    await expect(instructorPanel).toBeVisible({ timeout: 3000 });
+    await expect(instructorPanel).toBeVisible({ timeout: 2000 });
 
     // Verify "Instructor Mode" title is present
     await expect(instructorPanel.locator('.instructor-title')).toContainText('Instructor Mode');
@@ -182,11 +186,11 @@ test.describe.skip('DITA Instructor Flow', () => {
     await page.locator('qd-instructor input[type="checkbox"]').check();
 
     // Wait for student answers to be displayed
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     // Verify student answers display exists
     const studentAnswers = page.locator('.qd-student-answers');
-    await expect(studentAnswers.first()).toBeVisible({ timeout: 3000 });
+    await expect(studentAnswers.first()).toBeVisible({ timeout: 2000 });
 
     // Verify student name is shown
     await expect(studentAnswers.first()).toContainText('Bob Jones');
@@ -220,7 +224,7 @@ test.describe.skip('DITA Instructor Flow', () => {
     // Answer a question
     const quizTable = page.locator('table.qd-quiz');
     await quizTable.locator('.qd-quiz-input').first().selectOption({ index: 1 });
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(400);
 
     // Navigate to quiz page 2
     await page.goto(`file://${ditaPath}/Pages/quiz-numeric.html`);
@@ -236,7 +240,7 @@ test.describe.skip('DITA Instructor Flow', () => {
     // Answer a numeric question
     const numericInput = numericTable.locator('.qd-quiz-input').first();
     await numericInput.fill('42');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(400);
 
     // Navigate back to index
     await page.goto(`file://${ditaPath}/page-index.html`);

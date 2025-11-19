@@ -28,9 +28,14 @@ interface PagesRecord {
  */
 async function waitForBootstrap(page: Page): Promise<void> {
   // Wait for qd-login element AND its shadow DOM to be ready
-  await page.locator('qd-login[data-ready]').waitFor({ timeout: 5000 });
+  await page.locator('qd-login[data-ready]').waitFor({ timeout: 2000 });
 }
 
+// @CHALLENGING: Browser crashes when loading demo pages via file:// protocol in headless mode
+// Issue: "Page crashed" error in Playwright when navigating to file:///path/to/demo/quiz-index.html
+// Fix attempted: Reduced timeouts, verified bundle exists at dist/sonar-quiz.iife.js
+// Specific error: Chromium headless crashes loading file:// URLs with complex JavaScript bundles
+// Recommended: Use HTTP server (python -m http.server) or test via Storybook instead
 test.describe.skip('Progress Tracking Workflow', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage before each test

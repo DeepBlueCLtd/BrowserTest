@@ -38,6 +38,10 @@ async function clearStorage(page: Page): Promise<void> {
   });
 }
 
+// @CHALLENGING: These tests require DITA documentation to be built first
+// Issue: dita/out/oxygen/ directory doesn't exist
+// Fix attempted: None - requires `npm run build:dita` which may not work in all environments
+// Recommended: Skip in CI, run locally after building DITA
 test.describe.skip('DITA Student Flow', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`file://${ditaPath}/page-index.html`);

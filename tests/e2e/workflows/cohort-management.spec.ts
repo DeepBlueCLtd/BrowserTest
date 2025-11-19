@@ -22,9 +22,14 @@ const TEST_PASSWORD = 'instructor123';
  */
 async function waitForBootstrap(page: Page): Promise<void> {
   // Wait for qd-login element AND its shadow DOM to be ready
-  await page.locator('qd-login[data-ready]').waitFor({ timeout: 5000 });
+  await page.locator('qd-login[data-ready]').waitFor({ timeout: 2000 });
 }
 
+// @CHALLENGING: Browser crashes loading demo files via file:// protocol
+// Issue: Chromium crashes when loading file:///home/user/BrowserTest/demo/quiz-index.html
+// Fix attempted: Verified dist/ bundle exists, reduced timeouts to <2s
+// Specific error: Page crash during navigation in headless mode
+// Recommended: Run via local HTTP server or use Storybook-based tests instead
 test.describe.skip('Cohort Management Workflow', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage
