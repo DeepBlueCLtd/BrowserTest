@@ -300,10 +300,18 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
     void showStudentAnswersForTable(table, metadata);
   }
 
+  // Setup logout handler to clear all input values and validation styling
+  const logoutHandler = () => {
+    clearQuizTableInputs(table, metadata);
+  };
+
+  document.addEventListener('qd:logout', logoutHandler);
+
   // Store cleanup function in metadata
   metadata.cleanupInstructorListeners = () => {
     document.removeEventListener('qd:instructor-show-answers', showAnswersHandler);
     document.removeEventListener('qd:instructor-hide-answers', hideAnswersHandler);
+    document.removeEventListener('qd:logout', logoutHandler);
   };
 
   addClass(table, 'qd-quiz-interactive');
@@ -628,6 +636,42 @@ export function getQuizTableMetadata(table: HTMLTableElement): QuizTableMetadata
  */
 export function isQuizTableEnhanced(table: HTMLTableElement): boolean {
   return tableMetadata.has(table);
+}
+
+/**
+ * Clear all quiz table inputs and validation styling (called on logout)
+ *
+ * @param table - Quiz table element
+ * @param metadata - Table metadata
+ */
+function clearQuizTableInputs(table: HTMLTableElement, metadata: QuizTableMetadata): void {
+  const { inputs } = metadata;
+  if (!inputs) return;
+
+  // Clear all input values
+  inputs.forEach((input) => {
+    if (input.tagName === 'SELECT') {
+      // Reset select to placeholder
+      input.value = '';
+    } else {
+      // Clear text input
+      input.value = '';
+    }
+  });
+
+  // Remove validation styling from all answer cells
+  const tbody = table.querySelector('tbody');
+  if (!tbody) return;
+
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  rows.forEach((row) => {
+    const answerCell = row.querySelector('td:nth-child(2)');
+    if (answerCell) {
+      removeClass(answerCell, 'qd-answer-correct', 'qd-answer-incorrect');
+    }
+  });
+
+  info('Cleared all quiz table inputs and validation styling');
 }
 
 /**

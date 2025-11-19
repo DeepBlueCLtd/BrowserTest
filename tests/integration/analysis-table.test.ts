@@ -385,5 +385,46 @@ describe('Analysis Table Enhancement', () => {
       expect(editableCount).toBe(2); // Two cells with class="interactive"
       expect(nonEditableCount).toBe(4); // Four cells without it
     });
+
+    it('should clear all editable cell content on logout event', async () => {
+      const table = createAnalysisTable();
+      container.appendChild(table);
+
+      // Create session
+      setJSON(STORAGE_KEYS.SESSION, createSessionData());
+
+      // Enhance table in interactive mode
+      enhanceAnalysisTable(table, {
+        interactive: true,
+        pageId: 'test-page-1',
+      });
+
+      // Get editable cells
+      const editableCells = table.querySelectorAll<HTMLTableCellElement>('td.interactive');
+      expect(editableCells.length).toBe(2);
+
+      // Add content to editable cells
+      editableCells[0]!.textContent = '4';
+      editableCells[1]!.textContent = 'Plants convert light to energy';
+
+      // Verify content is set
+      expect(editableCells[0]!.textContent).toBe('4');
+      expect(editableCells[1]!.textContent).toBe('Plants convert light to energy');
+
+      // Dispatch logout event
+      const logoutEvent = new CustomEvent('qd:logout', {
+        detail: { serviceId: 'RN2344' },
+        bubbles: true,
+        composed: true,
+      });
+      document.dispatchEvent(logoutEvent);
+
+      // Wait a tick for event handler to process
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Verify cells are cleared
+      expect(editableCells[0]!.textContent).toBe('');
+      expect(editableCells[1]!.textContent).toBe('');
+    });
   });
 });

@@ -59,6 +59,8 @@ interface AnalysisTableMetadata {
   debouncer?: Debouncer;
   /** Cell element to cell key mapping */
   cellKeyMap?: Map<HTMLTableCellElement, CellKey>;
+  /** Cleanup function for logout listener */
+  cleanupLogoutListener?: () => void;
 }
 
 // WeakMap to store table metadata without polluting DOM
@@ -212,6 +214,16 @@ function enhanceInteractive(table: HTMLTableElement, metadata: AnalysisTableMeta
     // For now, allow multi-line editing
   });
 
+  // Setup logout handler to clear all editable cell content
+  const logoutHandler = () => {
+    clearAnalysisTableCells(table, metadata);
+  };
+
+  document.addEventListener('qd:logout', logoutHandler);
+
+  // Store cleanup function in metadata
+  metadata.cleanupLogoutListener = logoutHandler;
+
   addClass(table, 'qd-analysis-interactive');
   info(`Analysis table enhanced in interactive mode for page ${pageId}`);
 
@@ -334,6 +346,24 @@ async function saveCellData(
   });
 
   info(`Analysis cell saved for ${cellKey} on page ${pageId}`);
+}
+
+/**
+ * Clear all analysis table editable cells (called on logout)
+ *
+ * @param _table - Analysis table element (unused)
+ * @param metadata - Table metadata
+ */
+function clearAnalysisTableCells(_table: HTMLTableElement, metadata: AnalysisTableMetadata): void {
+  const { cellKeyMap } = metadata;
+  if (!cellKeyMap) return;
+
+  // Clear content from all editable cells
+  cellKeyMap.forEach((_, cell) => {
+    cell.textContent = '';
+  });
+
+  info('Cleared all analysis table editable cells');
 }
 
 /**

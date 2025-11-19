@@ -298,6 +298,58 @@ describe('Quiz Table Enhancement', () => {
       expect(cache.pages['test-page-1']?.answered).toBe(2);
       expect(cache.pages['test-page-1']?.correct).toBe(2);
     });
+
+    it('should clear all input values and validation styling on logout event', async () => {
+      const table = createMCQTable();
+      container.appendChild(table);
+
+      // Enhance table in interactive mode
+      enhanceQuizTable(table, {
+        interactive: true,
+        pageId: 'test-page-1',
+      });
+
+      const selects = table.querySelectorAll<HTMLSelectElement>('select.qd-quiz-input');
+
+      // Answer first question
+      selects[0]!.value = '1';
+      selects[0]!.dispatchEvent(new Event('change'));
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Answer second question
+      selects[1]!.value = '2';
+      selects[1]!.dispatchEvent(new Event('change'));
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Verify inputs have values and validation styling
+      expect(selects[0]!.value).toBe('1');
+      expect(selects[1]!.value).toBe('2');
+      const answerCell1 = table.querySelector('tbody tr:nth-child(1) td:nth-child(2)');
+      const answerCell2 = table.querySelector('tbody tr:nth-child(2) td:nth-child(2)');
+      expect(answerCell1?.classList.contains('qd-answer-correct')).toBe(true);
+      expect(answerCell2?.classList.contains('qd-answer-correct')).toBe(true);
+
+      // Dispatch logout event
+      const logoutEvent = new CustomEvent('qd:logout', {
+        detail: { serviceId: 'RN2344' },
+        bubbles: true,
+        composed: true,
+      });
+      document.dispatchEvent(logoutEvent);
+
+      // Wait a tick for event handler to process
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Verify inputs are cleared
+      expect(selects[0]!.value).toBe('');
+      expect(selects[1]!.value).toBe('');
+
+      // Verify validation styling is removed
+      expect(answerCell1?.classList.contains('qd-answer-correct')).toBe(false);
+      expect(answerCell1?.classList.contains('qd-answer-incorrect')).toBe(false);
+      expect(answerCell2?.classList.contains('qd-answer-correct')).toBe(false);
+      expect(answerCell2?.classList.contains('qd-answer-incorrect')).toBe(false);
+    });
   });
 });
 
