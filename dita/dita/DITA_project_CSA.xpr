@@ -17063,7 +17063,7 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                                                 <null/>
                                             </field>
                                             <field name="value">
-                                                <String>${pd}/template/corp_logo.png</String>
+                                                <String>oxygen-webhelp/template/resources/images/corp_logo.png</String>
                                             </field>
                                             <field name="defaultValue">
                                                 <null/>
