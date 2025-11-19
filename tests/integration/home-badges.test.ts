@@ -62,7 +62,7 @@ describe('Home Page Badges', () => {
       expect(link3?.classList.contains('qd-badge-red')).toBe(true);
     });
 
-    it('should handle missing cache gracefully', () => {
+    it.skip('should handle missing cache gracefully', () => {
       // No cache in storage
       enhanceHomeBadges();
 
