@@ -20,6 +20,7 @@ import type {
   PageId,
   SessionData,
   SessionCache,
+  StudentRecord,
 } from '../types/contracts.js';
 import { parseQuizTable } from '../services/quiz-parser.js';
 import { validateAnswer } from '../services/quiz-parser.js';
@@ -636,6 +637,10 @@ export function isQuizTableEnhanced(table: HTMLTableElement): boolean {
  * @param table - Quiz table element
  * @param metadata - Table metadata
  */
+/**
+ * Show student answers for all questions in the table
+ * Uses qd-student-answers-list component for clean rendering
+ */
 async function showStudentAnswersForTable(
   table: HTMLTableElement,
   metadata: QuizTableMetadata,
@@ -660,7 +665,7 @@ async function showStudentAnswersForTable(
 
     const rows = Array.from(tbody.querySelectorAll('tr'));
 
-    // For each question, collect student answers and display
+    // For each question, collect student answers and display using component
     parsed.questions.forEach((_question, questionIndex) => {
       const row = rows[questionIndex];
       if (!row) return;
@@ -670,64 +675,23 @@ async function showStudentAnswersForTable(
       if (!answerCell) return;
 
       // Remove any existing student answers display
-      const existingDisplay = answerCell.querySelector('.qd-student-answers');
+      const existingDisplay = answerCell.querySelector('qd-student-answers-list');
       if (existingDisplay) {
         existingDisplay.remove();
       }
 
       // Collect answers from all students for this question
-      const studentAnswers: Array<{
-        name: string;
-        serviceId: string;
-        answer: string;
-        success: boolean;
-        timestamp: string;
-      }> = [];
+      const studentAnswers = getStudentAnswersForQuestion(students, pageId, questionIndex);
 
-      students.forEach((student) => {
-        const pageData = student.pages[pageId];
-        if (!pageData || !pageData.answers) return;
-
-        const answerRecord = pageData.answers[questionIndex];
-        if (!answerRecord) return;
-
-        studentAnswers.push({
-          name: student.name,
-          serviceId: student.serviceId,
-          answer: answerRecord.answer,
-          success: answerRecord.success,
-          timestamp: answerRecord.timestamp,
-        });
-      });
-
-      // Create display element
+      // Only create component if there are answers
       if (studentAnswers.length > 0) {
-        const display = document.createElement('div');
-        display.className = 'qd-student-answers';
-
-        studentAnswers.forEach((sa) => {
-          const answerDiv = document.createElement('div');
-          answerDiv.className = `qd-student-answer ${sa.success ? 'qd-correct' : 'qd-incorrect'}`;
-
-          // Format: Name (last 4 of serviceId): answer [timestamp]
-          const last4 = sa.serviceId.slice(-4);
-          const timestamp = new Date(sa.timestamp).toLocaleString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          });
-
-          answerDiv.innerHTML = `
-            <span class="qd-student-name">${sa.name} (${last4})</span>:
-            <span class="qd-student-answer-text">${sa.answer}</span>
-            <span class="qd-timestamp">${timestamp}</span>
-          `;
-
-          display.appendChild(answerDiv);
+        // Dynamically import and create the component
+        void import('../components/qd-student-answers-list.js').then(() => {
+          const answersList = document.createElement('qd-student-answers-list');
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          (answersList as any).answers = studentAnswers;
+          answerCell.appendChild(answersList);
         });
-
-        answerCell.appendChild(display);
       }
     });
 
@@ -735,6 +699,42 @@ async function showStudentAnswersForTable(
   } catch (err) {
     logError('Failed to load student answers', err as Error);
   }
+}
+
+/**
+ * Extract student answers for a specific question
+ * Helper function to reduce nesting in showStudentAnswersForTable
+ */
+function getStudentAnswersForQuestion(
+  students: StudentRecord[],
+  pageId: string,
+  questionIndex: number,
+): Array<{ name: string; serviceId: string; answer: string; success: boolean; timestamp: string }> {
+  const answers: Array<{
+    name: string;
+    serviceId: string;
+    answer: string;
+    success: boolean;
+    timestamp: string;
+  }> = [];
+
+  students.forEach((student) => {
+    const pageData = student.pages[pageId];
+    if (!pageData?.answers) return;
+
+    const answerRecord = pageData.answers[questionIndex];
+    if (!answerRecord) return;
+
+    answers.push({
+      name: student.name,
+      serviceId: student.serviceId,
+      answer: answerRecord.answer,
+      success: answerRecord.success,
+      timestamp: answerRecord.timestamp,
+    });
+  });
+
+  return answers;
 }
 
 /**
