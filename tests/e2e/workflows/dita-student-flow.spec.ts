@@ -74,7 +74,7 @@ test.describe('DITA Student Flow', () => {
     await expect(indicator).toHaveClass(/red/);
   });
 
-  test.skip('Flow: Answer MCQ question and verify validation', async ({ page }) => {
+  test('Flow: Answer MCQ question and verify validation', async ({ page }) => {
     // Login
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('BOB02');
@@ -111,7 +111,7 @@ test.describe('DITA Student Flow', () => {
     expect(cellClass).toMatch(/qd-answer-(correct|incorrect)/);
   });
 
-  test.skip('Flow: Answer numeric question and verify auto-save', async ({ page }) => {
+  test('Flow: Answer numeric question and verify auto-save', async ({ page }) => {
     // Login
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('CAROL03');
@@ -142,7 +142,7 @@ test.describe('DITA Student Flow', () => {
     expect(cellClass).toMatch(/qd-answer-(correct|incorrect)/);
   });
 
-  test.skip('Flow: Multi-page navigation persists session', async ({ page }) => {
+  test('Flow: Multi-page navigation persists session', async ({ page }) => {
     // Login
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('DAVE04');
@@ -189,7 +189,7 @@ test.describe('DITA Student Flow', () => {
     expect(progressText).toMatch(/\d+\/\d+/); // Should show "X/Y Correct"
   });
 
-  test.skip('Flow: Progress tracking and badge updates', async ({ page }) => {
+  test('Flow: Progress tracking and badge updates', async ({ page }) => {
     // Login
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('EVE05');
@@ -232,7 +232,7 @@ test.describe('DITA Student Flow', () => {
     await expect(indicator).toHaveClass(/amber/);
   });
 
-  test.skip('Flow: Answer persistence across browser reload', async ({ page }) => {
+  test('Flow: Answer persistence across browser reload', async ({ page }) => {
     // Login
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('FRANK06');
@@ -273,7 +273,7 @@ test.describe('DITA Student Flow', () => {
     expect(cellClass).toMatch(/qd-answer-(correct|incorrect)/);
   });
 
-  test.skip('Flow: Logout clears session and shows login form', async ({ page }) => {
+  test('Flow: Logout clears session and shows login form', async ({ page }) => {
     // Login
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('GRACE07');

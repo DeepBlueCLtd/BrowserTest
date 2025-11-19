@@ -198,7 +198,7 @@ test.describe('DITA Instructor Flow', () => {
     await expect(studentAnswers.first()).not.toBeVisible();
   });
 
-  test.skip('Flow: Multi-page navigation with session persistence', async ({ page }) => {
+  test('Flow: Multi-page navigation with session persistence', async ({ page }) => {
     // Login as student
     await page.goto(`file://${ditaPath}/page-index.html`);
     await waitForBootstrap(page);
