@@ -142,3 +142,7 @@ test-results/
 
 # Rewrite reference (old implementation backup)
 .rewrite-reference/
+
+# copied version of dist, used in Oxygen publishing
+dita/template/resources/sonar-quiz.iife.js
+dita/template/resources/sonar-quiz.iife.js.map
