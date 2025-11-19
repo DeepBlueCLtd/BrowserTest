@@ -12,8 +12,8 @@ export default defineConfig({
   workers: process.env.CI ? 2 : undefined, // Use 2 workers in CI for faster execution
   reporter: 'html',
 
-  // Global timeout for each test (15 seconds allows multiple operations)
-  timeout: 15000,
+  // Global timeout for each test (5 seconds - SPA operations take <2s)
+  timeout: 5000,
 
   // Assertion timeout (2 seconds max for expect() calls)
   expect: {

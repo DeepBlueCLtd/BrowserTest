@@ -14,7 +14,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const ditaPath = path.resolve(__dirname, '../../../dita/out/oxygen');
+const ditaPath = path.resolve(__dirname, '../../../dita-demo');
 
 // Test password: "pwd"
 // Hash: "a1159e9df367" (from DITA config)
@@ -31,7 +31,7 @@ async function waitForBootstrap(page: Page): Promise<void> {
   await page.waitForTimeout(500);
 }
 
-test.describe.skip('DITA Instructor Flow', () => {
+test.describe('DITA Instructor Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage before each test
     await page.goto(`file://${ditaPath}/page-index.html`);
@@ -108,7 +108,7 @@ test.describe.skip('DITA Instructor Flow', () => {
     await expect(loginForm).toBeVisible();
   });
 
-  test('Flow: Instructor login → View student answers', async ({ page }) => {
+  test.skip('Flow: Instructor login → View student answers', async ({ page }) => {
     // First, create some student data
     await page.goto(`file://${ditaPath}/page-index.html`);
     await waitForBootstrap(page);

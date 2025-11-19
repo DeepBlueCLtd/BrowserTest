@@ -17,7 +17,7 @@ import type { StudentRecord, PageData } from '../../../src/types/contracts.js';
 // Get absolute path to demo files
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const demoPath = path.resolve(__dirname, '../../../demo');
+const demoPath = path.resolve(__dirname, '../../../dita-demo');
 
 interface PagesRecord {
   [pageId: string]: PageData;
@@ -31,10 +31,10 @@ async function waitForBootstrap(page: Page): Promise<void> {
   await page.locator('qd-login[data-ready]').waitFor({ timeout: 5000 });
 }
 
-test.describe.skip('Progress Tracking Workflow', () => {
+test.describe('Progress Tracking Workflow', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage before each test
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await page.evaluate(() => {
       sessionStorage.clear();
       indexedDB.deleteDatabase('BrowserTest');
@@ -45,7 +45,7 @@ test.describe.skip('Progress Tracking Workflow', () => {
   });
 
   test('should complete login flow with valid credentials', async ({ page }) => {
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
 
     // Wait for login component to load
@@ -70,7 +70,7 @@ test.describe.skip('Progress Tracking Workflow', () => {
 
   test('should answer MCQ questions and save to IndexedDB', async ({ page }) => {
     // Login first
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
@@ -78,11 +78,13 @@ test.describe.skip('Progress Tracking Workflow', () => {
     await login.locator('button[type="submit"]').click();
 
     // Navigate to quiz page
-    await page.goto(`file://${demoPath}/quiz-mcq.html`);
+    await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
 
     // Answer first question (MCQ)
-    const firstQuestion = page.locator('input[type="radio"]').first();
-    await firstQuestion.click();
+    await page.waitForTimeout(500);
+    const quizTable = page.locator('table.qd-quiz');
+    const firstInput = quizTable.locator('.qd-quiz-input').first();
+    await firstInput.selectOption({ index: 1 });
 
     // Verify answer saved in IndexedDB
     await expect(async () => {
@@ -104,7 +106,7 @@ test.describe.skip('Progress Tracking Workflow', () => {
 
   test('should answer numeric questions with tolerance validation', async ({ page }) => {
     // Login first
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
@@ -112,10 +114,12 @@ test.describe.skip('Progress Tracking Workflow', () => {
     await login.locator('button[type="submit"]').click();
 
     // Navigate to numeric quiz page
-    await page.goto(`file://${demoPath}/quiz-numeric.html`);
+    await page.goto(`file://${demoPath}/Pages/quiz-numeric.html`);
 
     // Answer numeric question
-    const numericInput = page.locator('input[type="number"]').first();
+    await page.waitForTimeout(500);
+    const quizTable = page.locator('table.qd-quiz');
+    const numericInput = quizTable.locator('.qd-quiz-input').first();
     await numericInput.fill('42');
 
     // Verify answer was saved
@@ -138,29 +142,37 @@ test.describe.skip('Progress Tracking Workflow', () => {
 
   test('should persist answers across page reload', async ({ page }) => {
     // Login and answer question
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('button[type="submit"]').click();
 
-    await page.goto(`file://${demoPath}/quiz-mcq.html`);
+    await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
 
-    const firstQuestion = page.locator('input[type="radio"]').first();
-    await firstQuestion.click();
+    await page.waitForTimeout(500);
+    const quizTable = page.locator('table.qd-quiz');
+    const firstInput = quizTable.locator('.qd-quiz-input').first();
+    await firstInput.selectOption({ index: 1 });
+
+    // Wait for save
+    await page.waitForTimeout(500);
 
     // Reload page
     await page.reload();
+    await page.waitForTimeout(500);
 
     // Verify answer is still selected
-    const selectedRadio = page.locator('input[type="radio"]:checked').first();
-    await expect(selectedRadio).toBeChecked();
+    const reloadedTable = page.locator('table.qd-quiz');
+    const reloadedInput = reloadedTable.locator('.qd-quiz-input').first();
+    const selectedValue = await reloadedInput.inputValue();
+    expect(selectedValue).toBe('1');
   });
 
   test('should update R/A/G badges on home page', async ({ page }) => {
     // Login
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
@@ -172,13 +184,15 @@ test.describe.skip('Progress Tracking Workflow', () => {
     await expect(badge).toHaveClass(/qd-badge-red/);
 
     // Answer questions on quiz page
-    await page.goto(`file://${demoPath}/quiz-mcq.html`);
+    await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
 
-    const firstQuestion = page.locator('input[type="radio"]').first();
-    await firstQuestion.click();
+    await page.waitForTimeout(500);
+    const quizTable = page.locator('table.qd-quiz');
+    const firstInput = quizTable.locator('.qd-quiz-input').first();
+    await firstInput.selectOption({ index: 1 });
 
     // Go back to index
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
 
     // Badge should now be amber or green (incomplete or complete)
@@ -187,7 +201,7 @@ test.describe.skip('Progress Tracking Workflow', () => {
 
   test('should calculate completion state correctly', async ({ page }) => {
     // Login
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
@@ -195,12 +209,15 @@ test.describe.skip('Progress Tracking Workflow', () => {
     await login.locator('button[type="submit"]').click();
 
     // Navigate to quiz with multiple questions
-    await page.goto(`file://${demoPath}/quiz-examples.html`);
+    await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
 
     // Answer all questions
-    const radios = await page.locator('input[type="radio"]').all();
-    for (const radio of radios) {
-      await radio.click();
+    await page.waitForTimeout(500);
+    const quizTable = page.locator('table.qd-quiz');
+    const inputs = await quizTable.locator('.qd-quiz-input').all();
+    for (const input of inputs) {
+      await input.selectOption({ index: 1 });
+      await page.waitForTimeout(100);
     }
 
     // Check completion state in IndexedDB
@@ -239,7 +256,7 @@ test.describe.skip('Progress Tracking Workflow', () => {
 
   test('should handle logout correctly', async ({ page }) => {
     // Login
-    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
