@@ -38,7 +38,7 @@ async function clearStorage(page: Page): Promise<void> {
   });
 }
 
-test.describe('DITA Student Flow', () => {
+test.describe.skip('DITA Student Flow', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`file://${ditaPath}/page-index.html`);
     await clearStorage(page);

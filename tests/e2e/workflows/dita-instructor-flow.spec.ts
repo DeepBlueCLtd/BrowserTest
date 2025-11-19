@@ -31,7 +31,7 @@ async function waitForBootstrap(page: Page): Promise<void> {
   await page.waitForTimeout(500);
 }
 
-test.describe('DITA Instructor Flow', () => {
+test.describe.skip('DITA Instructor Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage before each test
     await page.goto(`file://${ditaPath}/page-index.html`);

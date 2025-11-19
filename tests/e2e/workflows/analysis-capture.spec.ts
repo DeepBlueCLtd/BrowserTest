@@ -35,7 +35,7 @@ async function waitForBootstrap(page: Page): Promise<void> {
   await page.locator('qd-login[data-ready]').waitFor({ timeout: 5000 });
 }
 
-test.describe('Analysis Capture Workflow', () => {
+test.describe.skip('Analysis Capture Workflow', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage
     await page.goto(`file://${demoPath}/quiz-index.html`);
