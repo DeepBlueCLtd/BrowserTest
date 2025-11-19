@@ -183,7 +183,7 @@ describe('Quiz Table Enhancement', () => {
 
       // Simulate user selection
       select!.value = '1';
-      select!.dispatchEvent(new Event('input'));
+      select!.dispatchEvent(new Event('change'));
 
       // Wait for debounced save (200ms + buffer)
       await new Promise((resolve) => setTimeout(resolve, 300));
@@ -217,7 +217,7 @@ describe('Quiz Table Enhancement', () => {
 
       // Test correct answer
       select!.value = '1';
-      select!.dispatchEvent(new Event('input'));
+      select!.dispatchEvent(new Event('change'));
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       let cache = JSON.parse(sessionStorage.getItem(STORAGE_KEYS.CACHE) || '{}') as SessionCache;
@@ -225,7 +225,7 @@ describe('Quiz Table Enhancement', () => {
 
       // Test incorrect answer
       select!.value = '2';
-      select!.dispatchEvent(new Event('input'));
+      select!.dispatchEvent(new Event('change'));
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       cache = JSON.parse(sessionStorage.getItem(STORAGE_KEYS.CACHE) || '{}') as SessionCache;
@@ -282,7 +282,7 @@ describe('Quiz Table Enhancement', () => {
 
       // Answer first question correctly
       selects[0]!.value = '1';
-      selects[0]!.dispatchEvent(new Event('input'));
+      selects[0]!.dispatchEvent(new Event('change'));
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       let cache = JSON.parse(sessionStorage.getItem(STORAGE_KEYS.CACHE) || '{}') as SessionCache;
@@ -290,8 +290,8 @@ describe('Quiz Table Enhancement', () => {
 
       // Answer second question correctly
       selects[1]!.value = '2';
-      selects[1]!.dispatchEvent(new Event('input'));
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      selects[1]!.dispatchEvent(new Event('change'));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       cache = JSON.parse(sessionStorage.getItem(STORAGE_KEYS.CACHE) || '{}') as SessionCache;
       expect(cache.pages['test-page-1']?.state).toBe('complete');

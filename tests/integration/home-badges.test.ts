@@ -18,9 +18,9 @@ describe('Home Page Badges', () => {
     container = document.createElement('div');
     container.innerHTML = `
       <nav>
-        <a href="page1.html" class="quizPageBtn" data-page-id="page-1">Lesson 1</a>
-        <a href="page2.html" class="quizPageBtn" data-page-id="page-2">Lesson 2</a>
-        <a href="page3.html" class="quizPageBtn" data-page-id="page-3">Lesson 3</a>
+        <a href="page-1.html" class="quizPageBtn">Lesson 1</a>
+        <a href="page-2.html" class="quizPageBtn">Lesson 2</a>
+        <a href="page-3.html" class="quizPageBtn">Lesson 3</a>
         <a href="about.html" class="regularLink">About</a>
       </nav>
     `;
