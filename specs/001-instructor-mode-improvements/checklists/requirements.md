@@ -37,15 +37,19 @@ All checklist items passed after incorporating critical bug fixes and removing u
 - Removed "Real-time Student Answer Visibility" (P1) - not needed for offline-first single-user IndexedDB
 - Removed "Per-Page Student Filtering" (P2) - visual clutter not a concern for typical cohort sizes
 - Simplified timestamp format to month/date/time only (not full ISO 8601)
-- User Story 1 (P0): Session transition bugs, modal z-index, toggle failures, button states, text contrast
-- 7 critical functional requirements (FR-001 to FR-007) for immediate bug fixes
-- 6 enhancement requirements (FR-008 to FR-013) for approved features only
-- 10 measurable success criteria (SC-001 to SC-010) covering bug fixes and enhancements
 
-**Final Validation Results**:
+**Updated 2025-11-19 (Revision 3)**: Final consistency updates:
+- CSV timestamps use ISO 8601 format for better spreadsheet compatibility
+- Added FR-014: Performance requirement for 100+ student display
+- Added FR-015: Re-submission handling (store only most recent answer)
+- Clarified FR-004: Explicitly mentions loading from IndexedDB
+- Updated StudentAnswerDisplay entity to specify "last 4 digits only for privacy"
+- Removed SC-010 (support request metric - not measurable without baseline)
+
+**Final Validation Results (Revision 3)**:
 - Total: 5 prioritized user stories (1 P0, 2 P2, 2 P3) addressing real instructor pain points
-- Total: 13 functional requirements that are testable and implementation-agnostic
-- Total: 10 measurable success criteria focused on user outcomes (6 for P0 bugs, 4 for enhancements)
+- Total: 15 functional requirements that are testable and implementation-agnostic (7 P0 fixes + 8 enhancements)
+- Total: 9 measurable success criteria focused on user outcomes (6 for P0 bugs, 3 for enhancements)
 - Documents clear assumptions about the offline-first architecture
 - Properly scopes out features incompatible with offline-first (real-time sync, filtering)
 - All requirements reference observable behaviors, not technical implementations

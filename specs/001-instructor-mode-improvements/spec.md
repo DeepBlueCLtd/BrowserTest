@@ -52,7 +52,7 @@ As an instructor exporting quiz data to CSV, I need the export to include full t
 
 **Acceptance Scenarios**:
 
-1. **Given** instructor has unlocked instructor mode with student data present, **When** clicking "Export to CSV", **Then** CSV file contains columns: Student Name, Service ID, Page ID, Question #, Question Text, Student Answer, Correct Answer, Is Correct, Timestamp
+1. **Given** instructor has unlocked instructor mode with student data present, **When** clicking "Export to CSV", **Then** CSV file contains columns: Student Name, Service ID, Page ID, Question #, Question Text, Student Answer, Correct Answer, Is Correct, Timestamp (ISO 8601)
 2. **Given** CSV export is downloaded, **When** opening in spreadsheet software, **Then** all timestamps are properly formatted and sortable
 3. **Given** quiz contains special characters (quotes, commas) in questions or answers, **When** exporting to CSV, **Then** all values are properly escaped and parse correctly
 
@@ -99,7 +99,6 @@ As an instructor reviewing analysis tables (free-form student work), I need to s
 - What happens when extremely long student answers (e.g., 1000+ characters in analysis tables) are displayed?
 - How does the system handle performance when an instructor enables "Show answers" on a page with 100+ students?
 - What happens when corrupted or invalid timestamp data is found in storage?
-- What happens when a student submits the same answer multiple times (re-submission)? Do we show revision history?
 - What happens when CSV export contains thousands of rows? Does the download succeed or fail?
 
 ## Requirements *(mandatory)*
@@ -111,23 +110,25 @@ As an instructor reviewing analysis tables (free-form student work), I need to s
 - **FR-001**: System MUST clear all student-specific UI state (color-coded answers, personal feedback) from quiz tables when user logs out and logs in as instructor
 - **FR-002**: Quiz tables in instructor mode MUST show only correct answers and choices/tolerance, never the instructor's personal answers from a previous student session
 - **FR-003**: Scores modal MUST have z-index high enough to appear above all page content and remain fully interactive (expand/collapse students, close button)
-- **FR-004**: "Show student answers" toggle MUST correctly load and display all student answers in a fresh browser session (no prior student login required)
+- **FR-004**: "Show student answers" toggle MUST correctly load and display all student answers from IndexedDB for the current release in a fresh browser session (no prior student login required)
 - **FR-005**: "Show student answers" toggle label MUST have sufficient color contrast for readability (minimum WCAG AA contrast ratio 4.5:1)
 - **FR-006**: "Export to CSV" button MUST be enabled when student data exists in IndexedDB for current release, regardless of whether user was previously logged in as student
 - **FR-007**: System MUST display timestamps in month/date/time format using 24-hour time (e.g., "Nov 19 14:23" or "11/19 14:23:45"), not 12-hour format with AM/PM
 
 #### Feature Enhancements
 
-- **FR-008**: CSV export MUST include columns: Student Name, Service ID, Page ID, Question Number, Question Text, Student Answer, Correct Answer, Is Correct (boolean), Timestamp
+- **FR-008**: CSV export MUST include columns: Student Name, Service ID, Page ID, Question Number, Question Text, Student Answer, Correct Answer, Is Correct (boolean), Timestamp (ISO 8601 format)
 - **FR-009**: CSV export MUST properly escape special characters (quotes, commas, newlines) in question text and student answers
 - **FR-010**: System MUST handle CSV export of datasets with 100+ students and 50+ questions without freezing the UI
 - **FR-011**: "Show student answers" toggle state MUST persist across page navigation within the same instructor session
 - **FR-012**: System MUST display analysis table student entries grouped by cell, sorted by submission timestamp (newest first)
 - **FR-013**: System MUST show "(No entries yet)" placeholder for analysis cells with no student submissions
+- **FR-014**: System MUST display 100+ student answers on a single page without UI freezing or performance degradation
+- **FR-015**: When a student re-submits an answer to the same question, system MUST store only the most recent answer (overwriting previous submissions)
 
 ### Key Entities
 
-- **StudentAnswerDisplay**: Represents a rendered student answer in the instructor view, containing student name, service ID (last 4 digits), answer text, correctness indicator, and timestamp in month/date/time format
+- **StudentAnswerDisplay**: Represents a rendered student answer in the instructor view, containing student name, service ID (last 4 digits only for privacy), answer text, correctness indicator, and timestamp in month/date/time format
 
 ## Success Criteria *(mandatory)*
 
@@ -142,7 +143,6 @@ As an instructor reviewing analysis tables (free-form student work), I need to s
 - **SC-007**: CSV export of 100 students × 50 questions completes and downloads within 10 seconds
 - **SC-008**: "Show student answers" toggle state persists correctly across 100% of page navigations within a session
 - **SC-009**: Analysis table entries are displayed grouped by cell with newest-first sorting for 100% of cases
-- **SC-010**: Support requests related to instructor mode bugs are reduced by 90% (compared to baseline before P0 fixes)
 
 ## Assumptions
 
