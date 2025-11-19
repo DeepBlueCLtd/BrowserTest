@@ -179,10 +179,11 @@ export const sharedStyles = css`
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: 9999;
   }
 
   .modal-content {
+    position: relative;
     background: white;
     padding: 24px;
     border-radius: 8px;
@@ -190,6 +191,7 @@ export const sharedStyles = css`
     max-height: 80vh;
     overflow: auto;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    z-index: 10000;
   }
 
   .modal-header {
