@@ -144,21 +144,14 @@ export class EventCoordinator {
       );
       // Restore answer and detail columns for instructor view
       const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
-      info(`Found ${quizTables.length} quiz tables to restore for instructor`);
 
       quizTables.forEach((table) => {
         // Get parsed metadata (contains correct answers)
         const metadata = getQuizTableMetadata(table);
-        if (!metadata) {
-          info('No metadata found for table, skipping restoration');
-          return;
-        }
+        if (!metadata) return;
 
         // Update metadata with pageId for instructor toggle
         metadata.pageId = pageId;
-        info(`[DIAGNOSTIC] Updated metadata with pageId: ${pageId}`);
-
-        info(`Restoring ${metadata.parsed.questions.length} answers from metadata`);
 
         // Remove qd-hidden class from answer column (column 1)
         const answerCells = table.querySelectorAll('td:nth-child(2), th:nth-child(2)');
@@ -168,13 +161,10 @@ export class EventCoordinator {
 
         // Restore answer text to data cells only (not header)
         const answerDataCells = table.querySelectorAll('tbody td:nth-child(2)');
-        info(`Found ${answerDataCells.length} answer cells to populate`);
-
         answerDataCells.forEach((cell, index) => {
           const question = metadata.parsed.questions[index];
           if (question && cell instanceof HTMLTableCellElement) {
             cell.textContent = question.correctAnswer;
-            info(`Restored answer for Q${index + 1}: ${question.correctAnswer}`);
           }
         });
 
@@ -184,27 +174,20 @@ export class EventCoordinator {
 
         // Set up instructor toggle event listeners (since table is non-interactive)
         const showAnswersHandler = () => {
-          info('[DIAGNOSTIC] Show answers handler called for instructor table');
           void showStudentAnswersForTable(table, metadata);
         };
         const hideAnswersHandler = () => {
-          info('[DIAGNOSTIC] Hide answers handler called for instructor table');
           hideStudentAnswersForTable(table);
         };
 
-        info('[DIAGNOSTIC] Setting up instructor toggle listeners');
         document.addEventListener('qd:instructor-show-answers', showAnswersHandler);
         document.addEventListener('qd:instructor-hide-answers', hideAnswersHandler);
-        info('[DIAGNOSTIC] Instructor toggle listeners registered');
 
         // Check if toggle already enabled
         const showAnswers = sessionStorage.getItem('qd/instructor/showAnswers') === 'true';
         if (showAnswers) {
-          info('[DIAGNOSTIC] Toggle already enabled, calling show handler');
           void showAnswersHandler();
         }
-
-        info('Answer restoration complete');
       });
       return;
     }

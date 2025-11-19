@@ -19,6 +19,21 @@ export const sharedStyles = css`
     line-height: 1.5;
   }
 
+  /* When showing modal, host should not constrain size */
+  :host([showmodal]) {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none; /* Let clicks through except on modal */
+  }
+
+  :host([showmodal]) .modal-overlay {
+    pointer-events: auto; /* Re-enable on overlay */
+  }
+
   .instructor-panel {
     display: flex;
     flex-direction: row;
@@ -150,11 +165,13 @@ export const sharedStyles = css`
     padding: 8px;
     text-align: left;
     border-bottom: 1px solid #ddd;
+    color: #333; /* Explicit dark text */
   }
 
   th {
     background: #f5f5f5;
     font-weight: 600;
+    color: #000; /* Explicit black for headers */
   }
 
   tr:hover {
@@ -180,6 +197,7 @@ export const sharedStyles = css`
     align-items: center;
     justify-content: center;
     z-index: var(--qd-modal-overlay-z-index, 9999);
+    pointer-events: auto; /* Ensure overlay catches all clicks */
   }
 
   .modal-content {
@@ -192,6 +210,7 @@ export const sharedStyles = css`
     overflow: auto;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     z-index: var(--qd-modal-z-index, 10000);
+    color: #333; /* Explicit dark text color */
   }
 
   .modal-header {
@@ -205,6 +224,7 @@ export const sharedStyles = css`
     font-size: 18px;
     font-weight: 600;
     margin: 0;
+    color: #000; /* Explicit black for title */
   }
 
   .close-button {

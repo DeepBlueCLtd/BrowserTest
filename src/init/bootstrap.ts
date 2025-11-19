@@ -297,7 +297,6 @@ async function checkExistingSessionAndUpgradeTables(): Promise<void> {
     const pathname = window.location.pathname;
     const filename = pathname.substring(pathname.lastIndexOf('/') + 1);
     const pageId = filename.replace(/\.html?$/i, '');
-    info(`[DIAGNOSTIC] Extracted pageId from URL: ${pageId}`);
 
     // Reveal answer and detail columns for instructor (they're hidden by default in non-interactive mode)
     const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
@@ -308,7 +307,6 @@ async function checkExistingSessionAndUpgradeTables(): Promise<void> {
 
       // Update metadata with pageId
       metadata.pageId = pageId;
-      info(`[DIAGNOSTIC] Updated metadata with pageId: ${pageId}`);
 
       // Remove qd-hidden class from answer column (column 1)
       const answerCells = table.querySelectorAll('td:nth-child(2), th:nth-child(2)');

@@ -693,20 +693,11 @@ export async function showStudentAnswersForTable(
   table: HTMLTableElement,
   metadata: QuizTableMetadata,
 ): Promise<void> {
-  info('[DIAGNOSTIC] showStudentAnswersForTable() called');
   const { pageId, parsed } = metadata;
-  if (!pageId) {
-    info('[DIAGNOSTIC] No pageId in metadata, exiting');
-    return;
-  }
-  info(`[DIAGNOSTIC] PageId: ${pageId}, Questions: ${parsed.questions.length}`);
+  if (!pageId) return;
 
   const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
-  if (!session) {
-    info('[DIAGNOSTIC] No session found, exiting');
-    return;
-  }
-  info(`[DIAGNOSTIC] Session found: ${session.serviceId}, Release: ${session.release}`);
+  if (!session) return;
 
   // Get storage service to load all student records
   const { getStorageService } = await import('../services/storage-service.js');
@@ -715,7 +706,6 @@ export async function showStudentAnswersForTable(
   try {
     // Load all student records for current release
     const students = await storageService.getStudentsByRelease(session.release);
-    info(`[DIAGNOSTIC] Loaded ${students.length} students for release ${session.release}`);
 
     // Check if there are any students
     if (students.length === 0) {
@@ -724,41 +714,25 @@ export async function showStudentAnswersForTable(
       return;
     }
 
-    // Log student details
-    students.forEach((s) => {
-      info(`[DIAGNOSTIC] Student: ${s.name} (${s.serviceId}), Pages: ${Object.keys(s.pages).join(', ')}`);
-    });
-
     // Get tbody rows
     const tbody = table.querySelector('tbody');
-    if (!tbody) {
-      info('[DIAGNOSTIC] No tbody found in table');
-      return;
-    }
+    if (!tbody) return;
 
     const rows = Array.from(tbody.querySelectorAll('tr'));
-    info(`[DIAGNOSTIC] Found ${rows.length} rows, checking pageId: ${pageId}`);
 
     // For each question, collect student answers and display
     parsed.questions.forEach((_question, questionIndex) => {
       const row = rows[questionIndex];
-      if (!row) {
-        info(`[DIAGNOSTIC] No row found for question ${questionIndex}`);
-        return;
-      }
+      if (!row) return;
 
       const cells = Array.from(row.querySelectorAll('td'));
       const answerCell = cells[1];
-      if (!answerCell) {
-        info(`[DIAGNOSTIC] No answer cell found for question ${questionIndex}`);
-        return;
-      }
+      if (!answerCell) return;
 
       // Remove any existing student answers display
       const existingDisplay = answerCell.querySelector('.qd-student-answers');
       if (existingDisplay) {
         existingDisplay.remove();
-        info(`[DIAGNOSTIC] Removed existing display for question ${questionIndex}`);
       }
 
       // Collect answers from all students for this question
@@ -772,22 +746,11 @@ export async function showStudentAnswersForTable(
 
       students.forEach((student) => {
         const pageData = student.pages[pageId];
-        if (!pageData) {
-          info(`[DIAGNOSTIC] Student ${student.name} has no data for page ${pageId}`);
-          return;
-        }
-        if (!pageData.answers) {
-          info(`[DIAGNOSTIC] Student ${student.name} has no answers for page ${pageId}`);
-          return;
-        }
+        if (!pageData || !pageData.answers) return;
 
         const answerRecord = pageData.answers[questionIndex];
-        if (!answerRecord) {
-          info(`[DIAGNOSTIC] Student ${student.name} has no answer for question ${questionIndex} on page ${pageId}`);
-          return;
-        }
+        if (!answerRecord) return;
 
-        info(`[DIAGNOSTIC] Student ${student.name} answered Q${questionIndex + 1}: ${answerRecord.answer}`);
         studentAnswers.push({
           name: student.name,
           serviceId: student.serviceId,
@@ -796,8 +759,6 @@ export async function showStudentAnswersForTable(
           timestamp: answerRecord.timestamp,
         });
       });
-
-      info(`[DIAGNOSTIC] Q${questionIndex + 1}: Collected ${studentAnswers.length} student answers`);
 
       // Create display element
       if (studentAnswers.length > 0) {
@@ -822,11 +783,10 @@ export async function showStudentAnswersForTable(
         });
 
         answerCell.appendChild(display);
-        info(`[DIAGNOSTIC] Appended display element to answer cell for Q${questionIndex + 1}`);
       }
     });
 
-    info(`[DIAGNOSTIC] Completed displaying student answers for ${students.length} students on page ${pageId}`);
+    info(`Displayed student answers for ${students.length} students on page ${pageId}`);
   } catch (err) {
     logError('Failed to load student answers', err as Error);
   }
