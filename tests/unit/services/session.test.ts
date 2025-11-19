@@ -222,6 +222,25 @@ describe('Session Service', () => {
     it('should not throw if no session exists', () => {
       expect(() => service.clearSession()).not.toThrow();
     });
+
+    it('should clear instructor-specific state (FR-001)', () => {
+      // Set up instructor state
+      service.createSession('RN2344', 'Alice', '11-2024');
+      service.unlockInstructor();
+      sessionStorage.setItem('qd/instructor/showAnswers', 'true');
+      sessionStorage.setItem(STORAGE_KEYS.INSTRUCTOR, 'true');
+
+      // Verify instructor state exists
+      expect(sessionStorage.getItem('qd/instructor/showAnswers')).toBe('true');
+      expect(sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR)).toBe('true');
+
+      // Clear session
+      service.clearSession();
+
+      // Verify instructor state is cleared
+      expect(sessionStorage.getItem('qd/instructor/showAnswers')).toBeNull();
+      expect(sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR)).toBeNull();
+    });
   });
 
   describe('Instructor mode', () => {

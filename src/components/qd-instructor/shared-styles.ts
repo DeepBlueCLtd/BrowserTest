@@ -39,7 +39,7 @@ export const sharedStyles = css`
     gap: 6px;
     cursor: pointer;
     font-size: 13px;
-    color: #555;
+    color: var(--qd-text-on-light, #1f2937);
     user-select: none;
   }
 
@@ -179,7 +179,7 @@ export const sharedStyles = css`
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 9999;
+    z-index: var(--qd-modal-overlay-z-index, 9999);
   }
 
   .modal-content {
@@ -191,7 +191,7 @@ export const sharedStyles = css`
     max-height: 80vh;
     overflow: auto;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-    z-index: 10000;
+    z-index: var(--qd-modal-z-index, 10000);
   }
 
   .modal-header {

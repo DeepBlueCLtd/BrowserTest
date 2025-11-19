@@ -31,6 +31,7 @@ import { getJSON, setJSON } from '../utils/storage-helpers.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
 import { info, error as logError, warn } from '../utils/logger.js';
 import { getStorageService } from '../services/storage-service.js';
+import { formatStoredTimestamp } from '../utils/date-helpers.js';
 
 /**
  * Enhancement options
@@ -726,14 +727,9 @@ async function showStudentAnswersForTable(
           const answerDiv = document.createElement('div');
           answerDiv.className = `qd-student-answer ${sa.success ? 'qd-correct' : 'qd-incorrect'}`;
 
-          // Format: Name (last 4 of serviceId): answer [timestamp]
+          // Format: Name (last 4 of serviceId): answer [timestamp] (FR-007: 24-hour format)
           const last4 = sa.serviceId.slice(-4);
-          const timestamp = new Date(sa.timestamp).toLocaleString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          });
+          const timestamp = formatStoredTimestamp(sa.timestamp);
 
           answerDiv.innerHTML = `
             <span class="qd-student-name">${sa.name} (${last4})</span>:

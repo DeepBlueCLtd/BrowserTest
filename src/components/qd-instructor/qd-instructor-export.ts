@@ -89,10 +89,15 @@ export class QdInstructorExport extends LitElement {
   };
 
   override render() {
-    const hasData = this.students.length > 0;
+    // Check if any student has answered at least one question (FR-006)
+    const hasData =
+      this.students.length > 0 && this.students.some((student) => student.attempted > 0);
+
     const tooltip = hasData
       ? `Export ${this.students.length} student${this.students.length === 1 ? '' : 's'} to CSV`
-      : 'No data to export';
+      : this.students.length > 0
+        ? 'No answers to export (students have not answered any questions)'
+        : 'No data to export';
 
     return html`
       <button

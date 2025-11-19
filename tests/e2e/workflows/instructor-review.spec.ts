@@ -332,4 +332,89 @@ test.describe.skip('Instructor Review Workflow', () => {
     // Verify modal closed
     await expect(scoresModal).not.toBeVisible();
   });
+
+  test('should clear all student UI state on student-to-instructor transition (FR-001, FR-002)', async ({
+    page,
+  }) => {
+    // ===== STUDENT SESSION =====
+    // 1. Student logs in and answers questions
+    await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
+    await page.waitForTimeout(500);
+
+    // Answer a question (creates color-coded feedback)
+    const quizTable = page.locator('table.qd-quiz');
+    const firstInput = quizTable.locator('.qd-quiz-input').first();
+    await firstInput.selectOption({ index: 1 });
+
+    // Verify answer cell has color-coded class
+    const firstAnswerCell = quizTable.locator('tbody tr').first().locator('td').nth(1);
+    await expect(async () => {
+      const classList = await firstAnswerCell.getAttribute('class');
+      expect(classList).toMatch(/qd-answer-(correct|incorrect)/);
+    }).toPass();
+
+    // 2. Student logs out
+    const logoutButton = page.locator('button').filter({ hasText: /logout/i });
+    await expect(logoutButton).toBeVisible();
+    await logoutButton.click();
+
+    // Wait for logout to complete
+    await page.waitForTimeout(200);
+
+    // Verify color-coded classes are cleared
+    const clearedClassList = await firstAnswerCell.getAttribute('class');
+    expect(clearedClassList).not.toMatch(/qd-answer-correct/);
+    expect(clearedClassList).not.toMatch(/qd-answer-incorrect/);
+
+    // ===== INSTRUCTOR SESSION =====
+    // 3. Instructor logs in
+    await page.goto(`file://${demoPath}/page-index.html`);
+    await waitForBootstrap(page);
+
+    await page.evaluate(() => {
+      const span = document.createElement('span');
+      span.id = 'instructor.password.hash';
+      span.style.display = 'none';
+      span.textContent = 'c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5';
+      document.body.appendChild(span);
+    });
+
+    const instructorButton = page.locator('qd-login button').filter({ hasText: /instructor/i });
+    await instructorButton.click();
+
+    const passwordInput = page.locator('qd-instructor input[type="password"]');
+    await expect(passwordInput).toBeVisible();
+    await passwordInput.fill(TEST_PASSWORD);
+
+    const unlockButton = page.locator('qd-instructor button[type="submit"]');
+    await unlockButton.click();
+
+    // Verify instructor panel appears
+    const instructorPanel = page.locator('qd-instructor .instructor-panel');
+    await expect(instructorPanel).toBeVisible();
+
+    // 4. Navigate to quiz page as instructor
+    await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
+    await page.waitForTimeout(500);
+
+    // Verify no student-specific UI state remains
+    const quizTableAsInstructor = page.locator('table.qd-quiz');
+    const instructorAnswerCell = quizTableAsInstructor.locator('tbody tr').first().locator('td').nth(1);
+
+    // Verify no color-coded classes from student session
+    const instructorCellClass = await instructorAnswerCell.getAttribute('class');
+    expect(instructorCellClass).not.toMatch(/qd-answer-correct/);
+    expect(instructorCellClass).not.toMatch(/qd-answer-incorrect/);
+
+    // Verify sessionStorage has no student state
+    const instructorState = await page.evaluate(() => {
+      return {
+        showAnswers: sessionStorage.getItem('qd/instructor/showAnswers'),
+        instructorKey: sessionStorage.getItem('qd/instructor'),
+      };
+    });
+
+    // These should be null in fresh instructor session (unless toggle manually enabled)
+    expect(instructorState.showAnswers).toBeNull();
+  });
 });

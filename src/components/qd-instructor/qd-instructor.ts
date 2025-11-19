@@ -193,9 +193,24 @@ export class QdInstructor extends LitElement {
     );
   };
 
-  private handleToggleStudentAnswers = (e: Event): void => {
+  private handleToggleStudentAnswers = async (e: Event): Promise<void> => {
     const checkbox = e.target as HTMLInputElement;
     this.showStudentAnswers = checkbox.checked;
+
+    // FR-004: Load student data in fresh session when toggle is enabled
+    if (this.showStudentAnswers && this.students.length === 0) {
+      const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
+      if (session) {
+        try {
+          const { getStorageService } = await import('../../services/storage-service.js');
+          const storageService = getStorageService();
+          const students = await storageService.getStudentsByRelease(session.release);
+          this.students = students;
+        } catch (err) {
+          console.error('Failed to load students for toggle:', err);
+        }
+      }
+    }
 
     // Emit event to notify table enhancers
     const eventName = this.showStudentAnswers
