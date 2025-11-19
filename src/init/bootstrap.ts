@@ -296,15 +296,16 @@ async function checkExistingSessionAndUpgradeTables(): Promise<void> {
 
       // Remove qd-hidden class from answer column (column 1)
       const answerCells = table.querySelectorAll('td:nth-child(2), th:nth-child(2)');
-      answerCells.forEach((cell, index) => {
+      answerCells.forEach((cell) => {
         cell.classList.remove('qd-hidden');
-        // Restore answer text from parsed metadata (skip header row)
-        if (index > 0 && cell instanceof HTMLTableCellElement) {
-          const questionIndex = index - 1;
-          const question = metadata.parsed.questions[questionIndex];
-          if (question) {
-            cell.textContent = question.correctAnswer;
-          }
+      });
+
+      // Restore answer text to data cells only (not header)
+      const answerDataCells = table.querySelectorAll('tbody td:nth-child(2)');
+      answerDataCells.forEach((cell, index) => {
+        const question = metadata.parsed.questions[index];
+        if (question && cell instanceof HTMLTableCellElement) {
+          cell.textContent = question.correctAnswer;
         }
       });
 
