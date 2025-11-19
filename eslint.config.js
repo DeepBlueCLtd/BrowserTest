@@ -18,6 +18,8 @@ export default tseslint.config(
       'playwright-report/**',
       'test-results/**',
       'dita/**',
+      'dita-demo/**',
+      '.rewrite-reference/**',
     ],
   },
 
@@ -59,7 +61,12 @@ export default tseslint.config(
           varsIgnorePattern: '^_',
         },
       ],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      // Zero tolerance for type safety issues
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
       'no-console': ['warn', { allow: ['warn', 'error'] }],
     },
   },

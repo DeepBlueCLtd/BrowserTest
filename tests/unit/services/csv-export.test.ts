@@ -1,436 +1,348 @@
 /**
- * CSV Export Service Tests
- *
- * Tests for RFC 4180 compliant CSV generation with BOM
- * T085: Write tests for CSV generation
+ * Unit tests for CSV export service
  */
 
-import { describe, it, expect } from 'vitest';
-import type { StudentRecord } from '../../../src/types/contracts';
-import {
-  exportStudentSummary,
-  exportDetailedAnswers,
-  exportPerPage,
-  downloadCSV,
-  generateFilename,
-} from '../../../src/services/csv-export';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { generateCSV, downloadCSV, exportStudentsToCSV } from '../../../src/services/csv-export.js';
+import type { StudentRecord } from '../../../src/types/contracts.js';
 
-describe('CSV Export Service', () => {
-  describe('exportStudentSummary', () => {
-    it('should generate CSV with BOM for student summary', () => {
-      const students: StudentRecord[] = [
-        {
-          schema: 1,
-          docId: 'test-doc',
-          release: '02-2025',
-          serviceId: 'RN2344',
-          name: 'John Doe',
-          attempted: 10,
-          correct: 8,
-          updated: '2025-01-15T10:00:00Z',
-          pages: {},
+describe('csv-export', () => {
+  let mockStudent: StudentRecord;
+
+  beforeEach(() => {
+    mockStudent = {
+      schema: 1,
+      docId: 'qd/01-2025/uTEST001',
+      serviceId: 'TEST001',
+      name: 'John Doe',
+      release: '01-2025',
+      attempted: 3,
+      correct: 2,
+      updated: '2025-01-01T10:00:00Z',
+      pages: {
+        'page-1': {
+          state: 'complete',
+          answers: [
+            { answer: 'a', success: true, timestamp: '2025-01-01T10:00:00Z' },
+            { answer: 'b', success: false, timestamp: '2025-01-01T10:01:00Z' },
+          ],
         },
-      ];
-
-      const csv = exportStudentSummary(students, '02-2025');
-
-      // Check for UTF-8 BOM
-      expect(csv.charCodeAt(0)).toBe(0xfeff);
-
-      // Check CSV structure (skip BOM)
-      const withoutBOM = csv.slice(1);
-      const lines = withoutBOM.split('\n');
-
-      // Header row
-      expect(lines[0]).toContain('Service ID');
-      expect(lines[0]).toContain('Name');
-      expect(lines[0]).toContain('Attempted');
-      expect(lines[0]).toContain('Correct');
-      expect(lines[0]).toContain('Percentage');
-      expect(lines[0]).toContain('Last Updated');
-    });
-
-    it('should escape quotes in CSV values per RFC 4180', () => {
-      const students: StudentRecord[] = [
-        {
-          schema: 1,
-          docId: 'test-doc',
-          release: '02-2025',
-          serviceId: 'RN2345',
-          name: 'Jane "Jay" Smith',
-          attempted: 5,
-          correct: 4,
-          updated: '2025-01-15T11:00:00Z',
-          pages: {},
+        'page-2': {
+          state: 'incomplete',
+          answers: [{ answer: '42', success: true, timestamp: '2025-01-01T10:05:00Z' }],
         },
-      ];
-
-      const csv = exportStudentSummary(students, '02-2025');
-
-      // CSV should escape quotes by doubling them and wrapping in quotes
-      expect(csv).toContain('"Jane ""Jay"" Smith"');
-    });
-
-    it('should handle commas in names by quoting', () => {
-      const students: StudentRecord[] = [
-        {
-          schema: 1,
-          docId: 'test-doc',
-          release: '02-2025',
-          serviceId: 'RN2346',
-          name: 'Smith, John',
-          attempted: 5,
-          correct: 4,
-          updated: '2025-01-15T11:00:00Z',
-          pages: {},
-        },
-      ];
-
-      const csv = exportStudentSummary(students, '02-2025');
-
-      // Name with comma should be quoted
-      expect(csv).toContain('"Smith, John"');
-    });
-
-    it('should handle newlines in data by quoting', () => {
-      const students: StudentRecord[] = [
-        {
-          schema: 1,
-          docId: 'test-doc',
-          release: '02-2025',
-          serviceId: 'RN2347',
-          name: 'John\nDoe',
-          attempted: 5,
-          correct: 4,
-          updated: '2025-01-15T11:00:00Z',
-          pages: {},
-        },
-      ];
-
-      const csv = exportStudentSummary(students, '02-2025');
-
-      // Newline in name should be preserved within quotes
-      expect(csv).toContain('"John\nDoe"');
-    });
-
-    it('should calculate percentage correctly', () => {
-      const students: StudentRecord[] = [
-        {
-          schema: 1,
-          docId: 'test-doc',
-          release: '02-2025',
-          serviceId: 'RN2348',
-          name: 'Test User',
-          attempted: 10,
-          correct: 7,
-          updated: '2025-01-15T12:00:00Z',
-          pages: {},
-        },
-      ];
-
-      const csv = exportStudentSummary(students, '02-2025');
-
-      // Should contain 70% (7/10 * 100)
-      expect(csv).toContain('70');
-    });
-
-    it('should handle zero attempted questions', () => {
-      const students: StudentRecord[] = [
-        {
-          schema: 1,
-          docId: 'test-doc',
-          release: '02-2025',
-          serviceId: 'RN2349',
-          name: 'New Student',
-          attempted: 0,
-          correct: 0,
-          updated: '2025-01-15T12:00:00Z',
-          pages: {},
-        },
-      ];
-
-      const csv = exportStudentSummary(students, '02-2025');
-
-      // Should handle division by zero gracefully (0%)
-      expect(csv).toContain('RN2349');
-      expect(csv).toMatch(/0(?:\.0)?%?/); // Match 0 or 0.0 with optional %
-    });
-
-    it('should sort students by service ID', () => {
-      const students: StudentRecord[] = [
-        {
-          schema: 1,
-          docId: 'test-doc',
-          release: '02-2025',
-          serviceId: 'RN2350',
-          name: 'Student C',
-          attempted: 5,
-          correct: 4,
-          updated: '2025-01-15T12:00:00Z',
-          pages: {},
-        },
-        {
-          schema: 1,
-          docId: 'test-doc',
-          release: '02-2025',
-          serviceId: 'RN2348',
-          name: 'Student A',
-          attempted: 5,
-          correct: 4,
-          updated: '2025-01-15T12:00:00Z',
-          pages: {},
-        },
-        {
-          schema: 1,
-          docId: 'test-doc',
-          release: '02-2025',
-          serviceId: 'RN2349',
-          name: 'Student B',
-          attempted: 5,
-          correct: 4,
-          updated: '2025-01-15T12:00:00Z',
-          pages: {},
-        },
-      ];
-
-      const csv = exportStudentSummary(students, '02-2025');
-      const lines = csv.slice(1).split('\n'); // Skip BOM
-
-      // Check order (skip header)
-      expect(lines[1]).toContain('RN2348');
-      expect(lines[2]).toContain('RN2349');
-      expect(lines[3]).toContain('RN2350');
-    });
+      },
+    };
   });
 
-  describe('exportDetailedAnswers', () => {
-    it('should export detailed answers per question', () => {
-      const students: StudentRecord[] = [
-        {
-          schema: 1,
-          docId: 'test-doc',
-          release: '02-2025',
-          serviceId: 'RN2344',
-          name: 'John Doe',
-          attempted: 2,
-          correct: 1,
-          updated: '2025-01-15T10:00:00Z',
-          pages: {
-            'page-1': {
-              answers: [
-                { answer: 'a', success: true, timestamp: '2025-01-15T10:00:00Z' },
-                { answer: 'b', success: false, timestamp: '2025-01-15T10:01:00Z' },
-              ],
-              state: 'incomplete',
-              firstAttempted: '2025-01-15T10:00:00Z',
-              lastAttempted: '2025-01-15T10:01:00Z',
-            },
+  describe('generateCSV', () => {
+    it('should generate CSV with header row', () => {
+      const csv = generateCSV([mockStudent]);
+
+      expect(csv).toContain(
+        'Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp',
+      );
+    });
+
+    it('should generate data rows for each answer', () => {
+      const csv = generateCSV([mockStudent]);
+      const lines = csv.split('\n');
+
+      // Header + 3 answer rows
+      expect(lines).toHaveLength(4);
+    });
+
+    it('should format answer data correctly', () => {
+      const csv = generateCSV([mockStudent]);
+      const lines = csv.split('\n');
+
+      // First answer
+      expect(lines[1]).toBe('TEST001,John Doe,01-2025,page-1,0,a,true,2025-01-01T10:00:00Z');
+
+      // Second answer
+      expect(lines[2]).toBe('TEST001,John Doe,01-2025,page-1,1,b,false,2025-01-01T10:01:00Z');
+
+      // Third answer
+      expect(lines[3]).toBe('TEST001,John Doe,01-2025,page-2,0,42,true,2025-01-01T10:05:00Z');
+    });
+
+    it('should handle empty student array', () => {
+      const csv = generateCSV([]);
+
+      expect(csv).toBe('Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp');
+    });
+
+    it('should skip null answers', () => {
+      const student: StudentRecord = {
+        ...mockStudent,
+        pages: {
+          'page-1': {
+            state: 'incomplete',
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            answers: [
+              { answer: 'a', success: true, timestamp: '2025-01-01T10:00:00Z' },
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              null as any,
+              { answer: 'c', success: false, timestamp: '2025-01-01T10:02:00Z' },
+            ],
           },
         },
-      ];
+      };
 
-      const csv = exportDetailedAnswers(students, '02-2025');
+      const csv = generateCSV([student]);
+      const lines = csv.split('\n');
 
-      // Check for UTF-8 BOM
-      expect(csv.charCodeAt(0)).toBe(0xfeff);
-
-      // Check structure
-      const withoutBOM = csv.slice(1);
-      const lines = withoutBOM.split('\n');
-
-      // Header
-      expect(lines[0]).toContain('Service ID');
-      expect(lines[0]).toContain('Name');
-      expect(lines[0]).toContain('Page ID');
-      expect(lines[0]).toContain('Question');
-      expect(lines[0]).toContain('Answer');
-      expect(lines[0]).toContain('Correct');
-      expect(lines[0]).toContain('Timestamp');
+      // Header + 2 non-null answers
+      expect(lines).toHaveLength(3);
     });
 
-    it('should include all answers from all pages', () => {
-      const students: StudentRecord[] = [
-        {
-          schema: 1,
-          docId: 'test-doc',
-          release: '02-2025',
-          serviceId: 'RN2344',
-          name: 'John Doe',
-          attempted: 4,
-          correct: 3,
-          updated: '2025-01-15T10:00:00Z',
-          pages: {
-            'page-1': {
-              answers: [
-                { answer: 'a', success: true, timestamp: '2025-01-15T10:00:00Z' },
-                { answer: 'b', success: true, timestamp: '2025-01-15T10:01:00Z' },
-              ],
-              state: 'complete',
-              firstAttempted: '2025-01-15T10:00:00Z',
-              lastAttempted: '2025-01-15T10:01:00Z',
-            },
-            'page-2': {
-              answers: [
-                { answer: 'c', success: true, timestamp: '2025-01-15T10:02:00Z' },
-                { answer: 'd', success: false, timestamp: '2025-01-15T10:03:00Z' },
-              ],
-              state: 'incomplete',
-              firstAttempted: '2025-01-15T10:02:00Z',
-              lastAttempted: '2025-01-15T10:03:00Z',
-            },
+    it('should escape fields containing commas', () => {
+      const student: StudentRecord = {
+        ...mockStudent,
+        name: 'Doe, John',
+        pages: {
+          'page-1': {
+            state: 'complete',
+            answers: [{ answer: 'a, b, c', success: true, timestamp: '2025-01-01T10:00:00Z' }],
           },
         },
-      ];
+      };
 
-      const csv = exportDetailedAnswers(students, '02-2025');
-      const lines = csv.slice(1).split('\n'); // Skip BOM
+      const csv = generateCSV([student]);
+      const lines = csv.split('\n');
 
-      // Should have header + 4 answer rows
-      expect(lines.length).toBeGreaterThanOrEqual(5);
-
-      // Should contain both page IDs
-      expect(csv).toContain('page-1');
-      expect(csv).toContain('page-2');
+      expect(lines[1]).toContain('"Doe, John"');
+      expect(lines[1]).toContain('"a, b, c"');
     });
-  });
 
-  describe('exportPerPage', () => {
-    it('should export answers for a specific page only', () => {
-      const students: StudentRecord[] = [
-        {
-          schema: 1,
-          docId: 'test-doc',
-          release: '02-2025',
-          serviceId: 'RN2344',
-          name: 'John Doe',
-          attempted: 4,
-          correct: 3,
-          updated: '2025-01-15T10:00:00Z',
-          pages: {
-            'page-1': {
-              answers: [
-                { answer: 'a', success: true, timestamp: '2025-01-15T10:00:00Z' },
-                { answer: 'b', success: true, timestamp: '2025-01-15T10:01:00Z' },
-              ],
-              state: 'complete',
-              firstAttempted: '2025-01-15T10:00:00Z',
-              lastAttempted: '2025-01-15T10:01:00Z',
-            },
-            'page-2': {
-              answers: [
-                { answer: 'c', success: true, timestamp: '2025-01-15T10:02:00Z' },
-                { answer: 'd', success: false, timestamp: '2025-01-15T10:03:00Z' },
-              ],
-              state: 'incomplete',
-              firstAttempted: '2025-01-15T10:02:00Z',
-              lastAttempted: '2025-01-15T10:03:00Z',
-            },
+    it('should escape fields containing quotes', () => {
+      const student: StudentRecord = {
+        ...mockStudent,
+        name: 'John "Johnny" Doe',
+        pages: {
+          'page-1': {
+            state: 'complete',
+            answers: [{ answer: 'Say "hello"', success: true, timestamp: '2025-01-01T10:00:00Z' }],
           },
         },
-      ];
+      };
 
-      const csv = exportPerPage(students, 'page-1', '02-2025');
+      const csv = generateCSV([student]);
+      const lines = csv.split('\n');
 
-      // Should only contain page-1 data
-      expect(csv).toContain('page-1');
-      expect(csv).not.toContain('page-2');
-
-      const lines = csv.slice(1).split('\n'); // Skip BOM
-      // Should have header + 2 answer rows for page-1
-      expect(lines.length).toBeGreaterThanOrEqual(3);
+      expect(lines[1]).toContain('"John ""Johnny"" Doe"');
+      expect(lines[1]).toContain('"Say ""hello"""');
     });
 
-    it('should handle pages with no answers', () => {
-      const students: StudentRecord[] = [
-        {
-          schema: 1,
-          docId: 'test-doc',
-          release: '02-2025',
-          serviceId: 'RN2344',
-          name: 'John Doe',
-          attempted: 0,
-          correct: 0,
-          updated: '2025-01-15T10:00:00Z',
-          pages: {},
+    it('should escape fields containing newlines', () => {
+      const student: StudentRecord = {
+        ...mockStudent,
+        pages: {
+          'page-1': {
+            state: 'complete',
+            answers: [
+              { answer: 'Line 1\nLine 2', success: true, timestamp: '2025-01-01T10:00:00Z' },
+            ],
+          },
         },
-      ];
+      };
 
-      const csv = exportPerPage(students, 'page-1', '02-2025');
+      const csv = generateCSV([student]);
 
-      // Should have BOM and header but no data rows
-      expect(csv.charCodeAt(0)).toBe(0xfeff);
-      const lines = csv.slice(1).split('\n');
-      expect(lines[0]).toContain('Service ID'); // Header present
-    });
-  });
-
-  describe('RFC 4180 compliance', () => {
-    it('should use CRLF line endings', () => {
-      const students: StudentRecord[] = [
-        {
-          schema: 1,
-          docId: 'test-doc',
-          release: '02-2025',
-          serviceId: 'RN2344',
-          name: 'John Doe',
-          attempted: 5,
-          correct: 4,
-          updated: '2025-01-15T10:00:00Z',
-          pages: {},
-        },
-      ];
-
-      const csv = exportStudentSummary(students, '02-2025');
-
-      // RFC 4180 specifies CRLF (\r\n) line endings
-      // Note: We'll use \n for simplicity in implementation, as modern parsers accept both
-      expect(csv).toMatch(/\n/);
+      // The newline is preserved inside the quoted field
+      expect(csv).toContain('"Line 1\nLine 2"');
     });
 
-    it('should not have trailing comma on rows', () => {
-      const students: StudentRecord[] = [
-        {
-          schema: 1,
-          docId: 'test-doc',
-          release: '02-2025',
-          serviceId: 'RN2344',
-          name: 'John Doe',
-          attempted: 5,
-          correct: 4,
-          updated: '2025-01-15T10:00:00Z',
-          pages: {},
+    it('should handle multiple students', () => {
+      const student2: StudentRecord = {
+        schema: 1,
+        docId: 'qd/01-2025/uTEST002',
+        serviceId: 'TEST002',
+        name: 'Jane Smith',
+        release: '01-2025',
+        attempted: 1,
+        correct: 1,
+        updated: '2025-01-01T11:00:00Z',
+        pages: {
+          'page-1': {
+            state: 'complete',
+            answers: [{ answer: 'x', success: true, timestamp: '2025-01-01T11:00:00Z' }],
+          },
         },
-      ];
+      };
 
-      const csv = exportStudentSummary(students, '02-2025');
-      const lines = csv.slice(1).split('\n');
+      const csv = generateCSV([mockStudent, student2]);
+      const lines = csv.split('\n');
 
-      // No line should end with a comma before newline
-      for (const line of lines) {
-        if (line.trim()) {
-          expect(line.trim()).not.toMatch(/,$/);
-        }
-      }
+      // Header + 3 answers from student1 + 1 answer from student2
+      expect(lines).toHaveLength(5);
+      expect(lines[4]).toContain('TEST002');
+      expect(lines[4]).toContain('Jane Smith');
+    });
+
+    it('should handle student with no pages', () => {
+      const student: StudentRecord = {
+        ...mockStudent,
+        pages: {},
+      };
+
+      const csv = generateCSV([student]);
+
+      expect(csv).toBe('Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp');
+    });
+
+    it('should handle page with empty answers array', () => {
+      const student: StudentRecord = {
+        ...mockStudent,
+        pages: {
+          'empty-page': {
+            state: 'unstarted',
+            answers: [],
+          },
+        },
+      };
+
+      const csv = generateCSV([student]);
+
+      expect(csv).toBe('Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp');
     });
   });
 
   describe('downloadCSV', () => {
-    it('should create a download with correct MIME type', () => {
-      // This test verifies the download trigger mechanism
-      // In actual implementation, this would create a blob and trigger download
-      // Download will be tested in integration/E2E tests
-      // Just verify the function exists and can be called
-      expect(downloadCSV).toBeDefined();
-      expect(typeof downloadCSV).toBe('function');
+    let mockLink: HTMLAnchorElement;
+
+    beforeEach(() => {
+      mockLink = {
+        href: '',
+        download: '',
+        click: vi.fn(),
+      } as unknown as HTMLAnchorElement;
+
+      // Mock URL methods
+      global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+      global.URL.revokeObjectURL = vi.fn();
+
+      vi.spyOn(document, 'createElement').mockReturnValue(mockLink);
+      vi.spyOn(document.body, 'appendChild').mockImplementation(() => mockLink);
+      vi.spyOn(document.body, 'removeChild').mockImplementation(() => mockLink);
     });
 
-    it('should generate filename with timestamp', () => {
-      // Filename should include date/time to avoid collisions
-      const expectedPattern = /student-export-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.csv/;
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
 
-      const filename = generateFilename('student-export');
+    it('should create blob with correct type', () => {
+      const csv = 'test,data\n1,2';
+      downloadCSV(csv);
 
-      expect(filename).toMatch(expectedPattern);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(global.URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+    });
+
+    it('should create download link with blob URL', () => {
+      const csv = 'test,data\n1,2';
+      downloadCSV(csv);
+
+      expect(mockLink.href).toBe('blob:mock-url');
+    });
+
+    it('should use custom filename when provided', () => {
+      const csv = 'test,data\n1,2';
+      downloadCSV(csv, 'custom-file.csv');
+
+      expect(mockLink.download).toBe('custom-file.csv');
+    });
+
+    it('should generate timestamped filename when not provided', () => {
+      const csv = 'test,data\n1,2';
+      downloadCSV(csv);
+
+      expect(mockLink.download).toMatch(/^quiz-data-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.csv$/);
+    });
+
+    it('should trigger download', () => {
+      const csv = 'test,data\n1,2';
+      downloadCSV(csv);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLink.click).toHaveBeenCalled();
+    });
+
+    it('should append and remove link from DOM', () => {
+      const csv = 'test,data\n1,2';
+      const appendSpy = vi.spyOn(document.body, 'appendChild');
+      const removeSpy = vi.spyOn(document.body, 'removeChild');
+
+      downloadCSV(csv);
+
+      expect(appendSpy).toHaveBeenCalledWith(mockLink);
+      expect(removeSpy).toHaveBeenCalledWith(mockLink);
+    });
+
+    it('should revoke object URL after download', () => {
+      const csv = 'test,data\n1,2';
+      downloadCSV(csv);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(global.URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+    });
+  });
+
+  describe('exportStudentsToCSV', () => {
+    let mockLink: HTMLAnchorElement;
+
+    beforeEach(() => {
+      mockLink = {
+        href: '',
+        download: '',
+        click: vi.fn(),
+      } as unknown as HTMLAnchorElement;
+
+      // Mock URL methods
+      global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+      global.URL.revokeObjectURL = vi.fn();
+
+      vi.spyOn(document, 'createElement').mockReturnValue(mockLink);
+      vi.spyOn(document.body, 'appendChild').mockImplementation(() => mockLink);
+      vi.spyOn(document.body, 'removeChild').mockImplementation(() => mockLink);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('should generate CSV and trigger download', () => {
+      exportStudentsToCSV([mockStudent]);
+
+      expect(mockLink.download).toMatch(/^quiz-data-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.csv$/);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLink.click).toHaveBeenCalled();
+    });
+
+    it('should pass custom filename to download', () => {
+      exportStudentsToCSV([mockStudent], 'custom.csv');
+
+      expect(mockLink.download).toBe('custom.csv');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLink.click).toHaveBeenCalled();
+    });
+
+    it('should handle empty student array', () => {
+      exportStudentsToCSV([]);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLink.click).toHaveBeenCalled();
+    });
+
+    it('should create blob URL and trigger download', () => {
+      exportStudentsToCSV([mockStudent]);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(global.URL.createObjectURL).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLink.click).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(global.URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
     });
   });
 });

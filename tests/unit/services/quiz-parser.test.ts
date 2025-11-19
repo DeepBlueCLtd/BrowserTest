@@ -1,511 +1,446 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { JSDOM } from 'jsdom';
-import type { ParsedQuizTable, QuizQuestion } from '../../../src/types/contracts';
-import { parseQuizTable, validateAnswer, findQuizTables } from '../../../src/services/quiz-parser';
-
 /**
- * Tests for Quiz Table Parser
- *
- * The quiz parser is responsible for:
- * - Detecting and parsing quiz tables with class "qd-quiz"
- * - Identifying question types (MCQ vs numeric)
- * - Extracting questions, answers, and options
- * - Validating table structure
+ * Unit tests for quiz table parser
  */
 
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import {
+  parseQuizTable,
+  findQuizTables,
+  validateAnswer,
+} from '../../../src/services/quiz-parser.js';
+import type { QuizQuestion } from '../../../src/types/contracts.js';
+
 describe('Quiz Table Parser', () => {
-  let dom: JSDOM;
-  let document: Document;
+  let container: HTMLDivElement;
 
   beforeEach(() => {
-    dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
-    document = dom.window.document;
-    global.document = document as unknown as Document;
+    container = document.createElement('div');
+    document.body.appendChild(container);
   });
 
-  describe('MCQ Detection', () => {
-    it('should detect MCQ when Detail column contains <ol>', () => {
-      const table = createQuizTable([
-        {
-          question: 'What is active sonar?',
-          answer: '1',
-          detail: '<ol><li>Uses sound reflections</li><li>Listens only</li></ol>',
-        },
-      ]);
+  afterEach(() => {
+    container.remove();
+  });
+
+  describe('parseQuizTable()', () => {
+    it('should parse MCQ table correctly', () => {
+      const table = document.createElement('table');
+      table.className = 'qd-quiz';
+      table.innerHTML = `
+        <thead><tr><th>Question</th><th>Answer</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>What is the capital of France?</td>
+            <td>2</td>
+            <td><ol><li>London</li><li>Paris</li><li>Berlin</li></ol></td>
+          </tr>
+        </tbody>
+      `;
 
       const result = parseQuizTable(table);
-      expect(result.questions[0].kind).toBe('mcq');
-    });
 
-    it('should extract MCQ options from ordered list', () => {
-      const table = createQuizTable([
-        {
-          question: 'What is the primary function of sonar?',
-          answer: '3',
-          detail: `
-            <ol>
-              <li>Navigate using stars</li>
-              <li>Communicate with vessels</li>
-              <li>Detect underwater objects using sound waves</li>
-              <li>Measure water depth only</li>
-            </ol>
-          `,
-        },
-      ]);
+      expect(result.element).toBe(table);
+      expect(result.questions).toHaveLength(1);
+      expect(result.errors).toBeUndefined();
 
-      const result = parseQuizTable(table);
-      expect(result.questions[0].options).toEqual([
-        'Navigate using stars',
-        'Communicate with vessels',
-        'Detect underwater objects using sound waves',
-        'Measure water depth only',
-      ]);
-    });
-
-    it('should handle MCQ with empty list items gracefully', () => {
-      const table = createQuizTable([
-        {
-          question: 'Which type of sonar?',
-          answer: '1',
-          detail: '<ol><li>Active</li><li></li><li>Passive</li></ol>',
-        },
-      ]);
-
-      const result = parseQuizTable(table);
-      // Empty items should be filtered out
-      expect(result.questions[0].options).toEqual(['Active', 'Passive']);
-    });
-
-    it('should extract correct answer for MCQ (1-indexed)', () => {
-      const table = createQuizTable([
-        {
-          question: 'What is active sonar?',
-          answer: '2',
-          detail: '<ol><li>Option A</li><li>Option B</li><li>Option C</li></ol>',
-        },
-      ]);
-
-      const result = parseQuizTable(table);
-      expect(result.questions[0].correctAnswer).toBe('2');
-    });
-
-    it('should handle MCQ with single option', () => {
-      const table = createQuizTable([
-        {
-          question: 'Is this valid?',
-          answer: '1',
-          detail: '<ol><li>Only option</li></ol>',
-        },
-      ]);
-
-      const result = parseQuizTable(table);
       const question = result.questions[0];
-      expect(question.kind).toBe('mcq');
-      if (question.kind === 'mcq' && question.options) {
-        expect(question.options).toHaveLength(1);
-        expect(question.options[0]).toBe('Only option');
-      }
-    });
-  });
-
-  describe('Numeric Detection', () => {
-    it('should detect numeric when Detail column contains tolerance number', () => {
-      const table = createQuizTable([
-        {
-          question: 'What is the speed of sound in seawater (m/s)?',
-          answer: '1500',
-          detail: '50',
-        },
-      ]);
-
-      const result = parseQuizTable(table);
-      expect(result.questions[0].kind).toBe('numeric');
+      expect(question?.text).toBe('What is the capital of France?');
+      expect(question?.kind).toBe('mcq');
+      expect(question?.correctAnswer).toBe('2');
+      expect(question?.options).toEqual(['London', 'Paris', 'Berlin']);
     });
 
-    it('should extract tolerance value for numeric questions', () => {
-      const table = createQuizTable([
-        {
-          question: 'At what frequency (kHz) does hull-mounted sonar operate?',
-          answer: '5',
-          detail: '0.5',
-        },
-      ]);
+    it('should parse numeric table correctly', () => {
+      const table = document.createElement('table');
+      table.className = 'qd-quiz';
+      table.innerHTML = `
+        <tbody>
+          <tr>
+            <td>What is pi?</td>
+            <td>3.14</td>
+            <td>0.01</td>
+          </tr>
+        </tbody>
+      `;
 
       const result = parseQuizTable(table);
-      expect(result.questions[0].tolerance).toBe(0.5);
+
+      expect(result.questions).toHaveLength(1);
+      expect(result.errors).toBeUndefined();
+
+      const question = result.questions[0];
+      expect(question?.text).toBe('What is pi?');
+      expect(question?.kind).toBe('numeric');
+      expect(question?.correctAnswer).toBe('3.14');
+      expect(question?.tolerance).toBe(0.01);
     });
 
-    it('should extract correct answer for numeric questions', () => {
-      const table = createQuizTable([
-        {
-          question: 'What is the speed of sound in seawater (m/s)?',
-          answer: '1500',
-          detail: '50',
-        },
-      ]);
+    it('should parse multiple questions', () => {
+      const table = document.createElement('table');
+      table.className = 'qd-quiz';
+      table.innerHTML = `
+        <tbody>
+          <tr>
+            <td>Question 1</td>
+            <td>1</td>
+            <td><ol><li>A</li><li>B</li></ol></td>
+          </tr>
+          <tr>
+            <td>Question 2</td>
+            <td>42</td>
+            <td>5</td>
+          </tr>
+          <tr>
+            <td>Question 3</td>
+            <td>3</td>
+            <td><ol><li>X</li><li>Y</li><li>Z</li></ol></td>
+          </tr>
+        </tbody>
+      `;
 
       const result = parseQuizTable(table);
-      expect(result.questions[0].correctAnswer).toBe('1500');
+
+      expect(result.questions).toHaveLength(3);
+      expect(result.errors).toBeUndefined();
+
+      expect(result.questions[0]?.kind).toBe('mcq');
+      expect(result.questions[1]?.kind).toBe('numeric');
+      expect(result.questions[2]?.kind).toBe('mcq');
     });
 
-    it('should handle numeric question with decimal tolerance', () => {
-      const table = createQuizTable([
-        {
-          question: 'Measure the frequency',
-          answer: '12.5',
-          detail: '0.25',
-        },
-      ]);
+    it('should fail if table missing qd-quiz class', () => {
+      const table = document.createElement('table');
+      table.innerHTML = '<tbody><tr><td>Q</td><td>A</td><td>D</td></tr></tbody>';
 
       const result = parseQuizTable(table);
-      expect(result.questions[0].tolerance).toBe(0.25);
+
+      expect(result.errors).toContain('Table must have class "qd-quiz"');
+      expect(result.questions).toHaveLength(0);
     });
 
-    it('should handle numeric question with zero tolerance', () => {
-      const table = createQuizTable([
-        {
-          question: 'Exact value required',
-          answer: '100',
-          detail: '0',
-        },
-      ]);
+    it('should fail if table has no data rows', () => {
+      const table = document.createElement('table');
+      table.className = 'qd-quiz';
+      table.innerHTML = '<thead><tr><th>Q</th><th>A</th><th>D</th></tr></thead><tbody></tbody>';
 
       const result = parseQuizTable(table);
-      expect(result.questions[0].tolerance).toBe(0);
-      expect(result.questions[0].kind).toBe('numeric');
+
+      expect(result.errors).toContain('Quiz table has no data rows');
+      expect(result.questions).toHaveLength(0);
     });
 
-    it('should handle negative numeric answers', () => {
-      const table = createQuizTable([
-        {
-          question: 'What is the temperature change?',
-          answer: '-15',
-          detail: '2',
-        },
-      ]);
+    it('should fail if row has wrong number of columns', () => {
+      const table = document.createElement('table');
+      table.className = 'qd-quiz';
+      table.innerHTML = `
+        <tbody>
+          <tr><td>Q</td><td>A</td></tr>
+        </tbody>
+      `;
 
       const result = parseQuizTable(table);
-      expect(result.questions[0].correctAnswer).toBe('-15');
-      expect(result.questions[0].kind).toBe('numeric');
+
+      expect(result.errors).toContainEqual(
+        expect.stringContaining('Row 1 has 2 columns, expected 3'),
+      );
     });
-  });
 
-  describe('Question Text Extraction', () => {
-    it('should extract question text from first column', () => {
-      const table = createQuizTable([
-        {
-          question: 'What is the primary function of a sonar system?',
-          answer: '1',
-          detail: '<ol><li>Option A</li></ol>',
-        },
-      ]);
+    it('should fail if question text is empty', () => {
+      const table = document.createElement('table');
+      table.className = 'qd-quiz';
+      table.innerHTML = `
+        <tbody>
+          <tr>
+            <td></td>
+            <td>1</td>
+            <td><ol><li>A</li></ol></td>
+          </tr>
+        </tbody>
+      `;
 
       const result = parseQuizTable(table);
-      expect(result.questions[0].text).toBe('What is the primary function of a sonar system?');
+
+      expect(result.errors).toContainEqual(expect.stringContaining('empty question text'));
+    });
+
+    it('should fail if answer is empty', () => {
+      const table = document.createElement('table');
+      table.className = 'qd-quiz';
+      table.innerHTML = `
+        <tbody>
+          <tr>
+            <td>Question</td>
+            <td></td>
+            <td><ol><li>A</li></ol></td>
+          </tr>
+        </tbody>
+      `;
+
+      const result = parseQuizTable(table);
+
+      expect(result.errors).toContainEqual(expect.stringContaining('empty answer'));
+    });
+
+    it('should fail if MCQ has no options', () => {
+      const table = document.createElement('table');
+      table.className = 'qd-quiz';
+      table.innerHTML = `
+        <tbody>
+          <tr>
+            <td>Question</td>
+            <td>1</td>
+            <td><ol></ol></td>
+          </tr>
+        </tbody>
+      `;
+
+      const result = parseQuizTable(table);
+
+      expect(result.errors).toContainEqual(expect.stringContaining('has no options'));
+    });
+
+    it('should fail if numeric question has invalid tolerance', () => {
+      const table = document.createElement('table');
+      table.className = 'qd-quiz';
+      table.innerHTML = `
+        <tbody>
+          <tr>
+            <td>Question</td>
+            <td>3.14</td>
+            <td>not-a-number</td>
+          </tr>
+        </tbody>
+      `;
+
+      const result = parseQuizTable(table);
+
+      expect(result.errors).toContainEqual(expect.stringContaining('invalid tolerance'));
     });
 
     it('should trim whitespace from question text', () => {
-      const table = createQuizTable([
-        {
-          question: '  What is active sonar?  ',
-          answer: '1',
-          detail: '<ol><li>Option A</li></ol>',
-        },
-      ]);
-
-      const result = parseQuizTable(table);
-      expect(result.questions[0].text).toBe('What is active sonar?');
-    });
-
-    it('should handle multi-line question text', () => {
-      const table = createQuizTable([
-        {
-          question: 'What is the speed of sound\nin seawater?',
-          answer: '1500',
-          detail: '50',
-        },
-      ]);
-
-      const result = parseQuizTable(table);
-      expect(result.questions[0].text).toContain('speed of sound');
-      expect(result.questions[0].text).toContain('seawater');
-    });
-  });
-
-  describe('Table Structure Validation', () => {
-    it('should require exactly 3 columns', () => {
       const table = document.createElement('table');
       table.className = 'qd-quiz';
-      const tbody = table.createTBody();
-      const row = tbody.insertRow();
-      row.insertCell().textContent = 'Question';
-      row.insertCell().textContent = 'Answer';
-      // Missing Detail column
+      table.innerHTML = `
+        <tbody>
+          <tr>
+            <td>  Question with whitespace  </td>
+            <td>1</td>
+            <td><ol><li>A</li></ol></td>
+          </tr>
+        </tbody>
+      `;
 
       const result = parseQuizTable(table);
-      expect(result.errors).toBeDefined();
-      expect(result.errors?.[0]).toContain('expected 3');
+
+      expect(result.questions[0]?.text).toBe('Question with whitespace');
     });
 
-    it('should detect quiz tables by class "qd-quiz"', () => {
-      const table = createQuizTable([
-        {
-          question: 'Test question',
-          answer: '1',
-          detail: '<ol><li>Option</li></ol>',
-        },
-      ]);
-
-      expect(table.classList.contains('qd-quiz')).toBe(true);
-    });
-
-    it('should handle table with header row', () => {
+    it('should trim whitespace from answer', () => {
       const table = document.createElement('table');
       table.className = 'qd-quiz';
-
-      // Add header
-      const thead = table.createTHead();
-      const headerRow = thead.insertRow();
-      headerRow.insertCell().textContent = 'Question';
-      headerRow.insertCell().textContent = 'Answer';
-      headerRow.insertCell().textContent = 'Detail';
-
-      // Add data row
-      const tbody = table.createTBody();
-      const row = tbody.insertRow();
-      row.insertCell().textContent = 'What is sonar?';
-      row.insertCell().textContent = '1';
-      row.insertCell().innerHTML = '<ol><li>Sound Navigation</li></ol>';
+      table.innerHTML = `
+        <tbody>
+          <tr>
+            <td>Question</td>
+            <td>  1  </td>
+            <td><ol><li>A</li></ol></td>
+          </tr>
+        </tbody>
+      `;
 
       const result = parseQuizTable(table);
-      expect(result.questions).toHaveLength(1);
-      expect(result.questions[0].text).toBe('What is sonar?');
+
+      expect(result.questions[0]?.correctAnswer).toBe('1');
     });
 
-    it('should handle empty quiz table', () => {
+    it('should trim whitespace from MCQ options', () => {
       const table = document.createElement('table');
       table.className = 'qd-quiz';
-      table.createTBody();
+      table.innerHTML = `
+        <tbody>
+          <tr>
+            <td>Question</td>
+            <td>1</td>
+            <td><ol><li>  Option A  </li><li>  Option B  </li></ol></td>
+          </tr>
+        </tbody>
+      `;
 
       const result = parseQuizTable(table);
-      expect(result.errors).toBeDefined();
-      expect(result.errors?.[0]).toContain('no data rows');
-    });
-  });
 
-  describe('Mixed Question Types', () => {
-    it('should parse table with both MCQ and numeric questions', () => {
-      const table = createQuizTable([
-        {
-          question: 'What is active sonar?',
-          answer: '1',
-          detail: '<ol><li>Uses reflections</li><li>Listens only</li></ol>',
-        },
-        {
-          question: 'Speed of sound in water (m/s)?',
-          answer: '1500',
-          detail: '50',
-        },
-        {
-          question: 'Which type of sonar?',
-          answer: '2',
-          detail: '<ol><li>Active</li><li>Passive</li></ol>',
-        },
-      ]);
-
-      const result = parseQuizTable(table);
-      expect(result.questions).toHaveLength(3);
-      expect(result.questions[0].kind).toBe('mcq');
-      expect(result.questions[1].kind).toBe('numeric');
-      expect(result.questions[2].kind).toBe('mcq');
-    });
-  });
-
-  describe('Error Cases', () => {
-    it('should report error for invalid MCQ (no options)', () => {
-      const table = createQuizTable([
-        {
-          question: 'Invalid MCQ',
-          answer: '1',
-          detail: '<ol></ol>',
-        },
-      ]);
-
-      const result = parseQuizTable(table);
-      expect(result.errors).toBeDefined();
-      expect(result.errors?.[0]).toContain('no options');
+      expect(result.questions[0]?.options).toEqual(['Option A', 'Option B']);
     });
 
-    it('should report error for invalid numeric tolerance (non-number)', () => {
-      const table = createQuizTable([
-        {
-          question: 'Invalid numeric',
-          answer: '100',
-          detail: 'not a number',
-        },
-      ]);
-
-      const result = parseQuizTable(table);
-      expect(result.errors).toBeDefined();
-      expect(result.errors?.[0]).toContain('invalid tolerance');
-    });
-
-    it('should handle missing answer column', () => {
+    it('should filter out empty options from MCQ list', () => {
       const table = document.createElement('table');
       table.className = 'qd-quiz';
-      const tbody = table.createTBody();
-      const row = tbody.insertRow();
-      row.insertCell().textContent = 'Question';
-      row.insertCell().textContent = ''; // Empty answer
-      row.insertCell().textContent = '10';
+      table.innerHTML = `
+        <tbody>
+          <tr>
+            <td>Question</td>
+            <td>1</td>
+            <td><ol><li>A</li><li></li><li>B</li></ol></td>
+          </tr>
+        </tbody>
+      `;
 
       const result = parseQuizTable(table);
-      expect(result.errors).toBeDefined();
-      expect(result.errors?.[0]).toContain('empty answer');
+
+      expect(result.questions[0]?.options).toEqual(['A', 'B']);
     });
 
-    it('should handle malformed HTML in detail column', () => {
-      const table = createQuizTable([
-        {
-          question: 'Test',
-          answer: '1',
-          detail: '<ol><li>Unclosed tag',
-        },
-      ]);
+    it('should include row numbers in error messages', () => {
+      const table = document.createElement('table');
+      table.className = 'qd-quiz';
+      table.innerHTML = `
+        <tbody>
+          <tr><td>Q1</td><td>1</td><td><ol><li>A</li></ol></td></tr>
+          <tr><td></td><td>2</td><td><ol><li>B</li></ol></td></tr>
+          <tr><td>Q3</td><td>3</td><td><ol><li>C</li></ol></td></tr>
+        </tbody>
+      `;
 
       const result = parseQuizTable(table);
-      // Browser should handle HTML parsing
-      expect(result).toBeDefined();
+
+      expect(result.errors).toContainEqual(expect.stringContaining('Row 2'));
     });
   });
 
-  describe('Integration with ParsedQuizTable type', () => {
-    it('should return ParsedQuizTable with element reference', () => {
-      const table = createQuizTable([
-        {
-          question: 'Test question',
-          answer: '1',
-          detail: '<ol><li>Option A</li></ol>',
-        },
-      ]);
+  describe('findQuizTables()', () => {
+    it('should find all quiz tables in document', () => {
+      container.innerHTML = `
+        <table class="qd-quiz">
+          <tbody><tr><td>Q1</td><td>1</td><td><ol><li>A</li></ol></td></tr></tbody>
+        </table>
+        <table class="other-table">
+          <tbody><tr><td>Not a quiz</td></tr></tbody>
+        </table>
+        <table class="qd-quiz">
+          <tbody><tr><td>Q2</td><td>2</td><td><ol><li>B</li></ol></td></tr></tbody>
+        </table>
+      `;
 
-      const result: ParsedQuizTable = parseQuizTable(table);
-      expect(result.element).toBe(table);
-      expect(result.questions).toBeInstanceOf(Array);
-      expect(result.questions).toHaveLength(1);
+      const results = findQuizTables(document);
+
+      expect(results).toHaveLength(2);
+      expect(results[0]?.questions).toHaveLength(1);
+      expect(results[1]?.questions).toHaveLength(1);
     });
 
-    it('should return undefined errors when no errors', () => {
-      const table = createQuizTable([
-        {
-          question: 'Valid question',
-          answer: '1',
-          detail: '<ol><li>Option A</li></ol>',
-        },
-      ]);
+    it('should return empty array if no quiz tables found', () => {
+      container.innerHTML = '<table class="other-table"><tbody><tr><td>X</td></tr></tbody></table>';
 
-      const result = parseQuizTable(table);
-      expect(result.errors).toBeUndefined();
+      const results = findQuizTables(document);
+
+      expect(results).toHaveLength(0);
+    });
+
+    it('should accept custom document parameter', () => {
+      const customDoc = document.implementation.createHTMLDocument('Test');
+      customDoc.body.innerHTML = `
+        <table class="qd-quiz">
+          <tbody><tr><td>Q</td><td>1</td><td><ol><li>A</li></ol></td></tr></tbody>
+        </table>
+      `;
+
+      const results = findQuizTables(customDoc);
+
+      expect(results).toHaveLength(1);
     });
   });
 
-  describe('validateAnswer function', () => {
-    it('should validate MCQ answer correctly', () => {
-      const question: QuizQuestion = {
-        text: 'Test',
+  describe('validateAnswer()', () => {
+    describe('MCQ questions', () => {
+      const mcqQuestion: QuizQuestion = {
+        text: 'Question',
         kind: 'mcq',
         correctAnswer: '2',
         options: ['A', 'B', 'C'],
       };
 
-      expect(validateAnswer(question, '2')).toBe(true);
-      expect(validateAnswer(question, '1')).toBe(false);
-      expect(validateAnswer(question, '3')).toBe(false);
+      it('should return true for correct answer', () => {
+        expect(validateAnswer(mcqQuestion, '2')).toBe(true);
+      });
+
+      it('should return false for incorrect answer', () => {
+        expect(validateAnswer(mcqQuestion, '1')).toBe(false);
+        expect(validateAnswer(mcqQuestion, '3')).toBe(false);
+      });
+
+      it('should return false for empty answer', () => {
+        expect(validateAnswer(mcqQuestion, '')).toBe(false);
+      });
+
+      it('should trim whitespace from answer', () => {
+        expect(validateAnswer(mcqQuestion, '  2  ')).toBe(true);
+      });
+
+      it('should require exact match', () => {
+        expect(validateAnswer(mcqQuestion, '2.0')).toBe(false);
+        expect(validateAnswer(mcqQuestion, 'B')).toBe(false);
+      });
     });
 
-    it('should validate numeric answer within tolerance', () => {
-      const question: QuizQuestion = {
-        text: 'Test',
+    describe('Numeric questions', () => {
+      const numericQuestion: QuizQuestion = {
+        text: 'What is pi?',
         kind: 'numeric',
-        correctAnswer: '1500',
-        tolerance: 50,
+        correctAnswer: '3.14',
+        tolerance: 0.01,
       };
 
-      expect(validateAnswer(question, '1500')).toBe(true);
-      expect(validateAnswer(question, '1525')).toBe(true);
-      expect(validateAnswer(question, '1475')).toBe(true);
-      expect(validateAnswer(question, '1551')).toBe(false);
-      expect(validateAnswer(question, '1449')).toBe(false);
-    });
+      it('should return true for exact answer', () => {
+        expect(validateAnswer(numericQuestion, '3.14')).toBe(true);
+      });
 
-    it('should reject empty answers', () => {
-      const question: QuizQuestion = {
-        text: 'Test',
-        kind: 'mcq',
-        correctAnswer: '1',
-        options: ['A'],
-      };
+      it('should return true for answer within tolerance', () => {
+        expect(validateAnswer(numericQuestion, '3.15')).toBe(true); // 0.01 away
+        expect(validateAnswer(numericQuestion, '3.14')).toBe(true); // exact
+        expect(validateAnswer(numericQuestion, '3.145')).toBe(true); // 0.005 away
+        expect(validateAnswer(numericQuestion, '3.135')).toBe(true); // 0.005 away
+      });
 
-      expect(validateAnswer(question, '')).toBe(false);
-      expect(validateAnswer(question, '  ')).toBe(false);
-    });
+      it('should return false for answer outside tolerance', () => {
+        expect(validateAnswer(numericQuestion, '3.16')).toBe(false);
+        expect(validateAnswer(numericQuestion, '3.12')).toBe(false);
+      });
 
-    it('should handle numeric with zero tolerance', () => {
-      const question: QuizQuestion = {
-        text: 'Test',
-        kind: 'numeric',
-        correctAnswer: '100',
-        tolerance: 0,
-      };
+      it('should return false for non-numeric answer', () => {
+        expect(validateAnswer(numericQuestion, 'not-a-number')).toBe(false);
+      });
 
-      expect(validateAnswer(question, '100')).toBe(true);
-      expect(validateAnswer(question, '100.1')).toBe(false);
-      expect(validateAnswer(question, '99.9')).toBe(false);
+      it('should return false for empty answer', () => {
+        expect(validateAnswer(numericQuestion, '')).toBe(false);
+      });
+
+      it('should trim whitespace from answer', () => {
+        expect(validateAnswer(numericQuestion, '  3.14  ')).toBe(true);
+      });
+
+      it('should handle zero tolerance', () => {
+        const zeroToleranceQuestion: QuizQuestion = {
+          text: 'Exact value',
+          kind: 'numeric',
+          correctAnswer: '42',
+          tolerance: 0,
+        };
+
+        expect(validateAnswer(zeroToleranceQuestion, '42')).toBe(true);
+        expect(validateAnswer(zeroToleranceQuestion, '42.0')).toBe(true);
+        expect(validateAnswer(zeroToleranceQuestion, '42.01')).toBe(false);
+        expect(validateAnswer(zeroToleranceQuestion, '41.99')).toBe(false);
+      });
+
+      it('should handle undefined tolerance as zero', () => {
+        const noToleranceQuestion: QuizQuestion = {
+          text: 'Exact value',
+          kind: 'numeric',
+          correctAnswer: '10',
+        };
+
+        expect(validateAnswer(noToleranceQuestion, '10')).toBe(true);
+        expect(validateAnswer(noToleranceQuestion, '10.01')).toBe(false);
+      });
     });
   });
-
-  describe('findQuizTables function', () => {
-    it('should find all quiz tables in document', () => {
-      // Create multiple quiz tables
-      createQuizTable([{ question: 'Q1', answer: '1', detail: '<ol><li>A</li></ol>' }]);
-      createQuizTable([{ question: 'Q2', answer: '100', detail: '10' }]);
-
-      const results = findQuizTables(document);
-      expect(results).toHaveLength(2);
-      expect(results[0].questions).toHaveLength(1);
-      expect(results[1].questions).toHaveLength(1);
-    });
-
-    it('should return empty array when no quiz tables found', () => {
-      const results = findQuizTables(document);
-      expect(results).toEqual([]);
-    });
-  });
-
-  // Helper function to create quiz tables for testing
-  function createQuizTable(
-    rows: Array<{ question: string; answer: string; detail: string }>,
-  ): HTMLTableElement {
-    const table = document.createElement('table');
-    table.className = 'qd-quiz';
-
-    // Add header
-    const thead = table.createTHead();
-    const headerRow = thead.insertRow();
-    headerRow.insertCell().textContent = 'Question';
-    headerRow.insertCell().textContent = 'Answer';
-    headerRow.insertCell().textContent = 'Detail';
-
-    // Add data rows
-    const tbody = table.createTBody();
-    rows.forEach((rowData) => {
-      const row = tbody.insertRow();
-      row.insertCell().textContent = rowData.question;
-      row.insertCell().textContent = rowData.answer;
-      row.insertCell().innerHTML = rowData.detail;
-    });
-
-    document.body.appendChild(table);
-    return table;
-  }
 });

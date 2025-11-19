@@ -169,6 +169,10 @@ export function validateQuizTable(table: HTMLTableElement): ValidationResult {
     const answerCell = cells[1];
     const detailCell = cells[2];
 
+    if (!questionCell || !answerCell || !detailCell) {
+      return;
+    }
+
     const questionText = questionCell.textContent?.trim() || '';
     const answerText = answerCell.textContent?.trim() || '';
 

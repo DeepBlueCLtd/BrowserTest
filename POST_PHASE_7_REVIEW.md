@@ -8,7 +8,7 @@
 - Source Files: 21 TypeScript files
 - Test Files: 29 test/spec files
 - Total Lines: ~6,300 LOC (source only)
-- Bundle Target: ≤25KB min+gzip
+- Bundle Target: ≤35KB min+gzip
 
 ---
 
@@ -668,8 +668,8 @@ const login = document.querySelector('qd-login');
      run: |
        npm run build
        SIZE=$(stat -f%z dist/sonar-quiz.iife.js.gz)
-       if [ $SIZE -gt 25600 ]; then
-         echo "Bundle too large: ${SIZE} bytes (max 25KB)"
+       if [ $SIZE -gt 35840 ]; then
+         echo "Bundle too large: ${SIZE} bytes (max 35KB)"
          exit 1
        fi
    ```
@@ -1062,7 +1062,7 @@ npx typedoc --out docs/api src/index.ts
 - ✅ <50 eslint-disable comments (from 78)
 - ✅ <200 lines of duplicated code (from ~400)
 - ✅ Zero TypeScript compilation errors
-- ✅ Bundle size <25KB min+gzip
+- ✅ Bundle size <35KB min+gzip
 
 ### Documentation Metrics
 - ✅ 100% public API coverage with JSDoc

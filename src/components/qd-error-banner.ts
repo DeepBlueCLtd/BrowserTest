@@ -1,150 +1,160 @@
 /**
- * Error Banner Component
- *
- * Displays validation errors for quiz and analysis tables.
- * Used to show authoring constraint violations per FR-007.
- *
- * @element qd-error-banner
- *
- * @prop {ValidationError[]} errors - Array of validation errors to display
- *
- * @fires {CustomEvent} qd:error-displayed - When errors are shown to user
+ * Error banner component
+ * Displays validation errors and warnings to users
  */
 
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import type { ValidationError } from '../services/validation';
 
+/**
+ * Error banner for displaying validation errors and warnings
+ *
+ * Features:
+ * - Auto-dismissable after timeout
+ * - Different severity levels (error, warning, info)
+ * - Manual close button
+ * - Accessible ARIA attributes
+ *
+ * @example
+ * ```html
+ * <qd-error-banner
+ *   message="Invalid quiz table format"
+ *   severity="error"
+ * ></qd-error-banner>
+ * ```
+ */
 @customElement('qd-error-banner')
 export class QdErrorBanner extends LitElement {
-  /**
-   * Array of validation errors to display
-   */
-  @property({ type: Array })
-  errors: ValidationError[] = [];
-
-  static styles = css`
+  static override styles = css`
     :host {
       display: block;
-      width: 100%;
+      margin: 16px 0;
     }
 
-    .error-banner {
-      background-color: #fee;
-      border: 2px solid #c00;
+    .banner {
+      padding: 12px 16px;
       border-radius: 4px;
-      padding: 16px;
-      margin: 16px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       font-family:
         system-ui,
         -apple-system,
         sans-serif;
-      color: #600;
+      font-size: 14px;
+      line-height: 1.5;
     }
 
-    .error-banner__title {
-      font-weight: bold;
-      font-size: 1.1em;
-      margin: 0 0 12px 0;
-      color: #c00;
+    .banner.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
     }
 
-    .error-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
+    .banner.warning {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
     }
 
-    .error-item {
-      padding: 8px 0;
-      border-top: 1px solid #fcc;
+    .banner.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
     }
 
-    .error-item:first-child {
-      border-top: none;
-      padding-top: 0;
+    .message {
+      flex: 1;
     }
 
-    .error-item:last-child {
-      padding-bottom: 0;
+    .close-button {
+      background: none;
+      border: none;
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0 0 0 16px;
+      opacity: 0.5;
+      transition: opacity 0.2s;
     }
 
-    .error-code {
-      font-family: monospace;
-      font-weight: bold;
-      background-color: #fdd;
-      padding: 2px 6px;
-      border-radius: 3px;
-      margin-right: 8px;
-      font-size: 0.9em;
+    .close-button:hover {
+      opacity: 1;
     }
 
-    .error-message {
-      display: inline;
-    }
-
-    .error-row {
-      font-weight: bold;
-      color: #900;
-    }
-
-    /* High contrast mode support */
-    @media (prefers-contrast: high) {
-      .error-banner {
-        border-width: 3px;
-      }
-
-      .error-code {
-        border: 1px solid #c00;
-      }
-    }
-
-    /* Reduced motion support */
-    @media (prefers-reduced-motion: reduce) {
-      * {
-        animation: none !important;
-        transition: none !important;
-      }
+    :host([hidden]) {
+      display: none;
     }
   `;
 
-  render() {
-    // Don't render if no errors
-    if (!this.errors || this.errors.length === 0) {
+  @property({ type: String })
+  message = '';
+
+  @property({ type: String })
+  severity: 'error' | 'warning' | 'info' = 'error';
+
+  @property({ type: Boolean })
+  dismissable = true;
+
+  @property({ type: Number })
+  autoDismissMs = 0;
+
+  private dismissTimeout?: number;
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    if (this.autoDismissMs > 0) {
+      this.scheduleDismiss();
+    }
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if (this.dismissTimeout) {
+      window.clearTimeout(this.dismissTimeout);
+    }
+  }
+
+  private scheduleDismiss(): void {
+    if (this.dismissTimeout) {
+      window.clearTimeout(this.dismissTimeout);
+    }
+    this.dismissTimeout = window.setTimeout(() => {
+      this.dismiss();
+    }, this.autoDismissMs);
+  }
+
+  private handleClose = (): void => {
+    this.dismiss();
+  };
+
+  private dismiss(): void {
+    this.dispatchEvent(
+      new CustomEvent('dismiss', {
+        bubbles: true,
+        composed: true,
+      }),
+    );
+    this.hidden = true;
+  }
+
+  override render() {
+    if (!this.message) {
       return html``;
     }
 
     return html`
-      <div class="error-banner" role="alert" aria-live="polite">
-        <h3 class="error-banner__title">⚠️ Table Validation Errors</h3>
-        <ul class="error-list">
-          ${this.errors.map(
-            (error) => html`
-              <li class="error-item">
-                <span class="error-code">[${error.code}]</span>
-                <span class="error-message">${error.message}</span>
-                ${error.row ? html` <span class="error-row">(Row ${error.row})</span>` : ''}
-              </li>
-            `,
-          )}
-        </ul>
+      <div class="banner ${this.severity}" role="alert" aria-live="polite">
+        <div class="message">${this.message}</div>
+        ${this.dismissable
+          ? html`
+              <button class="close-button" @click=${this.handleClose} aria-label="Dismiss">
+                ✕
+              </button>
+            `
+          : ''}
       </div>
     `;
-  }
-
-  updated(changedProperties: Map<PropertyKey, unknown>) {
-    super.updated(changedProperties);
-
-    // Emit event when errors are displayed
-    if (changedProperties.has('errors') && this.errors.length > 0) {
-      this.dispatchEvent(
-        new CustomEvent('qd:error-displayed', {
-          detail: { errors: this.errors },
-          bubbles: true,
-          composed: true,
-        }),
-      );
-    }
   }
 }
 

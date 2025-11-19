@@ -2,10 +2,21 @@
  * Session Management Service
  *
  * Handles user session lifecycle, timeout management, and instructor mode.
+ * Integrates with encrypted session storage for secure session data.
  */
 
-import type { SessionData, SessionCache, ServiceId, ReleaseId } from '../types/contracts';
-import { STORAGE_KEYS, SESSION_TIMEOUT_MS } from '../types/contracts';
+import type {
+  SessionData,
+  SessionCache,
+  ServiceId,
+  ReleaseId,
+  StudentRecord,
+  PageCache,
+  PageData,
+  CompletionState,
+} from '../types/contracts.js';
+import { STORAGE_KEYS, SESSION_TIMEOUT_MS } from '../types/contracts.js';
+import { info, warn, error } from '../utils/logger.js';
 
 /**
  * Session Service for managing user sessions
@@ -35,6 +46,11 @@ export class SessionService {
     };
 
     this.saveSession(session);
+    info(`Session created for ${serviceId} (${name})`);
+
+    // Emit login event
+    this.emitEvent('qd:login', { serviceId, name, release, loginTime });
+
     return session;
   }
 
@@ -54,13 +70,13 @@ export class SessionService {
 
       // Validate required fields
       if (!session.serviceId || !session.release || !session.expiresAt) {
-        console.warn('Invalid session data, missing required fields');
+        warn('Invalid session data, missing required fields');
         return null;
       }
 
       return session;
-    } catch (error) {
-      console.error('Failed to parse session data:', error);
+    } catch (err) {
+      error('Failed to parse session data', err as Error);
       return null;
     }
   }
@@ -102,8 +118,20 @@ export class SessionService {
    * Clear the current session
    */
   clearSession(): void {
+    const session = this.getSession();
     sessionStorage.removeItem(STORAGE_KEYS.SESSION);
     sessionStorage.removeItem(STORAGE_KEYS.CACHE);
+    sessionStorage.removeItem(STORAGE_KEYS.INSTRUCTOR);
+
+    if (session) {
+      info(`Session cleared for ${session.serviceId}`);
+
+      // Emit logout event
+      this.emitEvent('qd:logout', {
+        serviceId: session.serviceId,
+        timestamp: new Date().toISOString(),
+      });
+    }
   }
 
   /**
@@ -119,6 +147,8 @@ export class SessionService {
     session.unlockTime = new Date().toISOString();
 
     this.saveSession(session);
+
+    info('Instructor mode unlocked');
 
     // Emit custom event
     this.emitEvent('qd:instructor-unlock', { timestamp: session.unlockTime });
@@ -137,6 +167,8 @@ export class SessionService {
     delete session.unlockTime;
 
     this.saveSession(session);
+
+    info('Instructor mode locked');
 
     // Emit custom event
     this.emitEvent('qd:instructor-lock', { timestamp: new Date().toISOString() });
@@ -165,8 +197,8 @@ export class SessionService {
       }
 
       return JSON.parse(cacheData) as SessionCache;
-    } catch (error) {
-      console.error('Failed to parse cache data:', error);
+    } catch (err) {
+      error('Failed to parse cache data', err);
       return null;
     }
   }
@@ -179,8 +211,8 @@ export class SessionService {
   saveCache(cache: SessionCache): void {
     try {
       sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
-    } catch (error) {
-      console.error('Failed to save cache:', error);
+    } catch (err) {
+      error('Failed to save cache', err);
     }
   }
 
@@ -199,8 +231,8 @@ export class SessionService {
   private saveSession(session: SessionData): void {
     try {
       sessionStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(session));
-    } catch (error) {
-      console.error('Failed to save session:', error);
+    } catch (err) {
+      error('Failed to save session', err);
     }
   }
 
@@ -214,8 +246,8 @@ export class SessionService {
     try {
       const event = new CustomEvent(eventName, { detail });
       window.dispatchEvent(event);
-    } catch (error) {
-      console.error(`Failed to emit event ${eventName}:`, error);
+    } catch (err) {
+      error(`Failed to emit event ${eventName}`, err);
     }
   }
 }
@@ -233,11 +265,10 @@ export class SessionService {
  * @param record - Student record to build cache from
  * @returns Session cache with totals and page entries
  */
-export function buildCacheFromRecord(
-  record: import('../types/contracts').StudentRecord,
-): SessionCache {
+export function buildCacheFromRecord(record: StudentRecord): SessionCache {
   const cache: SessionCache = {
     totals: {
+      total: 0,
       answered: 0,
       correct: 0,
     },
@@ -250,6 +281,7 @@ export function buildCacheFromRecord(
     cache.pages[pageId] = pageCache;
 
     // Accumulate totals
+    cache.totals.total += pageCache.total;
     cache.totals.answered += pageCache.answered;
     cache.totals.correct += pageCache.correct;
   }
@@ -264,18 +296,72 @@ export function buildCacheFromRecord(
  * @param pageData - Page data from student record
  * @returns Page cache entry
  */
-export function buildPageCache(
-  _pageId: string,
-  pageData: import('../types/contracts').StudentRecord['pages'][string],
-): import('../types/contracts').PageCache {
-  const answered = pageData.answers.length;
+export function buildPageCache(_pageId: string, pageData: PageData): PageCache {
+  // Total is the length of answers array (includes empty/placeholder answers)
+  const total = pageData.answers.length;
+  const answered = pageData.answers.filter((a) => a.answer.trim() !== '').length;
   const correct = pageData.answers.filter((a) => a.success).length;
 
   return {
     state: pageData.state,
+    total,
     answered,
     correct,
     last: pageData.lastAttempted,
+    answers: pageData.answers,
+    analysis: pageData.analysis, // Preserve analysis data from analysis tables
+  };
+}
+
+/**
+ * Register page questions in cache
+ *
+ * Called when a quiz page loads to register the total number of questions.
+ * This ensures the status panel shows total registered questions, not just answered.
+ *
+ * @param cache - Current cache to update
+ * @param pageId - Page identifier
+ * @param totalQuestions - Total number of questions on the page
+ * @returns Updated cache
+ */
+export function registerPageQuestions(
+  cache: SessionCache,
+  pageId: string,
+  totalQuestions: number,
+): SessionCache {
+  // Get existing page cache or create new one
+  const existingPage = cache.pages[pageId];
+
+  // If page already registered with same or higher total, don't update
+  if (existingPage && existingPage.total >= totalQuestions) {
+    return cache;
+  }
+
+  // Calculate delta for totals update
+  const oldTotal = existingPage?.total || 0;
+  const delta = totalQuestions - oldTotal;
+
+  // Create/update page entry
+  const updatedPage: PageCache = {
+    state: existingPage?.state || ('unstarted' as const),
+    total: totalQuestions,
+    answered: existingPage?.answered || 0,
+    correct: existingPage?.correct || 0,
+    last: existingPage?.last,
+    answers: existingPage?.answers,
+    analysis: existingPage?.analysis,
+  };
+
+  return {
+    totals: {
+      total: cache.totals.total + delta,
+      answered: cache.totals.answered,
+      correct: cache.totals.correct,
+    },
+    pages: {
+      ...cache.pages,
+      [pageId]: updatedPage,
+    },
   };
 }
 
@@ -288,25 +374,29 @@ export function buildPageCache(
  * @param cache - Current cache to update
  * @param pageId - Page where answer was submitted
  * @param isCorrect - Whether the answer is correct
+ * @param newState - New completion state for the page
  * @returns Updated cache
  */
 export function updateCacheWithAnswer(
   cache: SessionCache,
   pageId: string,
   isCorrect: boolean,
+  newState: CompletionState,
 ): SessionCache {
   const now = new Date().toISOString();
 
   // Get or create page entry
   const pageCache = cache.pages[pageId] || {
     state: 'incomplete' as const,
+    total: 0,
     answered: 0,
     correct: 0,
   };
 
   // Update page counts
-  const updatedPage = {
+  const updatedPage: PageCache = {
     ...pageCache,
+    state: newState,
     answered: pageCache.answered + 1,
     correct: pageCache.correct + (isCorrect ? 1 : 0),
     last: now,
@@ -314,6 +404,7 @@ export function updateCacheWithAnswer(
 
   // Update totals
   const updatedTotals = {
+    total: cache.totals.total,
     answered: cache.totals.answered + 1,
     correct: cache.totals.correct + (isCorrect ? 1 : 0),
   };
@@ -326,6 +417,10 @@ export function updateCacheWithAnswer(
     },
   };
 }
+
+// ============================================================================
+// SINGLETON PATTERN
+// ============================================================================
 
 /**
  * Create and return a singleton instance of the session service

@@ -11,6 +11,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:dita": "npm run build && npm run copy-to-dita",
+    "copy-to-dita": "cp dist/sonar-quiz.iife.* dita/template/resources/ && cp dist/sonar-quiz.iife.* dita/out/oxygen/oxygen-webhelp/template/resources/",
+    "update-dita-demo": "rm -rf dita-demo && mkdir -p dita-demo && cp -r dita/out/oxygen/* dita-demo/",
+    "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "vitest run",
@@ -45,6 +49,7 @@
   "devDependencies": {
     "@chromatic-com/storybook": "^3.2.7",
     "@eslint/js": "^9.39.1",
+    "@peculiar/webcrypto": "^1.5.0",
     "@playwright/test": "^1.56.1",
     "@storybook/addon-essentials": "8.6.14",
     "@storybook/addon-interactions": "8.6.14",

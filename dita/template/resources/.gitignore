@@ -1,0 +1,3 @@
+# Sonar Quiz System bundle (copied from dist/ via npm run copy-to-dita)
+sonar-quiz.iife.js
+sonar-quiz.iife.js.map

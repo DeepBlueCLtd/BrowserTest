@@ -19,6 +19,25 @@
         </xsl:if>
     </xsl:template>
 
-
+    <!-- Inject instructor password hash into the main header -->
+    <xsl:template match="*:header[contains(@class, 'wh_header') and contains(@class, 'c-nav-bar')]" mode="copy_template">
+        <xsl:copy>
+            <xsl:copy-of select="@*"/>
+            <xsl:apply-templates mode="copy_template"/>
+            <!-- Hidden span with instructor password hash parameter -->
+            <span id="qd-instructor-hash" style="display:none;">
+                <xsl:value-of select="oxyf:getParameter('qd-instructor-hash')"/>
+            </span>
+            <span id="qd-status-container" style="display:none;">
+                <xsl:value-of select="oxyf:getParameter('qd-status-container')"/>
+            </span>
+            <span id="qd-title-selector" style="display:none;">
+                <xsl:value-of select="oxyf:getParameter('qd-title-selector')"/>
+            </span>
+            <span id="qd-db-name" style="display:none;">
+                <xsl:value-of select="oxyf:getParameter('qd-db-name')"/>
+            </span>
+        </xsl:copy>
+    </xsl:template>
 
 </xsl:stylesheet>

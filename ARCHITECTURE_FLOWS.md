@@ -74,6 +74,22 @@ graph LR
 
 ## 2. Login Process Flows
 
+### Release ID Extraction
+**CRITICAL**: Before any login can succeed, the system must extract the Release ID from the DOM structure created by DITA publishing.
+
+```typescript
+// Release ID is ALWAYS extracted from DOM, NEVER from user input
+const titleElement = document.querySelector('.wh_publication_title .title');
+const release = titleElement?.textContent?.trim() || '';
+
+// Required HTML structure (added by DITA):
+// <div class="wh_publication_title">
+//   <span class="title">TRV Connectors Autumn 2025</span>
+// </div>
+```
+
+**Common Mistake**: Attempting to read `release` from a form input field. This field does NOT exist - release comes from the publication title element only.
+
 ### Three Login Paths
 
 ```mermaid
@@ -89,8 +105,9 @@ sequenceDiagram
     alt Path 1: Initial Login (No Session)
         User->>DOM: Visit page
         DOM->>qd-login: Render login form
+        qd-login->>DOM: Extract release from .wh_publication_title .title
         User->>qd-login: Enter name + serviceId
-        qd-login->>EventBus: Dispatch qd:login
+        qd-login->>EventBus: Dispatch qd:login (with release)
         EventBus->>index.ts: Handle login
         index.ts->>SessionService: Create session
         SessionService->>Storage: Save to sessionStorage
@@ -142,11 +159,14 @@ stateDiagram-v2
 
 ```
 Document Root
+├── Publication Title (.wh_publication_title)
+│   └── Title Text (.title) [RELEASE ID SOURCE]
+│
 ├── Navigation (.wh_top_menu_and_indexterms_link)
 │   └── Status Panel (#qd-status) [INJECTED]
 │
 ├── Content Area
-│   ├── Quiz Tables (table.qd-quiz.qd-page)
+│   ├── Quiz Tables (table.qd-quiz)
 │   │   ├── Question Rows
 │   │   └── Answer Controls [ENHANCED]
 │   │
@@ -163,7 +183,7 @@ Document Root
 
 | CSS Class | Purpose | Detection Method | Enhancement |
 |-----------|---------|------------------|-------------|
-| `.qd-quiz.qd-page` | Quiz table marker | `querySelectorAll('table.qd-quiz')` | Convert to interactive quiz |
+| `.qd-quiz` | Quiz table marker | `querySelectorAll('table.qd-quiz')` | Convert to interactive quiz |
 | `.qd-analysis` | Analysis table marker | `querySelectorAll('table.qd-analysis')` | Add editable inputs |
 | `.quizPageBtn` | Navigation links | `querySelectorAll('.quizPageBtn')` | Inject R/A/G badges |
 | `.wh_top_menu_and_indexterms_link` | Status panel container | `querySelector(config.statusPanelContainer)` | Append qd-status |

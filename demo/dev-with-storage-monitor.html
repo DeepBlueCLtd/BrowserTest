@@ -59,8 +59,15 @@
   </style>
 </head>
 <body>
+  <!-- Configuration injected by Oxygen XSL transform from Transformation Scenario parameters -->
+  <span id="qd-status-container" style="display:none;">.wh_top_menu_and_indexterms_link</span>
+  <span id="qd-title-selector" style="display:none;">.wh_publication_title .title</span>
+  <span id="qd-db-name" style="display:none;">BrowserTest</span>
+  <span id="qd-instructor-hash" style="display:none;">5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8</span>
+
   <div id="main-content">
     <nav class="wh_top_menu_and_indexterms_link" style="background-color: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 2rem; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+      <div class=" wh_publication_title "><a href="index.html"><span xmlns="" class="title">TRV Connectors Autumn 2025</span></a></div>
       <ul style="list-style: none; margin: 0; padding: 0; display: flex; gap: 1.5rem; flex-wrap: wrap;">
         <li style="margin: 0;"><a href="quiz-index.html" style="color: #0066cc; text-decoration: none; font-weight: 500; padding: 0.5rem 1rem; border-radius: 4px; transition: background-color 0.2s;">Home</a></li>
         <li style="margin: 0;"><a href="seven-questions.html" style="color: #0066cc; text-decoration: none; font-weight: 500; padding: 0.5rem 1rem; border-radius: 4px; transition: background-color 0.2s;">Seven Questions</a></li>
@@ -90,7 +97,7 @@
   <h2>Sample Quiz</h2>
   <p>Try logging in and answering questions to see the storage monitor update in real-time.</p>
 
-  <table class="qd-quiz qd-page">
+  <table class="qd-quiz">
     <thead>
       <tr>
         <th>Question</th>
@@ -135,13 +142,10 @@
     </tbody>
   </table>
 
-  <!-- Load the Sonar Quiz System with debug mode enabled -->
-  <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true"></script>
+  <!-- Load the Sonar Quiz System -->
+  <script defer="defer" src="../dist/sonar-quiz.iife.js"></script>
 
   <script>
-    // You can also enable debug mode programmatically:
-    // SonarQuiz.init({ debug: true });
-
     console.log('Development demo loaded with storage monitor enabled');
     console.log('Press Ctrl+Shift+D to toggle the storage monitor');
   </script>

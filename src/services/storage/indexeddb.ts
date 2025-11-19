@@ -3,31 +3,71 @@
  *
  * Provides persistent storage for student records using browser IndexedDB.
  * Implements atomic transactions and proper error handling.
+ *
+ * Database: BrowserTest
+ * Stores: students (main data), backups (backup copies)
+ * Keys: qd/{release}/u{serviceId}
  */
 
-import type { StorageAdapter, StudentRecord, ReleaseId, ServiceId } from '../../types/contracts';
+import type { StorageAdapter, StudentRecord, ReleaseId, ServiceId } from '../../types/contracts.js';
 import {
   getStorageKey,
   StorageNotInitializedError,
   StorageError,
   StorageQuotaError,
-} from './adapter';
+} from './adapter-utils.js';
+import { info, warn as logWarn, error as logError } from '../../utils/logger.js';
 
-const DB_NAME = 'SonarQuizDB';
-const DB_VERSION = 1;
+/** Default database name */
+const DEFAULT_DB_NAME = 'BrowserTest';
+
+/** Database version - increment to force schema upgrade */
+const DB_VERSION = 2;
+
+/** Object store names */
 const STORE_STUDENTS = 'students';
 const STORE_BACKUPS = 'backups';
 
 /**
+ * Backup record with metadata
+ */
+interface BackupRecord extends StudentRecord {
+  /** Original storage key */
+  originalKey: string;
+  /** Backup timestamp */
+  timestamp: string;
+}
+
+/**
  * IndexedDB implementation of StorageAdapter
+ *
+ * Features:
+ * - Automatic schema creation with indexes
+ * - Atomic transactions
+ * - Quota error handling
+ * - Backup functionality
  */
 export class IndexedDBStorageAdapter implements StorageAdapter {
   private db: IDBDatabase | null = null;
   private initPromise: Promise<void> | null = null;
+  private dbName: string;
+
+  /**
+   * Create a new IndexedDB storage adapter
+   *
+   * @param dbName - Database name (defaults to 'BrowserTest')
+   */
+  constructor(dbName: string = DEFAULT_DB_NAME) {
+    this.dbName = dbName;
+  }
 
   /**
    * Initialize the IndexedDB database
-   * Creates object stores and indexes on first run
+   *
+   * Creates object stores and indexes on first run.
+   * Safe to call multiple times - will reuse existing connection.
+   *
+   * @returns Promise that resolves when database is ready
    */
   async init(): Promise<void> {
     // Return existing initialization promise if already in progress
@@ -41,7 +81,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     }
 
     this.initPromise = new Promise<void>((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      const request = indexedDB.open(this.dbName, DB_VERSION);
 
       request.onerror = () => {
         this.initPromise = null;
@@ -50,35 +90,92 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
       request.onsuccess = () => {
         this.db = request.result;
+
+        info(
+          `IndexedDB opened: ${this.dbName} v${this.db.version}, stores: [${Array.from(this.db.objectStoreNames).join(', ')}]`,
+        );
+
+        // Verify object stores exist - if not, database is corrupted
+        if (
+          !this.db.objectStoreNames.contains(STORE_STUDENTS) ||
+          !this.db.objectStoreNames.contains(STORE_BACKUPS)
+        ) {
+          // Database exists but stores missing - delete and recreate
+          logWarn(
+            `Database corrupted (missing stores). Found: [${Array.from(this.db.objectStoreNames).join(', ')}]`,
+          );
+          this.db.close();
+          this.db = null;
+
+          // Delete corrupted database
+          const deleteRequest = indexedDB.deleteDatabase(this.dbName);
+          deleteRequest.onsuccess = () => {
+            logWarn('Corrupted database deleted, retrying init...');
+            // Retry initialization
+            this.initPromise = null;
+            this.init().then(resolve).catch(reject);
+          };
+          deleteRequest.onerror = () => {
+            this.initPromise = null;
+            reject(
+              new StorageError(
+                'Failed to delete corrupted database',
+                'init',
+                deleteRequest.error as Error,
+              ),
+            );
+          };
+          return;
+        }
+
         this.initPromise = null;
         resolve();
       };
 
       request.onupgradeneeded = (event) => {
+        const upgradeEvent = event;
         const db = (event.target as IDBOpenDBRequest).result;
 
-        // Create students object store
-        if (!db.objectStoreNames.contains(STORE_STUDENTS)) {
-          const studentsStore = db.createObjectStore(STORE_STUDENTS, { keyPath: null });
+        info(
+          `IndexedDB upgrade: ${this.dbName} v${upgradeEvent.oldVersion} → v${upgradeEvent.newVersion}`,
+        );
 
-          // Create indexes for efficient queries
-          studentsStore.createIndex('by-release', 'release', { unique: false });
-          studentsStore.createIndex('by-service-id', 'serviceId', { unique: false });
-          studentsStore.createIndex('by-updated', 'updated', { unique: false });
-        }
+        try {
+          // Create students object store
+          if (!db.objectStoreNames.contains(STORE_STUDENTS)) {
+            info('Creating students object store...');
+            const studentsStore = db.createObjectStore(STORE_STUDENTS, { keyPath: null });
 
-        // Create backups object store
-        if (!db.objectStoreNames.contains(STORE_BACKUPS)) {
-          const backupsStore = db.createObjectStore(STORE_BACKUPS, { keyPath: null });
+            // Create indexes for efficient queries
+            studentsStore.createIndex('by-release', 'release', { unique: false });
+            studentsStore.createIndex('by-service-id', 'serviceId', { unique: false });
+            info('Students store created with indexes');
+          } else {
+            info('Students store already exists, skipping');
+          }
 
-          // Create indexes for backup queries
-          backupsStore.createIndex('by-original-key', 'originalKey', { unique: false });
-          backupsStore.createIndex('by-timestamp', 'timestamp', { unique: false });
+          // Create backups object store
+          if (!db.objectStoreNames.contains(STORE_BACKUPS)) {
+            info('Creating backups object store...');
+            const backupsStore = db.createObjectStore(STORE_BACKUPS, { keyPath: null });
+
+            // Create indexes for backup queries
+            backupsStore.createIndex('by-original-key', 'originalKey', { unique: false });
+            backupsStore.createIndex('by-timestamp', 'timestamp', { unique: false });
+            info('Backups store created with indexes');
+          } else {
+            info('Backups store already exists, skipping');
+          }
+
+          info(`Upgrade complete. Stores: [${Array.from(db.objectStoreNames).join(', ')}]`);
+        } catch (err) {
+          logError('Error during database upgrade', err as Error);
+          throw err;
         }
       };
 
       request.onblocked = () => {
-        console.warn('IndexedDB upgrade blocked by another connection');
+        logWarn('IndexedDB upgrade blocked by another connection');
       };
     });
 
@@ -87,16 +184,23 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
   /**
    * Ensure database is initialized before operations
+   *
+   * @throws StorageNotInitializedError if not initialized
+   * @returns Database instance
    */
   private ensureInitialized(): IDBDatabase {
     if (!this.db) {
-      throw new StorageNotInitializedError('operation');
+      throw new StorageNotInitializedError('ensureInitialized');
     }
     return this.db;
   }
 
   /**
    * Get a student record by release and service ID
+   *
+   * @param release - Release identifier
+   * @param serviceId - Service identifier
+   * @returns Student record or null if not found
    */
   async getStudent(release: ReleaseId, serviceId: ServiceId): Promise<StudentRecord | null> {
     const db = this.ensureInitialized();
@@ -125,23 +229,19 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
   /**
    * Save a student record
-   * Updates the 'updated' timestamp automatically
+   *
+   * @param record - Student record to save
+   * @throws StorageQuotaError if storage quota exceeded
    */
   async saveStudent(record: StudentRecord): Promise<void> {
     const db = this.ensureInitialized();
     const key = getStorageKey(record.release, record.serviceId);
 
-    // Update the timestamp
-    const recordToSave: StudentRecord = {
-      ...record,
-      updated: new Date().toISOString(),
-    };
-
     return new Promise<void>((resolve, reject) => {
       try {
         const transaction = db.transaction(STORE_STUDENTS, 'readwrite');
         const store = transaction.objectStore(STORE_STUDENTS);
-        const request = store.put(recordToSave, key);
+        const request = store.put(record, key);
 
         request.onsuccess = () => {
           resolve();
@@ -179,7 +279,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
   /**
    * Get all students for a specific release
-   * Uses the by-release index for efficient queries
+   *
+   * Uses the by-release index for efficient queries.
+   *
+   * @param release - Release identifier
+   * @returns Array of student records (empty if none found)
    */
   async getStudentsByRelease(release: ReleaseId): Promise<StudentRecord[]> {
     const db = this.ensureInitialized();
@@ -218,7 +322,8 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
   /**
    * Clear all data from the database
-   * Removes both students and backups in a single transaction
+   *
+   * Removes both students and backups in a single atomic transaction.
    */
   async clearAll(): Promise<void> {
     const db = this.ensureInitialized();
@@ -287,7 +392,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
   /**
    * Create a backup of a student record
+   *
    * Backup key format: backup_{timestamp}_{serviceId}
+   *
+   * @param record - Student record to backup
+   * @throws StorageQuotaError if storage quota exceeded
    */
   async backup(record: StudentRecord): Promise<void> {
     const db = this.ensureInitialized();
@@ -295,7 +404,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     const backupKey = `backup_${timestamp}_${record.serviceId}`;
     const originalKey = getStorageKey(record.release, record.serviceId);
 
-    const backupRecord = {
+    const backupRecord: BackupRecord = {
       ...record,
       originalKey,
       timestamp,
@@ -337,7 +446,8 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
   /**
    * Close the database connection
-   * Useful for cleanup in tests
+   *
+   * Useful for cleanup in tests and application shutdown.
    */
   close(): void {
     if (this.db) {
@@ -349,23 +459,43 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 }
 
 /**
- * Create and return a singleton instance of the storage adapter
+ * Singleton storage adapter instance
  */
 let storageInstance: IndexedDBStorageAdapter | null = null;
+let currentDbName: string | null = null;
 
-export function getStorageAdapter(): IndexedDBStorageAdapter {
+/**
+ * Get the singleton storage adapter instance
+ *
+ * Creates a new instance on first call, reuses it thereafter.
+ * If dbName changes, closes old instance and creates new one.
+ *
+ * @param dbName - Database name (defaults to 'BrowserTest')
+ * @returns IndexedDB storage adapter
+ */
+export function getStorageAdapter(dbName: string = DEFAULT_DB_NAME): IndexedDBStorageAdapter {
+  // If dbName changed, close old instance and create new one
+  if (storageInstance && currentDbName !== dbName) {
+    storageInstance.close();
+    storageInstance = null;
+  }
+
   if (!storageInstance) {
-    storageInstance = new IndexedDBStorageAdapter();
+    storageInstance = new IndexedDBStorageAdapter(dbName);
+    currentDbName = dbName;
   }
   return storageInstance;
 }
 
 /**
- * Reset the singleton instance (useful for testing)
+ * Reset the singleton instance
+ *
+ * Useful for testing to ensure clean state between tests.
  */
 export function resetStorageAdapter(): void {
   if (storageInstance) {
     storageInstance.close();
     storageInstance = null;
+    currentDbName = null;
   }
 }

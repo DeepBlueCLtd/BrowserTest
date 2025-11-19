@@ -1,269 +1,92 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/**
+ * Storybook stories for qd-status component
+ *
+ * Demonstrates student progress display with R/A/G badges and logout.
+ */
+
 import type { Meta, StoryObj } from '@storybook/web-components';
 import { html } from 'lit';
-import '../../src/components/qd-status';
-import type { QdStatus } from '../../src/components/qd-status';
+import '../../src/components/qd-status.js';
+import { STORAGE_KEYS } from '../../src/types/contracts.js';
+import type { SessionCache } from '../../src/types/contracts.js';
 
-/**
- * The `qd-status` component displays student quiz progress with color-coded
- * status indicators (Red/Amber/Green), question counts, and a progress bar.
- *
- * ## Color Coding
- * - **Red (Unstarted)**: No questions answered
- * - **Amber (Incomplete)**: Some answered OR any incorrect
- * - **Green (Complete)**: All answered AND all correct
- *
- * ## Features
- * - Real-time progress tracking
- * - Percentage calculation
- * - ARIA live regions for accessibility
- * - Responsive layout
- */
-const meta: Meta<QdStatus> = {
-  title: 'Components/Status Panel',
+const meta: Meta = {
+  title: 'Components/Status',
   component: 'qd-status',
   tags: ['autodocs'],
-  argTypes: {
-    state: {
-      control: 'select',
-      options: ['unstarted', 'incomplete', 'complete'],
-      description: 'Completion state of the quiz',
-      table: {
-        type: { summary: 'CompletionState' },
-        defaultValue: { summary: 'unstarted' },
-      },
-    },
-    attempted: {
-      control: 'number',
-      description: 'Number of questions attempted',
-      table: {
-        type: { summary: 'number' },
-        defaultValue: { summary: '0' },
-      },
-    },
-    correct: {
-      control: 'number',
-      description: 'Number of correct answers',
-      table: {
-        type: { summary: 'number' },
-        defaultValue: { summary: '0' },
-      },
-    },
-    total: {
-      control: 'number',
-      description: 'Total number of questions',
-      table: {
-        type: { summary: 'number' },
-        defaultValue: { summary: '0' },
-      },
-    },
-    isLoggedIn: {
-      control: 'boolean',
-      description: 'Whether the user is logged in',
-      table: {
-        type: { summary: 'boolean' },
-        defaultValue: { summary: 'false' },
-      },
-    },
-    insertAfterSelector: {
-      control: 'text',
-      description:
-        'CSS selector (id/class) to insert component after. If not found, component will not be displayed.',
-      table: {
-        type: { summary: 'string' },
-        defaultValue: { summary: '' },
-      },
-    },
-    release: {
-      control: 'text',
-      description: 'Release identifier for login component',
-      table: {
-        type: { summary: 'string' },
-        defaultValue: { summary: '' },
-      },
-    },
-    docId: {
-      control: 'text',
-      description: 'Document identifier for login component',
-      table: {
-        type: { summary: 'string' },
-        defaultValue: { summary: '' },
-      },
-    },
-  },
   parameters: {
     docs: {
       description: {
-        component:
-          'Progress status panel with R/A/G color coding for quiz completion tracking. Supports both logged in (progress view) and not logged in (login view) states.',
+        component: `
+Student quiz progress panel with R/A/G status indicators.
+
+**Features:**
+- Real-time progress tracking (answered, correct, percentage)
+- R/A/G badges for page completion states:
+  - 🟢 Green: All questions answered correctly (complete)
+  - 🟠 Amber: Some answered or some incorrect (incomplete)
+  - 🔴 Red: No answers provided (unstarted)
+- Logout button
+- Automatic updates via \`qd:state-changed\` events
+
+**Event Emissions:**
+- \`qd:logout\`: User clicked logout button
+
+**Storage:**
+Reads from sessionStorage key \`${STORAGE_KEYS.CACHE}\`
+        `,
       },
     },
   },
 };
 
 export default meta;
-type Story = StoryObj<QdStatus>;
+type Story = StoryObj;
 
 /**
- * Unstarted state - No questions answered yet (RED)
+ * Default Progress Display
+ *
+ * Shows typical student progress with mixed completion states.
  */
-export const Unstarted: Story = {
-  args: {
-    state: 'unstarted',
-    attempted: 0,
-    correct: 0,
-    total: 10,
-    isLoggedIn: true,
-  },
-};
-
-/**
- * Incomplete state - Some questions answered (AMBER)
- */
-export const Incomplete: Story = {
-  args: {
-    state: 'incomplete',
-    attempted: 5,
-    correct: 3,
-    total: 10,
-    isLoggedIn: true,
-  },
-};
-
-/**
- * Complete state - All questions correct (GREEN)
- */
-export const Complete: Story = {
-  args: {
-    state: 'complete',
-    attempted: 10,
-    correct: 10,
-    total: 10,
-    isLoggedIn: true,
-  },
-};
-
-/**
- * Early progress - Just started
- */
-export const EarlyProgress: Story = {
-  args: {
-    state: 'incomplete',
-    attempted: 2,
-    correct: 2,
-    total: 20,
-    isLoggedIn: true,
-  },
-};
-
-/**
- * Mid progress - Halfway through
- */
-export const MidProgress: Story = {
-  args: {
-    state: 'incomplete',
-    attempted: 10,
-    correct: 8,
-    total: 20,
-    isLoggedIn: true,
-  },
-};
-
-/**
- * Late progress - Almost done but has errors
- */
-export const LateProgress: Story = {
-  args: {
-    state: 'incomplete',
-    attempted: 18,
-    correct: 15,
-    total: 20,
-    isLoggedIn: true,
-  },
-};
-
-/**
- * All attempted but some incorrect
- */
-export const AllAttemptedWithErrors: Story = {
-  args: {
-    state: 'incomplete',
-    attempted: 10,
-    correct: 7,
-    total: 10,
-    isLoggedIn: true,
-  },
-};
-
-/**
- * Poor performance - Many incorrect
- */
-export const PoorPerformance: Story = {
-  args: {
-    state: 'incomplete',
-    attempted: 10,
-    correct: 3,
-    total: 10,
-    isLoggedIn: true,
-  },
-};
-
-/**
- * Perfect score - 100%
- */
-export const PerfectScore: Story = {
-  args: {
-    state: 'complete',
-    attempted: 50,
-    correct: 50,
-    total: 50,
-    isLoggedIn: true,
-  },
-};
-
-/**
- * Interactive demo - Click to change states
- */
-export const InteractiveDemo: Story = {
+export const Default: Story = {
   render: () => {
-    let currentState = 0;
-    const states = [
-      { state: 'unstarted', attempted: 0, correct: 0, total: 10 },
-      { state: 'incomplete', attempted: 3, correct: 2, total: 10 },
-      { state: 'incomplete', attempted: 7, correct: 5, total: 10 },
-      { state: 'incomplete', attempted: 10, correct: 8, total: 10 },
-      { state: 'complete', attempted: 10, correct: 10, total: 10 },
-    ];
+    // Set up session cache with sample data
+    const cache: SessionCache = {
+      totals: { total: 15, answered: 15, correct: 12 },
+      pages: {
+        'page-1': { state: 'complete', total: 5, answered: 5, correct: 5, answers: [] },
+        'page-2': { state: 'incomplete', total: 5, answered: 5, correct: 4, answers: [] },
+        'page-3': { state: 'incomplete', total: 5, answered: 5, correct: 3, answers: [] },
+        'page-4': { state: 'unstarted', total: 0, answered: 0, correct: 0, answers: [] },
+      },
+    };
+    sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
+
+    setTimeout(() => {
+      const statusComponent = document.querySelector('qd-status');
+      statusComponent?.addEventListener('qd:logout', () => {
+        alert('Logout clicked! In production, this would clear session and return to login.');
+      });
+
+      // Trigger initial load
+      const event = new CustomEvent('qd:state-changed');
+      document.dispatchEvent(event);
+    }, 100);
 
     return html`
-      <div style="max-width: 500px; margin: 0 auto;">
-        <qd-status
-          id="demo-status"
-          state="${states[0].state}"
-          attempted="${states[0].attempted}"
-          correct="${states[0].correct}"
-          total="${states[0].total}"
-          isLoggedIn
-        ></qd-status>
+      <div style="padding: 20px; max-width: 400px; margin: 0 auto;">
+        <qd-status></qd-status>
 
-        <div style="margin-top: 2rem; text-align: center;">
-          <button
-            style="padding: 0.75rem 1.5rem; font-size: 1rem; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer;"
-            @click=${() => {
-              const status = document.getElementById('demo-status') as any;
-              currentState = (currentState + 1) % states.length;
-              const newState = states[currentState];
-              status.state = newState.state;
-              status.attempted = newState.attempted;
-              status.correct = newState.correct;
-              status.total = newState.total;
-            }}
-          >
-            Advance Progress
-          </button>
-          <p style="margin-top: 1rem; color: #666;">Click to simulate quiz progress</p>
+        <div
+          style="margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 4px; font-size: 14px;"
+        >
+          <p style="margin: 0 0 10px 0; font-weight: 500;">Current Stats:</p>
+          <ul style="margin: 0; padding-left: 20px;">
+            <li>15 questions answered, 12 correct (80%)</li>
+            <li>🟢 1 page complete</li>
+            <li>🟠 2 pages incomplete</li>
+            <li>🔴 1 page not started</li>
+          </ul>
         </div>
       </div>
     `;
@@ -271,329 +94,224 @@ export const InteractiveDemo: Story = {
 };
 
 /**
- * Multiple panels showing different states
+ * Empty State
+ *
+ * Shows panel when student hasn't answered any questions yet.
  */
-export const ComparisonView: Story = {
-  render: () => html`
-    <div
-      style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; padding: 1rem;"
-    >
-      <div>
-        <h3 style="text-align: center; margin-bottom: 1rem;">Not Started</h3>
-        <qd-status state="unstarted" attempted="0" correct="0" total="10" isLoggedIn></qd-status>
-      </div>
+export const EmptyState: Story = {
+  render: () => {
+    const cache: SessionCache = {
+      totals: { total: 0, answered: 0, correct: 0 },
+      pages: {
+        'page-1': { state: 'unstarted', total: 0, answered: 0, correct: 0, answers: [] },
+        'page-2': { state: 'unstarted', total: 0, answered: 0, correct: 0, answers: [] },
+        'page-3': { state: 'unstarted', total: 0, answered: 0, correct: 0, answers: [] },
+      },
+    };
+    sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
 
-      <div>
-        <h3 style="text-align: center; margin-bottom: 1rem;">In Progress</h3>
-        <qd-status state="incomplete" attempted="5" correct="4" total="10" isLoggedIn></qd-status>
-      </div>
+    setTimeout(() => {
+      const event = new CustomEvent('qd:state-changed');
+      document.dispatchEvent(event);
+    }, 100);
 
-      <div>
-        <h3 style="text-align: center; margin-bottom: 1rem;">Completed</h3>
-        <qd-status state="complete" attempted="10" correct="10" total="10" isLoggedIn></qd-status>
-      </div>
-    </div>
-  `,
-};
+    return html`
+      <div style="padding: 20px; max-width: 400px; margin: 0 auto;">
+        <qd-status></qd-status>
 
-/**
- * Large quiz with many questions
- */
-export const LargeQuiz: Story = {
-  args: {
-    state: 'incomplete',
-    attempted: 75,
-    correct: 68,
-    total: 100,
-    isLoggedIn: true,
+        <div
+          style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 4px; font-size: 14px;"
+        >
+          <p style="margin: 0;">
+            📝 This shows a student's initial state before answering any questions. All pages show
+            as "Not Started" (red).
+          </p>
+        </div>
+      </div>
+    `;
   },
 };
 
 /**
- * Small quiz with few questions
+ * Perfect Score
+ *
+ * Shows panel when student has answered everything correctly.
  */
-export const SmallQuiz: Story = {
-  args: {
-    state: 'incomplete',
-    attempted: 2,
-    correct: 1,
-    total: 3,
-    isLoggedIn: true,
+export const PerfectScore: Story = {
+  render: () => {
+    const cache: SessionCache = {
+      totals: { total: 20, answered: 20, correct: 20 },
+      pages: {
+        'page-1': { state: 'complete', total: 5, answered: 5, correct: 5, answers: [] },
+        'page-2': { state: 'complete', total: 5, answered: 5, correct: 5, answers: [] },
+        'page-3': { state: 'complete', total: 5, answered: 5, correct: 5, answers: [] },
+        'page-4': { state: 'complete', total: 5, answered: 5, correct: 5, answers: [] },
+      },
+    };
+    sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
+
+    setTimeout(() => {
+      const event = new CustomEvent('qd:state-changed');
+      document.dispatchEvent(event);
+    }, 100);
+
+    return html`
+      <div style="padding: 20px; max-width: 400px; margin: 0 auto;">
+        <qd-status></qd-status>
+
+        <div
+          style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-left: 4px solid #4caf50; border-radius: 4px; font-size: 14px;"
+        >
+          <p style="margin: 0; font-weight: 500; color: #2e7d32;">✅ Perfect score!</p>
+          <p style="margin: 10px 0 0 0;">20/20 correct (100%). All 4 pages complete (green).</p>
+        </div>
+      </div>
+    `;
   },
 };
 
 /**
- * Responsive layout test
+ * Low Score
+ *
+ * Shows panel with mostly incorrect answers.
  */
-export const ResponsiveLayout: Story = {
-  render: () => html`
-    <div style="padding: 1rem;">
-      <h3>Desktop View (500px)</h3>
-      <div style="max-width: 500px; margin-bottom: 2rem;">
-        <qd-status state="incomplete" attempted="7" correct="5" total="10" isLoggedIn></qd-status>
-      </div>
+export const LowScore: Story = {
+  render: () => {
+    const cache: SessionCache = {
+      totals: { total: 20, answered: 20, correct: 6 },
+      pages: {
+        'page-1': { state: 'incomplete', total: 5, answered: 5, correct: 2, answers: [] },
+        'page-2': { state: 'incomplete', total: 5, answered: 5, correct: 1, answers: [] },
+        'page-3': { state: 'incomplete', total: 5, answered: 5, correct: 2, answers: [] },
+        'page-4': { state: 'incomplete', total: 5, answered: 5, correct: 1, answers: [] },
+      },
+    };
+    sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
 
-      <h3>Tablet View (400px)</h3>
-      <div style="max-width: 400px; margin-bottom: 2rem;">
-        <qd-status state="incomplete" attempted="7" correct="5" total="10" isLoggedIn></qd-status>
-      </div>
+    setTimeout(() => {
+      const event = new CustomEvent('qd:state-changed');
+      document.dispatchEvent(event);
+    }, 100);
 
-      <h3>Mobile View (320px)</h3>
-      <div style="max-width: 320px;">
-        <qd-status state="incomplete" attempted="7" correct="5" total="10" isLoggedIn></qd-status>
+    return html`
+      <div style="padding: 20px; max-width: 400px; margin: 0 auto;">
+        <qd-status></qd-status>
+
+        <div
+          style="margin-top: 20px; padding: 15px; background: #ffebee; border-left: 4px solid #d32f2f; border-radius: 4px; font-size: 14px;"
+        >
+          <p style="margin: 0; font-weight: 500; color: #c62828;">⚠️ Low score</p>
+          <p style="margin: 10px 0 0 0;">
+            6/20 correct (30%). All pages incomplete (amber) due to incorrect answers.
+          </p>
+        </div>
       </div>
-    </div>
-  `,
+    `;
+  },
 };
 
 /**
- * Real-time update simulation
+ * Real-time Updates
+ *
+ * Demonstrates live updates when student answers change.
  */
 export const RealTimeUpdates: Story = {
   render: () => {
-    let interval: number;
-    let attempted = 0;
-    let correct = 0;
-    const total = 10;
+    let answerCount = 5;
+    let correctCount = 4;
+
+    const updateCache = () => {
+      const cache: SessionCache = {
+        totals: { total: 5, answered: answerCount, correct: correctCount },
+        pages: {
+          'page-1': {
+            state: answerCount >= 5 && correctCount === answerCount ? 'complete' : 'incomplete',
+            total: 5,
+            answered: Math.min(answerCount, 5),
+            correct: Math.min(correctCount, 5),
+            answers: [],
+          },
+        },
+      };
+      sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
+
+      // Dispatch update event
+      const event = new CustomEvent('qd:state-changed');
+      document.dispatchEvent(event);
+    };
+
+    // Initial state
+    updateCache();
 
     return html`
-      <div style="max-width: 500px; margin: 0 auto;">
-        <qd-status
-          id="realtime-status"
-          state="unstarted"
-          attempted="0"
-          correct="0"
-          total="10"
-          isLoggedIn
-        ></qd-status>
+      <div style="padding: 20px; max-width: 400px; margin: 0 auto;">
+        <qd-status></qd-status>
 
         <div
-          style="margin-top: 2rem; text-align: center; display: flex; gap: 1rem; justify-content: center;"
+          style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 4px; font-size: 14px;"
         >
-          <button
-            style="padding: 0.75rem 1.5rem; font-size: 1rem; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer;"
-            @click=${() => {
-              const status = document.getElementById('realtime-status') as any;
-              attempted = 0;
-              correct = 0;
-
-              interval = window.setInterval(() => {
-                if (attempted < total) {
-                  attempted++;
-                  // 80% chance of correct answer
-                  if (Math.random() > 0.2) {
-                    correct++;
-                  }
-
-                  status.attempted = attempted;
-                  status.correct = correct;
-                  status.state =
-                    attempted === total && correct === total ? 'complete' : 'incomplete';
-                } else {
-                  clearInterval(interval);
-                }
-              }, 500);
-            }}
-          >
-            Start Simulation
-          </button>
-
-          <button
-            style="padding: 0.75rem 1.5rem; font-size: 1rem; background: #d32f2f; color: white; border: none; border-radius: 4px; cursor: pointer;"
-            @click=${() => {
-              clearInterval(interval);
-              const status = document.getElementById('realtime-status') as any;
-              status.state = 'unstarted';
-              status.attempted = 0;
-              status.correct = 0;
-            }}
-          >
-            Reset
-          </button>
-        </div>
-        <p style="text-align: center; margin-top: 1rem; color: #666;">
-          Simulates answering questions in real-time
-        </p>
-      </div>
-    `;
-  },
-};
-
-/**
- * Accessibility demonstration
- */
-export const AccessibilityFeatures: Story = {
-  render: () => html`
-    <div style="max-width: 600px; margin: 0 auto;">
-      <qd-status state="incomplete" attempted="6" correct="4" total="10" isLoggedIn></qd-status>
-
-      <div style="margin-top: 2rem; padding: 1rem; background: #f5f5f5; border-radius: 4px;">
-        <h3 style="margin-top: 0;">Accessibility Features:</h3>
-        <ul style="margin-bottom: 0;">
-          <li><strong>ARIA live region:</strong> Announces updates to screen readers</li>
-          <li><strong>Progress bar:</strong> Has role="progressbar" with aria attributes</li>
-          <li><strong>Color indicators:</strong> Supplemented with text labels</li>
-          <li><strong>Semantic HTML:</strong> Proper heading hierarchy</li>
-          <li><strong>Keyboard accessible:</strong> All information visible without interaction</li>
-        </ul>
-      </div>
-    </div>
-  `,
-};
-
-/**
- * Not logged in state - Shows login component
- */
-export const NotLoggedIn: Story = {
-  args: {
-    isLoggedIn: false,
-    release: '02-2025',
-    docId: 'core-acs',
-    state: 'unstarted',
-    attempted: 0,
-    correct: 0,
-    total: 10,
-  },
-};
-
-/**
- * Header menu nav bar scenario - Status panel appears after last button
- */
-export const WithHeaderMenuNavBar: Story = {
-  render: () => {
-    let isLoggedIn = false;
-
-    return html`
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-        <!-- Header Menu Nav Bar (100px tall) -->
-        <nav
-          style="
-            height: 100px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            padding: 0 2rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-          "
-        >
-          <div style="display: flex; align-items: center; gap: 2rem; width: 100%;">
-            <h1 style="color: white; margin: 0; font-size: 1.5rem; font-weight: 600;">
-              Sonar Quiz System
-            </h1>
-
-            <div style="display: flex; gap: 1rem; margin-left: auto;">
-              <button
-                style="
-                  padding: 0.75rem 1.5rem;
-                  background: rgba(255, 255, 255, 0.2);
-                  color: white;
-                  border: 1px solid rgba(255, 255, 255, 0.3);
-                  border-radius: 4px;
-                  cursor: pointer;
-                  font-weight: 500;
-                  transition: background 0.2s;
-                "
-                onmouseover="this.style.background='rgba(255,255,255,0.3)'"
-                onmouseout="this.style.background='rgba(255,255,255,0.2)'"
-              >
-                Home
-              </button>
-
-              <button
-                style="
-                  padding: 0.75rem 1.5rem;
-                  background: rgba(255, 255, 255, 0.2);
-                  color: white;
-                  border: 1px solid rgba(255, 255, 255, 0.3);
-                  border-radius: 4px;
-                  cursor: pointer;
-                  font-weight: 500;
-                  transition: background 0.2s;
-                "
-                onmouseover="this.style.background='rgba(255,255,255,0.3)'"
-                onmouseout="this.style.background='rgba(255,255,255,0.2)'"
-              >
-                Quizzes
-              </button>
-
-              <button
-                id="last-menu-button"
-                style="
-                  padding: 0.75rem 1.5rem;
-                  background: rgba(255, 255, 255, 0.2);
-                  color: white;
-                  border: 1px solid rgba(255, 255, 255, 0.3);
-                  border-radius: 4px;
-                  cursor: pointer;
-                  font-weight: 500;
-                  transition: background 0.2s;
-                "
-                onmouseover="this.style.background='rgba(255,255,255,0.3)'"
-                onmouseout="this.style.background='rgba(255,255,255,0.2)'"
-              >
-                Analysis
-              </button>
-            </div>
-          </div>
-        </nav>
-
-        <!-- Content Area -->
-        <div style="padding: 2rem;">
-          <!-- Status panel configured to appear after #last-menu-button -->
-          <div style="margin-bottom: 2rem;">
-            <qd-status
-              id="demo-status-panel"
-              .isLoggedIn=${isLoggedIn}
-              insertAfterSelector="#last-menu-button"
-              release="02-2025"
-              docId="core-acs"
-              state="incomplete"
-              attempted="5"
-              correct="3"
-              total="10"
-            ></qd-status>
-          </div>
-
-          <div style="text-align: center; margin-top: 2rem;">
+          <p style="margin: 0 0 10px 0; font-weight: 500;">Simulate Answer Changes:</p>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             <button
-              style="
-                padding: 0.75rem 1.5rem;
-                font-size: 1rem;
-                background: #667eea;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                font-weight: 500;
-              "
+              style="padding: 6px 12px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;"
               @click=${() => {
-                const status = document.getElementById('demo-status-panel') as any;
-                isLoggedIn = !isLoggedIn;
-                status.isLoggedIn = isLoggedIn;
+                answerCount += 1;
+                correctCount += 1;
+                updateCache();
               }}
             >
-              Toggle Login State
+              ➕ Add Correct Answer
             </button>
-            <p style="margin-top: 1rem; color: #666;">
-              Click to toggle between logged in and not logged in states
-            </p>
+            <button
+              style="padding: 6px 12px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;"
+              @click=${() => {
+                answerCount += 1;
+                updateCache();
+              }}
+            >
+              ➕ Add Wrong Answer
+            </button>
+            <button
+              style="padding: 6px 12px; background: #9e9e9e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;"
+              @click=${() => {
+                answerCount = 0;
+                correctCount = 0;
+                updateCache();
+              }}
+            >
+              🔄 Reset
+            </button>
           </div>
-
-          <!-- Sample content -->
-          <div style="margin-top: 3rem;">
-            <h2>Sample Quiz Content</h2>
-            <p style="color: #666; line-height: 1.6;">
-              This demonstrates how the status panel integrates with a page that has a header menu
-              navigation bar. The panel is configured to appear after the last button in the menu
-              bar using the <code>insertAfterSelector</code> property.
-            </p>
-            <p style="color: #666; line-height: 1.6;">
-              When not logged in, the panel displays a login form with the header "Login to view
-              your progress". When logged in, it shows the progress panel with R/A/G indicators.
-            </p>
-          </div>
+          <p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">
+            Watch the panel update in real-time as you click the buttons above.
+          </p>
         </div>
       </div>
     `;
+  },
+};
+
+/**
+ * Minimal Example
+ *
+ * Bare component without extra decoration.
+ */
+export const MinimalExample: Story = {
+  render: () => {
+    const cache: SessionCache = {
+      totals: { total: 10, answered: 10, correct: 7 },
+      pages: {
+        'page-1': { state: 'complete', total: 5, answered: 5, correct: 5, answers: [] },
+        'page-2': { state: 'incomplete', total: 5, answered: 5, correct: 2, answers: [] },
+      },
+    };
+    sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
+
+    setTimeout(() => {
+      const event = new CustomEvent('qd:state-changed');
+      document.dispatchEvent(event);
+    }, 100);
+
+    return html`<qd-status></qd-status>`;
   },
 };

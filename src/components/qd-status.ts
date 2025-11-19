@@ -1,523 +1,250 @@
 /**
- * QdStatus Component
+ * Status Component
  *
- * Displays student quiz progress with color-coded status indicators.
- * Shows attempted questions, correct answers, and completion percentage.
- * Uses ARIA live regions for accessibility.
+ * Compact single-line display of student quiz progress and logout button.
+ * Shows: "X/Y Correct (Z%)" format.
  *
- * Configuration:
- *   - insertAfterSelector: Specifies id/class to insert after (e.g., "#menu-btn", ".last-button")
- *   - If insertAfterSelector target is not found, component will not be displayed
- *   - Minimum width: 400px
+ * @element qd-status
+ * @fires {CustomEvent} qd:logout - Emitted when user clicks logout
  *
- * States:
- *   - Not logged in: Shows login component with header "Login to view your progress"
- *   - Logged in: Shows progress panel with R/A/G indicators
- *
- * Usage:
- *   <qd-status
- *     state="incomplete"
- *     attempted="5"
- *     correct="3"
- *     total="10"
- *     isLoggedIn="true"
- *     insertAfterSelector="#last-menu-button">
- *   </qd-status>
- *
- * Color Coding:
- *   - Red: Unstarted (no questions answered)
- *   - Amber: Incomplete (some answered OR any incorrect)
- *   - Green: Complete (all answered AND all correct)
+ * @example
+ * ```html
+ * <qd-status></qd-status>
+ * ```
  */
 
 import { LitElement, html, css } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import type { CompletionState, SessionCache, SessionData } from '../types/contracts';
-import { getSessionService } from '../services/session';
-import './qd-login';
-import './qd-instructor';
+import { customElement, state } from 'lit/decorators.js';
+import { STORAGE_KEYS } from '../types/contracts.js';
+import type { SessionCache, SessionData } from '../types/contracts.js';
+import { getJSON } from '../utils/storage-helpers.js';
+import { SessionService } from '../services/session.js';
 
+/**
+ * Status panel component for student progress tracking
+ */
 @customElement('qd-status')
 export class QdStatus extends LitElement {
   /**
-   * Completion state (unstarted | incomplete | complete)
-   */
-  @property({ type: String })
-  state: CompletionState = 'unstarted';
-
-  /**
-   * Number of questions attempted
-   */
-  @property({ type: Number })
-  attempted = 0;
-
-  /**
-   * Number of correct answers
-   */
-  @property({ type: Number })
-  correct = 0;
-
-  /**
-   * Total number of questions
-   */
-  @property({ type: Number })
-  total = 0;
-
-  /**
-   * Optional session cache for aggregated totals
-   */
-  @property({ type: Object })
-  sessionCache?: SessionCache;
-
-  /**
-   * Whether the user is logged in
-   */
-  @property({ type: Boolean })
-  isLoggedIn = false;
-
-  /**
-   * CSS selector (id/class) to insert component after
-   * If not found, component will not be displayed
-   */
-  @property({ type: String })
-  insertAfterSelector = '';
-
-  /**
-   * Release identifier for login component
-   */
-  @property({ type: String })
-  release = '';
-
-  /**
-   * Document identifier for login component
-   */
-  @property({ type: String })
-  docId = '';
-
-  /**
-   * Whether instructor panel is currently shown
+   * Total questions registered
    */
   @state()
-  private _showInstructorPanel = false;
+  private total = 0;
+
+  /**
+   * Total correct answers
+   */
+  @state()
+  private correct = 0;
+
+  /**
+   * Success percentage
+   */
+  @state()
+  private percentage = 0;
+
+  /**
+   * Overall status indicator color
+   */
+  @state()
+  private statusColor: 'red' | 'amber' | 'green' = 'red';
 
   static styles = css`
     :host {
-      display: block;
-      min-width: 400px;
+      display: none; /* Hidden by default, shown when logged in */
       font-family:
-        -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        system-ui,
+        -apple-system,
+        sans-serif;
     }
 
-    :host([hidden]) {
-      display: none;
+    :host([data-show]) {
+      display: block;
     }
 
     .status-panel {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      background: white;
-      border: 1px solid #ccc;
+      gap: 8px;
+      padding: 6px 12px;
+      background: #fff;
+      border: 1px solid #ddd;
       border-radius: 4px;
-      padding: 0.5rem 0.75rem;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-      font-size: 0.75rem;
-      position: relative;
-    }
-
-    .login-container {
-      background: white;
-      border: 2px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 1.5rem;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      min-width: 400px;
-    }
-
-    .login-container {
-      background: white;
-      border: 2px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 1.5rem;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      min-width: 400px;
-    }
-
-    .login-header {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: #333;
-      margin: 0 0 1rem 0;
-      text-align: center;
-    }
-
-    .login-header {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: #333;
-      margin: 0 0 1rem 0;
-      text-align: center;
     }
 
     .status-indicator {
-      width: 24px;
-      height: 24px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
       flex-shrink: 0;
-      transition: background-color 0.3s;
     }
 
-    .status-indicator.unstarted {
-      background-color: #d32f2f;
-      box-shadow: 0 0 4px rgba(211, 47, 47, 0.4);
+    .status-indicator.red {
+      background: #d32f2f;
     }
 
-    .status-indicator.incomplete {
-      background-color: #ff9800;
-      box-shadow: 0 0 4px rgba(255, 152, 0, 0.4);
+    .status-indicator.amber {
+      background: #ff9800;
     }
 
-    .status-indicator.complete {
-      background-color: #4caf50;
-      box-shadow: 0 0 4px rgba(76, 175, 80, 0.4);
+    .status-indicator.green {
+      background: #4caf50;
     }
 
-    .status-stats {
-      display: flex;
-      align-items: baseline;
-      gap: 0.5rem;
-    }
-
-    .stat {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.125rem;
+    .progress-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #555;
       white-space: nowrap;
     }
 
-    .stat-label {
-      font-size: 0.5rem;
-      font-weight: 400;
-      color: #666;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-    }
-
-    .stat-value {
-      font-size: 0.875rem;
-      font-weight: 600;
+    .progress-text {
+      font-size: 13px;
       color: #333;
-    }
-
-    .stat-value.percentage {
-      color: #0066cc;
+      white-space: nowrap;
     }
 
     .logout-button {
-      padding: 0.25rem 0.5rem;
-      background: #6c757d;
+      padding: 5px 10px;
+      background: #d32f2f;
       color: white;
       border: none;
       border-radius: 3px;
-      font-size: 0.625rem;
+      font-size: 12px;
       font-weight: 500;
       cursor: pointer;
       transition: background 0.2s;
       white-space: nowrap;
-      margin-left: auto;
     }
 
     .logout-button:hover {
-      background: #5a6268;
-    }
-
-    .logout-button:active {
-      background: #4e555b;
-    }
-
-    .instructor-button {
-      padding: 0.25rem 0.5rem;
-      background: #0066cc;
-      color: white;
-      border: none;
-      border-radius: 3px;
-      font-size: 0.625rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.2s;
-      white-space: nowrap;
-    }
-
-    .instructor-button:hover {
-      background: #0052a3;
-    }
-
-    .instructor-button:active {
-      background: #004080;
-    }
-
-    /* Instructor panel styles (when expanded) */
-    .instructor-panel {
-      display: block;
-      padding: 1rem;
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .back-button {
-      background: #f0f0f0;
-      border: 1px solid #ccc;
-      color: #333;
-      font-size: 0.875rem;
-      cursor: pointer;
-      padding: 0.5rem 1rem;
-      border-radius: 4px;
-      font-family: inherit;
-      transition: background-color 0.2s;
-      margin-bottom: 1rem;
-    }
-
-    .back-button:hover {
-      background: #e0e0e0;
-    }
-
-    .build-date {
-      position: absolute;
-      bottom: 2px;
-      right: 4px;
-      font-size: 0.5rem;
-      color: #999;
-      font-family: monospace;
-      opacity: 0.7;
-      pointer-events: none;
-    }
-
-    @media (max-width: 480px) {
-      .status-panel {
-        font-size: 0.625rem;
-      }
-
-      .status-stats {
-        gap: 0.5rem;
-      }
-
-      .stat-value {
-        font-size: 0.75rem;
-      }
-
-      .logout-button {
-        font-size: 0.5625rem;
-        padding: 0.2rem 0.4rem;
-      }
+      background: #b71c1c;
     }
   `;
 
   connectedCallback() {
     super.connectedCallback();
-    this._checkInsertionTarget();
+    this.updateVisibility();
+    this.loadCache();
 
-    // Check if instructor mode is already unlocked (from previous page)
-    const session = getSessionService();
-    if (session.isInstructorUnlocked()) {
-      this._showInstructorPanel = true;
-    }
+    // Listen for state changes and login/logout
+    document.addEventListener('qd:state-changed', this.handleStateChanged);
+    document.addEventListener('qd:login', this.handleLogin);
+    document.addEventListener('qd:logout', this.handleLogoutEvent);
   }
 
-  willUpdate(changedProperties: Map<PropertyKey, unknown>) {
-    if (changedProperties.has('isLoggedIn')) {
-      // isLoggedIn property changed
-    }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    document.removeEventListener('qd:state-changed', this.handleStateChanged);
+    document.removeEventListener('qd:login', this.handleLogin);
+    document.removeEventListener('qd:logout', this.handleLogoutEvent);
   }
 
   render() {
-    if (this._showInstructorPanel) {
-      return this._renderInstructorView();
-    }
-    if (!this.isLoggedIn) {
-      return this._renderLoginView();
-    }
-    return this._renderStatusView();
-  }
-
-  private _renderLoginView() {
     return html`
-      <div class="login-container" role="region" aria-label="Login to view progress">
-        <h2 class="login-header">Login to view your progress</h2>
-        <qd-login
-          release="${this.release}"
-          docId="${this.docId}"
-          @qd:login=${(event: CustomEvent<SessionData>) => this._handleLogin(event)}
-          @qd:instructor-login=${(event: CustomEvent<{ timestamp: string; release: string }>) =>
-            this._handleInstructorLogin(event)}
-        >
-        </qd-login>
+      <div class="status-panel">
+        <div class="status-indicator ${this.statusColor}"></div>
+        <div class="progress-label">Progress:</div>
+        <div class="progress-text">${this.correct}/${this.total} Correct (${this.percentage}%)</div>
+        <button class="logout-button" @click=${() => this.handleLogout()}>Logout</button>
       </div>
     `;
-  }
-
-  private _renderStatusView() {
-    const percentage = this.calculatePercentage();
-
-    return html`
-      <div class="status-panel" role="region" aria-label="Quiz Progress">
-        <div class="status-indicator ${this.state}"></div>
-
-        <div class="status-stats">
-          <div class="stat">
-            <span class="stat-label">attempted</span>
-            <span class="stat-value">${this.attempted}/${this.total}</span>
-          </div>
-          <div class="stat">
-            <span class="stat-label">correct</span>
-            <span class="stat-value">${this.correct}/${this.total}</span>
-          </div>
-          <div class="stat">
-            <span class="stat-label">score</span>
-            <span class="stat-value percentage">${percentage}%</span>
-          </div>
-        </div>
-
-        <button
-          class="instructor-button"
-          @click=${() => this._handleShowInstructor()}
-          aria-label="Instructor Access"
-          title="Instructor Access"
-        >
-          Instructor
-        </button>
-
-        <button
-          class="logout-button"
-          @click=${() => this._handleLogout()}
-          aria-label="Logout"
-          title="Logout"
-        >
-          Logout
-        </button>
-
-        <span class="build-date" title="Build date">${__BUILD_DATE__}</span>
-      </div>
-    `;
-  }
-
-  private _renderInstructorView() {
-    return html`
-      <div class="instructor-panel" role="region" aria-label="Instructor Dashboard">
-        <button
-          type="button"
-          class="back-button"
-          @click=${() => this._handleHideInstructor()}
-          aria-label="Back to progress view"
-        >
-          ← Back to Progress
-        </button>
-        <qd-instructor release="${this.release}"></qd-instructor>
-      </div>
-    `;
-  }
-
-  private _handleLogin(event: CustomEvent<SessionData>) {
-    // Set logged in state
-    this.isLoggedIn = true;
-
-    // Forward the login event
-    this.dispatchEvent(
-      new CustomEvent<SessionData>('qd:login', {
-        detail: event.detail,
-        bubbles: true,
-        composed: true,
-      }),
-    );
-  }
-
-  private _handleInstructorLogin(event: CustomEvent<{ timestamp: string; release: string }>) {
-    // Show instructor panel immediately (skip student status view)
-    this._showInstructorPanel = true;
-
-    // Forward the instructor login event
-    this.dispatchEvent(
-      new CustomEvent('qd:instructor-login', {
-        detail: event.detail,
-        bubbles: true,
-        composed: true,
-      }),
-    );
-  }
-
-  private _handleLogout() {
-    // Clear session storage
-    sessionStorage.removeItem('qd/session');
-    sessionStorage.removeItem('qd/state');
-
-    // Set logged out state
-    this.isLoggedIn = false;
-
-    // Emit logout event
-    this.dispatchEvent(
-      new CustomEvent('qd:logout', {
-        detail: {
-          timestamp: new Date().toISOString(),
-        },
-        bubbles: true,
-        composed: true,
-      }),
-    );
-  }
-
-  private _handleShowInstructor() {
-    this._showInstructorPanel = true;
-  }
-
-  private _handleHideInstructor() {
-    this._showInstructorPanel = false;
-  }
-
-  private _checkInsertionTarget() {
-    // If insertAfterSelector is specified, check if target exists
-    if (this.insertAfterSelector) {
-      const targetElement = document.querySelector(this.insertAfterSelector);
-      if (!targetElement) {
-        // Hide component if target not found
-        this.style.display = 'none';
-      } else {
-        // Ensure component is visible
-        this.style.display = 'block';
-      }
-    }
   }
 
   /**
-   * Calculate completion percentage
+   * Load cache from storage and update state
    */
-  private calculatePercentage(): number {
-    if (this.total === 0) {
-      return 0;
+  private loadCache() {
+    const cache = getJSON<SessionCache>(STORAGE_KEYS.CACHE);
+    if (!cache) {
+      this.total = 0;
+      this.correct = 0;
+      this.percentage = 0;
+      this.statusColor = 'red';
+      return;
     }
-    return Math.round((this.correct / this.total) * 100);
-  }
 
-  /**
-   * Update from session cache
-   */
-  updateFromCache(cache: SessionCache): void {
-    this.attempted = cache.totals.answered;
+    this.total = cache.totals.total;
     this.correct = cache.totals.correct;
+    this.percentage = this.calculatePercentage(cache.totals.total, cache.totals.correct);
+    this.statusColor = this.calculateStatusColor(cache.totals.total, cache.totals.correct);
+  }
 
-    // Calculate total from all pages
-    const pageStates = Object.values(cache.pages);
-    this.total = pageStates.reduce((sum, page) => sum + page.answered, 0);
+  /**
+   * Calculate percentage from total/correct
+   */
+  private calculatePercentage(total: number, correct: number): number {
+    if (total === 0) return 0;
+    return Math.round((correct / total) * 100);
+  }
 
-    // Determine overall state
-    if (this.attempted === 0) {
-      this.state = 'unstarted';
-    } else if (this.correct === this.total && this.attempted === this.total) {
-      this.state = 'complete';
+  /**
+   * Calculate status indicator color
+   * Red: No questions registered or no answers
+   * Green: All questions answered correctly
+   * Amber: Some answered but not all correct
+   */
+  private calculateStatusColor(total: number, correct: number): 'red' | 'amber' | 'green' {
+    if (total === 0 || correct === 0) return 'red';
+    if (correct === total) return 'green';
+    return 'amber';
+  }
+
+  /**
+   * Update visibility based on session state
+   * Show only if logged in as student (not instructor)
+   */
+  private updateVisibility() {
+    const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
+    const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
+
+    if (session && !isInstructor) {
+      this.setAttribute('data-show', '');
     } else {
-      this.state = 'incomplete';
+      this.removeAttribute('data-show');
     }
+  }
+
+  /**
+   * Handle state changed event
+   */
+  private handleStateChanged = () => {
+    this.loadCache();
+  };
+
+  /**
+   * Handle login event
+   */
+  private handleLogin = () => {
+    this.updateVisibility();
+    this.loadCache();
+  };
+
+  /**
+   * Handle logout event
+   */
+  private handleLogoutEvent = () => {
+    this.updateVisibility();
+  };
+
+  /**
+   * Handle logout button click
+   */
+  private handleLogout() {
+    const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
+
+    // Clear session from storage
+    const sessionService = new SessionService();
+    sessionService.clearSession();
+
+    const event = new CustomEvent('qd:logout', {
+      detail: {
+        serviceId: session?.serviceId || 'unknown',
+      },
+      bubbles: true,
+      composed: true,
+    });
+    this.dispatchEvent(event);
   }
 }
 

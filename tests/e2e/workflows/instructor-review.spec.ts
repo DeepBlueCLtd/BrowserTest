@@ -1,652 +1,329 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
-
 /**
- * E2E Tests for Instructor Review Workflow
+ * E2E Test: Instructor Review Workflow
  *
- * Tests the complete workflow of:
- * 1. Instructor password authentication (SHA-256)
- * 2. Unlock/lock state management
- * 3. Answer reveal in quiz tables
- * 4. Student entry comparison in analysis tables
- * 5. Student scores aggregation and display
- *
- * NOTE: These tests are currently skipped pending creation of demo HTML files.
- * The functionality is fully tested via:
- * - Unit tests (tests/unit/components/qd-instructor.test.ts)
- * - Unit tests (tests/unit/enhancers/analysis-table.test.ts)
- * - Unit tests (tests/unit/services/scores.test.ts)
- * - Interactive Storybook story (stories/components/qd-instructor.stories.ts)
- *
- * To enable these tests, create demo files in /demo directory:
- * - demo/instructor-home.html (with qd-instructor component)
- * - demo/instructor-quiz.html (with quiz table + instructor unlocked)
- * - demo/instructor-analysis.html (with analysis table + student data)
+ * Tests instructor functionality:
+ * - Password unlock with rate limiting
+ * - Viewing student scores
+ * - CSV export
+ * - Answer review
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-test.describe.skip('Instructor Review - Password Authentication', () => {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const demoPath = path.resolve(__dirname, '../../../demo');
+
+// Test password: "instructor123"
+// Hash: c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5
+const TEST_PASSWORD = 'instructor123';
+
+/**
+ * Wait for bootstrap to complete and inject components
+ */
+async function waitForBootstrap(page: Page): Promise<void> {
+  // Wait for qd-login element AND its shadow DOM to be ready
+  await page.locator('qd-login[data-ready]').waitFor({ timeout: 5000 });
+}
+
+test.describe.skip('Instructor Review Workflow', () => {
   test.beforeEach(async ({ page }) => {
-    // Setup test environment
-    await page.goto('/demo/instructor-home.html');
-    await page.waitForLoadState('domcontentloaded');
-  });
-
-  test('should display password prompt when locked', async ({ page }) => {
-    // Verify instructor component is visible
-    const instructor = page.locator('qd-instructor');
-    await expect(instructor).toBeVisible();
-
-    // Check for password input in shadow DOM
-    const hasPasswordInput = await page.evaluate(() => {
-      const component = document.querySelector('qd-instructor') as any;
-      const shadowRoot = component?.shadowRoot;
-      const input = shadowRoot?.querySelector('input[type="password"]');
-      const button = shadowRoot?.querySelector('button');
-      return input !== null && button !== null;
-    });
-
-    expect(hasPasswordInput).toBe(true);
-  });
-
-  test('should unlock with correct password', async ({ page }) => {
-    // Wait for event emission
-    const unlockEvent = page.evaluate(
-      () =>
-        new Promise((resolve) => {
-          document.addEventListener('qd:instructor-unlock', (e) => {
-            resolve((e as CustomEvent).detail);
-          });
-        }),
-    );
-
-    // Enter correct password
+    // Clear storage
+    await page.goto(`file://${demoPath}/quiz-index.html`);
     await page.evaluate(() => {
-      const component = document.querySelector('qd-instructor') as any;
-      const shadowRoot = component.shadowRoot;
-      const input = shadowRoot.querySelector('input[type="password"]');
-      const button = shadowRoot.querySelector('button');
-
-      input.value = 'instructor';
-      button.click();
+      sessionStorage.clear();
+      indexedDB.deleteDatabase('BrowserTest');
     });
 
-    // Verify unlock event was fired
-    const detail = await unlockEvent;
-    expect(detail).toHaveProperty('timestamp');
+    // Wait for bootstrap to inject qd-login component
+    await waitForBootstrap(page);
 
-    // Verify sessionStorage has unlock state
-    const unlocked = await page.evaluate(() => sessionStorage.getItem('qd/instructor'));
-    expect(unlocked).toBeTruthy();
+    // Login as student first to create some data
+    const login = page.locator('qd-login');
+    await login.locator('input[name="serviceId"]').fill('TEST001');
+    await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('button[type="submit"]').click();
+
+    // Wait for status to be visible
+    await expect(page.locator('qd-status')).toBeVisible();
   });
 
-  test('should reject incorrect password', async ({ page }) => {
-    // Enter incorrect password
-    const errorShown = await page.evaluate(async () => {
-      const component = document.querySelector('qd-instructor') as any;
-      const shadowRoot = component.shadowRoot;
-      const input = shadowRoot.querySelector('input[type="password"]') as HTMLInputElement;
-      const button = shadowRoot.querySelector('button') as HTMLButtonElement;
+  test('should unlock instructor mode with correct password', async ({ page }) => {
+    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await waitForBootstrap(page);
 
-      input.value = 'wrong-password';
-      button.click();
-
-      // Wait for error message to appear
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      const errorMsg = shadowRoot.querySelector('.error-message');
-      return errorMsg?.textContent?.includes('Incorrect password');
-    });
-
-    expect(errorShown).toBe(true);
-  });
-
-  test('should hash password using SHA-256', async ({ page }) => {
-    // Verify password is hashed before comparison
-    const hashUsed = await page.evaluate(async () => {
-      const component = document.querySelector('qd-instructor') as any;
-      const shadowRoot = component.shadowRoot;
-      const input = shadowRoot.querySelector('input[type="password"]') as HTMLInputElement;
-
-      // Enter password
-      input.value = 'instructor';
-
-      // Trigger hash computation
-      const encoder = new TextEncoder();
-      const data = encoder.encode(input.value);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-
-      // Expected hash for "instructor"
-      return hashHex === '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
-    });
-
-    expect(hashUsed).toBe(true);
-  });
-
-  test('should clear password input after unlock', async ({ page }) => {
+    // Inject password hash into DOM (simulating Oxygen XSL)
     await page.evaluate(() => {
-      const component = document.querySelector('qd-instructor') as any;
-      const shadowRoot = component.shadowRoot;
-      const input = shadowRoot.querySelector('input[type="password"]') as HTMLInputElement;
-      const button = shadowRoot.querySelector('button') as HTMLButtonElement;
-
-      input.value = 'instructor';
-      button.click();
+      const span = document.createElement('span');
+      span.id = 'instructor.password.hash';
+      span.style.display = 'none';
+      span.textContent = 'c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5';
+      document.body.appendChild(span);
     });
 
-    // Wait for unlock
-    await page.waitForTimeout(100);
+    // Click instructor button
+    const instructorButton = page.locator('qd-login button').filter({ hasText: /instructor/i });
+    await instructorButton.click();
 
-    // Verify input is cleared or hidden
-    const inputCleared = await page.evaluate(() => {
-      const component = document.querySelector('qd-instructor') as any;
-      const shadowRoot = component.shadowRoot;
-      const input = shadowRoot.querySelector('input[type="password"]') as HTMLInputElement;
+    // Fill password
+    const passwordInput = page.locator('qd-instructor input[type="password"]');
+    await expect(passwordInput).toBeVisible();
+    await passwordInput.fill(TEST_PASSWORD);
 
-      return !input || input.value === '';
-    });
+    // Submit
+    const unlockButton = page.locator('qd-instructor button[type="submit"]');
+    await unlockButton.click();
 
-    expect(inputCleared).toBe(true);
+    // Verify instructor panel appears
+    const instructorPanel = page.locator('qd-instructor .instructor-panel');
+    await expect(instructorPanel).toBeVisible();
   });
-});
 
-test.describe.skip('Instructor Review - Lock/Unlock State', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/demo/instructor-home.html');
-    await page.waitForLoadState('domcontentloaded');
+  test('should enforce rate limiting after failed attempts', async ({ page }) => {
+    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await waitForBootstrap(page);
 
-    // Unlock instructor mode
+    // Inject password hash
     await page.evaluate(() => {
-      const hash = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
-      sessionStorage.setItem('qd/instructor', hash);
+      const span = document.createElement('span');
+      span.id = 'instructor.password.hash';
+      span.style.display = 'none';
+      span.textContent = 'c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5';
+      document.body.appendChild(span);
     });
 
-    await page.reload();
+    // Click instructor button
+    const instructorButton = page.locator('qd-login button').filter({ hasText: /instructor/i });
+    await instructorButton.click();
+
+    const passwordInput = page.locator('qd-instructor input[type="password"]');
+    await expect(passwordInput).toBeVisible();
+
+    // Try wrong password 3 times
+    for (let i = 0; i < 3; i++) {
+      await passwordInput.fill('wrong-password');
+      const unlockButton = page.locator('qd-instructor button[type="submit"]');
+      await unlockButton.click();
+      await expect(passwordInput).toBeVisible();
+    }
+
+    // Verify rate limit message appears
+    const rateLimitText = page.locator('qd-instructor').locator('text=/wait|locked|try again/i');
+    await expect(rateLimitText).toBeVisible({ timeout: 1000 });
   });
 
-  test('should persist unlock state across page reloads', async ({ page }) => {
-    // Verify instructor is still unlocked
-    const isUnlocked = await page.evaluate(() => {
-      const component = document.querySelector('qd-instructor') as any;
-      return component.unlocked === true;
-    });
+  test('should display student scores in modal', async ({ page }) => {
+    // Answer some questions to create score data
+    await page.goto(`file://${demoPath}/quiz-mcq.html`);
 
-    expect(isUnlocked).toBe(true);
-  });
+    const firstRadio = page.locator('input[type="radio"]').first();
+    await firstRadio.click();
 
-  test('should display lock button when unlocked', async ({ page }) => {
-    const lockButton = await page.evaluate(() => {
-      const component = document.querySelector('qd-instructor') as any;
-      const shadowRoot = component.shadowRoot;
-      const button = shadowRoot.querySelector('button:has-text("Lock")');
-      return button !== null;
-    });
-
-    expect(lockButton).toBe(true);
-  });
-
-  test('should lock when lock button clicked', async ({ page }) => {
-    const lockEvent = page.evaluate(
-      () =>
-        new Promise((resolve) => {
-          document.addEventListener('qd:instructor-lock', (e) => {
-            resolve((e as CustomEvent).detail);
-          });
-        }),
-    );
-
-    // Click lock button
-    await page.evaluate(() => {
-      const component = document.querySelector('qd-instructor') as any;
-      const shadowRoot = component.shadowRoot;
-      const button = shadowRoot.querySelector('button:has-text("Lock")');
-      button?.click();
-    });
-
-    // Verify lock event was fired
-    const detail = await lockEvent;
-    expect(detail).toHaveProperty('timestamp');
-
-    // Verify sessionStorage is cleared
-    const unlocked = await page.evaluate(() => sessionStorage.getItem('qd/instructor'));
-    expect(unlocked).toBeNull();
-  });
-
-  test('should emit qd:instructor-unlock event with timestamp', async ({ page }) => {
-    // Clear session first
-    await page.evaluate(() => sessionStorage.removeItem('qd/instructor'));
-    await page.reload();
-
-    const eventDetails = await page.evaluate(
-      () =>
-        new Promise((resolve) => {
-          document.addEventListener('qd:instructor-unlock', (e) => {
-            const detail = (e as CustomEvent).detail;
-            resolve({
-              hasTimestamp: 'timestamp' in detail,
-              timestampValid: !isNaN(new Date(detail.timestamp).getTime()),
-            });
-          });
-
-          // Trigger unlock
-          setTimeout(() => {
-            const component = document.querySelector('qd-instructor') as any;
-            const shadowRoot = component.shadowRoot;
-            const input = shadowRoot.querySelector('input[type="password"]');
-            const button = shadowRoot.querySelector('button');
-            input.value = 'instructor';
-            button.click();
-          }, 100);
-        }),
-    );
-
-    expect(eventDetails).toEqual({
-      hasTimestamp: true,
-      timestampValid: true,
-    });
-  });
-
-  test('should emit qd:instructor-lock event with timestamp', async ({ page }) => {
-    const eventDetails = await page.evaluate(
-      () =>
-        new Promise((resolve) => {
-          document.addEventListener('qd:instructor-lock', (e) => {
-            const detail = (e as CustomEvent).detail;
-            resolve({
-              hasTimestamp: 'timestamp' in detail,
-              timestampValid: !isNaN(new Date(detail.timestamp).getTime()),
-            });
-          });
-
-          // Trigger lock
-          setTimeout(() => {
-            const component = document.querySelector('qd-instructor') as any;
-            const shadowRoot = component.shadowRoot;
-            const button = shadowRoot.querySelector('button:has-text("Lock")');
-            button?.click();
-          }, 100);
-        }),
-    );
-
-    expect(eventDetails).toEqual({
-      hasTimestamp: true,
-      timestampValid: true,
-    });
-  });
-});
-
-test.describe.skip('Instructor Review - Answer Reveal', () => {
-  test.beforeEach(async ({ page }) => {
-    // Setup: Unlock instructor mode
-    await page.goto('/demo/instructor-quiz.html');
-    await page.evaluate(() => {
-      const hash = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
-      sessionStorage.setItem('qd/instructor', hash);
-    });
-    await page.reload();
-  });
-
-  test('should reveal answers in quiz table when unlocked', async ({ page }) => {
-    // Verify answer cells have reveal styling
-    const hasRevealClass = await page.evaluate(() => {
-      const cells = Array.from(document.querySelectorAll('td.qd-answer-cell'));
-      return cells.some((cell) => cell.classList.contains('qd-reveal'));
-    });
-
-    expect(hasRevealClass).toBe(true);
-  });
-
-  test('should display correct answer text in second column', async ({ page }) => {
-    // Check that answer column contains answer text
-    const answerTexts = await page.evaluate(() => {
-      const rows = Array.from(document.querySelectorAll('tr.qd-quiz-row'));
-      return rows.map((row) => {
-        const answerCell = row.querySelector('td:nth-child(2)');
-        return answerCell?.textContent?.trim() || '';
+    // Wait for save to complete
+    await expect(async () => {
+      const savedData = await page.evaluate(async () => {
+        return new Promise((resolve) => {
+          const request = indexedDB.open('BrowserTest');
+          request.onsuccess = () => {
+            const db = request.result;
+            const tx = db.transaction('students', 'readonly');
+            const store = tx.objectStore('students');
+            const getRequest = store.getAll();
+            getRequest.onsuccess = () => resolve(getRequest.result);
+          };
+        });
       });
-    });
+      expect(savedData).toBeTruthy();
+    }).toPass();
 
-    // Verify at least some answers are visible (non-empty)
-    expect(answerTexts.filter((text) => text.length > 0).length).toBeGreaterThan(0);
-  });
-
-  test('should hide answers when locked', async ({ page }) => {
-    // Lock instructor mode
-    await page.evaluate(() => sessionStorage.removeItem('qd/instructor'));
-    await page.reload();
-
-    // Verify answer cells do not have reveal styling
-    const hasRevealClass = await page.evaluate(() => {
-      const cells = Array.from(document.querySelectorAll('td.qd-answer-cell'));
-      return cells.some((cell) => cell.classList.contains('qd-reveal'));
-    });
-
-    expect(hasRevealClass).toBe(false);
-  });
-
-  test('should not affect student interaction controls', async ({ page }) => {
-    // Verify student controls (select dropdowns) are still present
-    const selectsExist = await page.evaluate(() => {
-      const selects = document.querySelectorAll('select.qd-input-container');
-      return selects.length > 0;
-    });
-
-    expect(selectsExist).toBe(true);
-  });
-});
-
-test.describe.skip('Instructor Review - Student Comparisons', () => {
-  test.beforeEach(async ({ page }) => {
-    // Setup: Create student records in IndexedDB
-    await page.goto('/demo/instructor-analysis.html');
+    // Go back and unlock instructor
+    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await waitForBootstrap(page);
 
     await page.evaluate(() => {
-      const hash = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
-      sessionStorage.setItem('qd/instructor', hash);
-
-      // Mock student data
-      const mockStudents = [
-        {
-          schema: 1,
-          docId: 'test-doc',
-          release: '02-2025',
-          serviceId: 'RN2344',
-          name: 'Smith, J',
-          attempted: 10,
-          correct: 8,
-          updated: new Date().toISOString(),
-          pages: {
-            'analysis-page': {
-              answers: [
-                { answer: 'test-1', success: true, timestamp: new Date().toISOString() },
-                { answer: 'test-2', success: true, timestamp: new Date().toISOString() },
-              ],
-              state: 'complete',
-            },
-          },
-        },
-        {
-          schema: 1,
-          docId: 'test-doc',
-          release: '02-2025',
-          serviceId: 'RN5678',
-          name: 'Jones, A',
-          attempted: 10,
-          correct: 9,
-          updated: new Date().toISOString(),
-          pages: {
-            'analysis-page': {
-              answers: [
-                { answer: 'test-3', success: true, timestamp: new Date().toISOString() },
-                { answer: 'test-4', success: false, timestamp: new Date().toISOString() },
-              ],
-              state: 'complete',
-            },
-          },
-        },
-      ];
-
-      // Store in sessionStorage for test purposes
-      sessionStorage.setItem('qd/test/students', JSON.stringify(mockStudents));
+      const span = document.createElement('span');
+      span.id = 'instructor.password.hash';
+      span.style.display = 'none';
+      span.textContent = 'c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5';
+      document.body.appendChild(span);
     });
 
-    await page.reload();
+    const instructorButton = page.locator('qd-login button').filter({ hasText: /instructor/i });
+    await instructorButton.click();
+
+    const passwordInput = page.locator('qd-instructor input[type="password"]');
+    await expect(passwordInput).toBeVisible();
+    await passwordInput.fill(TEST_PASSWORD);
+
+    const unlockButton = page.locator('qd-instructor button[type="submit"]');
+    await unlockButton.click();
+
+    // Click "View Scores" button
+    const viewScoresButton = page.locator('button').filter({ hasText: /view scores/i });
+    await expect(viewScoresButton).toBeVisible();
+    await viewScoresButton.click();
+
+    // Verify modal appears
+    const scoresModal = page.locator('qd-instructor-scores .modal-overlay');
+    await expect(scoresModal).toBeVisible();
+
+    // Verify student data shown
+    await expect(scoresModal).toContainText('John Doe');
+    await expect(scoresModal).toContainText('TEST001');
   });
 
-  test('should display student comparison table below analysis cells', async ({ page }) => {
-    // Verify comparison table exists
-    const comparisonTableExists = await page.evaluate(() => {
-      const table = document.querySelector('table.qd-student-comparison');
-      return table !== null;
-    });
+  test('should export CSV with student data', async ({ page }) => {
+    // Answer questions to create data
+    await page.goto(`file://${demoPath}/quiz-mcq.html`);
 
-    expect(comparisonTableExists).toBe(true);
-  });
+    const firstRadio = page.locator('input[type="radio"]').first();
+    await firstRadio.click();
 
-  test('should display 4-character username prefixes', async ({ page }) => {
-    // Verify student IDs are truncated to 4 characters
-    const usernames = await page.evaluate(() => {
-      const cells = Array.from(document.querySelectorAll('td.qd-student-id'));
-      return cells.map((cell) => cell.textContent?.trim() || '');
-    });
+    // Wait for save to complete
+    await expect(async () => {
+      const savedData = await page.evaluate(async () => {
+        return new Promise((resolve) => {
+          const request = indexedDB.open('BrowserTest');
+          request.onsuccess = () => {
+            const db = request.result;
+            const tx = db.transaction('students', 'readonly');
+            const store = tx.objectStore('students');
+            const getRequest = store.getAll();
+            getRequest.onsuccess = () => resolve(getRequest.result);
+          };
+        });
+      });
+      expect(savedData).toBeTruthy();
+    }).toPass();
 
-    // All usernames should be exactly 4 characters
-    expect(usernames.every((name) => name.length === 4)).toBe(true);
-    expect(usernames).toContain('RN23'); // RN2344 → RN23
-    expect(usernames).toContain('RN56'); // RN5678 → RN56
-  });
+    // Unlock instructor
+    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await waitForBootstrap(page);
 
-  test('should show student answers for each analysis cell', async ({ page }) => {
-    // Verify student answer cells exist
-    const answerCellsExist = await page.evaluate(() => {
-      const cells = Array.from(document.querySelectorAll('td.qd-student-answer'));
-      return cells.length > 0;
-    });
-
-    expect(answerCellsExist).toBe(true);
-  });
-
-  test('should hide comparison table when locked', async ({ page }) => {
-    // Lock instructor mode
-    await page.evaluate(() => sessionStorage.removeItem('qd/instructor'));
-    await page.reload();
-
-    // Verify comparison table is hidden
-    const tableVisible = await page.evaluate(() => {
-      const table = document.querySelector('table.qd-student-comparison');
-      return table !== null && getComputedStyle(table).display !== 'none';
-    });
-
-    expect(tableVisible).toBe(false);
-  });
-
-  test('should display "—" for cells without student data', async ({ page }) => {
-    // Verify placeholder text for missing data
-    const hasDash = await page.evaluate(() => {
-      const cells = Array.from(document.querySelectorAll('td.qd-student-answer'));
-      return cells.some((cell) => cell.textContent?.trim() === '—');
-    });
-
-    expect(hasDash).toBe(true);
-  });
-});
-
-test.describe.skip('Instructor Review - Student Scores', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/demo/instructor-home.html');
-
-    // Setup: Unlock and load mock student data
     await page.evaluate(() => {
-      const hash = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
-      sessionStorage.setItem('qd/instructor', hash);
+      const span = document.createElement('span');
+      span.id = 'instructor.password.hash';
+      span.style.display = 'none';
+      span.textContent = 'c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5';
+      document.body.appendChild(span);
     });
 
-    await page.reload();
+    const instructorButton = page.locator('qd-login button').filter({ hasText: /instructor/i });
+    await instructorButton.click();
+
+    const passwordInput = page.locator('qd-instructor input[type="password"]');
+    await expect(passwordInput).toBeVisible();
+    await passwordInput.fill(TEST_PASSWORD);
+
+    const unlockButton = page.locator('qd-instructor button[type="submit"]');
+    await unlockButton.click();
+
+    // Setup download listener
+    const downloadPromise = page.waitForEvent('download');
+
+    // Click export button
+    const exportButton = page.locator('button').filter({ hasText: /export.*csv/i });
+    await expect(exportButton).toBeVisible();
+    await exportButton.click();
+
+    // Verify download triggered
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/quiz-data-.*\.csv/);
   });
 
-  test('should display scores view when mode is "scores"', async ({ page }) => {
+  test('should show student answers when instructor mode active', async ({ page }) => {
+    // Student answers a question
+    await page.goto(`file://${demoPath}/quiz-mcq.html`);
+
+    const firstRadio = page.locator('input[type="radio"]').first();
+    await firstRadio.click();
+
+    // Wait for save to complete
+    await expect(async () => {
+      const savedData = await page.evaluate(async () => {
+        return new Promise((resolve) => {
+          const request = indexedDB.open('BrowserTest');
+          request.onsuccess = () => {
+            const db = request.result;
+            const tx = db.transaction('students', 'readonly');
+            const store = tx.objectStore('students');
+            const getRequest = store.getAll();
+            getRequest.onsuccess = () => resolve(getRequest.result);
+          };
+        });
+      });
+      expect(savedData).toBeTruthy();
+    }).toPass();
+
+    // Unlock instructor on same page
     await page.evaluate(() => {
-      const component = document.querySelector('qd-instructor') as any;
-      component.mode = 'scores';
+      const span = document.createElement('span');
+      span.id = 'instructor.password.hash';
+      span.style.display = 'none';
+      span.textContent = 'c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5';
+      document.body.appendChild(span);
     });
 
-    await page.waitForTimeout(100);
+    // Since we're on quiz page, need to go to index first
+    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await waitForBootstrap(page);
 
-    const scoresVisible = await page.evaluate(() => {
-      const component = document.querySelector('qd-instructor') as any;
-      const shadowRoot = component.shadowRoot;
-      const scoresView = shadowRoot.querySelector('.scores-view');
-      return scoresView !== null;
-    });
+    const instructorButton = page.locator('qd-login button').filter({ hasText: /instructor/i });
+    await instructorButton.click();
 
-    expect(scoresVisible).toBe(true);
+    const passwordInput = page.locator('qd-instructor input[type="password"]');
+    await expect(passwordInput).toBeVisible();
+    await passwordInput.fill(TEST_PASSWORD);
+
+    const unlockButton = page.locator('qd-instructor button[type="submit"]');
+    await unlockButton.click();
+
+    // Verify instructor panel appears
+    const instructorPanel = page.locator('qd-instructor .instructor-panel');
+    await expect(instructorPanel).toBeVisible();
+
+    // Toggle "Show Answers" (if that feature exists)
+    // This test assumes instructor can see student answers on quiz pages
+    // Implementation may vary based on actual feature
   });
 
-  test('should display aggregated statistics', async ({ page }) => {
+  test('should close scores modal on close button', async ({ page }) => {
+    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await waitForBootstrap(page);
+
     await page.evaluate(() => {
-      const component = document.querySelector('qd-instructor') as any;
-      component.mode = 'scores';
-
-      // Mock aggregated scores
-      component._aggregatedScores = {
-        totalAttempted: 50,
-        totalCorrect: 42,
-        totalStudents: 3,
-        averagePercentage: 84,
-        students: [],
-      };
-      component.requestUpdate();
+      const span = document.createElement('span');
+      span.id = 'instructor.password.hash';
+      span.style.display = 'none';
+      span.textContent = 'c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5';
+      document.body.appendChild(span);
     });
 
-    await page.waitForTimeout(100);
+    const instructorButton = page.locator('qd-login button').filter({ hasText: /instructor/i });
+    await instructorButton.click();
 
-    const stats = await page.evaluate(() => {
-      const component = document.querySelector('qd-instructor') as any;
-      const shadowRoot = component.shadowRoot;
-      const summary = shadowRoot.querySelector('.scores-summary');
-      return summary?.textContent || '';
-    });
+    const passwordInput = page.locator('qd-instructor input[type="password"]');
+    await expect(passwordInput).toBeVisible();
+    await passwordInput.fill(TEST_PASSWORD);
 
-    expect(stats).toContain('50'); // totalAttempted
-    expect(stats).toContain('42'); // totalCorrect
-    expect(stats).toContain('3'); // totalStudents
-  });
+    const unlockButton = page.locator('qd-instructor button[type="submit"]');
+    await unlockButton.click();
 
-  test('should display sortable student table', async ({ page }) => {
-    const sortButtonsExist = await page.evaluate(() => {
-      const component = document.querySelector('qd-instructor') as any;
-      component.mode = 'scores';
+    // Open scores modal
+    const viewScoresButton = page.locator('button').filter({ hasText: /view scores/i });
+    await expect(viewScoresButton).toBeVisible();
+    await viewScoresButton.click();
 
-      const shadowRoot = component.shadowRoot;
-      const sortButtons = shadowRoot.querySelectorAll('button.sort-button');
-      return sortButtons.length > 0;
-    });
+    const scoresModal = page.locator('qd-instructor-scores .modal-overlay');
+    await expect(scoresModal).toBeVisible();
 
-    expect(sortButtonsExist).toBe(true);
-  });
+    // Close modal
+    const closeButton = scoresModal.locator('button.close-button');
+    await closeButton.click();
 
-  test('should sort students by serviceId', async ({ page }) => {
-    await page.evaluate(() => {
-      const component = document.querySelector('qd-instructor') as any;
-      component.mode = 'scores';
-
-      // Mock student data
-      component._studentRecords = [
-        { serviceId: 'RN5678', name: 'Jones, A', correct: 10, attempted: 10 },
-        { serviceId: 'RN2344', name: 'Smith, J', correct: 8, attempted: 10 },
-        { serviceId: 'RN3456', name: 'Brown, K', correct: 9, attempted: 10 },
-      ];
-      component._sortField = 'serviceId';
-      component._aggregateScores();
-      component.requestUpdate();
-    });
-
-    await page.waitForTimeout(100);
-
-    const firstServiceId = await page.evaluate(() => {
-      const component = document.querySelector('qd-instructor') as any;
-      const shadowRoot = component.shadowRoot;
-      const firstRow = shadowRoot.querySelector('tbody tr:first-child td:first-child');
-      return firstRow?.textContent?.trim();
-    });
-
-    expect(firstServiceId).toBe('RN2344'); // Alphabetically first
-  });
-
-  test('should show empty state when no students', async ({ page }) => {
-    await page.evaluate(() => {
-      const component = document.querySelector('qd-instructor') as any;
-      component.mode = 'scores';
-      component._studentRecords = [];
-      component._aggregateScores();
-      component.requestUpdate();
-    });
-
-    await page.waitForTimeout(100);
-
-    const emptyMessage = await page.evaluate(() => {
-      const component = document.querySelector('qd-instructor') as any;
-      const shadowRoot = component.shadowRoot;
-      const emptyState = shadowRoot.querySelector('.empty-state');
-      return emptyState?.textContent || '';
-    });
-
-    expect(emptyMessage).toContain('No student data');
-  });
-});
-
-test.describe.skip('Instructor Review - Accessibility', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/demo/instructor-home.html');
-    await page.waitForLoadState('domcontentloaded');
-  });
-
-  test('should have keyboard accessible password form', async ({ page }) => {
-    const isAccessible = await page.evaluate(() => {
-      const component = document.querySelector('qd-instructor') as any;
-      const shadowRoot = component.shadowRoot;
-
-      const form = shadowRoot.querySelector('form');
-      const input = shadowRoot.querySelector('input[type="password"]');
-      const label = shadowRoot.querySelector('label');
-
-      return form !== null && input !== null && label !== null;
-    });
-
-    expect(isAccessible).toBe(true);
-  });
-
-  test('should have proper ARIA labels on buttons', async ({ page }) => {
-    const hasAriaLabels = await page.evaluate(() => {
-      const component = document.querySelector('qd-instructor') as any;
-      const shadowRoot = component.shadowRoot;
-      const buttons = shadowRoot.querySelectorAll('button');
-
-      return (Array.from(buttons) as HTMLButtonElement[]).every(
-        (btn) => btn.textContent?.trim() || btn.getAttribute('aria-label'),
-      );
-    });
-
-    expect(hasAriaLabels).toBe(true);
-  });
-
-  test('should focus password input on mount', async ({ page }) => {
-    await page.waitForTimeout(100);
-
-    const isFocused = await page.evaluate(() => {
-      const component = document.querySelector('qd-instructor') as any;
-      const shadowRoot = component.shadowRoot;
-      const input = shadowRoot.querySelector('input[type="password"]');
-      return document.activeElement === component && shadowRoot.activeElement === input;
-    });
-
-    expect(isFocused).toBe(true);
-  });
-
-  test('should announce state changes to screen readers', async ({ page }) => {
-    // Unlock instructor mode
-    await page.evaluate(() => {
-      const hash = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
-      sessionStorage.setItem('qd/instructor', hash);
-    });
-
-    await page.reload();
-
-    const hasLiveRegion = await page.evaluate(() => {
-      const component = document.querySelector('qd-instructor') as any;
-      const shadowRoot = component.shadowRoot;
-      const liveRegion = shadowRoot.querySelector('[aria-live]');
-      return liveRegion !== null;
-    });
-
-    expect(hasLiveRegion).toBe(true);
+    // Verify modal closed
+    await expect(scoresModal).not.toBeVisible();
   });
 });

@@ -1,940 +1,371 @@
 /**
- * Storage Monitor Component
- *
- * Development tool for monitoring browser storage state in real-time.
- * Displays sessionStorage, IndexedDB entries with qd prefix.
- * Toggle visibility with Ctrl+Shift+D.
- *
- * Configuration:
- * - `dbName` attribute: Set the IndexedDB database name to monitor (default: 'quiz-scores')
- *
- * Example usage:
- * ```html
- * <!-- Use default database name -->
- * <qd-storage-monitor></qd-storage-monitor>
- *
- * <!-- Specify custom database name -->
- * <qd-storage-monitor dbName="SonarQuizDB"></qd-storage-monitor>
- * ```
+ * Storage monitor component for development
+ * Real-time inspection of IndexedDB and sessionStorage
  */
 
 import { LitElement, html, css } from 'lit';
-import { customElement, state, property } from 'lit/decorators.js';
-import type { SessionData } from '../types/contracts';
-import { STORAGE_KEYS } from '../types/contracts';
+import { customElement, property, state } from 'lit/decorators.js';
 
 interface StorageEntry {
   key: string;
   value: unknown;
-  size: number;
-  expanded?: boolean;
+  expanded: boolean;
 }
 
-interface IndexedDBEntry {
-  key: string;
-  value: unknown;
-  size: number;
-  expanded?: boolean;
-}
-
-interface PageSummary {
-  hasStatusPanelMarker: boolean;
-  isLoggedIn: boolean;
-  userName?: string;
-  serviceId?: string;
-  release?: string;
-  pageId?: string;
-  quizTables: number;
-  analysisTables: number;
-}
-
+/**
+ * Development tool for monitoring browser storage
+ *
+ * Features:
+ * - Real-time IndexedDB inspection
+ * - SessionStorage viewer
+ * - Expand/collapse JSON objects
+ * - Clear individual keys or all storage
+ * - Keyboard shortcut: Ctrl+Shift+D to toggle visibility
+ * - Auto-injected when data-debug="true"
+ *
+ * @example
+ * ```html
+ * <qd-storage-monitor dbName="BrowserTest"></qd-storage-monitor>
+ * ```
+ */
 @customElement('qd-storage-monitor')
-export class StorageMonitor extends LitElement {
-  /**
-   * IndexedDB database name to monitor
-   * @default 'quiz-scores'
-   */
-  @property({ type: String })
-  dbName = 'quiz-scores';
-
-  @state()
-  private visible = true;
-
-  @state()
-  private sessionEntries: StorageEntry[] = [];
-
-  @state()
-  private indexedDBEntries: IndexedDBEntry[] = [];
-
-  @state()
-  private sessionExpanded = true;
-
-  @state()
-  private indexedDBExpanded = true;
-
-  @state()
-  private pageSummary: PageSummary = {
-    hasStatusPanelMarker: false,
-    isLoggedIn: false,
-    quizTables: 0,
-    analysisTables: 0,
-  };
-
-  private keyboardHandler = (e: KeyboardEvent) => {
-    if (e.ctrlKey && e.shiftKey && e.key === 'D') {
-      e.preventDefault();
-      this.visible = !this.visible;
-    }
-  };
-
-  connectedCallback(): void {
-    super.connectedCallback();
-
-    // Listen for keyboard shortcut
-    window.addEventListener('keydown', this.keyboardHandler);
-
-    // Listen for qd:* events
-    window.addEventListener('qd:login', () => {
-      void this.refreshData();
-    });
-    window.addEventListener('qd:logout', () => {
-      void this.refreshData();
-    });
-    window.addEventListener('qd:answer-saved', () => {
-      void this.refreshData();
-    });
-    window.addEventListener('qd:state-changed', () => {
-      void this.refreshData();
-    });
-    window.addEventListener('qd:instructor-unlock', () => {
-      void this.refreshData();
-    });
-    window.addEventListener('qd:instructor-lock', () => {
-      void this.refreshData();
-    });
-    window.addEventListener('qd:data-cleared', () => {
-      void this.refreshData();
-    });
-
-    // Initial load
-    void this.refreshData();
-  }
-
-  disconnectedCallback(): void {
-    super.disconnectedCallback();
-    window.removeEventListener('keydown', this.keyboardHandler);
-  }
-
-  private async refreshData(): Promise<void> {
-    this.sessionEntries = this.readSessionStorage();
-    this.indexedDBEntries = await this.readIndexedDB();
-    this.pageSummary = this.gatherPageSummary();
-  }
-
-  private gatherPageSummary(): PageSummary {
-    const summary: PageSummary = {
-      hasStatusPanelMarker: false,
-      isLoggedIn: false,
-      quizTables: 0,
-      analysisTables: 0,
-    };
-
-    // Check for status panel marker (default selector from Oxygen WebHelp)
-    summary.hasStatusPanelMarker = !!document.querySelector('.wh_top_menu_and_indexterms_link');
-
-    // Read session data from sessionStorage
-    const sessionDataStr = sessionStorage.getItem(STORAGE_KEYS.SESSION);
-    if (sessionDataStr) {
-      try {
-        const sessionData = JSON.parse(sessionDataStr) as SessionData;
-        summary.isLoggedIn = true;
-        summary.userName = sessionData.name;
-        summary.serviceId = sessionData.serviceId;
-        summary.release = sessionData.release;
-      } catch {
-        // Invalid session data
-      }
-    }
-
-    // Get release and page ID from meta tags
-    const releaseMeta = document.querySelector('meta[name="release"]');
-    if (releaseMeta) {
-      summary.release = releaseMeta.getAttribute('content') || undefined;
-    }
-
-    const pageIdMeta = document.querySelector('meta[name="document-id"]');
-    if (pageIdMeta) {
-      summary.pageId = pageIdMeta.getAttribute('content') || undefined;
-    }
-
-    // Count quiz and analysis tables
-    summary.quizTables = document.querySelectorAll('table.qd-quiz').length;
-    summary.analysisTables = document.querySelectorAll('table.qd-analysis').length;
-
-    return summary;
-  }
-
-  private readSessionStorage(): StorageEntry[] {
-    const entries: StorageEntry[] = [];
-
-    for (let i = 0; i < sessionStorage.length; i++) {
-      const key = sessionStorage.key(i);
-      if (key && key.startsWith('qd')) {
-        const value = sessionStorage.getItem(key);
-        if (value) {
-          try {
-            entries.push({
-              key,
-              value: JSON.parse(value),
-              size: new Blob([value]).size,
-              expanded: false,
-            });
-          } catch {
-            entries.push({
-              key,
-              value,
-              size: new Blob([value]).size,
-              expanded: false,
-            });
-          }
-        }
-      }
-    }
-
-    return entries.sort((a, b) => a.key.localeCompare(b.key));
-  }
-
-  private async readIndexedDB(): Promise<IndexedDBEntry[]> {
-    try {
-      const db = await this.openDatabase(this.dbName);
-      const entries: IndexedDBEntry[] = [];
-
-      // Check if 'students' object store exists before trying to read it
-      if (!db.objectStoreNames.contains('students')) {
-        db.close();
-        return []; // Database exists but schema not initialized yet (user not logged in)
-      }
-
-      const transaction = db.transaction(['students'], 'readonly');
-      const store = transaction.objectStore('students');
-      const request = store.openCursor();
-
-      await new Promise<void>((resolve, reject) => {
-        request.onsuccess = (event) => {
-          const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
-          if (cursor) {
-            const key = cursor.key as string;
-            if (key.startsWith('qd')) {
-              const value = cursor.value as unknown;
-              const size = new Blob([JSON.stringify(value)]).size;
-              entries.push({
-                key,
-                value,
-                size,
-                expanded: false,
-              });
-            }
-            cursor.continue();
-          } else {
-            resolve();
-          }
-        };
-        request.onerror = () => reject(new Error(request.error?.message || 'IndexedDB error'));
-      });
-
-      db.close();
-      return entries.sort((a, b) => a.key.localeCompare(b.key));
-    } catch (error) {
-      console.warn('Failed to read IndexedDB:', error);
-      return [];
-    }
-  }
-
-  private openDatabase(dbName: string): Promise<IDBDatabase> {
-    return new Promise((resolve, reject) => {
-      // Open without specifying version to avoid creating/upgrading the database
-      // This allows us to read from existing database without interfering with initialization
-      const request = indexedDB.open(dbName);
-
-      request.onsuccess = () => {
-        const db = request.result;
-        // Check if database has expected object stores
-        // If not, it means the database hasn't been properly initialized yet
-        if (!db.objectStoreNames.contains('students')) {
-          db.close();
-          reject(new Error('Database not initialized - missing students object store'));
-          return;
-        }
-        resolve(db);
-      };
-
-      request.onerror = () =>
-        reject(new Error(request.error?.message || 'Failed to open database'));
-
-      // Important: Don't add onupgradeneeded handler here
-      // We don't want the storage monitor to create/upgrade the database schema
-    });
-  }
-
-  private toggleEntryExpansion(entries: StorageEntry[], key: string): void {
-    const entry = entries.find((e) => e.key === key);
-    if (entry) {
-      entry.expanded = !entry.expanded;
-      this.requestUpdate();
-    }
-  }
-
-  private clearSessionStorage(): void {
-    if (confirm('Clear all qd-prefixed sessionStorage data?')) {
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < sessionStorage.length; i++) {
-        const key = sessionStorage.key(i);
-        if (key && key.startsWith('qd')) {
-          keysToRemove.push(key);
-        }
-      }
-      keysToRemove.forEach((key) => sessionStorage.removeItem(key));
-      void this.refreshData();
-    }
-  }
-
-  private clearSessionKey(key: string): void {
-    if (confirm(`Clear sessionStorage key: ${key}?`)) {
-      sessionStorage.removeItem(key);
-      void this.refreshData();
-    }
-  }
-
-  private async clearIndexedDB(): Promise<void> {
-    if (confirm('Clear all qd-prefixed IndexedDB data?')) {
-      try {
-        const db = await this.openDatabase(this.dbName);
-        const transaction = db.transaction(['students'], 'readwrite');
-        const store = transaction.objectStore('students');
-
-        const keysToDelete: string[] = [];
-        const cursorRequest = store.openCursor();
-
-        await new Promise<void>((resolve, reject) => {
-          cursorRequest.onsuccess = (event) => {
-            const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
-            if (cursor) {
-              const key = cursor.key as string;
-              if (key.startsWith('qd')) {
-                keysToDelete.push(key);
-              }
-              cursor.continue();
-            } else {
-              resolve();
-            }
-          };
-          cursorRequest.onerror = () =>
-            reject(new Error(cursorRequest.error?.message || 'Cursor error'));
-        });
-
-        for (const key of keysToDelete) {
-          store.delete(key);
-        }
-
-        await new Promise<void>((resolve, reject) => {
-          transaction.oncomplete = () => resolve();
-          transaction.onerror = () =>
-            reject(new Error(transaction.error?.message || 'Transaction error'));
-        });
-
-        db.close();
-        void this.refreshData();
-      } catch (error) {
-        console.error('Failed to clear IndexedDB:', error);
-        alert('Failed to clear IndexedDB');
-      }
-    }
-  }
-
-  private async clearIndexedDBKey(key: string): Promise<void> {
-    if (confirm(`Clear IndexedDB key: ${key}?`)) {
-      try {
-        const db = await this.openDatabase(this.dbName);
-        const transaction = db.transaction(['students'], 'readwrite');
-        const store = transaction.objectStore('students');
-        store.delete(key);
-
-        await new Promise<void>((resolve, reject) => {
-          transaction.oncomplete = () => resolve();
-          transaction.onerror = () =>
-            reject(new Error(transaction.error?.message || 'Transaction error'));
-        });
-
-        db.close();
-        void this.refreshData();
-      } catch (error) {
-        console.error('Failed to clear IndexedDB key:', error);
-        alert('Failed to clear IndexedDB key');
-      }
-    }
-  }
-
-  /**
-   * Check if a value is a "leaf" object (all values are primitives)
-   * If so, it can be rendered compactly as label:value pairs on one line
-   */
-  private isLeafObject(value: unknown): boolean {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-      return false;
-    }
-    const entries = Object.values(value as Record<string, unknown>);
-    return entries.every(
-      (v) =>
-        v === null ||
-        v === undefined ||
-        typeof v === 'string' ||
-        typeof v === 'number' ||
-        typeof v === 'boolean',
-    );
-  }
-
-  /**
-   * Render a value with tree-based structure:
-   * - Primitives: inline
-   * - Arrays: vertical list of items
-   * - Leaf objects: compact label:value pairs on one line
-   * - Nested objects: hierarchical tree
-   */
-  private renderValue(value: unknown, depth = 0): unknown {
-    if (value === null) {
-      return html`<span class="value-null">null</span>`;
-    }
-
-    if (value === undefined) {
-      return html`<span class="value-undefined">undefined</span>`;
-    }
-
-    if (typeof value === 'string') {
-      return html`<span class="value-string">"${value}"</span>`;
-    }
-
-    if (typeof value === 'number') {
-      return html`<span class="value-number">${value}</span>`;
-    }
-
-    if (typeof value === 'boolean') {
-      return html`<span class="value-boolean">${value}</span>`;
-    }
-
-    if (Array.isArray(value)) {
-      if (value.length === 0) {
-        return html`<span class="value-array">[]</span>`;
-      }
-      // Arrays render as vertical columns
-      return html`
-        <div class="value-array">
-          ${value.map(
-            (item, i) => html`
-              <div class="array-item">
-                <span class="index">[${i}]</span>
-                ${this.renderValue(item, depth + 1)}
-              </div>
-            `,
-          )}
-        </div>
-      `;
-    }
-
-    if (typeof value === 'object') {
-      const entries = Object.entries(value as Record<string, unknown>);
-      if (entries.length === 0) {
-        return html`<span class="value-object">{}</span>`;
-      }
-
-      // Check if this is a leaf object (all primitive values)
-      if (this.isLeafObject(value)) {
-        // Render compactly on one line
-        return html`
-          <span class="value-object-compact">
-            {${entries.map(([k, v], i) => {
-              const separator = i < entries.length - 1 ? ', ' : '';
-              return html`<span class="key">${k}:</span>${this.renderValue(
-                  v,
-                  depth + 1,
-                )}${separator}`;
-            })}}
-          </span>
-        `;
-      }
-
-      // Otherwise, render as tree
-      return html`
-        <div class="value-object">
-          ${entries.map(
-            ([k, v]) => html`
-              <div class="object-entry">
-                <span class="key">${k}:</span>
-                <div class="object-value">${this.renderValue(v, depth + 1)}</div>
-              </div>
-            `,
-          )}
-        </div>
-      `;
-    }
-
-    // Fallback for unknown types - use JSON.stringify to ensure proper display
-    const displayValue = JSON.stringify(value);
-    return html`<span class="value-unknown">${displayValue}</span>`;
-  }
-
-  private renderEntry(entry: StorageEntry, onClear: () => void): unknown {
-    return html`
-      <div class="entry">
-        <div class="entry-header">
-          <button
-            class="expand-btn"
-            @click=${() => this.toggleEntryExpansion(this.sessionEntries, entry.key)}
-          >
-            ${entry.expanded ? '▼' : '▶'}
-          </button>
-          <span class="entry-key">${entry.key}</span>
-          <span class="entry-size">${this.formatSize(entry.size)}</span>
-          <button class="clear-btn" @click=${onClear}>✕</button>
-        </div>
-        ${entry.expanded
-          ? html` <div class="entry-value">${this.renderValue(entry.value)}</div> `
-          : ''}
-      </div>
-    `;
-  }
-
-  private renderIndexedDBEntry(entry: IndexedDBEntry): unknown {
-    return html`
-      <div class="entry">
-        <div class="entry-header">
-          <button
-            class="expand-btn"
-            @click=${() => this.toggleEntryExpansion(this.indexedDBEntries, entry.key)}
-          >
-            ${entry.expanded ? '▼' : '▶'}
-          </button>
-          <span class="entry-key">${entry.key}</span>
-          <span class="entry-size">${this.formatSize(entry.size)}</span>
-          <button class="clear-btn" @click=${() => this.clearIndexedDBKey(entry.key)}>✕</button>
-        </div>
-        ${entry.expanded
-          ? html` <div class="entry-value">${this.renderValue(entry.value)}</div> `
-          : ''}
-      </div>
-    `;
-  }
-
-  private formatSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes}B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
-  }
-
-  private renderSummary(): unknown {
-    const { pageSummary } = this;
-    return html`
-      <div class="summary">
-        <h3>Page Context</h3>
-        <div class="summary-grid">
-          <div class="summary-item">
-            <span class="summary-label">Status Panel:</span>
-            <span class="summary-value ${pageSummary.hasStatusPanelMarker ? 'success' : 'error'}">
-              ${pageSummary.hasStatusPanelMarker ? '✓ Found' : '✗ Not Found'}
-            </span>
-          </div>
-
-          <div class="summary-item">
-            <span class="summary-label">Logged In:</span>
-            <span class="summary-value ${pageSummary.isLoggedIn ? 'success' : 'error'}">
-              ${pageSummary.isLoggedIn ? '✓ Yes' : '✗ No'}
-            </span>
-          </div>
-
-          ${pageSummary.isLoggedIn
-            ? html`
-                <div class="summary-item">
-                  <span class="summary-label">User:</span>
-                  <span class="summary-value">${pageSummary.userName}</span>
-                </div>
-                <div class="summary-item">
-                  <span class="summary-label">Service ID:</span>
-                  <span class="summary-value">${pageSummary.serviceId}</span>
-                </div>
-              `
-            : ''}
-
-          <div class="summary-item">
-            <span class="summary-label">Release:</span>
-            <span class="summary-value">${pageSummary.release || 'N/A'}</span>
-          </div>
-
-          <div class="summary-item">
-            <span class="summary-label">Page ID:</span>
-            <span class="summary-value">${pageSummary.pageId || 'N/A'}</span>
-          </div>
-
-          <div class="summary-item">
-            <span class="summary-label">Quiz Tables:</span>
-            <span class="summary-value">${pageSummary.quizTables}</span>
-          </div>
-
-          <div class="summary-item">
-            <span class="summary-label">Analysis Tables:</span>
-            <span class="summary-value">${pageSummary.analysisTables}</span>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  render() {
-    if (!this.visible) {
-      return html``;
-    }
-
-    return html`
-      <div class="monitor">
-        <div class="header">
-          <h2>Storage Monitor</h2>
-          <div class="hint">Ctrl+Shift+D to toggle</div>
-        </div>
-
-        ${this.renderSummary()}
-
-        <div class="section">
-          <div class="section-header">
-            <button
-              class="expand-btn"
-              @click=${() => (this.sessionExpanded = !this.sessionExpanded)}
-            >
-              ${this.sessionExpanded ? '▼' : '▶'}
-            </button>
-            <h3>sessionStorage</h3>
-            <span class="count">(${this.sessionEntries.length})</span>
-            <button class="clear-all-btn" @click=${() => this.clearSessionStorage()}>
-              Clear All
-            </button>
-          </div>
-
-          ${this.sessionExpanded
-            ? html`
-                <div class="entries">
-                  ${this.sessionEntries.length === 0
-                    ? html`<div class="empty">No qd-prefixed entries</div>`
-                    : this.sessionEntries.map((entry) =>
-                        this.renderEntry(entry, () => this.clearSessionKey(entry.key)),
-                      )}
-                </div>
-              `
-            : ''}
-        </div>
-
-        <div class="section">
-          <div class="section-header">
-            <button
-              class="expand-btn"
-              @click=${() => (this.indexedDBExpanded = !this.indexedDBExpanded)}
-            >
-              ${this.indexedDBExpanded ? '▼' : '▶'}
-            </button>
-            <h3>IndexedDB</h3>
-            <span class="count">(${this.indexedDBEntries.length})</span>
-            <button class="clear-all-btn" @click=${() => this.clearIndexedDB()}>Clear All</button>
-          </div>
-
-          ${this.indexedDBExpanded
-            ? html`
-                <div class="entries">
-                  ${this.indexedDBEntries.length === 0
-                    ? html`<div class="empty">No qd-prefixed entries</div>`
-                    : this.indexedDBEntries.map((entry) => this.renderIndexedDBEntry(entry))}
-                </div>
-              `
-            : ''}
-        </div>
-      </div>
-    `;
-  }
-
-  static styles = css`
+export class QdStorageMonitor extends LitElement {
+  static override styles = css`
     :host {
-      display: block;
-      width: 100%;
-      max-width: 400px;
+      position: fixed;
+      bottom: 0;
+      right: 0;
+      width: 400px;
+      max-height: 500px;
+      background: white;
+      border: 2px solid #333;
+      border-radius: 4px 0 0 0;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
       font-family: monospace;
       font-size: 12px;
-      border-left: 1px solid #3e3e42;
+      z-index: 9999; /* Below modal overlays (10001) */
+      display: flex;
+      flex-direction: column;
+      pointer-events: auto;
     }
 
     :host([hidden]) {
       display: none;
-    }
-
-    .monitor {
-      width: 100%;
-      height: 100vh;
-      position: sticky;
-      top: 0;
-      background: #1e1e1e;
-      color: #d4d4d4;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
+      pointer-events: none;
     }
 
     .header {
+      background: #333;
+      color: white;
+      padding: 8px 12px;
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      justify-content: space-between;
-      padding: 12px;
-      background: #252526;
-      border-bottom: 1px solid #3e3e42;
     }
 
-    .header h2 {
-      margin: 0;
-      font-size: 14px;
-      font-weight: 600;
+    .title {
+      font-weight: bold;
     }
 
-    .hint {
-      font-size: 10px;
-      color: #858585;
-    }
-
-    .summary {
-      padding: 12px;
-      background: #252526;
-      border-bottom: 1px solid #3e3e42;
-    }
-
-    .summary h3 {
-      margin: 0 0 8px 0;
-      font-size: 12px;
-      font-weight: 600;
-      color: #d4d4d4;
-    }
-
-    .summary-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 6px;
-    }
-
-    .summary-item {
+    .controls {
       display: flex;
-      justify-content: space-between;
+      gap: 8px;
+    }
+
+    button {
+      background: #555;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 3px;
+      cursor: pointer;
       font-size: 11px;
     }
 
-    .summary-label {
-      color: #858585;
-      font-weight: 500;
+    button:hover {
+      background: #777;
     }
 
-    .summary-value {
-      color: #d4d4d4;
-      font-weight: 600;
+    button.danger {
+      background: #dc3545;
     }
 
-    .summary-value.success {
-      color: #4ec9b0;
+    button.danger:hover {
+      background: #c82333;
     }
 
-    .summary-value.error {
-      color: #f48771;
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
     }
 
     .section {
-      border-bottom: 1px solid #3e3e42;
+      margin-bottom: 16px;
     }
 
-    .section-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      background: #2d2d30;
-    }
-
-    .section-header h3 {
-      margin: 0;
-      font-size: 13px;
-      font-weight: 600;
-      flex: 1;
-    }
-
-    .count {
-      font-size: 11px;
-      color: #858585;
-    }
-
-    .clear-all-btn {
-      background: #c5393a;
-      border: none;
-      color: white;
-      font-size: 10px;
-      padding: 4px 8px;
-      cursor: pointer;
-      border-radius: 2px;
-    }
-
-    .clear-all-btn:hover {
-      background: #d14344;
-    }
-
-    .entries {
-      max-height: 400px;
-      overflow-y: auto;
-    }
-
-    .empty {
-      padding: 12px;
-      color: #858585;
-      font-style: italic;
+    .section-title {
+      font-weight: bold;
+      margin-bottom: 4px;
+      padding: 4px;
+      background: #f0f0f0;
     }
 
     .entry {
-      border-bottom: 1px solid #3e3e42;
-    }
-
-    .entry-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      background: #1e1e1e;
-    }
-
-    .entry-header:hover {
-      background: #2d2d30;
-    }
-
-    .expand-btn {
-      background: transparent;
-      border: none;
-      color: #d4d4d4;
-      font-size: 10px;
-      cursor: pointer;
-      padding: 0;
-      width: 16px;
-      text-align: left;
+      margin: 4px 0;
+      padding: 4px;
+      border-left: 2px solid #ddd;
+      padding-left: 8px;
     }
 
     .entry-key {
-      flex: 1;
-      font-weight: 500;
-      color: #9cdcfe;
-    }
-
-    .entry-size {
-      font-size: 10px;
-      color: #858585;
-    }
-
-    .clear-btn {
-      background: transparent;
-      border: none;
-      color: #858585;
-      font-size: 12px;
+      color: #0066cc;
       cursor: pointer;
-      padding: 2px 6px;
+      user-select: none;
     }
 
-    .clear-btn:hover {
-      color: #c5393a;
-      background: #3e3e42;
+    .entry-key:hover {
+      text-decoration: underline;
     }
 
     .entry-value {
-      padding: 8px 12px 8px 36px;
-      background: #252526;
-      font-size: 11px;
-      overflow-x: auto;
-    }
-
-    .indent {
+      color: #666;
       margin-left: 16px;
+      white-space: pre-wrap;
+      word-break: break-all;
     }
 
-    .value-string {
-      color: #ce9178;
+    .entry-actions {
+      margin-left: 16px;
+      margin-top: 4px;
     }
 
-    .value-number {
-      color: #b5cea8;
-    }
-
-    .value-boolean {
-      color: #569cd6;
-    }
-
-    .value-null,
-    .value-undefined {
-      color: #569cd6;
+    .empty {
+      color: #999;
       font-style: italic;
     }
-
-    .value-array {
-      color: #d4d4d4;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .value-object {
-      color: #d4d4d4;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      margin-left: 12px;
-    }
-
-    .value-object-compact {
-      color: #d4d4d4;
-    }
-
-    .bracket {
-      color: #d4d4d4;
-    }
-
-    .key {
-      color: #9cdcfe;
-      margin-right: 6px;
-      font-weight: 500;
-    }
-
-    .index {
-      color: #858585;
-      margin-right: 8px;
-      font-weight: 500;
-      min-width: 30px;
-      display: inline-block;
-    }
-
-    .array-item {
-      display: flex;
-      align-items: flex-start;
-      padding: 2px 0;
-      border-left: 2px solid #3e3e42;
-      padding-left: 8px;
-      margin-left: 4px;
-    }
-
-    .object-entry {
-      display: flex;
-      flex-direction: column;
-      padding: 2px 0;
-    }
-
-    .object-value {
-      margin-left: 12px;
-    }
   `;
+
+  @property({ type: String })
+  dbName = 'quiz-scores';
+
+  @property({ type: Boolean, reflect: true })
+  hidden = true;
+
+  @state()
+  private visible = false;
+
+  @state()
+  private indexedDBEntries: StorageEntry[] = [];
+
+  @state()
+  private sessionStorageEntries: StorageEntry[] = [];
+
+  private refreshInterval?: number;
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    this.setupKeyboardShortcut();
+    this.startRefresh();
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.stopRefresh();
+  }
+
+  private setupKeyboardShortcut(): void {
+    const handler = (e: KeyboardEvent): void => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        e.preventDefault();
+        this.toggleVisibility();
+      }
+    };
+    document.addEventListener('keydown', handler);
+  }
+
+  private toggleVisibility(): void {
+    this.visible = !this.visible;
+    this.hidden = !this.visible;
+  }
+
+  private startRefresh(): void {
+    void this.refreshData();
+    this.refreshInterval = window.setInterval(() => {
+      void this.refreshData();
+    }, 1000);
+  }
+
+  private stopRefresh(): void {
+    if (this.refreshInterval) {
+      window.clearInterval(this.refreshInterval);
+    }
+  }
+
+  private async refreshData(): Promise<void> {
+    await this.refreshIndexedDB();
+    this.refreshSessionStorage();
+  }
+
+  private async refreshIndexedDB(): Promise<void> {
+    try {
+      const db = await this.openDatabase();
+      const entries: StorageEntry[] = [];
+
+      for (const storeName of Array.from(db.objectStoreNames)) {
+        const tx = db.transaction(storeName, 'readonly');
+        const store = tx.objectStore(storeName);
+        const request = store.getAll();
+
+        await new Promise<void>((resolve, reject) => {
+          request.onsuccess = () => {
+            const items = request.result as unknown[];
+            items.forEach((item, index) => {
+              entries.push({
+                key: `${storeName}[${index}]`,
+                value: item,
+                expanded: false,
+              });
+            });
+            resolve();
+          };
+          request.onerror = () =>
+            reject(new Error(request.error?.message || 'IndexedDB request failed'));
+        });
+      }
+
+      this.indexedDBEntries = entries;
+    } catch {
+      this.indexedDBEntries = [];
+    }
+  }
+
+  private refreshSessionStorage(): void {
+    const entries: StorageEntry[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key) {
+        try {
+          const value = sessionStorage.getItem(key);
+          entries.push({
+            key,
+            value: value ? JSON.parse(value) : value,
+            expanded: false,
+          });
+        } catch {
+          entries.push({
+            key,
+            value: sessionStorage.getItem(key),
+            expanded: false,
+          });
+        }
+      }
+    }
+    this.sessionStorageEntries = entries;
+  }
+
+  private openDatabase(): Promise<IDBDatabase> {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(this.dbName);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () =>
+        reject(new Error(request.error?.message || 'Failed to open database'));
+    });
+  }
+
+  private handleToggleEntry = (entry: StorageEntry): void => {
+    entry.expanded = !entry.expanded;
+    this.requestUpdate();
+  };
+
+  private handleClearSessionStorage = (): void => {
+    if (confirm('Clear all sessionStorage?')) {
+      sessionStorage.clear();
+      void this.refreshData();
+    }
+  };
+
+  private handleClearIndexedDB = async (): Promise<void> => {
+    if (confirm(`Clear IndexedDB "${this.dbName}"?`)) {
+      try {
+        const db = await this.openDatabase();
+        for (const storeName of Array.from(db.objectStoreNames)) {
+          const tx = db.transaction(storeName, 'readwrite');
+          const store = tx.objectStore(storeName);
+          store.clear();
+        }
+        await this.refreshData();
+      } catch (err) {
+        console.error('Failed to clear IndexedDB:', err);
+      }
+    }
+  };
+
+  private handleClose = (): void => {
+    this.visible = false;
+    this.hidden = true;
+  };
+
+  private renderEntry(entry: StorageEntry): unknown {
+    return html`
+      <div class="entry">
+        <div class="entry-key" @click=${() => this.handleToggleEntry(entry)}>
+          ${entry.expanded ? '▼' : '▶'} ${entry.key}
+        </div>
+        ${entry.expanded
+          ? html` <div class="entry-value">${JSON.stringify(entry.value, null, 2)}</div> `
+          : ''}
+      </div>
+    `;
+  }
+
+  override render() {
+    return html`
+      <div class="header">
+        <span class="title">Storage Monitor (Ctrl+Shift+D)</span>
+        <div class="controls">
+          <button @click=${this.handleClose}>✕</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="section">
+          <div class="section-title">
+            IndexedDB: ${this.dbName}
+            <button
+              class="danger"
+              @click=${this.handleClearIndexedDB}
+              style="float: right; margin-top: -2px;"
+            >
+              Clear
+            </button>
+          </div>
+          ${this.indexedDBEntries.length === 0
+            ? html`<div class="empty">No entries</div>`
+            : this.indexedDBEntries.map((e) => this.renderEntry(e))}
+        </div>
+
+        <div class="section">
+          <div class="section-title">
+            sessionStorage
+            <button
+              class="danger"
+              @click=${this.handleClearSessionStorage}
+              style="float: right; margin-top: -2px;"
+            >
+              Clear
+            </button>
+          </div>
+          ${this.sessionStorageEntries.length === 0
+            ? html`<div class="empty">No entries</div>`
+            : this.sessionStorageEntries.map((e) => this.renderEntry(e))}
+        </div>
+      </div>
+    `;
+  }
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    'qd-storage-monitor': StorageMonitor;
+    'qd-storage-monitor': QdStorageMonitor;
   }
 }

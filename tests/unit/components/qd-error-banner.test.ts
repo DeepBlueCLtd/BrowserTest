@@ -1,116 +1,175 @@
 /**
- * Error Banner Component Tests
- *
- * Tests for the validation error banner component that displays
- * authoring constraint violations.
- *
- * NOTE: These tests are skipped because JSDOM has limited support for
- * Custom Elements with Shadow DOM. The qd-error-banner component is
- * thoroughly tested in Storybook which uses real browsers.
+ * Unit tests for qd-error-banner component
  */
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import '../../../src/components/qd-error-banner.js';
+import type { QdErrorBanner } from '../../../src/components/qd-error-banner.js';
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { JSDOM } from 'jsdom';
-import type { ValidationError } from '../../../src/services/validation';
+describe('qd-error-banner', () => {
+  let element: QdErrorBanner;
+  let container: HTMLDivElement;
 
-describe.skip('QdErrorBanner Component', () => {
-  let dom: JSDOM;
-  let document: Document;
+  beforeEach(async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
 
-  beforeEach(() => {
-    dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
-    document = dom.window.document;
-    global.document = document as unknown as Document;
-    global.window = dom.window as unknown as Window & typeof globalThis;
-    global.customElements = dom.window.customElements;
+    element = document.createElement('qd-error-banner');
+    container.appendChild(element);
+
+    await element.updateComplete;
   });
 
-  describe('Component Registration', () => {
-    it('should be defined as a custom element', async () => {
-      await import('../../../src/components/qd-error-banner');
+  afterEach(() => {
+    container.remove();
+  });
 
-      const element = document.createElement('qd-error-banner');
-      expect(element).toBeDefined();
-      expect(element.tagName.toLowerCase()).toBe('qd-error-banner');
+  describe('rendering', () => {
+    it('should not render without message', () => {
+      const banner = element.shadowRoot?.querySelector('.banner');
+      expect(banner).toBeNull();
+    });
+
+    it('should render with message', async () => {
+      element.message = 'Test error message';
+      await element.updateComplete;
+
+      const banner = element.shadowRoot?.querySelector('.banner');
+      expect(banner).toBeTruthy();
+      expect(banner?.textContent).toContain('Test error message');
+    });
+
+    it('should render close button by default', async () => {
+      element.message = 'Test message';
+      await element.updateComplete;
+
+      const closeButton = element.shadowRoot?.querySelector('.close-button');
+      expect(closeButton).toBeTruthy();
+    });
+
+    it('should hide close button when dismissable is false', async () => {
+      element.message = 'Test message';
+      element.dismissable = false;
+      await element.updateComplete;
+
+      const closeButton = element.shadowRoot?.querySelector('.close-button');
+      expect(closeButton).toBeNull();
     });
   });
 
-  describe('Error Display', () => {
-    it('should accept errors property', async () => {
-      await import('../../../src/components/qd-error-banner');
-
-      const element = document.createElement('qd-error-banner') as any;
-      const errors: ValidationError[] = [
-        {
-          code: 'MULTIPLE_QUIZ_TABLES',
-          message: 'Page has 2 quiz tables but maximum ONE quiz table is allowed per page',
-        },
-      ];
-
-      element.errors = errors;
-      expect(element.errors).toEqual(errors);
+  describe('severity levels', () => {
+    beforeEach(async () => {
+      element.message = 'Test message';
+      await element.updateComplete;
     });
 
-    it('should have default empty errors array', async () => {
-      await import('../../../src/components/qd-error-banner');
+    it('should apply error class by default', () => {
+      const banner = element.shadowRoot?.querySelector('.banner');
+      expect(banner?.classList.contains('error')).toBe(true);
+    });
 
-      const element = document.createElement('qd-error-banner') as any;
-      expect(element.errors).toEqual([]);
+    it('should apply warning class', async () => {
+      element.severity = 'warning';
+      await element.updateComplete;
+
+      const banner = element.shadowRoot?.querySelector('.banner');
+      expect(banner?.classList.contains('warning')).toBe(true);
+    });
+
+    it('should apply info class', async () => {
+      element.severity = 'info';
+      await element.updateComplete;
+
+      const banner = element.shadowRoot?.querySelector('.banner');
+      expect(banner?.classList.contains('info')).toBe(true);
     });
   });
-});
 
-/**
- * Integration Tests
- *
- * These tests verify the error banner integrates correctly with the validation service
- */
-describe('QdErrorBanner Integration', () => {
-  it('should display errors from validation service', () => {
-    const errors: ValidationError[] = [
-      {
-        code: 'INVALID_COLUMN_COUNT',
-        message: 'Quiz table must have exactly 3 columns',
-      },
-      {
-        code: 'MISSING_TOLERANCE',
-        message: 'Numeric question must have tolerance value',
-        row: 5,
-      },
-    ];
+  describe('dismissal', () => {
+    beforeEach(async () => {
+      element.message = 'Test message';
+      await element.updateComplete;
+    });
 
-    // Verify error structure is compatible
-    expect(errors[0].code).toBe('INVALID_COLUMN_COUNT');
-    expect(errors[0].message).toBeTruthy();
-    expect(errors[1].row).toBe(5);
+    it('should emit dismiss event when close button clicked', async () => {
+      let dismissed = false;
+      element.addEventListener('dismiss', () => {
+        dismissed = true;
+      });
+
+      const closeButton = element.shadowRoot?.querySelector('.close-button') as HTMLButtonElement;
+      closeButton?.click();
+      await element.updateComplete;
+
+      expect(dismissed).toBe(true);
+    });
+
+    it('should hide element when dismissed', async () => {
+      const closeButton = element.shadowRoot?.querySelector('.close-button') as HTMLButtonElement;
+      closeButton?.click();
+      await element.updateComplete;
+
+      expect(element.hidden).toBe(true);
+    });
   });
 
-  it('should handle all validation error codes', () => {
-    const errorCodes = [
-      'MISSING_QUIZ_CLASS',
-      'MISSING_ANALYSIS_CLASS',
-      'INVALID_COLUMN_COUNT',
-      'NO_QUESTIONS',
-      'NO_CELLS',
-      'INVALID_ANSWER_FORMAT',
-      'MISSING_TOLERANCE',
-      'MISSING_OPTIONS_LIST',
-      'MULTIPLE_QUIZ_TABLES',
-      'MULTIPLE_ANALYSIS_TABLES',
-    ];
+  describe('auto-dismiss', () => {
+    it('should auto-dismiss after timeout', async () => {
+      vi.useFakeTimers();
 
-    errorCodes.forEach((code) => {
-      const error: ValidationError = {
-        code: code as any,
-        message: `Test error for ${code}`,
-      };
+      // Create new element with autoDismiss already set
+      container.removeChild(element);
+      element = document.createElement('qd-error-banner');
+      element.message = 'Test message';
+      element.autoDismissMs = 3000;
+      container.appendChild(element);
+      await element.updateComplete;
 
-      expect(error.code).toBe(code);
-      expect(error.message).toBeTruthy();
+      expect(element.hidden).toBe(false);
+
+      vi.advanceTimersByTime(3000);
+      await element.updateComplete;
+
+      expect(element.hidden).toBe(true);
+
+      vi.useRealTimers();
+    });
+
+    it('should not auto-dismiss when autoDismissMs is 0', async () => {
+      vi.useFakeTimers();
+
+      element.message = 'Test message';
+      element.autoDismissMs = 0;
+      await element.updateComplete;
+
+      vi.advanceTimersByTime(5000);
+      await element.updateComplete;
+
+      expect(element.hidden).toBe(false);
+
+      vi.useRealTimers();
+    });
+  });
+
+  describe('accessibility', () => {
+    beforeEach(async () => {
+      element.message = 'Test message';
+      await element.updateComplete;
+    });
+
+    it('should have role="alert"', () => {
+      const banner = element.shadowRoot?.querySelector('.banner');
+      expect(banner?.getAttribute('role')).toBe('alert');
+    });
+
+    it('should have aria-live="polite"', () => {
+      const banner = element.shadowRoot?.querySelector('.banner');
+      expect(banner?.getAttribute('aria-live')).toBe('polite');
+    });
+
+    it('should have aria-label on close button', () => {
+      const closeButton = element.shadowRoot?.querySelector('.close-button');
+      expect(closeButton?.getAttribute('aria-label')).toBe('Dismiss');
     });
   });
 });

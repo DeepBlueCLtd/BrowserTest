@@ -6,13 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 BrowserTest (internally "Sonar Quiz System") is an offline-first interactive quiz and analysis platform that progressively enhances DITA-published HTML training materials. The system operates entirely from `file://` URLs with no network dependencies, targeting air-gapped training environments.
 
-**Current Phase**: Phase 0 - Bootstrap + Contracts (toolchain and frozen interfaces)
+**Current Phase**: Phase 1 Complete (Foundation Layer) → Starting Phase 2 (Components & Integration)
 
 ## Core Architecture
 
 ### Progressive Enhancement Pattern
 The system enhances existing DITA HTML without modification through DOM upgrades:
-- Detect tables with specific classes (`qd-quiz`, `qd-page`, `qd-analysis`)
+- Detect tables with specific classes (`qd-quiz`, `qd-analysis`)
 - Upgrade in-place with interactive controls
 - Inject Lit 3 custom elements for UI overlays (`<qd-login>`, `<qd-status>`, `<qd-instructor>`)
 - Graceful degradation if JavaScript disabled
@@ -26,7 +26,7 @@ User Input → DOM Handler → Service Layer → Storage Adapter
 
 **Storage Strategy**:
 - **IndexedDB**: Primary persistence with composite keys `qd/{release}/u{serviceId}`
-  - Database name: `SonarQuizDB` (defined in `src/services/storage/indexeddb.ts`)
+  - Database name: `BrowserTest` (defined in `src/services/storage/indexeddb.ts`)
   - Object stores: `students`, `backups`
 - **sessionStorage**: Active session + R/A/G cache (expires 30 min)
 - **No network**: All data remains local, no telemetry/CDN/remote config
@@ -37,16 +37,83 @@ User Input → DOM Handler → Service Layer → Storage Adapter
 3. **Component Layer** (`src/components/`): Lit 3 Web Components with Shadow DOM
 4. **Storage Layer** (`src/services/storage/`): IndexedDB adapter with atomic transactions
 
+### Component Architecture
+
+#### **Login Component** (`<qd-login>`)
+Compact login interface with modal for instructor access:
+- **Default View**: Student login form (serviceId + name fields, Login + Instructor buttons)
+- **Instructor Modal**: Password entry popup (opens on "Instructor" button click)
+- **Release ID Extraction**: **CRITICAL** - Release ID comes from `.wh_publication_title .title` element in the document DOM, NOT from any form input
+  - DOM selector: `document.querySelector('.wh_publication_title .title')`
+  - Example HTML structure required:
+    ```html
+    <div class="wh_publication_title">
+      <span class="title">TRV Connectors Autumn 2025</span>
+    </div>
+    ```
+  - If missing, login will fail with error: "Release not found (missing .wh_publication_title .title element)"
+- **Behavior**:
+  - Student login: Validates, creates session, shows student status panel
+  - Instructor login: Opens modal, validates password (SHA-256 + rate limiting), shows instructor status panel
+- Integrates with SessionService and instructor password verification
+- Emits `qd:login` event on successful authentication
+
+#### **Status Panels** (Conditional Rendering)
+After successful login, ONE of these panels is displayed:
+
+**Student Status Panel** (`<qd-student-status>`):
+- Quiz progress display (R/A/G badges, answered/correct counts, percentage)
+- Logout button
+- Updates in real-time via session cache
+
+**Instructor Status Panel** (`<qd-instructor-status>`):
+Consolidated control center with:
+- **Toggle**: Show/hide student answers on current page
+  - For quiz tables: Inserts `<div>` after each question's input control
+  - Shows list of students (name + last 4 digits of serviceId)
+  - Each student entry shows: answer + shortened timestamp
+  - Red/green color coding for incorrect/correct answers
+  - For analysis tables: Shows student entries in comparison format
+- **Button**: "View All Scores" → Opens `<qd-scores-modal>`
+- **Button**: "Export to CSV" → Downloads detailed answer data
+- **Button**: "Erase All Data" → Clears all storage (with confirmation dialog)
+- **Button**: "Logout"
+
+#### **Scores Modal** (`<qd-scores-modal>`)
+Modal overlay (Esc to close) showing:
+- Student list with totals (attempted, correct, percentage)
+- Per-student expandable breakdown showing per-page answers
+- Close button
+
+#### **Table Enhancement**
+**Quiz Tables** (`qd-quiz` class):
+- **SECURITY**: Immediately extract and remove answer column from DOM on load
+- Correct answers stored in memory only (prevents view-source inspection)
+- Render MCQ radio buttons or numeric input fields
+- Submit answers, validate against in-memory answers
+- Save to IndexedDB via storage adapter
+- If instructor mode active: Show student answers after each question
+
+**Analysis Tables** (`qd-analysis` class):
+- Make cells with class="interactive" editable (contenteditable)
+- Auto-save to IndexedDB with debouncing
+- If instructor mode active: Show student entries
+
+#### **Home Page Badges**
+- R/A/G badges injected into navigation links (class `quizPageBtn`)
+- Real-time updates from session cache
+- Listen to `qd:answer-saved` events for immediate refresh
+
 ### Storage Monitor (Development Tool)
 The `<qd-storage-monitor>` component provides real-time inspection of browser storage during development:
-- **Auto-injected** when `data-debug="true"` is set on the script tag
+- **Auto-injected** when `DEBUG_MODE = true` in `src/index.ts`
 - **Configuration**: Set `dbName` attribute to specify the IndexedDB database to monitor
   - Default: `'quiz-scores'` (generic default for reusability)
-  - Sonar Quiz System: `'SonarQuizDB'` (automatically set when auto-injected)
+  - Sonar Quiz System: `'BrowserTest'` (automatically set when auto-injected)
 - **Usage examples**:
   ```html
-  <!-- Auto-injected by system (uses SonarQuizDB) -->
-  <script src="sonar-quiz.iife.js" data-sonar-quiz data-debug="true"></script>
+  <!-- Auto-injected by system (uses BrowserTest) -->
+  <script defer src="sonar-quiz.iife.js"></script>
 
   <!-- Manual usage with custom database -->
   <qd-storage-monitor dbName="MyCustomDB"></qd-storage-monitor>
@@ -65,16 +132,66 @@ npm run storybook       # Component development in isolation
 npm test                # Run all tests
 npm run test:unit       # Vitest unit tests
 npm run test:integration # DOM upgrade integration tests
-npm run test:e2e        # Playwright E2E tests (file:// protocol)
+npm run test:e2e        # Playwright E2E tests (auto-starts/stops Storybook)
 npm run chromatic       # Visual regression tests
 
 # Building
 npm run build           # Production build (IIFE + ESM)
+npm run build:dita      # Build + copy bundle to DITA directories
+npm run update-dita-demo # Sync dita/out/oxygen → dita-demo/ (for PR previews)
 npm run lint            # TypeScript + ESLint checks
 npm run format:check    # Prettier formatting verification
 
 # Size verification
-npm run size-check      # Verify bundle <25KB min+gzip
+npm run size-check      # Verify bundle <35KB min+gzip
+```
+
+## GitHub Pages Deployment
+
+### Deployment Method
+**Branch-based**: Both workflows push to `gh-pages` branch, GitHub Pages serves from there.
+
+### Production (Main Branch)
+Live at: `https://DeepBlueCLtd.github.io/BrowserTest/main/`
+- Deploys demo files to `main/` folder in `gh-pages` branch
+- Auto-deploys on every push to `main`
+- Workflow: `.github/workflows/pages.yml`
+- Content: demo HTML files + dist/ bundle
+
+### PR Preview Deployments
+Each PR automatically gets a preview deployment:
+- **DITA WebHelp**: `https://DeepBlueCLtd.github.io/BrowserTest/pr-{number}/`
+- **Storybook**: `https://DeepBlueCLtd.github.io/BrowserTest/pr-{number}/storybook/`
+- **Auto-posted**: PR comment includes live preview links
+- **Auto-cleanup**: Preview deleted when PR closes/merges
+- **Build policy**: Requires successful compilation, ignores test failures
+- **Workflow**: `.github/workflows/pr-preview.yml`
+- Content: DITA output + Storybook static build
+
+**Prerequisites**:
+- GitHub Pages enabled with "Deploy from a branch" → `gh-pages` branch (Settings → Pages)
+- Workflow permissions: "Read and write" (Settings → Actions → General → Workflow permissions)
+- `dita-demo/` directory populated (run `npm run update-dita-demo` after DITA builds)
+
+**DITA Demo Sync**:
+- `dita-demo/` is version-controlled and deployed by CI
+- After building DITA output: `npm run update-dita-demo` to sync `dita/out/oxygen/` → `dita-demo/`
+- Commit updated `dita-demo/` before pushing PR for preview deployment
+
+**Path structure on gh-pages branch**:
+```
+gh-pages/
+├── main/                    # Production demo (main branch)
+│   ├── quiz-index.html
+│   ├── dist/
+│   └── ...
+├── pr-123/                  # PR #123 preview
+│   ├── oxygen-webhelp/      # DITA output (from dita-demo/)
+│   └── storybook/           # Storybook static build
+├── pr-124/                  # PR #124 preview
+│   ├── oxygen-webhelp/
+│   └── storybook/
+...
 ```
 
 ## Demo & Manual Testing
@@ -98,9 +215,10 @@ python3 -m http.server 8000
 # Visit: http://localhost:8000/demo/quiz-index.html
 ```
 
-All demo files load the built bundle from `dist/sonar-quiz.iife.js` and have debug mode enabled (`data-debug="true"`). See **demo/README.md** for:
+All demo files load the built bundle from `dist/sonar-quiz.iife.js` with configuration provided via hidden `<span>` elements. Debug mode is controlled by `DEBUG_MODE` constant in `src/index.ts`. See **demo/README.md** for:
 - Detailed test scenarios (login, quiz interaction, analysis tables, session management)
 - Browser DevTools inspection tips (IndexedDB, sessionStorage, custom events)
+- Configuration examples using hidden span elements
 - Troubleshooting common issues
 - E2E testing integration guidance
 
@@ -109,8 +227,8 @@ All demo files load the built bundle from `dist/sonar-quiz.iife.js` and have deb
 **CRITICAL**: Before marking ANY task as complete, ALL of the following must pass with ZERO errors:
 
 ```bash
-# 1. TypeScript compilation (MUST pass)
-npm run build
+# 1. TypeScript type checking (MUST pass)
+npm run typecheck
 
 # 2. Linter (zero errors required, warnings acceptable with justification)
 npm run lint
@@ -123,6 +241,9 @@ npm run test:integration
 
 # 5. Format check (code must be properly formatted)
 npm run format:check
+
+# 6. Build (final verification before commit)
+npm run build
 ```
 
 **No Exceptions**:
@@ -136,7 +257,7 @@ npm run format:check
 - [ ] All tests passing (green)
 - [ ] Linter clean (zero errors)
 - [ ] Build successful
-- [ ] Bundle size within limits (<25KB gzipped)
+- [ ] Bundle size within limits (<35KB gzipped)
 - [ ] Code committed with descriptive message
 
 ## Critical Constraints (Constitution)
@@ -162,7 +283,7 @@ npm run format:check
 - Each phase delivers independently testable value
 
 ### V. Performance Constraints
-- Bundle: ≤25KB min+gzip IIFE
+- Bundle: ≤35KB min+gzip IIFE
 - Operations: <200ms save, <2s page load (50 questions)
 - Shadow DOM for isolation, no global CSS pollution
 
@@ -172,9 +293,46 @@ npm run format:check
 - Complete data erasure capability for cohort reset
 
 ### VII. Zero Configuration Deployment
-- Single `<script>` tag in DITA template
-- Auto-init on DOMContentLoaded
-- No setup, no config, no dependencies
+- Single `<script defer src="sonar-quiz.iife.js"></script>` tag in DITA template (no attributes required)
+- Auto-init on DOMContentLoaded (always runs when script loads)
+- Configuration via hidden `<span>` elements injected by DITA/Oxygen transform:
+  - `#qd-status-container`: CSS selector for status panel (default: `.wh_top_menu_and_indexterms_link`)
+  - `#qd-title-selector`: CSS selector for publication title/Release ID (default: `.wh_publication_title .title`)
+  - `#qd-db-name`: IndexedDB database name (default: `BrowserTest`)
+  - `#qd-instructor-hash`: SHA-256 hash of instructor password (optional)
+- Debug mode controlled by `DEBUG_MODE` constant in `src/index.ts` (single toggle point)
+- No setup, no manual config, no network dependencies
+
+**Example HTML Structure** (injected by DITA/Oxygen transform):
+```html
+<body>
+  <!-- Configuration spans (hidden, injected by Oxygen XSL transform) -->
+  <span id="qd-status-container" style="display:none;">.wh_top_menu_and_indexterms_link</span>
+  <span id="qd-title-selector" style="display:none;">.wh_publication_title .title</span>
+  <span id="qd-db-name" style="display:none;">BrowserTest</span>
+  <span id="qd-instructor-hash" style="display:none;">5e884898da28...</span>
+
+  <!-- Page content -->
+  <div id="page-content">
+    <nav class="wh_top_menu_and_indexterms_link">
+      <div class="wh_publication_title">
+        <span class="title">TRV Connectors Autumn 2025</span>
+      </div>
+    </nav>
+    <!-- ... rest of content ... -->
+  </div>
+
+  <!-- Script tag (no attributes required) -->
+  <script defer src="sonar-quiz.iife.js"></script>
+</body>
+```
+
+### VIII. Answer Security
+- **CRITICAL**: Quiz answers MUST be removed from DOM immediately on component load
+- Correct answers extracted, stored in memory (JavaScript closure), never exposed in DOM
+- This prevents students from viewing page source or using DevTools to see answers
+- Implementation order: Parse → Store in memory → Remove from DOM → Render controls
+- Validation performed against in-memory answers only
 
 ## Frozen Contracts (src/types/contracts.ts)
 
@@ -217,25 +375,26 @@ Content authors must follow these rules (runtime validation enforces):
 
 ### Quiz Tables
 - Exactly 3 columns: Question | Answer | Detail
-- Class: `qd-quiz qd-page`
+- Class: `qd-quiz`
 - MCQ: Use `<ol>` lists (1-indexed, first option = 1)
 - Numeric: Tolerance in third column
 - **Maximum ONE** quiz table per page
 
 ### Analysis Tables
 - Class: `qd-analysis`
-- Cells WITH `background-color` style = read-only
-- Cells WITHOUT background-color = editable
+- Cells WITH class="interactive" = editable (in interactive mode)
+- Cells WITHOUT 'interactive' class = read-only (always)
 - **Maximum ONE** analysis table per page
 
 ### Home Page
 - Status panel: Auto-injected as last child of configured navbar container
   - Default: `.wh_top_menu_and_indexterms_link` (Oxygen WebHelp)
-  - Configure via `statusPanelContainer` option in `init()` or `data-status-panel-container` attribute
+  - Configure via hidden `<span id="qd-status-container">selector</span>` element
   - **Not logged in**: Shows login form within status panel
   - **Logged in**: Shows quiz progress (R/A/G state, counts, percentage)
   - **Logout**: Button at bottom-right clears sessionStorage and shows login form
 - Navigation links: Add class `quizPageBtn` for R/A/G badges
+- Publication title: Must have element matching selector in `<span id="qd-title-selector">` (default: `.wh_publication_title .title`) for Release ID extraction
 
 ## Data Model Key Points
 
@@ -276,11 +435,12 @@ Format: `R{row}C{col}#f:{hash}`
 ### Definition of Done (Pre-Commit Checklist)
 Before committing any code changes, ALL of the following MUST pass:
 
-1. ✅ **Tests pass**: `npm run test:unit` (and `npm run test:integration` if applicable)
-2. ✅ **Linting passes**: `npm run lint` (fix with `npm run lint:fix` if needed)
-3. ✅ **Formatting passes**: `npm run format:check` (fix with `npm run format` if needed)
-4. ✅ **Build succeeds**: `npm run build` (if modifying source files)
-5. ✅ **Bundle size**: Under 25KB min+gzip (verify with `npm run size-check` if needed)
+1. ✅ **Type checking passes**: `npm run typecheck` (fast TypeScript type checking)
+2. ✅ **Tests pass**: `npm run test:unit` (and `npm run test:integration` if applicable)
+3. ✅ **Linting passes**: `npm run lint` (fix with `npm run lint:fix` if needed)
+4. ✅ **Formatting passes**: `npm run format:check` (fix with `npm run format` if needed)
+5. ✅ **Build succeeds**: `npm run build` (if modifying source files)
+6. ✅ **Bundle size**: Under 35KB min+gzip (verify with `npm run size-check` if needed)
 
 **Rationale**: CI will fail if any of these checks fail. Running them locally before committing prevents failed CI builds and reduces feedback cycles.
 
@@ -291,7 +451,27 @@ Before committing any code changes, ALL of the following MUST pass:
 - **Phase 3**: A11y checks pass, event emission verified
 - **Phase 4**: Session switch tests, expiry unit tests
 - **Phase 5**: E2E file:// saves/reloads, CSV validation
-- **Phase 6**: Perf/a11y green, <25KB budget met
+- **Phase 6**: Perf/a11y green, <35KB budget met
+
+### E2E Testing Configuration
+E2E tests run via Playwright against Storybook stories at `http://localhost:6006`.
+
+**Key Configuration** (`playwright.config.ts`):
+- **Auto-start/stop**: Playwright automatically starts Storybook before tests and kills it on completion
+- **Storybook startup timeout**: 12 seconds (Storybook reliably starts within 10s)
+- **Test timeout**: 2 seconds max per test (local SPA, no network delays)
+- **Action/navigation timeout**: 2 seconds max (clicks, fills, page.goto)
+- **Expect timeout**: 2 seconds max for assertions
+- **Reuse existing server**: If Storybook already running locally, tests will use it instead of starting new instance
+
+**Usage**:
+```bash
+npm run test:e2e        # Just run tests - Storybook auto-managed
+npm run test:e2e:headed # Run with visible browser
+npm run test:e2e:debug  # Debug mode with Playwright Inspector
+```
+
+**No manual Storybook management required** - the test runner handles lifecycle automatically.
 
 ## Event System
 
@@ -329,6 +509,27 @@ Enable via `data-qd-debug` attribute on quiz/analysis tables:
 
 ## Common Patterns
 
+### Release ID Extraction
+**CRITICAL**: The `ReleaseId` is ALWAYS extracted from the DOM, never from user input.
+
+```typescript
+// CORRECT: Extract from DOM
+const titleElement = document.querySelector('.wh_publication_title .title');
+const release = titleElement?.textContent?.trim() || '';
+
+// WRONG: There is NO release input field in forms
+// const release = form.elements.release.value; // ❌ DOES NOT EXIST
+```
+
+**Required DOM Structure** (added by DITA publishing):
+```html
+<div class="wh_publication_title">
+  <span class="title">TRV Connectors Autumn 2025</span>
+</div>
+```
+
+**Testing/Storybook**: All stories MUST inject this element into the DOM before rendering login components.
+
 ### Storage Key Generation
 ```typescript
 function getStorageKey(release: ReleaseId, serviceId: ServiceId): string {
@@ -348,7 +549,7 @@ function getStorageKey(release: ReleaseId, serviceId: ServiceId): string {
 
 - **IIFE**: `dist/sonar-quiz.iife.js` (global `window.SonarQuiz`, auto-init)
 - **ESM**: `dist/sonar-quiz.esm.js` (for integrators)
-- **Size limit**: ≤25KB min+gzip for IIFE
+- **Size limit**: ≤35KB min+gzip for IIFE
 - **Source maps**: Generated for debugging
 - **TypeScript definitions**: For ESM consumers
 

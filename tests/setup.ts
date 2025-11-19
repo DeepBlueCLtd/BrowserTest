@@ -6,6 +6,15 @@
 // Mock IndexedDB for testing
 import 'fake-indexeddb/auto';
 
+// Setup Web Crypto API for jsdom environment
+import { Crypto } from '@peculiar/webcrypto';
+Object.defineProperty(globalThis, 'crypto', {
+  value: new Crypto(),
+  writable: true,
+  enumerable: true,
+  configurable: true,
+});
+
 // Setup DOM testing utilities
 import { afterEach } from 'vitest';
 

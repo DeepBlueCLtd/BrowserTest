@@ -10,7 +10,7 @@
  * - Numeric: Detail column contains tolerance number
  */
 
-import type { ParsedQuizTable, QuizQuestion } from '../types/contracts';
+import type { ParsedQuizTable, QuizQuestion } from '../types/contracts.js';
 
 /**
  * Parse a quiz table and extract question data
@@ -48,7 +48,13 @@ export function parseQuizTable(table: HTMLTableElement): ParsedQuizTable {
       return;
     }
 
-    const [questionCell, answerCell, detailCell] = cells;
+    const questionCell = cells[0];
+    const answerCell = cells[1];
+    const detailCell = cells[2];
+
+    if (!questionCell || !answerCell || !detailCell) {
+      return;
+    }
 
     // Extract question text
     const questionText = questionCell.textContent?.trim() || '';

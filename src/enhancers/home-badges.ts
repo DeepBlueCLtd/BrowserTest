@@ -1,210 +1,239 @@
 /**
- * Home Page Badge Enhancement
+ * Home Page Badge Enhancer
  *
- * Injects colored progress badges on navigation links to show quiz completion status.
- * Badges use red/amber/green color coding for unstarted/incomplete/complete states.
+ * Applies R/A/G (Red/Amber/Green) badges to navigation links based on
+ * page completion states. Updates badges in real-time when states change.
+ *
+ * Features:
+ * - Queries links with class .quizPageBtn
+ * - Reads completion state from SessionCache
+ * - Applies CSS classes: qd-badge-red, qd-badge-amber, qd-badge-green
+ * - Listens for qd:state-changed events for real-time updates
+ * - Handles missing data gracefully
+ *
+ * Badge Colors:
+ * - Red: Unstarted (no answers provided)
+ * - Amber: Incomplete (some answered OR any incorrect)
+ * - Green: Complete (all answered AND all correct)
  */
 
-import type { SessionCache, CompletionState } from '../types/contracts';
-import { CSS_CLASSES, STORAGE_KEYS } from '../types/contracts';
+import type { PageId, SessionCache, CompletionState } from '../types/contracts.js';
+import { getJSON } from '../utils/storage-helpers.js';
+import { STORAGE_KEYS } from '../types/contracts.js';
+import { info } from '../utils/logger.js';
 
 /**
- * Extract page ID from link href
- *
- * @param href - Link href attribute
- * @returns Page ID or null if invalid
+ * CSS class constants for badges
  */
-export function extractPageIdFromHref(href: string): string | null {
-  if (!href || href.startsWith('#') || href.startsWith('http') || href.startsWith('javascript:')) {
+const BADGE_CLASSES = {
+  red: 'qd-badge-red',
+  amber: 'qd-badge-amber',
+  green: 'qd-badge-green',
+} as const;
+
+/**
+ * Map completion states to badge colors
+ */
+const STATE_TO_BADGE: Record<CompletionState, keyof typeof BADGE_CLASSES> = {
+  unstarted: 'red',
+  incomplete: 'amber',
+  complete: 'green',
+};
+
+/**
+ * Apply badge class to a link element
+ *
+ * @param link - Link element to apply badge to
+ * @param state - Completion state
+ */
+function applyBadge(link: HTMLElement, state: CompletionState): void {
+  // Remove all existing badge classes
+  Object.values(BADGE_CLASSES).forEach((className) => {
+    link.classList.remove(className);
+  });
+
+  // Apply new badge class based on state
+  const badgeColor = STATE_TO_BADGE[state];
+  const badgeClass = BADGE_CLASSES[badgeColor];
+  link.classList.add(badgeClass);
+}
+
+/**
+ * Get completion state for a page from session cache
+ *
+ * @param pageId - Page ID to look up
+ * @param cache - Session cache
+ * @returns Completion state (defaults to 'unstarted' if not found)
+ */
+function getPageState(pageId: PageId | null, cache: SessionCache | null): CompletionState {
+  if (!pageId || !cache?.pages) {
+    return 'unstarted';
+  }
+
+  const pageData = cache.pages[pageId];
+  return pageData?.state ?? 'unstarted';
+}
+
+/**
+ * Update badge for a single link
+ *
+ * @param link - Link element with data-page-id attribute
+ */
+function updateLinkBadge(link: HTMLElement): void {
+  const pageId = link.getAttribute('data-page-id');
+  const cache = getJSON<SessionCache>(STORAGE_KEYS.CACHE);
+  const state = getPageState(pageId, cache);
+
+  applyBadge(link, state);
+}
+
+/**
+ * Update all badges from current session cache
+ * If no session exists, remove all badges
+ */
+function updateAllBadges(): void {
+  const links = document.querySelectorAll<HTMLElement>('.quizPageBtn');
+  const cache = getJSON<SessionCache>(STORAGE_KEYS.CACHE);
+  const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
+
+  // If instructor mode OR no cache, remove all badge styling
+  if (!cache || isInstructor) {
+    links.forEach((link) => {
+      Object.values(BADGE_CLASSES).forEach((className) => {
+        link.classList.remove(className);
+      });
+    });
+    if (isInstructor) {
+      info(`Removed badge styling from ${links.length} page links (instructor mode)`);
+    } else {
+      info(`Removed badge styling from ${links.length} page links (no session)`);
+    }
+    return;
+  }
+
+  // Cache exists and not instructor, apply badges based on state
+  links.forEach((link) => {
+    updateLinkBadge(link);
+  });
+
+  info(`Updated ${links.length} page badges`);
+}
+
+/**
+ * Handle qd:state-changed event
+ *
+ * @param event - Custom event with pageId and state
+ */
+function handleStateChanged(event: Event): void {
+  const customEvent = event as CustomEvent<{ pageId: PageId; state: CompletionState }>;
+  const { pageId } = customEvent.detail;
+
+  // Find link with matching pageId
+  const link = document.querySelector<HTMLElement>(`[data-page-id="${pageId}"]`);
+
+  if (link && link.classList.contains('quizPageBtn')) {
+    updateLinkBadge(link);
+    info(`Updated badge for page ${pageId}`);
+  }
+}
+
+/**
+ * Handle qd:cache-rebuild event - refresh all badges after cache is ready
+ */
+function handleCacheRebuild(): void {
+  info('Cache rebuilt, refreshing all badges');
+  updateAllBadges();
+}
+
+/**
+ * Handle qd:logout event - remove all badge styling
+ */
+function handleLogout(): void {
+  info('Logout detected, removing all badge styling');
+  const links = document.querySelectorAll<HTMLElement>('.quizPageBtn');
+
+  links.forEach((link) => {
+    // Remove all badge classes to revert to native button styling
+    Object.values(BADGE_CLASSES).forEach((className) => {
+      link.classList.remove(className);
+    });
+  });
+
+  info(`Removed badge styling from ${links.length} page links`);
+}
+
+/**
+ * Extract pageId from link href attribute
+ *
+ * @param link - Link element with href
+ * @returns PageId extracted from href, or null if invalid
+ *
+ * @example
+ * href="Pages/quiz-mcq.html" → "quiz-mcq"
+ * href="gram-1.html" → "gram-1"
+ */
+function extractPageIdFromHref(link: HTMLAnchorElement): PageId | null {
+  const href = link.getAttribute('href');
+  if (!href) {
     return null;
   }
 
-  // Extract filename without extension
-  const filename = href.split('/').pop() ?? '';
+  // Extract filename from href (last segment after /)
+  const filename = href.substring(href.lastIndexOf('/') + 1);
+
+  // Remove .html or .htm extension
   const pageId = filename.replace(/\.html?$/i, '');
 
   return pageId || null;
 }
 
 /**
- * Get badge color from completion state
+ * Enhance home page with R/A/G badges on navigation links
  *
- * @param state - Page completion state
- * @returns Color identifier (red/amber/green)
- */
-export function getBadgeColor(state: CompletionState): string {
-  const colorMap: Record<CompletionState, string> = {
-    unstarted: 'red',
-    incomplete: 'amber',
-    complete: 'green',
-  };
-
-  return colorMap[state];
-}
-
-/**
- * Get badge color for a specific page from cache
+ * This function:
+ * 1. Queries all links with class .quizPageBtn
+ * 2. Extracts pageId from href attribute and sets data-page-id
+ * 3. Reads SessionCache to determine page completion states
+ * 4. Applies appropriate badge CSS classes
+ * 5. Sets up event listener for real-time updates
  *
- * @param pageId - Page identifier
- * @param cache - Session cache with page states
- * @returns Color identifier (red/amber/green/gray)
- */
-export function getPageBadgeColor(pageId: string, cache: SessionCache | null): string {
-  if (!cache || !cache.pages[pageId]) {
-    return 'gray';
-  }
-
-  return getBadgeColor(cache.pages[pageId].state);
-}
-
-/**
- * Create a badge element with appropriate styling and accessibility
+ * @example
+ * ```html
+ * <a href="Pages/quiz-mcq.html" class="quizPageBtn">MCQ Questions</a>
+ * ```
  *
- * @param color - Badge color (red/amber/green/gray)
- * @returns Badge HTML element
+ * After enhancement:
+ * - data-page-id attribute set: data-page-id="quiz-mcq"
+ * - Unstarted pages: class="quizPageBtn qd-badge-red"
+ * - Incomplete pages: class="quizPageBtn qd-badge-amber"
+ * - Complete pages: class="quizPageBtn qd-badge-green"
  */
-export function createBadgeElement(color: string): HTMLElement {
-  const badge = document.createElement('span');
-  badge.className = `qd-badge qd-badge--${color}`;
+export function enhanceHomeBadges(): void {
+  // Find all navigation links
+  const links = document.querySelectorAll<HTMLAnchorElement>('.quizPageBtn');
 
-  const ariaLabels: Record<string, string> = {
-    red: 'Quiz not started',
-    amber: 'Quiz in progress',
-    green: 'Quiz complete',
-    gray: 'Quiz status unknown',
-  };
-
-  badge.setAttribute('aria-label', ariaLabels[color] || 'Quiz status unknown');
-  badge.setAttribute('role', 'status');
-
-  // Add inline styles for visibility
-  badge.style.display = 'inline-block';
-  badge.style.width = '12px';
-  badge.style.height = '12px';
-  badge.style.borderRadius = '50%';
-  badge.style.marginLeft = '8px';
-
-  const colorStyles: Record<string, string> = {
-    red: '#dc2626',
-    amber: '#f59e0b',
-    green: '#16a34a',
-    gray: '#9ca3af',
-  };
-
-  badge.style.backgroundColor = colorStyles[color] || colorStyles['gray'];
-
-  return badge;
-}
-
-/**
- * Inject badges into test links within a container
- *
- * @param container - Container element to search for links
- * @param cache - Session cache with page states
- */
-export function injectBadges(container: HTMLElement, cache: SessionCache | null): void {
-  const links = container.querySelectorAll(`.${CSS_CLASSES.TEST_LINK}`);
-
+  // Extract pageId from href and set data-page-id attribute
   links.forEach((link) => {
-    const href = link.getAttribute('href');
-    if (!href) return;
-
-    const pageId = extractPageIdFromHref(href);
-    if (!pageId) return;
-
-    const color = getPageBadgeColor(pageId, cache);
-
-    // Remove existing badge if present
-    const existingBadge = link.querySelector('.qd-badge');
-    if (existingBadge) {
-      existingBadge.remove();
+    const pageId = extractPageIdFromHref(link);
+    if (pageId) {
+      link.setAttribute('data-page-id', pageId);
+      info(`Set data-page-id="${pageId}" for link: ${link.textContent?.trim()}`);
+    } else {
+      info(`Failed to extract pageId from href: ${link.getAttribute('href')}`);
     }
-
-    // Create and append new badge
-    const badge = createBadgeElement(color);
-    link.appendChild(badge);
-  });
-}
-
-/**
- * Load session cache from sessionStorage
- *
- * @returns Session cache or null if not found
- */
-export function loadCacheFromStorage(): SessionCache | null {
-  try {
-    const cacheData = sessionStorage.getItem(STORAGE_KEYS.CACHE);
-    if (!cacheData) {
-      return null;
-    }
-
-    return JSON.parse(cacheData) as SessionCache;
-  } catch (error) {
-    console.error('Failed to load cache from storage:', error);
-    return null;
-  }
-}
-
-/**
- * Initialize home page badges by detecting test links and injecting badges
- *
- * This function should be called on DOMContentLoaded for home pages.
- * It loads the cache and injects badges for all navigation links.
- *
- * @param container - Optional container element (defaults to document.body)
- */
-export function initializeHomeBadges(container: HTMLElement = document.body): void {
-  // Load cache from sessionStorage
-  const cache = loadCacheFromStorage();
-
-  // Inject badges into all test links
-  injectBadges(container, cache);
-
-  // Listen for state changes to update badges
-  window.addEventListener('qd:state-changed', () => {
-    const updatedCache = loadCacheFromStorage();
-    injectBadges(container, updatedCache);
   });
 
-  // Listen for login events to rebuild badges
-  window.addEventListener('qd:login', () => {
-    const updatedCache = loadCacheFromStorage();
-    injectBadges(container, updatedCache);
-  });
+  // Apply initial badges
+  updateAllBadges();
 
-  // Listen for logout events to clear badges
-  window.addEventListener('qd:logout', () => {
-    injectBadges(container, null);
-  });
-}
+  // Listen for state changes and update badges in real-time
+  document.addEventListener('qd:state-changed', handleStateChanged);
 
-/**
- * Update badges for a specific page after state change
- *
- * @param pageId - Page identifier
- * @param container - Optional container element (defaults to document.body)
- */
-export function updateBadgeForPage(pageId: string, container: HTMLElement = document.body): void {
-  const cache = loadCacheFromStorage();
-  const links = container.querySelectorAll(`.${CSS_CLASSES.TEST_LINK}`);
+  // Listen for cache rebuild (after login) to refresh badges
+  document.addEventListener('qd:cache-rebuild', handleCacheRebuild);
 
-  links.forEach((link) => {
-    const href = link.getAttribute('href');
-    if (!href) return;
+  // Listen for logout events to reset badges
+  document.addEventListener('qd:logout', handleLogout);
 
-    const linkPageId = extractPageIdFromHref(href);
-    if (linkPageId !== pageId) return;
-
-    const color = getPageBadgeColor(pageId, cache);
-
-    // Remove existing badge
-    const existingBadge = link.querySelector('.qd-badge');
-    if (existingBadge) {
-      existingBadge.remove();
-    }
-
-    // Create and append new badge
-    const badge = createBadgeElement(color);
-    link.appendChild(badge);
-  });
+  info('Home page badges enhanced with event listeners');
 }

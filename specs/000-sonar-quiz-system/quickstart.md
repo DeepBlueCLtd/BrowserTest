@@ -10,7 +10,7 @@ The Sonar Quiz System enhances DITA-published HTML training documents with inter
 
 1. **Create a quiz table** with exactly 3 columns:
    ```html
-   <table class="qd-quiz qd-page">
+   <table class="qd-quiz">
      <tr>
        <td>Question text</td>
        <td>correct_answer</td>
@@ -36,7 +36,7 @@ The Sonar Quiz System enhances DITA-published HTML training documents with inter
 
 3. **Important rules**:
    - Maximum ONE quiz table per page
-   - Use class `qd-quiz qd-page` for quiz tables
+   - Use class `qd-quiz` for quiz tables
    - MCQ options must be 1-indexed (first option = 1, not 0)
    - Mix MCQ and numeric questions in the same table if needed
 
@@ -242,7 +242,7 @@ npm run build-storybook
 ### Common Issues
 
 **Quiz table not recognized**
-- Verify class names: `qd-quiz qd-page`
+- Verify class names: `qd-quiz`
 - Check for typos in table structure
 - Ensure only one quiz table per page
 

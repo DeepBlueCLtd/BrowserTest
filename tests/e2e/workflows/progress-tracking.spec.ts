@@ -1,363 +1,264 @@
 /**
- * E2E Tests for Progress Tracking (Home Page Badges)
+ * E2E Test: Progress Tracking Workflow
  *
- * Tests the complete workflow of:
- * 1. Student answers quiz questions
- * 2. Progress is tracked in session cache
- * 3. Home page badges reflect quiz completion status
- *
- * NOTE: These tests are currently skipped pending creation of demo HTML files.
- * The functionality is fully tested via:
- * - Unit tests (tests/unit/enhancers/home-badges.test.ts)
- * - Interactive Storybook story (stories/tables/home-badges-workflow.stories.ts)
- *
- * To enable these tests, create demo files in /demo directory:
- * - demo/home.html (with quizPageBtn navigation)
- * - demo/quiz-page.html (with quiz tables)
- * - demo/page-1.html, page-2.html, etc.
+ * Tests the complete student workflow:
+ * - Login
+ * - Quiz answering (MCQ and numeric)
+ * - Answer persistence
+ * - Progress tracking (R/A/G badges)
+ * - State calculation
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import type { StudentRecord, PageData } from '../../../src/types/contracts.js';
 
-test.describe.skip('Progress Tracking - Home Page Badges', () => {
-  test.beforeEach(async () => {
-    // Setup test environment with file:// protocol
-    // For now, we'll use a localhost approach
-    // In production, this would use file:// URLs
-  });
+// Get absolute path to demo files
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const demoPath = path.resolve(__dirname, '../../../demo');
 
-  test('should display gray badges when no session exists', async ({ page }) => {
-    // Navigate to home page
-    await page.goto('/demo/home.html');
+interface PagesRecord {
+  [pageId: string]: PageData;
+}
 
-    // Wait for page to load
-    await page.waitForLoadState('domcontentloaded');
+/**
+ * Wait for bootstrap to complete and inject components
+ */
+async function waitForBootstrap(page: Page): Promise<void> {
+  // Wait for qd-login element AND its shadow DOM to be ready
+  await page.locator('qd-login[data-ready]').waitFor({ timeout: 5000 });
+}
 
-    // Check for test links with badges
-    const links = page.locator('.quizPageBtn');
-    const count = await links.count();
-
-    expect(count).toBeGreaterThan(0);
-
-    // Verify all badges are gray (no session)
-    for (let i = 0; i < count; i++) {
-      const link = links.nth(i);
-      const badge = link.locator('.qd-badge');
-
-      await expect(badge).toHaveClass(/qd-badge--gray/);
-      await expect(badge).toHaveAttribute('aria-label', /status unknown/i);
-    }
-  });
-
-  test('should display red badges for unstarted pages', async ({ page }) => {
-    // Setup: Create a session with unstarted pages
-    await page.goto('/demo/home.html');
-
-    // Mock sessionStorage with unstarted pages
+test.describe.skip('Progress Tracking Workflow', () => {
+  test.beforeEach(async ({ page }) => {
+    // Clear storage before each test
+    await page.goto(`file://${demoPath}/quiz-index.html`);
     await page.evaluate(() => {
-      const cache = {
-        totals: { answered: 0, correct: 0 },
-        pages: {
-          'page-1': { state: 'unstarted', answered: 0, correct: 0 },
-          'page-2': { state: 'unstarted', answered: 0, correct: 0 },
-        },
-      };
-      sessionStorage.setItem('qd/state', JSON.stringify(cache));
+      sessionStorage.clear();
+      indexedDB.deleteDatabase('BrowserTest');
     });
 
-    // Reload to apply cache
-    await page.reload();
-
-    // Verify badges are red
-    const badges = page.locator('.qd-badge--red');
-    await expect(badges.first()).toBeVisible();
+    // Wait for bootstrap to inject qd-login component
+    await waitForBootstrap(page);
   });
 
-  test('should update badges from red to amber when quiz started', async ({ page }) => {
-    // Start with unstarted pages
-    await page.goto('/demo/home.html');
+  test('should complete login flow with valid credentials', async ({ page }) => {
+    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await waitForBootstrap(page);
 
-    await page.evaluate(() => {
-      const cache = {
-        totals: { answered: 0, correct: 0 },
-        pages: {
-          'quiz-page': { state: 'unstarted', answered: 0, correct: 0 },
-        },
-      };
-      sessionStorage.setItem('qd/state', JSON.stringify(cache));
-    });
+    // Wait for login component to load
+    const login = page.locator('qd-login');
+    await expect(login).toBeVisible();
 
-    await page.reload();
+    // Fill in login form
+    await login.locator('input[name="serviceId"]').fill('TEST001');
+    await login.locator('input[name="name"]').fill('John Doe');
 
-    // Verify initial red badge
-    const link = page.locator('.quizPageBtn[href*="quiz-page"]');
-    await expect(link.locator('.qd-badge')).toHaveClass(/qd-badge--red/);
+    // Submit login
+    await login.locator('button[type="submit"]').click();
+
+    // Verify status panel appears
+    const status = page.locator('qd-status');
+    await expect(status).toBeVisible();
+
+    // Verify status shows correct information
+    await expect(status).toContainText('John Doe');
+    await expect(status).toContainText('TEST001');
+  });
+
+  test('should answer MCQ questions and save to IndexedDB', async ({ page }) => {
+    // Login first
+    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await waitForBootstrap(page);
+    const login = page.locator('qd-login');
+    await login.locator('input[name="serviceId"]').fill('TEST001');
+    await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('button[type="submit"]').click();
 
     // Navigate to quiz page
-    await page.goto('/demo/quiz-page.html');
+    await page.goto(`file://${demoPath}/quiz-mcq.html`);
 
-    // Answer one question (incomplete)
-    const select = page.locator('select.qd-input-container').first();
-    await select.selectOption('1');
+    // Answer first question (MCQ)
+    const firstQuestion = page.locator('input[type="radio"]').first();
+    await firstQuestion.click();
 
-    // Wait for auto-save
-    await page.waitForTimeout(200);
-
-    // Navigate back to home page
-    await page.goto('/demo/home.html');
-
-    // Verify badge changed to amber
-    await expect(link.locator('.qd-badge')).toHaveClass(/qd-badge--amber/);
-    await expect(link.locator('.qd-badge')).toHaveAttribute('aria-label', /in progress/i);
+    // Verify answer saved in IndexedDB
+    await expect(async () => {
+      const savedData = await page.evaluate(async () => {
+        return new Promise((resolve) => {
+          const request = indexedDB.open('BrowserTest');
+          request.onsuccess = () => {
+            const db = request.result;
+            const tx = db.transaction('students', 'readonly');
+            const store = tx.objectStore('students');
+            const getRequest = store.getAll();
+            getRequest.onsuccess = () => resolve(getRequest.result);
+          };
+        });
+      });
+      expect(savedData).toBeTruthy();
+    }).toPass();
   });
 
-  test('should update badges from amber to green when quiz completed', async ({ page }) => {
-    // Setup with incomplete page
-    await page.goto('/demo/home.html');
+  test('should answer numeric questions with tolerance validation', async ({ page }) => {
+    // Login first
+    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await waitForBootstrap(page);
+    const login = page.locator('qd-login');
+    await login.locator('input[name="serviceId"]').fill('TEST001');
+    await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('button[type="submit"]').click();
 
-    await page.evaluate(() => {
-      const cache = {
-        totals: { answered: 2, correct: 1 },
-        pages: {
-          'quiz-page': { state: 'incomplete', answered: 2, correct: 1 },
-        },
-      };
-      sessionStorage.setItem('qd/state', JSON.stringify(cache));
-    });
+    // Navigate to numeric quiz page
+    await page.goto(`file://${demoPath}/quiz-numeric.html`);
 
+    // Answer numeric question
+    const numericInput = page.locator('input[type="number"]').first();
+    await numericInput.fill('42');
+
+    // Verify answer was saved
+    await expect(async () => {
+      const savedData = await page.evaluate(async () => {
+        return new Promise((resolve) => {
+          const request = indexedDB.open('BrowserTest');
+          request.onsuccess = () => {
+            const db = request.result;
+            const tx = db.transaction('students', 'readonly');
+            const store = tx.objectStore('students');
+            const getRequest = store.getAll();
+            getRequest.onsuccess = () => resolve(getRequest.result);
+          };
+        });
+      });
+      expect(savedData).toBeTruthy();
+    }).toPass();
+  });
+
+  test('should persist answers across page reload', async ({ page }) => {
+    // Login and answer question
+    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await waitForBootstrap(page);
+    const login = page.locator('qd-login');
+    await login.locator('input[name="serviceId"]').fill('TEST001');
+    await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('button[type="submit"]').click();
+
+    await page.goto(`file://${demoPath}/quiz-mcq.html`);
+
+    const firstQuestion = page.locator('input[type="radio"]').first();
+    await firstQuestion.click();
+
+    // Reload page
     await page.reload();
 
-    // Verify initial amber badge
-    const link = page.locator('.quizPageBtn[href*="quiz-page"]');
-    await expect(link.locator('.qd-badge')).toHaveClass(/qd-badge--amber/);
+    // Verify answer is still selected
+    const selectedRadio = page.locator('input[type="radio"]:checked').first();
+    await expect(selectedRadio).toBeChecked();
+  });
 
-    // Navigate to quiz page
-    await page.goto('/demo/quiz-page.html');
+  test('should update R/A/G badges on home page', async ({ page }) => {
+    // Login
+    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await waitForBootstrap(page);
+    const login = page.locator('qd-login');
+    await login.locator('input[name="serviceId"]').fill('TEST001');
+    await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('button[type="submit"]').click();
 
-    // Complete all questions correctly
-    const selects = page.locator('select.qd-input-container');
-    const count = await selects.count();
+    // Initially, badges should be red (unstarted)
+    const badge = page.locator('.quizPageBtn').first();
+    await expect(badge).toHaveClass(/qd-badge-red/);
 
-    for (let i = 0; i < count; i++) {
-      // Select correct answers (assuming option 1 is correct for demo)
-      await selects.nth(i).selectOption('1');
-      await page.waitForTimeout(200);
+    // Answer questions on quiz page
+    await page.goto(`file://${demoPath}/quiz-mcq.html`);
+
+    const firstQuestion = page.locator('input[type="radio"]').first();
+    await firstQuestion.click();
+
+    // Go back to index
+    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await waitForBootstrap(page);
+
+    // Badge should now be amber or green (incomplete or complete)
+    await expect(badge).toHaveClass(/qd-badge-(amber|green)/);
+  });
+
+  test('should calculate completion state correctly', async ({ page }) => {
+    // Login
+    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await waitForBootstrap(page);
+    const login = page.locator('qd-login');
+    await login.locator('input[name="serviceId"]').fill('TEST001');
+    await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('button[type="submit"]').click();
+
+    // Navigate to quiz with multiple questions
+    await page.goto(`file://${demoPath}/quiz-examples.html`);
+
+    // Answer all questions
+    const radios = await page.locator('input[type="radio"]').all();
+    for (const radio of radios) {
+      await radio.click();
     }
 
-    // Navigate back to home page
-    await page.goto('/demo/home.html');
+    // Check completion state in IndexedDB
+    await expect(async () => {
+      const completionState = await page.evaluate(async () => {
+        return new Promise<string>((resolve) => {
+          const request = indexedDB.open('BrowserTest');
+          request.onsuccess = () => {
+            const db = request.result;
+            const tx = db.transaction('students', 'readonly');
+            const store = tx.objectStore('students');
+            const getRequest = store.getAll();
+            getRequest.onsuccess = () => {
+              const students = getRequest.result as StudentRecord[];
+              if (students.length > 0) {
+                const student = students[0];
+                if (student) {
+                  const pages = student.pages as PagesRecord;
+                  const pagesArray = Object.values(pages);
+                  resolve(pagesArray[0]?.state || 'unknown');
+                } else {
+                  resolve('no-data');
+                }
+              } else {
+                resolve('no-data');
+              }
+            };
+          };
+        });
+      });
 
-    // Verify badge changed to green
-    await expect(link.locator('.qd-badge')).toHaveClass(/qd-badge--green/);
-    await expect(link.locator('.qd-badge')).toHaveAttribute('aria-label', /complete/i);
+      // State should be 'complete' or 'incomplete' (not 'unstarted')
+      expect(completionState).toMatch(/complete|incomplete/);
+    }).toPass();
   });
 
-  test('should show mixed badge states for multiple pages', async ({ page }) => {
-    await page.goto('/demo/home.html');
+  test('should handle logout correctly', async ({ page }) => {
+    // Login
+    await page.goto(`file://${demoPath}/quiz-index.html`);
+    await waitForBootstrap(page);
+    const login = page.locator('qd-login');
+    await login.locator('input[name="serviceId"]').fill('TEST001');
+    await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('button[type="submit"]').click();
 
-    // Setup mixed progress
-    await page.evaluate(() => {
-      const cache = {
-        totals: { answered: 10, correct: 8 },
-        pages: {
-          'page-1': { state: 'complete', answered: 5, correct: 5 },
-          'page-2': { state: 'incomplete', answered: 3, correct: 2 },
-          'page-3': { state: 'unstarted', answered: 0, correct: 0 },
-          'page-4': { state: 'incomplete', answered: 2, correct: 1 },
-        },
-      };
-      sessionStorage.setItem('qd/state', JSON.stringify(cache));
-    });
+    // Verify status panel visible
+    const status = page.locator('qd-status');
+    await expect(status).toBeVisible();
 
-    await page.reload();
+    // Click logout
+    const logoutButton = status.locator('button').filter({ hasText: /logout/i });
+    await logoutButton.click();
 
-    // Verify each page has correct badge color
-    await expect(page.locator('.quizPageBtn[href*="page-1"] .qd-badge')).toHaveClass(
-      /qd-badge--green/,
-    );
-    await expect(page.locator('.quizPageBtn[href*="page-2"] .qd-badge')).toHaveClass(
-      /qd-badge--amber/,
-    );
-    await expect(page.locator('.quizPageBtn[href*="page-3"] .qd-badge')).toHaveClass(
-      /qd-badge--red/,
-    );
-    await expect(page.locator('.quizPageBtn[href*="page-4"] .qd-badge')).toHaveClass(
-      /qd-badge--amber/,
-    );
-  });
+    // Verify login panel reappears
+    await expect(login).toBeVisible();
 
-  test('should update badges in real-time when state changes', async ({ page }) => {
-    await page.goto('/demo/home.html');
-
-    // Setup initial state
-    await page.evaluate(() => {
-      const cache = {
-        totals: { answered: 0, correct: 0 },
-        pages: {
-          'test-page': { state: 'unstarted', answered: 0, correct: 0 },
-        },
-      };
-      sessionStorage.setItem('qd/state', JSON.stringify(cache));
-    });
-
-    await page.reload();
-
-    const link = page.locator('.quizPageBtn[href*="test-page"]');
-
-    // Verify initial state (red)
-    await expect(link.locator('.qd-badge')).toHaveClass(/qd-badge--red/);
-
-    // Simulate state change event
-    await page.evaluate(() => {
-      const cache = {
-        totals: { answered: 1, correct: 0 },
-        pages: {
-          'test-page': { state: 'incomplete', answered: 1, correct: 0 },
-        },
-      };
-      sessionStorage.setItem('qd/state', JSON.stringify(cache));
-
-      // Dispatch state-changed event
-      document.dispatchEvent(
-        new CustomEvent('qd:state-changed', {
-          detail: { pageId: 'test-page', state: 'incomplete' },
-        }),
-      );
-    });
-
-    // Wait for badge update
-    await page.waitForTimeout(100);
-
-    // Verify badge changed to amber
-    await expect(link.locator('.qd-badge')).toHaveClass(/qd-badge--amber/);
-  });
-
-  test('should persist badge states across page reloads', async ({ page }) => {
-    await page.goto('/demo/home.html');
-
-    // Setup progress
-    await page.evaluate(() => {
-      const cache = {
-        totals: { answered: 5, correct: 5 },
-        pages: {
-          'page-1': { state: 'complete', answered: 5, correct: 5 },
-        },
-      };
-      sessionStorage.setItem('qd/state', JSON.stringify(cache));
-    });
-
-    await page.reload();
-
-    // Verify badge is green
-    const badge = page.locator('.quizPageBtn[href*="page-1"] .qd-badge');
-    await expect(badge).toHaveClass(/qd-badge--green/);
-
-    // Reload page again
-    await page.reload();
-
-    // Verify badge is still green
-    await expect(badge).toHaveClass(/qd-badge--green/);
-  });
-
-  test('should clear badges on logout', async ({ page }) => {
-    await page.goto('/demo/home.html');
-
-    // Setup session and cache
-    await page.evaluate(() => {
-      const session = {
-        serviceId: 'TEST001',
-        name: 'Test Student',
-        release: '01-2025',
-        loginTime: new Date().toISOString(),
-        lastActivity: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-        instructorUnlocked: false,
-      };
-
-      const cache = {
-        totals: { answered: 5, correct: 5 },
-        pages: {
-          'page-1': { state: 'complete', answered: 5, correct: 5 },
-        },
-      };
-
-      sessionStorage.setItem('qd/session', JSON.stringify(session));
-      sessionStorage.setItem('qd/state', JSON.stringify(cache));
-    });
-
-    await page.reload();
-
-    // Verify badge is visible
-    await expect(page.locator('.qd-badge--green').first()).toBeVisible();
-
-    // Trigger logout
-    await page.evaluate(() => {
-      document.dispatchEvent(new CustomEvent('qd:logout', { detail: {} }));
-    });
-
-    // Wait for event processing
-    await page.waitForTimeout(100);
-
-    // Verify badges changed to gray (no session)
-    await expect(page.locator('.qd-badge--gray').first()).toBeVisible();
-  });
-
-  test('should handle missing page IDs gracefully', async ({ page }) => {
-    await page.goto('/demo/home.html');
-
-    // Setup cache with only some pages
-    await page.evaluate(() => {
-      const cache = {
-        totals: { answered: 5, correct: 5 },
-        pages: {
-          'page-1': { state: 'complete', answered: 5, correct: 5 },
-          // page-2 and page-3 not in cache
-        },
-      };
-      sessionStorage.setItem('qd/state', JSON.stringify(cache));
-    });
-
-    await page.reload();
-
-    // Verify page-1 has green badge
-    await expect(page.locator('.quizPageBtn[href*="page-1"] .qd-badge')).toHaveClass(
-      /qd-badge--green/,
-    );
-
-    // Verify pages not in cache have gray badges
-    await expect(page.locator('.quizPageBtn[href*="page-2"] .qd-badge')).toHaveClass(
-      /qd-badge--gray/,
-    );
-  });
-
-  test('should have accessible ARIA labels', async ({ page }) => {
-    await page.goto('/demo/home.html');
-
-    await page.evaluate(() => {
-      const cache = {
-        totals: { answered: 10, correct: 8 },
-        pages: {
-          'page-1': { state: 'complete', answered: 5, correct: 5 },
-          'page-2': { state: 'incomplete', answered: 3, correct: 2 },
-          'page-3': { state: 'unstarted', answered: 0, correct: 0 },
-        },
-      };
-      sessionStorage.setItem('qd/state', JSON.stringify(cache));
-    });
-
-    await page.reload();
-
-    // Check ARIA labels for each state
-    const greenBadge = page.locator('.qd-badge--green').first();
-    await expect(greenBadge).toHaveAttribute('aria-label', /complete/i);
-    await expect(greenBadge).toHaveAttribute('role', 'status');
-
-    const amberBadge = page.locator('.qd-badge--amber').first();
-    await expect(amberBadge).toHaveAttribute('aria-label', /in progress/i);
-    await expect(amberBadge).toHaveAttribute('role', 'status');
-
-    const redBadge = page.locator('.qd-badge--red').first();
-    await expect(redBadge).toHaveAttribute('aria-label', /not started/i);
-    await expect(redBadge).toHaveAttribute('role', 'status');
+    // Verify sessionStorage cleared
+    const sessionData = await page.evaluate(() => sessionStorage.getItem('qd/session'));
+    expect(sessionData).toBeNull();
   });
 });

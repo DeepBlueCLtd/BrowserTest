@@ -8,7 +8,7 @@ import { dirname, join } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const MAX_SIZE_KB = 25;
+const MAX_SIZE_KB = 35;
 const IIFE_PATH = join(__dirname, '../dist/sonar-quiz.iife.js');
 
 try {

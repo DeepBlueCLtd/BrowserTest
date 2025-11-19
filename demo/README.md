@@ -11,7 +11,7 @@ This directory contains standalone HTML test files that load and test the built 
 - Status panel (`qd-status` component) showing progress
 - Navigation links with R/A/G (Red/Amber/Green) status badges
 - Links to quiz and analysis pages
-- Metadata tags for release and document ID
+- **Publication title element** (`.wh_publication_title .title`) - **REQUIRED** for Release ID extraction
 
 **What it tests**:
 - Login component rendering and interaction
@@ -53,6 +53,45 @@ This directory contains standalone HTML test files that load and test the built 
 - Auto-save functionality
 - 500 character cell limit
 - Storage persistence
+
+## Required DOM Structure
+
+### Configuration Spans (Hidden Elements)
+All demo HTML files include hidden configuration spans that are read by the system at runtime. These are typically injected by the DITA/Oxygen XSL transform:
+
+```html
+<body>
+  <!-- Configuration (hidden, injected by Oxygen XSL transform) -->
+  <span id="qd-status-container" style="display:none;">.wh_top_menu_and_indexterms_link</span>
+  <span id="qd-title-selector" style="display:none;">.wh_publication_title .title</span>
+  <span id="qd-db-name" style="display:none;">BrowserTest</span>
+  <span id="qd-instructor-hash" style="display:none;">5e884898da28...</span>
+  <!-- ... page content ... -->
+</body>
+```
+
+**Configuration IDs**:
+- `#qd-status-container`: CSS selector where status panel should be injected (default: `.wh_top_menu_and_indexterms_link`)
+- `#qd-title-selector`: CSS selector for publication title element containing Release ID (default: `.wh_publication_title .title`)
+- `#qd-db-name`: IndexedDB database name (default: `BrowserTest`)
+- `#qd-instructor-hash`: SHA-256 hash of instructor password (optional, for instructor login)
+
+### Publication Title Element (CRITICAL)
+The publication title element MUST exist in the document and match the selector specified in `#qd-title-selector`:
+
+```html
+<div class="wh_publication_title">
+  <span class="title">TRV Connectors Autumn 2025</span>
+</div>
+```
+
+**Why it matters**:
+- The `ReleaseId` is extracted from this element's textContent
+- This element is automatically added by DITA/Oxygen WebHelp publishing
+- Login will FAIL without this element: "Release not found"
+- There is NO release input field in the login form - release comes from this DOM element only
+
+**Common mistake**: Attempting to read release from a form input. The login form only has `serviceId` and `name` fields.
 
 ## How to Test
 
@@ -114,7 +153,7 @@ Then navigate to:
 - `qd:login` event fires
 - Session stored in sessionStorage
 - Status panel shows "Your Progress"
-- Console shows debug logs (data-debug="true")
+- Console shows debug logs (when `DEBUG_MODE = true`)
 
 #### Test 2: Quiz Tables & Questions
 1. From index, click "Sonar Basics" → `quiz-examples.html`
@@ -178,21 +217,24 @@ Then navigate to:
 
 ### Debug Mode
 
-All HTML files have `data-debug="true"` attribute on the script tag:
-```html
-<script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true"></script>
+Debug mode is controlled by the `DEBUG_MODE` constant in `src/index.ts`:
+```typescript
+const DEBUG_MODE = true;  // Set to false for production
 ```
 
-This enables:
+All HTML files use a simple script tag with no attributes:
+```html
+<script defer src="../dist/sonar-quiz.iife.js"></script>
+```
+
+When `DEBUG_MODE = true`, the system enables:
 - Console logging of all events
 - Initialization messages
 - State transition logs
+- Storage monitor component (toggle with `Ctrl+Shift+D`)
 - Validation error banners (if any)
 
-To disable debug mode, remove the attribute:
-```html
-<script src="../dist/sonar-quiz.iife.js" data-sonar-quiz></script>
-```
+To disable debug mode, set `DEBUG_MODE = false` in `src/index.ts` and rebuild.
 
 ## Browser DevTools Inspection
 
@@ -285,7 +327,7 @@ These HTML files can be used for:
 - **Offline-first**: No network dependencies, works from `file://` URLs
 - **Progressive Enhancement**: Works without JavaScript (shows static tables)
 - **Zero Configuration**: Single `<script>` tag, auto-initializes
-- **Bundle Size**: IIFE bundle must be ≤25KB min+gzip
+- **Bundle Size**: IIFE bundle must be ≤35KB min+gzip
 - **Browser Support**: Chrome/Edge ≥96, Firefox ≥102
 - **Accessibility**: WCAG 2.1 Level AA compliant
 

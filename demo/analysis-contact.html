@@ -102,8 +102,15 @@
   </style>
 </head>
 <body>
+  <!-- Configuration injected by Oxygen XSL transform from Transformation Scenario parameters -->
+  <span id="qd-status-container" style="display:none;">.wh_top_menu_and_indexterms_link</span>
+  <span id="qd-title-selector" style="display:none;">.wh_publication_title .title</span>
+  <span id="qd-db-name" style="display:none;">BrowserTest</span>
+  <span id="qd-instructor-hash" style="display:none;">5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8</span>
+
   <div id="page-content">
   <nav class="wh_top_menu_and_indexterms_link">
+    <div class=" wh_publication_title "><a href="index.html"><span xmlns="" class="title">TRV Connectors Autumn 2025</span></a></div>
     <ul>
       <li><a href="quiz-index.html">Home</a></li>
       <li><a href="seven-questions.html">Seven Questions</a></li>
@@ -175,7 +182,7 @@
   <h2>Verification Questions</h2>
   <p>Based on your analysis above, answer the following questions:</p>
 
-  <table class="qd-quiz qd-page">
+  <table class="qd-quiz">
     <thead>
       <tr>
         <th>Question</th>
@@ -211,7 +218,7 @@
 
   </div>
 
-  <!-- Load the Sonar Quiz System IIFE bundle -->
-  <script src="../dist/sonar-quiz.iife.js" data-sonar-quiz data-debug="true" data-status-panel-container=".wh_top_menu_and_indexterms_link"></script>
+  <!-- Load the Sonar Quiz System -->
+  <script defer="defer" src="../dist/sonar-quiz.iife.js"></script>
 </body>
 </html>
