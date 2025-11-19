@@ -142,28 +142,60 @@ export class EventCoordinator {
       );
       // Restore answer and detail columns for instructor view
       const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
+      info(`Found ${quizTables.length} quiz tables to restore for instructor`);
+
       quizTables.forEach((table) => {
         // Get parsed metadata (contains correct answers)
         const metadata = getQuizTableMetadata(table);
-        if (!metadata) return;
+        if (!metadata) {
+          info('No metadata found for table, skipping restoration');
+          return;
+        }
+
+        info(`Restoring ${metadata.parsed.questions.length} answers from metadata`);
 
         // Remove qd-hidden class from answer column (column 1)
         const answerCells = table.querySelectorAll('td:nth-child(2), th:nth-child(2)');
-        answerCells.forEach((cell, index) => {
+        answerCells.forEach((cell) => {
           cell.classList.remove('qd-hidden');
-          // Restore answer text from parsed metadata (skip header row)
-          if (index > 0 && cell instanceof HTMLTableCellElement) {
-            const questionIndex = index - 1;
-            const question = metadata.parsed.questions[questionIndex];
-            if (question) {
-              cell.textContent = question.correctAnswer;
-            }
+        });
+
+        // Restore answer text to data cells only (not header)
+        const answerDataCells = table.querySelectorAll('tbody td:nth-child(2)');
+        info(`Found ${answerDataCells.length} answer cells to populate`);
+
+        answerDataCells.forEach((cell, index) => {
+          const question = metadata.parsed.questions[index];
+          if (question && cell instanceof HTMLTableCellElement) {
+            cell.textContent = question.correctAnswer;
+            info(`Restored answer for Q${index + 1}: ${question.correctAnswer}`);
           }
         });
 
         // Remove qd-hidden class from detail column (column 2)
         const detailCells = table.querySelectorAll('td:nth-child(3), th:nth-child(3)');
         detailCells.forEach((cell) => cell.classList.remove('qd-hidden'));
+
+        // Set up instructor toggle event listeners (since table is non-interactive)
+        const showAnswersHandler = async () => {
+          const { showStudentAnswersForTable } = await import('../enhancers/quiz-table.js');
+          await showStudentAnswersForTable(table, metadata);
+        };
+        const hideAnswersHandler = () => {
+          const { hideStudentAnswersForTable } = await import('../enhancers/quiz-table.js');
+          hideStudentAnswersForTable(table);
+        };
+
+        document.addEventListener('qd:instructor-show-answers', showAnswersHandler);
+        document.addEventListener('qd:instructor-hide-answers', hideAnswersHandler);
+
+        // Check if toggle already enabled
+        const showAnswers = sessionStorage.getItem('qd/instructor/showAnswers') === 'true';
+        if (showAnswers) {
+          void showAnswersHandler();
+        }
+
+        info('Answer restoration complete');
       });
       return;
     }
