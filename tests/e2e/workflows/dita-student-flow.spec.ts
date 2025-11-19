@@ -16,7 +16,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const ditaPath = path.resolve(__dirname, '../../../dita/out/oxygen');
+const ditaPath = path.resolve(__dirname, '../../../dita-demo');
 
 /**
  * Wait for bootstrap to complete
@@ -38,10 +38,11 @@ async function clearStorage(page: Page): Promise<void> {
   });
 }
 
-// @CHALLENGING: These tests require DITA documentation to be built first
-// Issue: dita/out/oxygen/ directory doesn't exist
-// Fix attempted: None - requires `npm run build:dita` which may not work in all environments
-// Recommended: Skip in CI, run locally after building DITA
+// @CHALLENGING: Browser crashes when loading DITA demo pages via file:// protocol
+// Issue: "Page crashed" error when navigating to file:///path/to/dita-demo/page-index.html
+// Fix attempted: Switched from dita/out/oxygen to dita-demo (version-controlled snapshot), reduced timeouts
+// Specific error: Same as other demo tests - Chromium headless crashes with file:// + Web Components
+// Recommended: Run via HTTP server (python3 -m http.server) or test via Storybook instead
 test.describe.skip('DITA Student Flow', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`file://${ditaPath}/page-index.html`);

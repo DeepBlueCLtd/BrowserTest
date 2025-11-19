@@ -14,7 +14,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const ditaPath = path.resolve(__dirname, '../../../dita/out/oxygen');
+const ditaPath = path.resolve(__dirname, '../../../dita-demo');
 
 // Test password: "pwd"
 // Hash: "a1159e9df367" (from DITA config)
@@ -31,10 +31,11 @@ async function waitForBootstrap(page: Page): Promise<void> {
   await page.waitForTimeout(200);
 }
 
-// @CHALLENGING: These tests require DITA documentation to be built first
-// Issue: dita/out/oxygen/page-index.html not found (ERR_FILE_NOT_FOUND)
-// Fix attempted: None - requires `npm run build:dita` which depends on DITA-OT
-// Recommended: Skip in CI, run locally after building DITA output
+// @CHALLENGING: Browser crashes when loading DITA demo pages via file:// protocol
+// Issue: "Page crashed" error when navigating to file:///path/to/dita-demo/page-index.html
+// Fix attempted: Switched from dita/out/oxygen to dita-demo (version-controlled), reduced timeouts
+// Specific error: Same as other file:// tests - Chromium headless crashes loading Web Components
+// Recommended: Run via HTTP server (python3 -m http.server) or test via Storybook instead
 test.describe.skip('DITA Instructor Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage before each test
