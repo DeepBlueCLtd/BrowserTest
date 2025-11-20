@@ -56,7 +56,7 @@ export interface VirtualListState {
  */
 export function calculateVirtualListState(
   scrollTop: number,
-  config: VirtualListConfig
+  config: VirtualListConfig,
 ): VirtualListState {
   const { totalItems, itemHeight, viewportHeight, bufferSize = 5 } = config;
 
@@ -73,7 +73,7 @@ export function calculateVirtualListState(
     startIndex,
     endIndex,
     totalHeight,
-    offsetY
+    offsetY,
   };
 }
 
@@ -87,7 +87,7 @@ export function calculateVirtualListState(
 export function createVirtualList(
   container: HTMLElement,
   config: VirtualListConfig,
-  onUpdate: (state: VirtualListState) => void
+  onUpdate: (state: VirtualListState) => void,
 ): () => void {
   let lastState: VirtualListState | null = null;
 

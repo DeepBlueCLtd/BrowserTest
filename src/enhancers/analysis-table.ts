@@ -451,7 +451,8 @@ export function createStudentEntriesDisplay(entries: CellEntry[]): HTMLDivElemen
     // FR-013: Placeholder for empty cells
     container.className += ' qd-no-entries';
     container.textContent = '(No entries yet)';
-    container.style.cssText = 'color: #9ca3af; font-style: italic; font-size: 13px; padding: 8px 0;';
+    container.style.cssText =
+      'color: #9ca3af; font-style: italic; font-size: 13px; padding: 8px 0;';
     return container;
   }
 

@@ -399,7 +399,11 @@ test.describe.skip('Instructor Review Workflow', () => {
 
     // Verify no student-specific UI state remains
     const quizTableAsInstructor = page.locator('table.qd-quiz');
-    const instructorAnswerCell = quizTableAsInstructor.locator('tbody tr').first().locator('td').nth(1);
+    const instructorAnswerCell = quizTableAsInstructor
+      .locator('tbody tr')
+      .first()
+      .locator('td')
+      .nth(1);
 
     // Verify no color-coded classes from student session
     const instructorCellClass = await instructorAnswerCell.getAttribute('class');

@@ -50,11 +50,7 @@ describe('Timestamp Display Consistency (FR-007)', () => {
   });
 
   it('should handle array of timestamps consistently', () => {
-    const timestamps = [
-      '2024-11-19T10:00:00Z',
-      '2024-11-19T11:30:00Z',
-      '2024-11-19T14:45:00Z',
-    ];
+    const timestamps = ['2024-11-19T10:00:00Z', '2024-11-19T11:30:00Z', '2024-11-19T14:45:00Z'];
 
     const formatted = timestamps.map((ts) => formatTimestamp(ts, 'display'));
 

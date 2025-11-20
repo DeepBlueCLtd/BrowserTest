@@ -58,7 +58,10 @@ async function loginAsInstructor(page: Page): Promise<void> {
   await injectPasswordHash(page);
 
   // Click instructor button in the login component
-  const instructorButton = page.locator('button').filter({ hasText: /instructor/i }).first();
+  const instructorButton = page
+    .locator('button')
+    .filter({ hasText: /instructor/i })
+    .first();
   await instructorButton.click();
 
   // Find password input in the modal overlay in document.body
@@ -98,9 +101,9 @@ test.describe('Instructor Mode Improvements', () => {
       await page.waitForTimeout(500);
 
       const quizTable = page.locator('table.qd-quiz');
-      if (await quizTable.count() > 0) {
+      if ((await quizTable.count()) > 0) {
         const firstInput = quizTable.locator('.qd-quiz-input').first();
-        if (await firstInput.count() > 0) {
+        if ((await firstInput.count()) > 0) {
           await firstInput.selectOption({ index: 1 });
           await page.waitForTimeout(500);
         }
@@ -108,7 +111,7 @@ test.describe('Instructor Mode Improvements', () => {
 
       // Logout student
       const logoutBtn = page.locator('button').filter({ hasText: /logout/i });
-      if (await logoutBtn.count() > 0) {
+      if ((await logoutBtn.count()) > 0) {
         await logoutBtn.click();
         await page.waitForTimeout(300);
       }
@@ -140,7 +143,10 @@ test.describe('Instructor Mode Improvements', () => {
       await loginAsInstructor(page);
 
       // Open modal
-      await page.locator('button').filter({ hasText: /view.*scores/i }).click();
+      await page
+        .locator('button')
+        .filter({ hasText: /view.*scores/i })
+        .click();
       const scoresModal = page.locator('.qd-scores-modal-overlay');
       await expect(scoresModal).toBeVisible({ timeout: 2000 });
 
@@ -155,7 +161,10 @@ test.describe('Instructor Mode Improvements', () => {
       await loginAsInstructor(page);
 
       // Open modal
-      await page.locator('button').filter({ hasText: /view.*scores/i }).click();
+      await page
+        .locator('button')
+        .filter({ hasText: /view.*scores/i })
+        .click();
       const scoresModal = page.locator('.qd-scores-modal-overlay');
       await expect(scoresModal).toBeVisible({ timeout: 2000 });
 
@@ -170,7 +179,10 @@ test.describe('Instructor Mode Improvements', () => {
       await loginAsInstructor(page);
 
       // Open modal
-      await page.locator('button').filter({ hasText: /view.*scores/i }).click();
+      await page
+        .locator('button')
+        .filter({ hasText: /view.*scores/i })
+        .click();
       const scoresModal = page.locator('.qd-scores-modal-overlay');
       await expect(scoresModal).toBeVisible({ timeout: 2000 });
 
@@ -191,10 +203,10 @@ test.describe('Instructor Mode Improvements', () => {
       await page.waitForTimeout(300);
 
       const analysisTable = page.locator('table.qd-analysis');
-      if (await analysisTable.count() > 0) {
+      if ((await analysisTable.count()) > 0) {
         // Find editable cell and enter content
         const editableCell = analysisTable.locator('.qd-editable').first();
-        if (await editableCell.count() > 0) {
+        if ((await editableCell.count()) > 0) {
           await editableCell.click();
           await editableCell.fill('Test content from student');
           await page.waitForTimeout(500); // Wait for debounced save
@@ -203,7 +215,10 @@ test.describe('Instructor Mode Improvements', () => {
           await expect(editableCell).toContainText('Test content from student');
 
           // Logout
-          await page.locator('button').filter({ hasText: /logout/i }).click();
+          await page
+            .locator('button')
+            .filter({ hasText: /logout/i })
+            .click();
           await page.waitForTimeout(200);
 
           // Verify cell is cleared
@@ -230,7 +245,10 @@ test.describe('Instructor Mode Improvements', () => {
       await expect(toggle).toBeChecked();
 
       // Logout
-      await page.locator('qd-instructor button').filter({ hasText: /logout/i }).click();
+      await page
+        .locator('qd-instructor button')
+        .filter({ hasText: /logout/i })
+        .click();
       await page.waitForTimeout(200);
 
       // Login again as instructor
@@ -256,13 +274,13 @@ test.describe('Instructor Mode Improvements', () => {
       await page.waitForTimeout(300);
 
       const quizTable = page.locator('table.qd-quiz');
-      if (await quizTable.count() > 0) {
+      if ((await quizTable.count()) > 0) {
         const inputs = quizTable.locator('.qd-quiz-input');
         const count = await inputs.count();
 
         for (let i = 0; i < Math.min(count, 3); i++) {
           const input = inputs.nth(i);
-          if (await input.count() > 0) {
+          if ((await input.count()) > 0) {
             await input.selectOption({ index: i % 4 }); // Vary answers
             await page.waitForTimeout(100);
           }
@@ -270,7 +288,10 @@ test.describe('Instructor Mode Improvements', () => {
       }
 
       // Logout and login as instructor
-      await page.locator('button').filter({ hasText: /logout/i }).click();
+      await page
+        .locator('button')
+        .filter({ hasText: /logout/i })
+        .click();
       await page.waitForTimeout(200);
 
       await page.goto(`file://${demoPath}/page-index.html`);
@@ -278,13 +299,16 @@ test.describe('Instructor Mode Improvements', () => {
       await loginAsInstructor(page);
 
       // Open scores modal
-      await page.locator('button').filter({ hasText: /view.*scores/i }).click();
+      await page
+        .locator('button')
+        .filter({ hasText: /view.*scores/i })
+        .click();
       const scoresModal = page.locator('.qd-scores-modal-overlay');
       await expect(scoresModal).toBeVisible({ timeout: 2000 });
 
       // Expand student if not already expanded
       const studentRow = scoresModal.locator('tr').filter({ hasText: 'Carol White' });
-      if (await studentRow.count() > 0) {
+      if ((await studentRow.count()) > 0) {
         await studentRow.click();
         await page.waitForTimeout(100);
       }
@@ -306,16 +330,19 @@ test.describe('Instructor Mode Improvements', () => {
       await page.waitForTimeout(300);
 
       const quizTable = page.locator('table.qd-quiz');
-      if (await quizTable.count() > 0) {
+      if ((await quizTable.count()) > 0) {
         const firstInput = quizTable.locator('.qd-quiz-input').first();
-        if (await firstInput.count() > 0) {
+        if ((await firstInput.count()) > 0) {
           await firstInput.selectOption({ index: 1 });
           await page.waitForTimeout(300);
         }
       }
 
       // Logout
-      await page.locator('button').filter({ hasText: /logout/i }).click();
+      await page
+        .locator('button')
+        .filter({ hasText: /logout/i })
+        .click();
       await page.waitForTimeout(200);
 
       // Login as instructor
@@ -329,7 +356,7 @@ test.describe('Instructor Mode Improvements', () => {
 
       // Enable toggle
       const toggle = page.locator('qd-instructor input[type="checkbox"]');
-      if (await toggle.count() > 0) {
+      if ((await toggle.count()) > 0) {
         await toggle.check();
         await page.waitForTimeout(200);
 

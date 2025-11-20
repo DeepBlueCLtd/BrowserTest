@@ -305,11 +305,13 @@ export class QdInstructorScores extends LitElement {
             border-radius: 3px;
             font-size: 11px;
             font-weight: 500;
-            ${answer === null
-              ? 'background: #e0e0e0; color: #666;'
-              : answer.success
-                ? 'background: #d4edda; color: #155724; border: 1px solid #c3e6cb;'
-                : 'background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;'}
+            ${
+              answer === null
+                ? 'background: #e0e0e0; color: #666;'
+                : answer.success
+                  ? 'background: #d4edda; color: #155724; border: 1px solid #c3e6cb;'
+                  : 'background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;'
+            }
           `;
           answerBadge.textContent = `Q${index + 1}: ${answer ? answer.answer : '—'}`;
           answersList.appendChild(answerBadge);

@@ -248,7 +248,9 @@ describe('qd-instructor-export - Export Button State (FR-006)', () => {
 
       // Should have header row
       const lines = csv.split('\n');
-      expect(lines[0]).toBe('Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp');
+      expect(lines[0]).toBe(
+        'Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp',
+      );
     });
 
     it('should include all student answer data in CSV rows', () => {

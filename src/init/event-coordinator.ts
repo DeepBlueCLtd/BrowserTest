@@ -11,7 +11,10 @@ import {
   showStudentAnswersForTable,
   hideStudentAnswersForTable,
 } from '../enhancers/quiz-table.js';
-import { enhanceAnalysisTable, resetAnalysisTableToNonInteractive } from '../enhancers/analysis-table.js';
+import {
+  enhanceAnalysisTable,
+  resetAnalysisTableToNonInteractive,
+} from '../enhancers/analysis-table.js';
 import { getStorageService } from '../services/storage-service.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
 import { setJSON, getJSON } from '../utils/storage-helpers.js';

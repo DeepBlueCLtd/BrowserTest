@@ -3,7 +3,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { formatTimestamp, formatStoredTimestamp, getCurrentTimestamp } from '../../../src/utils/date-helpers.js';
+import {
+  formatTimestamp,
+  formatStoredTimestamp,
+  getCurrentTimestamp,
+} from '../../../src/utils/date-helpers.js';
 
 describe('Date Helpers', () => {
   describe('formatTimestamp() - display format', () => {

@@ -710,7 +710,9 @@ export async function showStudentAnswersForTable(
     // Check if there are any students
     if (students.length === 0) {
       info('No student data available for this release');
-      alert('No student data available for this release. Students need to log in and answer questions first.');
+      alert(
+        'No student data available for this release. Students need to log in and answer questions first.',
+      );
       return;
     }
 
