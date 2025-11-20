@@ -89,7 +89,8 @@ test.describe('Instructor Mode Improvements', () => {
       await new Promise<void>((resolve, reject) => {
         const request = indexedDB.deleteDatabase('BrowserTest');
         request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
+        request.onerror = () =>
+          reject(new Error(request.error?.message || 'Failed to delete database'));
         request.onblocked = () => resolve(); // Resolve even if blocked
       });
     });
