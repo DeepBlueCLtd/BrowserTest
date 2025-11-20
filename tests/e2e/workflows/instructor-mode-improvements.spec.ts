@@ -83,9 +83,15 @@ test.describe('Instructor Mode Improvements', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage before each test
     await page.goto(`file://${demoPath}/page-index.html`);
-    await page.evaluate(() => {
+    await page.evaluate(async () => {
       sessionStorage.clear();
-      indexedDB.deleteDatabase('BrowserTest');
+      // Properly await IndexedDB deletion
+      await new Promise<void>((resolve, reject) => {
+        const request = indexedDB.deleteDatabase('BrowserTest');
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+        request.onblocked = () => resolve(); // Resolve even if blocked
+      });
     });
   });
 
