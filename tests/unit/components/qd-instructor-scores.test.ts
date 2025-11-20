@@ -24,11 +24,11 @@ describe('qd-instructor-scores - Modal Structure (FR-003)', () => {
   afterEach(() => {
     container.remove();
     // Clean up modal from document.body
-    document.querySelector('.qd-scores-modal-container')?.remove();
+    document.querySelector('.qd-scores-modal-overlay')?.remove();
   });
 
-  // Helper to get modal container from document.body
-  const getModalContainer = () => document.querySelector('.qd-scores-modal-container');
+  // Helper to get modal overlay from document.body
+  const getModalContainer = () => document.querySelector('.qd-scores-modal-overlay');
 
   it('should render modal overlay element', () => {
     const overlay = getModalContainer()?.querySelector('.qd-scores-modal-overlay');
