@@ -23,11 +23,16 @@ describe('qd-instructor-scores', () => {
 
   afterEach(() => {
     container.remove();
+    // Clean up modal from document.body
+    document.querySelector('.qd-scores-modal-container')?.remove();
   });
+
+  // Helper to get modal container from document.body
+  const getModalContainer = () => document.querySelector('.qd-scores-modal-container');
 
   describe('modal rendering', () => {
     it('should not render when showModal is false', () => {
-      const modal = element.shadowRoot?.querySelector('.modal-overlay');
+      const modal = getModalContainer();
       expect(modal).toBeNull();
     });
 
@@ -35,7 +40,7 @@ describe('qd-instructor-scores', () => {
       element.showModal = true;
       await element.updateComplete;
 
-      const modal = element.shadowRoot?.querySelector('.modal-overlay');
+      const modal = getModalContainer();
       expect(modal).toBeTruthy();
     });
 
@@ -48,7 +53,8 @@ describe('qd-instructor-scores', () => {
         eventFired = true;
       });
 
-      const closeButton = element.shadowRoot?.querySelector('.close-button') as HTMLButtonElement;
+      const modalContainer = getModalContainer();
+      const closeButton = modalContainer?.querySelector('button') as HTMLButtonElement;
       closeButton?.click();
 
       expect(eventFired).toBe(true);
@@ -63,7 +69,7 @@ describe('qd-instructor-scores', () => {
         eventFired = true;
       });
 
-      const overlay = element.shadowRoot?.querySelector('.modal-overlay') as HTMLElement;
+      const overlay = getModalContainer()?.querySelector('.qd-scores-modal-overlay') as HTMLElement;
       overlay?.click();
 
       expect(eventFired).toBe(true);
@@ -76,7 +82,7 @@ describe('qd-instructor-scores', () => {
       element.students = [];
       await element.updateComplete;
 
-      const text = element.shadowRoot?.textContent;
+      const text = getModalContainer()?.textContent;
       expect(text).toContain('No student data available');
     });
   });
@@ -114,32 +120,32 @@ describe('qd-instructor-scores', () => {
     });
 
     it('should render all students', () => {
-      const rows = element.shadowRoot?.querySelectorAll('tbody tr');
+      const rows = getModalContainer()?.querySelectorAll('tbody tr');
       expect(rows?.length).toBeGreaterThan(0);
     });
 
     it('should sort students by name', () => {
-      const firstRow = element.shadowRoot?.querySelector('tbody tr');
+      const firstRow = getModalContainer()?.querySelector('tbody tr');
       expect(firstRow?.textContent).toContain('Alice');
     });
 
     it('should display service ID', () => {
-      const text = element.shadowRoot?.textContent;
+      const text = getModalContainer()?.textContent;
       expect(text).toContain('TEST1');
     });
 
     it('should display attempted count', () => {
-      const text = element.shadowRoot?.textContent;
+      const text = getModalContainer()?.textContent;
       expect(text).toContain('10');
     });
 
     it('should display correct count', () => {
-      const text = element.shadowRoot?.textContent;
+      const text = getModalContainer()?.textContent;
       expect(text).toContain('8');
     });
 
     it('should calculate percentage', () => {
-      const text = element.shadowRoot?.textContent;
+      const text = getModalContainer()?.textContent;
       expect(text).toContain('80%');
     });
   });

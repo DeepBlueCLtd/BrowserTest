@@ -22,7 +22,12 @@ describe('qd-instructor-manage', () => {
 
   afterEach(() => {
     container.remove();
+    // Clean up modal from document.body
+    document.querySelector('.qd-manage-modal-container')?.remove();
   });
+
+  // Helper to get modal container from document.body
+  const getModalContainer = () => document.querySelector('.qd-manage-modal-container');
 
   describe('rendering', () => {
     it('should render clear data button', () => {
@@ -32,7 +37,7 @@ describe('qd-instructor-manage', () => {
     });
 
     it('should not show dialog initially', () => {
-      const modal = element.shadowRoot?.querySelector('.modal-overlay');
+      const modal = getModalContainer();
       expect(modal).toBeNull();
     });
   });
@@ -43,7 +48,7 @@ describe('qd-instructor-manage', () => {
       button.click();
       await element.updateComplete;
 
-      const modal = element.shadowRoot?.querySelector('.modal-overlay');
+      const modal = getModalContainer();
       expect(modal).toBeTruthy();
     });
 
@@ -51,7 +56,8 @@ describe('qd-instructor-manage', () => {
       element['showConfirmDialog'] = true;
       await element.updateComplete;
 
-      const cancelButton = Array.from(element.shadowRoot?.querySelectorAll('button') || []).find(
+      const modalContainer = getModalContainer();
+      const cancelButton = Array.from(modalContainer?.querySelectorAll('button') || []).find(
         (btn) => btn.textContent?.includes('Cancel'),
       ) as HTMLButtonElement;
 
@@ -64,13 +70,6 @@ describe('qd-instructor-manage', () => {
     it('should require exact confirmation text', async () => {
       element['showConfirmDialog'] = true;
       element['confirmText'] = 'wrong text';
-      await element.updateComplete;
-
-      const confirmButton = Array.from(element.shadowRoot?.querySelectorAll('button') || []).find(
-        (btn) => btn.textContent?.includes('Delete All Data'),
-      ) as HTMLButtonElement;
-
-      confirmButton?.click();
       await element.updateComplete;
 
       // Manually call handler to test logic
@@ -86,7 +85,8 @@ describe('qd-instructor-manage', () => {
       element['confirmText'] = 'invalid';
       await element.updateComplete;
 
-      const confirmButton = Array.from(element.shadowRoot?.querySelectorAll('button') || []).find(
+      const modalContainer = getModalContainer();
+      const confirmButton = Array.from(modalContainer?.querySelectorAll('button') || []).find(
         (btn) => btn.textContent?.includes('Delete All Data'),
       ) as HTMLButtonElement;
 
@@ -98,7 +98,8 @@ describe('qd-instructor-manage', () => {
       element['confirmText'] = 'DELETE ALL DATA';
       await element.updateComplete;
 
-      const confirmButton = Array.from(element.shadowRoot?.querySelectorAll('button') || []).find(
+      const modalContainer = getModalContainer();
+      const confirmButton = Array.from(modalContainer?.querySelectorAll('button') || []).find(
         (btn) => btn.textContent?.includes('Delete All Data'),
       ) as HTMLButtonElement;
 
@@ -117,7 +118,8 @@ describe('qd-instructor-manage', () => {
       element['confirmText'] = 'DELETE ALL DATA';
       await element.updateComplete;
 
-      const confirmButton = Array.from(element.shadowRoot?.querySelectorAll('button') || []).find(
+      const modalContainer = getModalContainer();
+      const confirmButton = Array.from(modalContainer?.querySelectorAll('button') || []).find(
         (btn) => btn.textContent?.includes('Delete All Data'),
       ) as HTMLButtonElement;
 
@@ -132,7 +134,8 @@ describe('qd-instructor-manage', () => {
       element['confirmText'] = 'DELETE ALL DATA';
       await element.updateComplete;
 
-      const confirmButton = Array.from(element.shadowRoot?.querySelectorAll('button') || []).find(
+      const modalContainer = getModalContainer();
+      const confirmButton = Array.from(modalContainer?.querySelectorAll('button') || []).find(
         (btn) => btn.textContent?.includes('Delete All Data'),
       ) as HTMLButtonElement;
 
@@ -147,7 +150,8 @@ describe('qd-instructor-manage', () => {
       element['confirmText'] = 'DELETE ALL DATA';
       await element.updateComplete;
 
-      const confirmButton = Array.from(element.shadowRoot?.querySelectorAll('button') || []).find(
+      const modalContainer = getModalContainer();
+      const confirmButton = Array.from(modalContainer?.querySelectorAll('button') || []).find(
         (btn) => btn.textContent?.includes('Delete All Data'),
       ) as HTMLButtonElement;
 
@@ -163,7 +167,8 @@ describe('qd-instructor-manage', () => {
       element['showConfirmDialog'] = true;
       await element.updateComplete;
 
-      const input = element.shadowRoot?.querySelector('input[type="text"]') as HTMLInputElement;
+      const modalContainer = getModalContainer();
+      const input = modalContainer?.querySelector('input[type="text"]') as HTMLInputElement;
       input.value = 'DELETE ALL DATA';
       input.dispatchEvent(new Event('input'));
       await element.updateComplete;
@@ -177,7 +182,7 @@ describe('qd-instructor-manage', () => {
       element['showConfirmDialog'] = true;
       await element.updateComplete;
 
-      const modal = element.shadowRoot?.querySelector('.modal-overlay');
+      const modal = getModalContainer()?.querySelector('.qd-manage-modal-overlay');
       expect(modal).toBeTruthy();
     });
 
@@ -185,7 +190,8 @@ describe('qd-instructor-manage', () => {
       element['showConfirmDialog'] = true;
       await element.updateComplete;
 
-      const closeButton = element.shadowRoot?.querySelector('.close-button');
+      const modalContainer = getModalContainer();
+      const closeButton = modalContainer?.querySelector('button');
       expect(closeButton).toBeTruthy();
     });
   });
