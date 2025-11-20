@@ -39,6 +39,12 @@ function formatCSVTimestamp(date: Date): string {
  * @returns Formatted timestamp string
  */
 export function formatTimestamp(date: Date | string, format: TimestampFormat = 'display'): string {
+  // Handle null/undefined
+  if (date == null) {
+    console.warn('Invalid date provided to formatTimestamp:', date);
+    return 'Invalid Date';
+  }
+
   const dateObj = typeof date === 'string' ? new Date(date) : date;
 
   // Validate date
