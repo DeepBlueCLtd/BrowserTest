@@ -241,6 +241,7 @@ class SessionService {
     sessionStorage.removeItem(STORAGE_KEYS.SESSION);
     sessionStorage.removeItem(STORAGE_KEYS.CACHE);
     sessionStorage.removeItem(STORAGE_KEYS.INSTRUCTOR);
+    sessionStorage.removeItem("qd/instructor/showAnswers");
     if (session) {
       info(`Session cleared for ${session.serviceId}`);
       this.emitEvent("qd:logout", {
@@ -341,8 +342,8 @@ class SessionService {
    */
   emitEvent(eventName, detail) {
     try {
-      const event = new CustomEvent(eventName, { detail });
-      window.dispatchEvent(event);
+      const event = new CustomEvent(eventName, { detail, bubbles: true });
+      document.dispatchEvent(event);
     } catch (err) {
       error(`Failed to emit event ${eventName}`, err);
     }
@@ -1183,20 +1184,48 @@ const storageService = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defi
   StorageService,
   getStorageService
 }, Symbol.toStringTag, { value: "Module" }));
+function formatDisplayTimestamp(date) {
+  const month = date.toLocaleDateString("en-US", { month: "short" });
+  const day = date.getDate();
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  return `${month} ${day} ${hours}:${minutes}`;
+}
+function formatCSVTimestamp(date) {
+  return date.toISOString();
+}
+function formatTimestamp(date, format = "display") {
+  if (date == null) {
+    console.warn("Invalid date provided to formatTimestamp:", date);
+    return "Invalid Date";
+  }
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+  if (isNaN(dateObj.getTime())) {
+    console.warn("Invalid date provided to formatTimestamp:", date);
+    return "Invalid Date";
+  }
+  return format === "csv" ? formatCSVTimestamp(dateObj) : formatDisplayTimestamp(dateObj);
+}
+function formatStoredTimestamp(isoString) {
+  return formatTimestamp(isoString, "display");
+}
 const tableMetadata$1 = /* @__PURE__ */ new WeakMap();
 function enhanceQuizTable(table, options) {
   const existing = tableMetadata$1.get(table);
+  let parsed;
   if (existing) {
     if (!existing.interactive && options.interactive) {
       info("Upgrading quiz table from non-interactive to interactive mode");
+      parsed = existing.parsed;
     } else {
       info("Quiz table already enhanced, skipping");
       return true;
     }
-  }
-  const parsed = parseQuizTable(table);
-  if (parsed.errors && parsed.errors.length > 0) {
-    error("Quiz table has validation errors:", parsed.errors);
+  } else {
+    parsed = parseQuizTable(table);
+    if (parsed.errors && parsed.errors.length > 0) {
+      error("Quiz table has validation errors:", parsed.errors);
+    }
   }
   const metadata = {
     parsed,
@@ -1313,9 +1342,19 @@ function enhanceInteractive$1(table, metadata) {
   if (isInstructor && showAnswers) {
     void showStudentAnswersForTable(table, metadata);
   }
+  const logoutHandler = () => {
+    const answerCells = table.querySelectorAll("td.qd-answer-correct, td.qd-answer-incorrect");
+    answerCells.forEach((cell) => {
+      removeClass(cell, "qd-answer-correct", "qd-answer-incorrect");
+    });
+    hideStudentAnswersForTable(table);
+    info("Cleared student UI state from quiz table on logout");
+  };
+  document.addEventListener("qd:logout", logoutHandler);
   metadata.cleanupInstructorListeners = () => {
     document.removeEventListener("qd:instructor-show-answers", showAnswersHandler);
     document.removeEventListener("qd:instructor-hide-answers", hideAnswersHandler);
+    document.removeEventListener("qd:logout", logoutHandler);
   };
   addClass(table, "qd-quiz-interactive");
   info(`Quiz table enhanced in interactive mode for page ${pageId}`);
@@ -1455,6 +1494,7 @@ function hideAnswerColumn(table) {
     const cells = row.querySelectorAll("td");
     if (cells[1]) {
       addClass(cells[1], "qd-hidden");
+      cells[1].textContent = "";
     }
   });
 }
@@ -1490,6 +1530,19 @@ function getQuizTableMetadata(table) {
 function isQuizTableEnhanced(table) {
   return tableMetadata$1.has(table);
 }
+function resetQuizTableToNonInteractive(table) {
+  const metadata = tableMetadata$1.get(table);
+  if (!metadata) return;
+  metadata.interactive = false;
+  metadata.pageId = void 0;
+  metadata.inputs = void 0;
+  metadata.cleanupInstructorListeners?.();
+  metadata.cleanupInstructorListeners = void 0;
+  hideAnswerColumn(table);
+  hideDetailColumn(table);
+  removeClass(table, "qd-quiz-interactive");
+  info("Quiz table reset to non-interactive mode");
+}
 async function showStudentAnswersForTable(table, metadata) {
   const { pageId, parsed } = metadata;
   if (!pageId) return;
@@ -1499,6 +1552,13 @@ async function showStudentAnswersForTable(table, metadata) {
   const storageService$1 = getStorageService2();
   try {
     const students = await storageService$1.getStudentsByRelease(session.release);
+    if (students.length === 0) {
+      info("No student data available for this release");
+      alert(
+        "No student data available for this release. Students need to log in and answer questions first."
+      );
+      return;
+    }
     const tbody = table.querySelector("tbody");
     if (!tbody) return;
     const rows = Array.from(tbody.querySelectorAll("tr"));
@@ -1533,12 +1593,7 @@ async function showStudentAnswersForTable(table, metadata) {
           const answerDiv = document.createElement("div");
           answerDiv.className = `qd-student-answer ${sa.success ? "qd-correct" : "qd-incorrect"}`;
           const last4 = sa.serviceId.slice(-4);
-          const timestamp = new Date(sa.timestamp).toLocaleString("en-US", {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit"
-          });
+          const timestamp = formatStoredTimestamp(sa.timestamp);
           answerDiv.innerHTML = `
             <span class="qd-student-name">${sa.name} (${last4})</span>:
             <span class="qd-student-answer-text">${sa.answer}</span>
@@ -1646,7 +1701,15 @@ function enhanceAnalysisTable(table, options) {
 }
 function enhanceNonInteractive(table) {
   addClass(table, "qd-analysis-non-interactive");
-  info("Analysis table enhanced in non-interactive mode");
+  const showHandler = () => {
+    void showStudentEntriesForTable(table);
+  };
+  const hideHandler = () => {
+    hideStudentEntriesForTable(table);
+  };
+  document.addEventListener("qd:instructor-show-answers", showHandler);
+  document.addEventListener("qd:instructor-hide-answers", hideHandler);
+  info("Analysis table enhanced in non-interactive mode with instructor view support");
   return true;
 }
 function enhanceInteractive(table, metadata) {
@@ -1759,6 +1822,146 @@ function getAnalysisTableMetadata(table) {
 function isAnalysisTableEnhanced(table) {
   return tableMetadata.has(table);
 }
+function groupEntriesByCell(students, pageId) {
+  const grouped = {};
+  students.forEach((student) => {
+    const pageData = student.pages[pageId];
+    if (!pageData || !pageData.analysis) {
+      return;
+    }
+    const { cells } = pageData.analysis;
+    const timestamp = pageData.analysis.lastEdited || student.updated;
+    Object.entries(cells).forEach(([cellKey, content]) => {
+      if (!grouped[cellKey]) {
+        grouped[cellKey] = [];
+      }
+      grouped[cellKey].push({
+        serviceId: student.serviceId,
+        name: student.name,
+        content,
+        timestamp
+      });
+    });
+  });
+  return grouped;
+}
+function sortByTimestamp(entries) {
+  return [...entries].sort((a2, b2) => {
+    const dateA = new Date(a2.timestamp).getTime();
+    const dateB = new Date(b2.timestamp).getTime();
+    return dateB - dateA;
+  });
+}
+function createStudentEntriesDisplay(entries) {
+  const container = document.createElement("div");
+  container.className = "qd-student-entries";
+  if (entries.length === 0) {
+    container.className += " qd-no-entries";
+    container.textContent = "(No entries yet)";
+    container.style.cssText = "color: #9ca3af; font-style: italic; font-size: 13px; padding: 8px 0;";
+    return container;
+  }
+  const sortedEntries = sortByTimestamp(entries);
+  sortedEntries.forEach((entry) => {
+    const entryDiv = document.createElement("div");
+    entryDiv.className = "qd-entry";
+    entryDiv.style.cssText = "padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-size: 13px; color: #1f2937;";
+    const last4 = entry.serviceId.slice(-4);
+    const timestamp = formatStoredTimestamp(entry.timestamp);
+    const nameSpan = document.createElement("span");
+    nameSpan.style.cssText = "font-weight: 600; color: #374151;";
+    nameSpan.textContent = `${entry.name} (${last4}) • ${timestamp}: `;
+    const contentSpan = document.createElement("span");
+    contentSpan.style.cssText = "white-space: pre-wrap;";
+    contentSpan.textContent = entry.content;
+    entryDiv.appendChild(nameSpan);
+    entryDiv.appendChild(contentSpan);
+    container.appendChild(entryDiv);
+  });
+  container.style.cssText = "margin-top: 12px; padding-top: 8px; border-top: 2px solid #3b82f6;";
+  return container;
+}
+async function showStudentEntriesForTable(table) {
+  const metadata = tableMetadata.get(table);
+  if (!metadata) {
+    warn("Cannot show student entries: table not enhanced");
+    return;
+  }
+  const pageId = metadata.pageId || getCurrentPageId();
+  if (!pageId) {
+    warn("Cannot show student entries: page ID not found");
+    return;
+  }
+  const session = getJSON(STORAGE_KEYS.SESSION);
+  if (!session) {
+    warn("Cannot show student entries: no active session");
+    return;
+  }
+  const storageService2 = getStorageService();
+  let students;
+  try {
+    students = await storageService2.getStudentsByRelease(session.release);
+  } catch (err) {
+    error("Failed to load students for instructor view:", err);
+    return;
+  }
+  const grouped = groupEntriesByCell(students, pageId);
+  const { editableCells } = metadata.parsed;
+  const rows = getTableRows(table);
+  editableCells.forEach(({ row, col, key }) => {
+    const rowElement = rows[row];
+    if (!rowElement) return;
+    const cells = getRowCells(rowElement);
+    const cell = cells[col];
+    if (!cell) return;
+    const entries = grouped[key] || [];
+    const displayElement = createStudentEntriesDisplay(entries);
+    displayElement.setAttribute("data-qd-student-entries", "true");
+    const existing = cell.querySelector("[data-qd-student-entries]");
+    if (existing) {
+      existing.remove();
+    }
+    cell.appendChild(displayElement);
+  });
+  info(`Displayed student entries for ${editableCells.length} cells`);
+}
+function hideStudentEntriesForTable(table) {
+  const displays = table.querySelectorAll("[data-qd-student-entries]");
+  displays.forEach((display) => display.remove());
+  info("Hidden student entries from analysis table");
+}
+function resetAnalysisTableToNonInteractive(table) {
+  const metadata = tableMetadata.get(table);
+  if (!metadata) return;
+  hideStudentEntriesForTable(table);
+  if (metadata.interactive) {
+    const editableCells = table.querySelectorAll(".qd-editable");
+    editableCells.forEach((cell) => {
+      if (cell instanceof HTMLTableCellElement) {
+        cell.contentEditable = "false";
+        cell.classList.remove("qd-editable");
+        cell.textContent = "";
+      }
+    });
+    table.classList.remove("qd-analysis-interactive");
+    metadata.debouncer?.cancelAll();
+  }
+  metadata.interactive = false;
+  metadata.pageId = void 0;
+  metadata.debouncer = void 0;
+  metadata.cellKeyMap = void 0;
+  info("Reset analysis table to non-interactive mode");
+}
+function getCurrentPageId() {
+  const bodyPageId = document.body.dataset.pageId;
+  if (bodyPageId) {
+    return bodyPageId;
+  }
+  const path = window.location.pathname;
+  const filename = path.split("/").pop() || "";
+  const pageId = filename.replace(".html", "");
+  return pageId || void 0;
+}
 class EventCoordinator {
   constructor() {
     this.listeners = /* @__PURE__ */ new Map();
@@ -1826,6 +2029,37 @@ class EventCoordinator {
       info(
         "Instructor session detected, tables remain in non-interactive mode with answers visible"
       );
+      const quizTables2 = document.querySelectorAll("table.qd-quiz");
+      quizTables2.forEach((table) => {
+        const metadata = getQuizTableMetadata(table);
+        if (!metadata) return;
+        metadata.pageId = pageId;
+        const answerCells = table.querySelectorAll("td:nth-child(2), th:nth-child(2)");
+        answerCells.forEach((cell) => {
+          cell.classList.remove("qd-hidden");
+        });
+        const answerDataCells = table.querySelectorAll("tbody td:nth-child(2)");
+        answerDataCells.forEach((cell, index) => {
+          const question = metadata.parsed.questions[index];
+          if (question && cell instanceof HTMLTableCellElement) {
+            cell.textContent = question.correctAnswer;
+          }
+        });
+        const detailCells = table.querySelectorAll("td:nth-child(3), th:nth-child(3)");
+        detailCells.forEach((cell) => cell.classList.remove("qd-hidden"));
+        const showAnswersHandler = () => {
+          void showStudentAnswersForTable(table, metadata);
+        };
+        const hideAnswersHandler = () => {
+          hideStudentAnswersForTable(table);
+        };
+        document.addEventListener("qd:instructor-show-answers", showAnswersHandler);
+        document.addEventListener("qd:instructor-hide-answers", hideAnswersHandler);
+        const showAnswers = sessionStorage.getItem("qd/instructor/showAnswers") === "true";
+        if (showAnswers) {
+          void showAnswersHandler();
+        }
+      });
       return;
     }
     const quizTables = document.querySelectorAll("table.qd-quiz");
@@ -1850,6 +2084,14 @@ class EventCoordinator {
     this.addEventListener("qd:logout", (event) => {
       const detail = event.detail;
       info(`Logout event: ${detail.serviceId}`);
+      const quizTables = document.querySelectorAll("table.qd-quiz");
+      quizTables.forEach((table) => {
+        resetQuizTableToNonInteractive(table);
+      });
+      const analysisTables = document.querySelectorAll("table.qd-analysis");
+      analysisTables.forEach((table) => {
+        resetAnalysisTableToNonInteractive(table);
+      });
       this.dispatchEvent("qd:cache-clear", {});
     });
   }
@@ -2816,6 +3058,7 @@ let QdLogin = class extends i {
     const bodyDiv = document.createElement("div");
     bodyDiv.style.marginBottom = "20px";
     const input = document.createElement("input");
+    input.id = "qd-instructor-password";
     input.type = "password";
     input.placeholder = "Password";
     input.required = true;
@@ -2871,6 +3114,7 @@ let QdLogin = class extends i {
     `;
     cancelBtn.onclick = () => this.closeInstructorModal();
     const loginBtn = document.createElement("button");
+    loginBtn.id = "qd-instructor-submit";
     loginBtn.textContent = "Login";
     loginBtn.type = "submit";
     loginBtn.style.cssText = `
@@ -3492,6 +3736,21 @@ const sharedStyles = i$3`
     line-height: 1.5;
   }
 
+  /* When showing modal, host should not constrain size */
+  :host([showmodal]) {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none; /* Let clicks through except on modal */
+  }
+
+  :host([showmodal]) .modal-overlay {
+    pointer-events: auto; /* Re-enable on overlay */
+  }
+
   .instructor-panel {
     display: flex;
     flex-direction: row;
@@ -3502,7 +3761,7 @@ const sharedStyles = i$3`
   .instructor-title {
     font-weight: 600;
     font-size: 14px;
-    color: #333;
+    color: var(--qd-text-on-dark, #fff);
     margin-right: 8px;
   }
 
@@ -3512,7 +3771,7 @@ const sharedStyles = i$3`
     gap: 6px;
     cursor: pointer;
     font-size: 13px;
-    color: #555;
+    color: var(--qd-text-on-dark, #fff);
     user-select: none;
   }
 
@@ -3623,11 +3882,13 @@ const sharedStyles = i$3`
     padding: 8px;
     text-align: left;
     border-bottom: 1px solid #ddd;
+    color: #333; /* Explicit dark text */
   }
 
   th {
     background: #f5f5f5;
     font-weight: 600;
+    color: #000; /* Explicit black for headers */
   }
 
   tr:hover {
@@ -3652,7 +3913,8 @@ const sharedStyles = i$3`
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 9999;
+    z-index: var(--qd-modal-overlay-z-index, 9999);
+    pointer-events: auto; /* Ensure overlay catches all clicks */
   }
 
   .modal-content {
@@ -3664,7 +3926,8 @@ const sharedStyles = i$3`
     max-height: 80vh;
     overflow: auto;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-    z-index: 10000;
+    z-index: var(--qd-modal-z-index, 10000);
+    color: #333; /* Explicit dark text color */
   }
 
   .modal-header {
@@ -3678,6 +3941,7 @@ const sharedStyles = i$3`
     font-size: 18px;
     font-weight: 600;
     margin: 0;
+    color: #000; /* Explicit black for title */
   }
 
   .close-button {
@@ -3911,7 +4175,7 @@ let QdInstructorUnlock = class extends i {
             />
           </div>
 
-          ${this.error ? x`<div class="error">${this.error}</div>` : ""}
+          ${this.error ? x`<div class="error" role="alert" aria-live="polite">${this.error}</div>` : ""}
 
           <button type="submit" class="primary" ?disabled=${isLocked || !this.password}>
             ${isLocked ? `Locked (${this.remainingSeconds}s)` : "Unlock"}
@@ -3950,17 +4214,37 @@ let QdInstructorScores = class extends i {
     this.students = [];
     this.showModal = false;
     this.expandedStudents = /* @__PURE__ */ new Set();
+    this.modalElement = null;
+    this.handleEscape = (e2) => {
+      if (e2.key === "Escape" && this.showModal) {
+        this.handleClose();
+      }
+    };
     this.handleClose = () => {
       this.dispatchEvent(new CustomEvent("close"));
     };
-    this.toggleStudent = (serviceId) => {
-      if (this.expandedStudents.has(serviceId)) {
-        this.expandedStudents.delete(serviceId);
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    document.addEventListener("keydown", this.handleEscape);
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    document.removeEventListener("keydown", this.handleEscape);
+    this.removeModalFromBody();
+  }
+  updated(changedProperties) {
+    if (changedProperties.has("showModal")) {
+      if (this.showModal) {
+        this.expandedStudents.clear();
+        this.students.forEach((student) => {
+          this.expandedStudents.add(student.serviceId);
+        });
+        this.renderModalToBody();
       } else {
-        this.expandedStudents.add(serviceId);
+        this.removeModalFromBody();
       }
-      this.requestUpdate();
-    };
+    }
   }
   calculateSummary(student) {
     const percentage = student.attempted > 0 ? Math.round(student.correct / student.attempted * 100) : 0;
@@ -3972,114 +4256,202 @@ let QdInstructorScores = class extends i {
       percentage
     };
   }
-  renderStudentRow(student) {
-    const summary = this.calculateSummary(student);
-    const isExpanded = this.expandedStudents.has(student.serviceId);
-    return x`
+  /**
+   * Render modal to document.body (outside shadow DOM) like login modal
+   */
+  renderModalToBody() {
+    this.removeModalFromBody();
+    const overlay = document.createElement("div");
+    overlay.className = "qd-scores-modal-overlay";
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      font-family: system-ui, -apple-system, sans-serif;
+      pointer-events: auto;
+    `;
+    overlay.onclick = (e2) => {
+      if (e2.target === overlay) this.handleClose();
+    };
+    const modal = document.createElement("div");
+    modal.className = "qd-scores-modal";
+    modal.style.cssText = `
+      background: white;
+      color: #333;
+      border-radius: 8px;
+      padding: 24px;
+      max-width: 800px;
+      max-height: 80vh;
+      overflow: auto;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      pointer-events: auto;
+      position: relative;
+      z-index: 100000;
+    `;
+    modal.onclick = (e2) => e2.stopPropagation();
+    const header = document.createElement("div");
+    header.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    `;
+    const title = document.createElement("h2");
+    title.textContent = "Student Scores";
+    title.style.cssText = `font-size: 18px; font-weight: 600; color: #000; margin: 0;`;
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "✕";
+    closeBtn.type = "button";
+    closeBtn.style.cssText = `
+      background: none;
+      border: none;
+      font-size: 20px;
+      color: #666;
+      cursor: pointer;
+      padding: 4px 8px;
+      pointer-events: auto;
+    `;
+    closeBtn.onclick = () => this.handleClose();
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+    const content = document.createElement("div");
+    const sortedStudents = [...this.students].sort((a2, b2) => a2.name.localeCompare(b2.name));
+    if (sortedStudents.length === 0) {
+      content.innerHTML = '<p style="color: #333;">No student data available.</p>';
+    } else {
+      const table = this.createScoresTable(sortedStudents);
+      content.appendChild(table);
+    }
+    modal.appendChild(header);
+    modal.appendChild(content);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    this.modalElement = overlay;
+  }
+  /**
+   * Remove modal from document.body
+   */
+  removeModalFromBody() {
+    if (this.modalElement) {
+      this.modalElement.remove();
+      this.modalElement = null;
+    }
+  }
+  /**
+   * Toggle student expansion
+   */
+  toggleStudent(serviceId) {
+    if (this.expandedStudents.has(serviceId)) {
+      this.expandedStudents.delete(serviceId);
+    } else {
+      this.expandedStudents.add(serviceId);
+    }
+    if (this.showModal) {
+      this.renderModalToBody();
+    }
+  }
+  /**
+   * Create scores table element with expandable rows
+   */
+  createScoresTable(sortedStudents) {
+    const table = document.createElement("table");
+    table.style.cssText = `
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+    `;
+    const thead = document.createElement("thead");
+    thead.innerHTML = `
       <tr>
-        <td>
-          <button
-            @click=${() => this.toggleStudent(student.serviceId)}
-            style="border: none; background: none; cursor: pointer; padding: 0;"
-          >
-            ${isExpanded ? "▼" : "▶"}
-          </button>
+        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Student</th>
+        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Service ID</th>
+        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Attempted</th>
+        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Correct</th>
+        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Percentage</th>
+      </tr>
+    `;
+    table.appendChild(thead);
+    const tbody = document.createElement("tbody");
+    sortedStudents.forEach((student) => {
+      const summary = this.calculateSummary(student);
+      const isExpanded = this.expandedStudents.has(student.serviceId);
+      const tr = document.createElement("tr");
+      tr.style.cssText = "cursor: pointer; color: #333;";
+      tr.innerHTML = `
+        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">
+          <span style="display: inline-block; width: 16px; margin-right: 4px;">${isExpanded ? "▼" : "▶"}</span>
           ${summary.name}
         </td>
-        <td>${summary.serviceId}</td>
-        <td>${summary.attempted}</td>
-        <td class=${summary.correct === summary.attempted ? "correct" : ""}>${summary.correct}</td>
-        <td>
-          <span
-            class=${summary.percentage === 100 ? "correct" : summary.percentage === 0 ? "incorrect" : ""}
-          >
-            ${summary.percentage}%
-          </span>
-        </td>
-      </tr>
-      ${isExpanded ? this.renderExpandedDetails(student) : ""}
-    `;
+        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">${summary.serviceId}</td>
+        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">${summary.attempted}</td>
+        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; ${summary.correct === summary.attempted ? "color: #28a745;" : ""}">${summary.correct}</td>
+        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; ${summary.percentage === 100 ? "color: #28a745;" : summary.percentage === 0 ? "color: #dc3545;" : ""}">${summary.percentage}%</td>
+      `;
+      tr.onclick = () => this.toggleStudent(student.serviceId);
+      tbody.appendChild(tr);
+      if (isExpanded) {
+        const detailRow = this.createExpandedRow(student);
+        tbody.appendChild(detailRow);
+      }
+    });
+    table.appendChild(tbody);
+    return table;
   }
-  renderExpandedDetails(student) {
+  /**
+   * Create expanded detail row for a student showing per-page answers
+   * Compact layout: page name on left, answers horizontally on right
+   */
+  createExpandedRow(student) {
+    const tr = document.createElement("tr");
+    tr.style.backgroundColor = "#f9f9f9";
+    const td = document.createElement("td");
+    td.colSpan = 5;
+    td.style.cssText = "padding: 8px 8px 8px 40px; border-bottom: 1px solid #ddd;";
     const pages = Object.entries(student.pages);
     if (pages.length === 0) {
-      return x`
-        <tr>
-          <td colspan="5" style="padding-left: 40px; color: #666;">No quiz pages attempted</td>
-        </tr>
-      `;
+      td.innerHTML = '<em style="color: #666;">No quiz pages attempted</em>';
+    } else {
+      const detailDiv = document.createElement("div");
+      detailDiv.style.cssText = "display: flex; flex-direction: column; gap: 6px;";
+      pages.forEach(([pageId, pageData]) => {
+        const pageRow = document.createElement("div");
+        pageRow.style.cssText = "display: flex; align-items: center; gap: 12px;";
+        const pageName = document.createElement("span");
+        pageName.style.cssText = "font-weight: 600; color: #000; min-width: 120px; flex-shrink: 0;";
+        pageName.textContent = pageId;
+        pageRow.appendChild(pageName);
+        const answersList = document.createElement("div");
+        answersList.style.cssText = "display: flex; flex-wrap: wrap; gap: 4px; flex: 1;";
+        pageData.answers.forEach((answer, index) => {
+          const answerBadge = document.createElement("span");
+          answerBadge.style.cssText = `
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 500;
+            ${answer === null ? "background: #e0e0e0; color: #666;" : answer.success ? "background: #d4edda; color: #155724; border: 1px solid #c3e6cb;" : "background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;"}
+          `;
+          answerBadge.textContent = `Q${index + 1}: ${answer ? answer.answer : "—"}`;
+          answersList.appendChild(answerBadge);
+        });
+        pageRow.appendChild(answersList);
+        detailDiv.appendChild(pageRow);
+      });
+      td.appendChild(detailDiv);
     }
-    return x`
-      <tr>
-        <td colspan="5" style="padding: 0;">
-          <table style="margin: 0; width: 100%;">
-            <thead>
-              <tr>
-                <th style="padding-left: 40px;">Page</th>
-                <th>Attempted</th>
-                <th>Correct</th>
-                <th>Percentage</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${pages.map(([pageId, pageData]) => {
-      const answers = pageData.answers || [];
-      const attempted = answers.filter((a2) => a2 !== null).length;
-      const correct = answers.filter((a2) => a2?.success === true).length;
-      const percentage = attempted > 0 ? Math.round(correct / attempted * 100) : 0;
-      return x`
-                  <tr>
-                    <td style="padding-left: 40px;">${pageId}</td>
-                    <td>${attempted}</td>
-                    <td class=${correct === attempted ? "correct" : ""}>${correct}</td>
-                    <td>
-                      <span
-                        class=${percentage === 100 ? "correct" : percentage === 0 ? "incorrect" : ""}
-                      >
-                        ${percentage}%
-                      </span>
-                    </td>
-                  </tr>
-                `;
-    })}
-            </tbody>
-          </table>
-        </td>
-      </tr>
-    `;
+    tr.appendChild(td);
+    return tr;
   }
   render() {
-    if (!this.showModal) {
-      return x``;
-    }
-    const sortedStudents = [...this.students].sort((a2, b2) => a2.name.localeCompare(b2.name));
-    return x`
-      <div class="modal-overlay" @click=${this.handleClose}>
-        <div class="modal-content" @click=${(e2) => e2.stopPropagation()}>
-          <div class="modal-header">
-            <h2 class="modal-title">Student Scores</h2>
-            <button class="close-button" @click=${this.handleClose}>✕</button>
-          </div>
-
-          ${sortedStudents.length === 0 ? x`<p>No student data available.</p>` : x`
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Service ID</th>
-                      <th>Attempted</th>
-                      <th>Correct</th>
-                      <th>Percentage</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${sortedStudents.map((student) => this.renderStudentRow(student))}
-                  </tbody>
-                </table>
-              `}
-        </div>
-      </div>
-    `;
+    return x``;
   }
 };
 QdInstructorScores.styles = sharedStyles;
@@ -4158,8 +4530,8 @@ let QdInstructorExport = class extends i {
     return rows.join("\n");
   }
   render() {
-    const hasData = this.students.length > 0;
-    const tooltip = hasData ? `Export ${this.students.length} student${this.students.length === 1 ? "" : "s"} to CSV` : "No data to export";
+    const hasData = this.students.length > 0 && this.students.some((student) => student.attempted > 0);
+    const tooltip = hasData ? `Export ${this.students.length} student${this.students.length === 1 ? "" : "s"} to CSV` : this.students.length > 0 ? "No answers to export (students have not answered any questions)" : "No data to export";
     return x`
       <button
         @click=${this.handleExport}
@@ -4196,6 +4568,7 @@ let QdInstructorManage = class extends i {
     this.confirmText = "";
     this.error = "";
     this.success = "";
+    this.modalContainer = null;
     this.handleClearRequest = () => {
       this.showConfirmDialog = true;
       this.confirmText = "";
@@ -4231,6 +4604,37 @@ let QdInstructorManage = class extends i {
       }
     };
   }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeModalFromBody();
+  }
+  updated(changedProperties) {
+    super.updated(changedProperties);
+    if (changedProperties.has("showConfirmDialog")) {
+      if (this.showConfirmDialog) {
+        this.renderModalToBody();
+      } else {
+        this.removeModalFromBody();
+      }
+    }
+    if (this.showConfirmDialog && (changedProperties.has("confirmText") || changedProperties.has("error"))) {
+      this.renderModalToBody();
+    }
+  }
+  renderModalToBody() {
+    if (!this.modalContainer) {
+      this.modalContainer = document.createElement("div");
+      this.modalContainer.className = "qd-manage-modal-container";
+      document.body.appendChild(this.modalContainer);
+    }
+    B(this.renderConfirmDialog(), this.modalContainer);
+  }
+  removeModalFromBody() {
+    if (this.modalContainer) {
+      this.modalContainer.remove();
+      this.modalContainer = null;
+    }
+  }
   render() {
     return x`
       <button
@@ -4241,10 +4645,9 @@ let QdInstructorManage = class extends i {
         Erase All Data
       </button>
 
-      ${this.showConfirmDialog ? this.renderConfirmDialog() : ""}
       ${this.success ? x`
             <div
-              style="position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 12px 16px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);"
+              style="position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 12px 16px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 10001;"
             >
               ${this.success}
             </div>
@@ -4254,35 +4657,66 @@ let QdInstructorManage = class extends i {
   renderConfirmDialog() {
     const isValid = this.confirmText === "DELETE ALL DATA";
     return x`
-      <div class="modal-overlay" @click=${this.handleCancelClear}>
-        <div class="modal-content" @click=${(e2) => e2.stopPropagation()}>
-          <div class="modal-header">
-            <h2 class="modal-title">Confirm Data Deletion</h2>
-            <button class="close-button" @click=${this.handleCancelClear}>✕</button>
+      <div
+        class="qd-manage-modal-overlay"
+        style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;"
+        @click=${(e2) => {
+      if (e2.target === e2.currentTarget) this.handleCancelClear();
+    }}
+      >
+        <div
+          style="background: white; border-radius: 8px; padding: 24px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);"
+          @click=${(e2) => e2.stopPropagation()}
+        >
+          <div
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;"
+          >
+            <h2 style="font-size: 18px; font-weight: 600; margin: 0; color: #000;">
+              Confirm Data Deletion
+            </h2>
+            <button
+              style="padding: 4px 8px; border: none; background: transparent; font-size: 20px; cursor: pointer; color: #666;"
+              @click=${this.handleCancelClear}
+            >
+              ✕
+            </button>
           </div>
 
-          <p style="color: #dc3545; font-weight: 600;">
+          <p style="color: #dc3545; font-weight: 600; margin: 12px 0;">
             ⚠️ This will permanently delete all student quiz data, answers, and progress.
           </p>
 
-          <p>This action cannot be undone. All students will need to start over.</p>
+          <p style="margin: 12px 0; color: #333;">
+            This action cannot be undone. All students will need to start over.
+          </p>
 
-          <p>Type <strong>DELETE ALL DATA</strong> to confirm:</p>
+          <p style="margin: 12px 0; color: #333;">
+            Type <strong>DELETE ALL DATA</strong> to confirm:
+          </p>
 
           <input
             type="text"
             .value=${this.confirmText}
             @input=${this.handleConfirmInput}
             placeholder="DELETE ALL DATA"
-            style="width: 100%; margin: 16px 0;"
+            style="width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; margin: 16px 0; box-sizing: border-box;"
             autocomplete="off"
           />
 
-          ${this.error ? x`<div class="error">${this.error}</div>` : ""}
+          ${this.error ? x`<div style="color: #dc3545; font-size: 14px; margin: 8px 0;">${this.error}</div>` : ""}
 
           <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px;">
-            <button @click=${this.handleCancelClear}>Cancel</button>
-            <button @click=${this.handleConfirmClear} class="danger" ?disabled=${!isValid}>
+            <button
+              style="padding: 8px 16px; border: 1px solid #ccc; border-radius: 4px; background: white; cursor: pointer; font-size: 14px;"
+              @click=${this.handleCancelClear}
+            >
+              Cancel
+            </button>
+            <button
+              style="padding: 8px 16px; border: none; border-radius: 4px; background: ${isValid ? "#dc3545" : "#ccc"}; color: white; cursor: ${isValid ? "pointer" : "not-allowed"}; font-size: 14px;"
+              @click=${this.handleConfirmClear}
+              ?disabled=${!isValid}
+            >
               Delete All Data
             </button>
           </div>
@@ -4385,9 +4819,22 @@ let QdInstructor = class extends i {
         })
       );
     };
-    this.handleToggleStudentAnswers = (e2) => {
+    this.handleToggleStudentAnswers = async (e2) => {
       const checkbox = e2.target;
       this.showStudentAnswers = checkbox.checked;
+      if (this.showStudentAnswers && this.students.length === 0) {
+        const session = getJSON(STORAGE_KEYS.SESSION);
+        if (session) {
+          try {
+            const { getStorageService: getStorageService2 } = await Promise.resolve().then(() => storageService);
+            const storageService$1 = getStorageService2();
+            const students = await storageService$1.getStudentsByRelease(session.release);
+            this.students = students;
+          } catch (err) {
+            console.error("Failed to load students for toggle:", err);
+          }
+        }
+      }
       const eventName = this.showStudentAnswers ? "qd:instructor-show-answers" : "qd:instructor-hide-answers";
       this.dispatchEvent(
         new CustomEvent(eventName, {
@@ -4408,6 +4855,16 @@ let QdInstructor = class extends i {
     const savedState = sessionStorage.getItem("qd/instructor/showAnswers");
     if (savedState !== null) {
       this.showStudentAnswers = savedState === "true";
+      if (this.showStudentAnswers && isInstructor) {
+        setTimeout(() => {
+          this.dispatchEvent(
+            new CustomEvent("qd:instructor-show-answers", {
+              bubbles: true,
+              composed: true
+            })
+          );
+        }, 100);
+      }
     }
     document.addEventListener("qd:login", this.handleLoginEvent);
     document.addEventListener("qd:logout", this.handleLogoutEvent);
@@ -5191,12 +5648,39 @@ async function checkExistingSessionAndUpgradeTables() {
   const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
   if (isInstructor) {
     info("Instructor session detected, revealing answers in non-interactive tables");
+    const pathname2 = window.location.pathname;
+    const filename2 = pathname2.substring(pathname2.lastIndexOf("/") + 1);
+    const pageId2 = filename2.replace(/\.html?$/i, "");
     const quizTables2 = document.querySelectorAll("table.qd-quiz");
     quizTables2.forEach((table) => {
+      const metadata = getQuizTableMetadata(table);
+      if (!metadata) return;
+      metadata.pageId = pageId2;
       const answerCells = table.querySelectorAll("td:nth-child(2), th:nth-child(2)");
-      answerCells.forEach((cell) => cell.classList.remove("qd-hidden"));
+      answerCells.forEach((cell) => {
+        cell.classList.remove("qd-hidden");
+      });
+      const answerDataCells = table.querySelectorAll("tbody td:nth-child(2)");
+      answerDataCells.forEach((cell, index) => {
+        const question = metadata.parsed.questions[index];
+        if (question && cell instanceof HTMLTableCellElement) {
+          cell.textContent = question.correctAnswer;
+        }
+      });
       const detailCells = table.querySelectorAll("td:nth-child(3), th:nth-child(3)");
       detailCells.forEach((cell) => cell.classList.remove("qd-hidden"));
+      const showAnswersHandler = () => {
+        void showStudentAnswersForTable(table, metadata);
+      };
+      const hideAnswersHandler = () => {
+        hideStudentAnswersForTable(table);
+      };
+      document.addEventListener("qd:instructor-show-answers", showAnswersHandler);
+      document.addEventListener("qd:instructor-hide-answers", hideAnswersHandler);
+      const showAnswers = sessionStorage.getItem("qd/instructor/showAnswers") === "true";
+      if (showAnswers) {
+        void showAnswersHandler();
+      }
     });
     return;
   }
