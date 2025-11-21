@@ -69,7 +69,8 @@ describe('qd-instructor-scores', () => {
         eventFired = true;
       });
 
-      const overlay = getModalContainer()?.querySelector('.qd-scores-modal-overlay') as HTMLElement;
+      // getModalContainer() returns the overlay itself
+      const overlay = getModalContainer() as HTMLElement;
       overlay?.click();
 
       expect(eventFired).toBe(true);
