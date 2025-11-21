@@ -30,7 +30,8 @@
       "Bash(npx vitest:*)",
       "Bash(npx playwright test:*)",
       "Bash(find:*)",
-      "Bash(npm run build:dita:*)"
+      "Bash(npm run build:dita:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []

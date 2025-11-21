@@ -230,9 +230,7 @@ test.describe('Instructor Mode Improvements', () => {
   });
 
   test.describe('Instructor Toggle Persistence', () => {
-    // Skip: sessionStorage doesn't persist across file:// page navigations in browsers
-    // This feature works correctly when served via HTTP on same origin
-    test.skip('should persist toggle state and auto-show answers on login', async ({ page }) => {
+    test('should persist toggle state and auto-show answers on login', async ({ page }) => {
       // First login as instructor and enable toggle
       await page.goto(`file://${demoPath}/page-index.html`);
       await waitForBootstrap(page);
@@ -241,21 +239,26 @@ test.describe('Instructor Mode Improvements', () => {
       // Enable "Show student answers" toggle
       const toggle = page.locator('qd-instructor input[type="checkbox"]');
       await expect(toggle).toBeVisible();
-      await toggle.check();
+      await toggle.click(); // Use click to trigger the change handler
+      await page.waitForTimeout(300); // Wait for handler to run
 
       // Verify it's checked
       await expect(toggle).toBeChecked();
 
-      // Logout
+      // Verify sessionStorage has the toggle state
+      const savedState = await page.evaluate(() => {
+        return sessionStorage.getItem('qd/instructor/showAnswers');
+      });
+      expect(savedState).toBe('true');
+
+      // Logout (stays on same page due to file:// sessionStorage limitation)
       await page
         .locator('qd-instructor button')
         .filter({ hasText: /logout/i })
         .click();
       await page.waitForTimeout(200);
 
-      // Login again as instructor
-      await page.goto(`file://${demoPath}/page-index.html`);
-      await waitForBootstrap(page);
+      // Login again as instructor (without navigation - sessionStorage persists)
       await loginAsInstructor(page);
 
       // Toggle should still be checked (persisted from sessionStorage)
