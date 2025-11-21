@@ -2869,6 +2869,103 @@ function readDOMConfig() {
   info("Configuration loaded:", config);
   return config;
 }
+var __getOwnPropDesc$8 = Object.getOwnPropertyDescriptor;
+var __decorateClass$8 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$8(target, key) : target;
+  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
+    if (decorator = decorators[i2])
+      result = decorator(result) || result;
+  return result;
+};
+let QdBuildInfo = class extends i {
+  render() {
+    const buildDate = "21/Nov/2025";
+    return x`
+      <span class="info-icon" tabindex="0" role="button" aria-label="Build information">i</span>
+      <div class="tooltip" role="tooltip">
+        <span class="tooltip-line">BrowserTest, from Deep Blue C Ltd</span>
+        <span class="tooltip-line">Built ${buildDate}</span>
+      </div>
+    `;
+  }
+};
+QdBuildInfo.styles = i$3`
+    :host {
+      display: inline-block;
+      position: relative;
+    }
+
+    .info-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #6c757d;
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+      font-style: italic;
+      font-family: Georgia, serif;
+      cursor: help;
+      user-select: none;
+    }
+
+    .info-icon:hover {
+      background: #5a6268;
+    }
+
+    .tooltip {
+      position: absolute;
+      top: 50%;
+      right: 100%;
+      transform: translateY(-50%);
+      margin-right: 8px;
+      padding: 8px 12px;
+      background: #333;
+      color: white;
+      font-size: 11px;
+      font-style: normal;
+      font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
+      border-radius: 4px;
+      white-space: nowrap;
+      opacity: 0;
+      visibility: hidden;
+      transition:
+        opacity 0.2s,
+        visibility 0.2s;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .tooltip::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 100%;
+      transform: translateY(-50%);
+      border: 5px solid transparent;
+      border-left-color: #333;
+    }
+
+    .info-icon:hover + .tooltip,
+    .info-icon:focus + .tooltip {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .tooltip-line {
+      display: block;
+      line-height: 1.4;
+    }
+  `;
+QdBuildInfo = __decorateClass$8([
+  t("qd-build-info")
+], QdBuildInfo);
 var __defProp$7 = Object.defineProperty;
 var __getOwnPropDesc$7 = Object.getOwnPropertyDescriptor;
 var __decorateClass$7 = (decorators, target, key, kind) => {
@@ -2951,7 +3048,7 @@ let QdLogin = class extends i {
   render() {
     return x`
       <div class="login-container">
-        <div class="title">${this.title}</div>
+        <div class="title">${this.title} <qd-build-info></qd-build-info></div>
 
         <form class="login-form" @submit=${(e2) => this.handleStudentLogin(e2)}>
           <input
@@ -3582,6 +3679,7 @@ let QdStatus = class extends i {
         <div class="progress-label">Progress:</div>
         <div class="progress-text">${this.correct}/${this.total} Correct (${this.percentage}%)</div>
         <button class="logout-button" @click=${() => this.handleLogout()}>Logout</button>
+        <qd-build-info></qd-build-info>
       </div>
     `;
   }
@@ -4924,7 +5022,7 @@ let QdInstructor = class extends i {
     }
     return x`
       <div class="instructor-panel">
-        <div class="instructor-title">Instructor Mode</div>
+        <div class="instructor-title">Instructor Mode <qd-build-info></qd-build-info></div>
 
         <label class="toggle-label">
           <input
@@ -5755,7 +5853,7 @@ function isInitialized() {
 }
 const DEBUG_MODE = true;
 const VERSION = "0.1.0-phase3.1";
-const BUILD_DATE = "2025-11-21";
+const BUILD_DATE = "21/Nov/2025";
 if (typeof window !== "undefined") {
   const init = () => {
     info("Auto-initializing Sonar Quiz System");
