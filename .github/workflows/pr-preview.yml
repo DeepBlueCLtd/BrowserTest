@@ -34,6 +34,9 @@ jobs:
         run: npm run build
         continue-on-error: false
 
+      - name: Copy bundle to DITA demo
+        run: npm run copy-to-dita
+
       - name: Build Storybook static site
         run: npm run build-storybook
         continue-on-error: true
