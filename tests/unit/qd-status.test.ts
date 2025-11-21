@@ -41,6 +41,14 @@ describe('QdStatus Component', () => {
     });
 
     it('should display session info when cache exists', async () => {
+      // Set up session data
+      setJSON(STORAGE_KEYS.SESSION, {
+        serviceId: 'RN2344',
+        name: 'MAYO',
+        release: 'Test Release',
+        lastActivity: Date.now(),
+      });
+
       // Set up session cache
       const cache: SessionCache = {
         totals: { total: 10, answered: 10, correct: 8 },
@@ -59,6 +67,31 @@ describe('QdStatus Component', () => {
       const shadow = element.shadowRoot;
       expect(shadow?.textContent).toContain('8/10 Correct');
       expect(shadow?.textContent).toContain('80%');
+      // Check username display
+      expect(shadow?.textContent).toContain('MAYO');
+      expect(shadow?.textContent).toContain('**2344');
+    });
+
+    it('should display username and last 4 digits of serviceId', async () => {
+      // Set up session data
+      setJSON(STORAGE_KEYS.SESSION, {
+        serviceId: 'AB123456',
+        name: 'TestUser',
+        release: 'Test Release',
+        lastActivity: Date.now(),
+      });
+
+      // Trigger cache reload
+      const event = new CustomEvent('qd:state-changed');
+      document.dispatchEvent(event);
+
+      element.requestUpdate();
+      await element.updateComplete;
+
+      const shadow = element.shadowRoot;
+      expect(shadow?.textContent).toContain('TestUser');
+      expect(shadow?.textContent).toContain('**3456');
+      expect(shadow?.textContent).toContain('Test progress:');
     });
 
     it('should calculate and display percentage', async () => {
