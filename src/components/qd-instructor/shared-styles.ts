@@ -104,6 +104,17 @@ export const sharedStyles = css`
     border-color: #0056b3;
   }
 
+  button.secondary {
+    background: #ff9800;
+    color: white;
+    border-color: #ff9800;
+  }
+
+  button.secondary:hover {
+    background: #f57c00;
+    border-color: #f57c00;
+  }
+
   button.danger {
     background: #dc3545;
     color: white;

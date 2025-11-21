@@ -9,7 +9,13 @@
  * Keys: qd/{release}/u{serviceId}
  */
 
-import type { StorageAdapter, StudentRecord, ReleaseId, ServiceId } from '../../types/contracts.js';
+import type {
+  StorageAdapter,
+  StudentRecord,
+  ReleaseId,
+  ServiceId,
+  PinResetEvent,
+} from '../../types/contracts.js';
 import {
   getStorageKey,
   StorageNotInitializedError,
@@ -22,11 +28,12 @@ import { info, warn as logWarn, error as logError } from '../../utils/logger.js'
 const DEFAULT_DB_NAME = 'BrowserTest';
 
 /** Database version - increment to force schema upgrade */
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 /** Object store names */
 const STORE_STUDENTS = 'students';
 const STORE_BACKUPS = 'backups';
+const STORE_AUDIT_LOG = 'auditLog';
 
 /**
  * Backup record with metadata
@@ -98,7 +105,8 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         // Verify object stores exist - if not, database is corrupted
         if (
           !this.db.objectStoreNames.contains(STORE_STUDENTS) ||
-          !this.db.objectStoreNames.contains(STORE_BACKUPS)
+          !this.db.objectStoreNames.contains(STORE_BACKUPS) ||
+          !this.db.objectStoreNames.contains(STORE_AUDIT_LOG)
         ) {
           // Database exists but stores missing - delete and recreate
           logWarn(
@@ -165,6 +173,21 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
             info('Backups store created with indexes');
           } else {
             info('Backups store already exists, skipping');
+          }
+
+          // Create audit log object store (v3 - PIN reset events)
+          if (!db.objectStoreNames.contains(STORE_AUDIT_LOG)) {
+            info('Creating auditLog object store...');
+            const auditStore = db.createObjectStore(STORE_AUDIT_LOG, {
+              keyPath: 'eventId',
+            });
+
+            // Create indexes for audit queries
+            auditStore.createIndex('by-service-id', 'serviceId', { unique: false });
+            auditStore.createIndex('by-reset-at', 'resetAt', { unique: false });
+            info('AuditLog store created with indexes');
+          } else {
+            info('AuditLog store already exists, skipping');
           }
 
           info(`Upgrade complete. Stores: [${Array.from(db.objectStoreNames).join(', ')}]`);
@@ -330,27 +353,40 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
     return new Promise<void>((resolve, reject) => {
       try {
-        const transaction = db.transaction([STORE_STUDENTS, STORE_BACKUPS], 'readwrite');
+        const transaction = db.transaction(
+          [STORE_STUDENTS, STORE_BACKUPS, STORE_AUDIT_LOG],
+          'readwrite',
+        );
 
         const studentsStore = transaction.objectStore(STORE_STUDENTS);
         const backupsStore = transaction.objectStore(STORE_BACKUPS);
+        const auditStore = transaction.objectStore(STORE_AUDIT_LOG);
 
         const clearStudentsRequest = studentsStore.clear();
         const clearBackupsRequest = backupsStore.clear();
+        const clearAuditRequest = auditStore.clear();
 
         let studentsCleared = false;
         let backupsCleared = false;
+        let auditCleared = false;
 
         clearStudentsRequest.onsuccess = () => {
           studentsCleared = true;
-          if (backupsCleared) {
+          if (backupsCleared && auditCleared) {
             resolve();
           }
         };
 
         clearBackupsRequest.onsuccess = () => {
           backupsCleared = true;
-          if (studentsCleared) {
+          if (studentsCleared && auditCleared) {
+            resolve();
+          }
+        };
+
+        clearAuditRequest.onsuccess = () => {
+          auditCleared = true;
+          if (studentsCleared && backupsCleared) {
             resolve();
           }
         };
@@ -371,6 +407,16 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
               'Failed to clear backups',
               'clearAll',
               clearBackupsRequest.error as Error,
+            ),
+          );
+        };
+
+        clearAuditRequest.onerror = () => {
+          reject(
+            new StorageError(
+              'Failed to clear audit log',
+              'clearAll',
+              clearAuditRequest.error as Error,
             ),
           );
         };
@@ -440,6 +486,39 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         };
       } catch (error) {
         reject(new StorageError('Failed to create backup', 'backup', error as Error));
+      }
+    });
+  }
+
+  /**
+   * Save a PIN reset event to the audit log
+   *
+   * @param event - PIN reset event to log
+   */
+  async saveAuditEvent(event: PinResetEvent): Promise<void> {
+    const db = this.ensureInitialized();
+
+    return new Promise<void>((resolve, reject) => {
+      try {
+        const transaction = db.transaction(STORE_AUDIT_LOG, 'readwrite');
+        const store = transaction.objectStore(STORE_AUDIT_LOG);
+        const request = store.add(event);
+
+        request.onsuccess = () => {
+          resolve();
+        };
+
+        request.onerror = () => {
+          reject(
+            new StorageError(
+              'Failed to save audit event',
+              'saveAuditEvent',
+              request.error as Error,
+            ),
+          );
+        };
+      } catch (error) {
+        reject(new StorageError('Failed to save audit event', 'saveAuditEvent', error as Error));
       }
     });
   }

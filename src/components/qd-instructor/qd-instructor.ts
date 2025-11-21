@@ -15,6 +15,7 @@ import './qd-instructor-scores.js';
 import './qd-instructor-export.js';
 import './qd-instructor-manage.js';
 import '../qd-build-info.js';
+import '../qd-pin-reset-dialog.js';
 
 /**
  * Main instructor panel orchestrating all sub-components
@@ -52,6 +53,9 @@ export class QdInstructor extends LitElement {
 
   @state()
   private showStudentAnswers = false;
+
+  @state()
+  private showPinReset = false;
 
   connectedCallback() {
     super.connectedCallback();
@@ -141,7 +145,40 @@ export class QdInstructor extends LitElement {
   lock(): void {
     this.unlocked = false;
     this.showScores = false;
+    this.showPinReset = false;
   }
+
+  private handleResetPins = async (): Promise<void> => {
+    // Load all students for current release before showing reset dialog
+    const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
+    if (!session) return;
+
+    try {
+      const { getStorageService } = await import('../../services/storage-service.js');
+      const storageService = getStorageService();
+      const students = await storageService.getStudentsByRelease(session.release);
+      this.students = students;
+    } catch (err) {
+      console.error('Failed to load students:', err);
+      this.students = [];
+    }
+
+    this.showPinReset = true;
+  };
+
+  private handleClosePinReset = (): void => {
+    this.showPinReset = false;
+  };
+
+  private handlePinReset = (): void => {
+    // Forward event to parent
+    this.dispatchEvent(
+      new CustomEvent('qd:pin-reset', {
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  };
 
   private handleUnlock = (): void => {
     this.unlocked = true;
@@ -264,6 +301,8 @@ export class QdInstructor extends LitElement {
 
         <button @click=${this.handleViewScores} class="primary compact">View All Scores</button>
 
+        <button @click=${this.handleResetPins} class="secondary compact">Reset PINs</button>
+
         <qd-instructor-export .students=${this.students}></qd-instructor-export>
 
         <qd-instructor-manage @qd:data-cleared=${this.handleDataCleared}></qd-instructor-manage>
@@ -275,6 +314,13 @@ export class QdInstructor extends LitElement {
           .showModal=${this.showScores}
           @close=${this.handleCloseScores}
         ></qd-instructor-scores>
+
+        <qd-pin-reset-dialog
+          .students=${this.students}
+          .showModal=${this.showPinReset}
+          @close=${this.handleClosePinReset}
+          @qd:pin-reset=${this.handlePinReset}
+        ></qd-pin-reset-dialog>
       </div>
     `;
   }

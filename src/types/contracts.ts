@@ -125,6 +125,44 @@ export interface StudentRecord {
   updated: string;
   /** Page data by page ID */
   pages: Record<PageId, PageData>;
+
+  // PIN Authentication (v2)
+  /** SHA-256 hash of 4-digit PIN */
+  pinHash?: string;
+  /** ISO 8601 timestamp when PIN was created */
+  pinCreatedAt?: string;
+  /** ISO 8601 timestamp when PIN was last reset */
+  pinResetAt?: string;
+}
+
+// ============================================================================
+// PIN AUTHENTICATION (v2)
+// ============================================================================
+
+/** Rate limiting state for PIN attempts (stored in sessionStorage) */
+export interface PinAttemptState {
+  /** Student identifier */
+  serviceId: ServiceId;
+  /** Failed attempt count (0-3) */
+  attempts: number;
+  /** ISO 8601 timestamp when lockout expires, or null */
+  lockoutUntil: string | null;
+  /** ISO 8601 timestamp of last attempt */
+  lastAttempt: string;
+}
+
+/** Audit trail for instructor PIN resets (stored in IndexedDB) */
+export interface PinResetEvent {
+  /** UUID v4 */
+  eventId: string;
+  /** Student affected */
+  serviceId: ServiceId;
+  /** Actor type */
+  resetBy: 'instructor';
+  /** ISO 8601 timestamp */
+  resetAt: string;
+  /** Context */
+  release: ReleaseId;
 }
 
 // ============================================================================
@@ -305,6 +343,10 @@ export interface QuizEvents {
   'qd:data-cleared': { detail: { timestamp: string } };
   'qd:session-expired': { detail: { timestamp: string } };
   'qd:storage-error': { detail: { error: Error; operation: string } };
+  // PIN Authentication events (v2)
+  'qd:pin-created': { detail: { serviceId: ServiceId; timestamp: string } };
+  'qd:pin-verified': { detail: { serviceId: ServiceId; timestamp: string } };
+  'qd:pin-reset': { detail: { serviceId: ServiceId; resetBy: 'instructor'; timestamp: string } };
 }
 
 // ============================================================================
@@ -312,7 +354,7 @@ export interface QuizEvents {
 // ============================================================================
 
 /** Current schema version */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /** Session timeout in milliseconds (30 minutes) */
 export const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
@@ -322,6 +364,17 @@ export const STORAGE_KEYS = {
   SESSION: 'qd/session',
   CACHE: 'qd/state',
   INSTRUCTOR: 'qd/instructor',
+  PIN_ATTEMPTS: 'qd:pin-attempts',
+} as const;
+
+/** PIN authentication constants */
+export const PIN_CONSTANTS = {
+  /** Maximum failed attempts before lockout */
+  MAX_ATTEMPTS: 3,
+  /** Lockout duration in milliseconds (30 seconds) */
+  LOCKOUT_MS: 30 * 1000,
+  /** PIN length (must be exactly 4 digits) */
+  PIN_LENGTH: 4,
 } as const;
 
 /** CSS classes for DOM selection */
