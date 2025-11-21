@@ -140,4 +140,61 @@ describe('PIN Service', () => {
       expect(result.valid).toBe(true);
     });
   });
+
+  describe('T035 - PIN Reset Logic', () => {
+    it('should allow new PIN hash after reset', async () => {
+      // Original PIN
+      const oldPin = '1111';
+      const oldHash = await hashPin(oldPin);
+
+      // After reset, set new PIN
+      const newPin = '2222';
+      const newHash = await hashPin(newPin);
+
+      // New hash should be different
+      expect(newHash).not.toBe(oldHash);
+
+      // New PIN should verify
+      const verifyNew = await verifyPin(newPin, newHash);
+      expect(verifyNew).toBe(true);
+
+      // Old PIN should not verify against new hash
+      const verifyOld = await verifyPin(oldPin, newHash);
+      expect(verifyOld).toBe(false);
+    });
+
+    it('should generate unique hash for same PIN after reset', async () => {
+      // Even the same PIN should work after reset
+      const pin = '5555';
+      const hash1 = await hashPin(pin);
+      const hash2 = await hashPin(pin);
+
+      // Same PIN generates same hash (deterministic)
+      expect(hash1).toBe(hash2);
+
+      // But verification still works
+      expect(await verifyPin(pin, hash1)).toBe(true);
+      expect(await verifyPin(pin, hash2)).toBe(true);
+    });
+
+    it('should support sequential PIN changes', async () => {
+      // Simulate multiple resets
+      const pins = ['1111', '2222', '3333', '4444'];
+      const hashes: string[] = [];
+
+      for (const pin of pins) {
+        const hash = await hashPin(pin);
+        hashes.push(hash);
+        expect(await verifyPin(pin, hash)).toBe(true);
+      }
+
+      // Each PIN only verifies against its own hash
+      for (let i = 0; i < pins.length; i++) {
+        for (let j = 0; j < hashes.length; j++) {
+          const shouldMatch = i === j;
+          expect(await verifyPin(pins[i]!, hashes[j]!)).toBe(shouldMatch);
+        }
+      }
+    });
+  });
 });

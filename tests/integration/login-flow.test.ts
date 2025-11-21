@@ -292,4 +292,94 @@ describe('Login Flow with PIN Authentication', () => {
       expect(hasPinSet(retrieved!)).toBe(true);
     });
   });
+
+  describe('T036 - Instructor PIN Reset', () => {
+    it('should reset student PIN and clear pinHash', async () => {
+      const release = 'Test Release 2024';
+      const serviceId = 'RN6666';
+      const pin = '9999';
+
+      // Create student with PIN
+      const pinHash = await hashPin(pin);
+      const student: StudentRecord = {
+        schema: SCHEMA_VERSION,
+        docId: '',
+        release,
+        serviceId,
+        name: 'Reset Test Student',
+        attempted: 10,
+        correct: 8,
+        updated: new Date().toISOString(),
+        pages: {},
+        pinHash,
+        pinCreatedAt: new Date().toISOString(),
+      };
+      await storage.saveStudent(student);
+
+      // Verify PIN exists
+      let retrieved = await storage.getStudent(release, serviceId);
+      expect(retrieved?.pinHash).toBe(pinHash);
+      expect(hasPinSet(retrieved!)).toBe(true);
+
+      // Reset PIN (clear pinHash, keep other data)
+      const resetStudent: StudentRecord = {
+        ...retrieved!,
+        pinHash: undefined,
+        pinCreatedAt: undefined,
+        updated: new Date().toISOString(),
+      };
+      await storage.saveStudent(resetStudent);
+
+      // Verify PIN cleared but data preserved
+      retrieved = await storage.getStudent(release, serviceId);
+      expect(retrieved?.pinHash).toBeUndefined();
+      expect(hasPinSet(retrieved!)).toBe(false);
+      // Note: needsMigration is for schema version, not PIN status
+      expect(retrieved?.attempted).toBe(10);
+      expect(retrieved?.correct).toBe(8);
+    });
+
+    it('should allow new PIN creation after reset', async () => {
+      const release = 'Test Release 2024';
+      const serviceId = 'RN7777';
+      const oldPin = '1111';
+      const newPin = '2222';
+
+      // Create student with old PIN
+      const oldPinHash = await hashPin(oldPin);
+      const student: StudentRecord = {
+        schema: SCHEMA_VERSION,
+        docId: '',
+        release,
+        serviceId,
+        name: 'New PIN Test',
+        attempted: 5,
+        correct: 4,
+        updated: new Date().toISOString(),
+        pages: {},
+        pinHash: oldPinHash,
+        pinCreatedAt: new Date().toISOString(),
+      };
+      await storage.saveStudent(student);
+
+      // Reset PIN
+      const resetStudent: StudentRecord = {
+        ...student,
+        pinHash: undefined,
+        pinCreatedAt: undefined,
+      };
+      await storage.saveStudent(resetStudent);
+
+      // Set new PIN
+      const newPinHash = await hashPin(newPin);
+      const updatedStudent = completePinSetup(resetStudent, newPinHash);
+      await storage.saveStudent(updatedStudent);
+
+      // Verify new PIN works
+      const retrieved = await storage.getStudent(release, serviceId);
+      expect(await verifyPin(newPin, retrieved!.pinHash!)).toBe(true);
+      expect(await verifyPin(oldPin, retrieved!.pinHash!)).toBe(false);
+      expect(retrieved?.attempted).toBe(5); // Data preserved
+    });
+  });
 });
