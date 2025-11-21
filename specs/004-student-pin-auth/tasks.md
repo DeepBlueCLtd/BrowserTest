@@ -162,15 +162,15 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T057 [P] Add accessibility attributes to PIN inputs in src/components/qd-pin-create.ts
-- [ ] T058 [P] Add accessibility to lockout countdown in src/components/qd-login.ts
-- [ ] T059 Performance optimization for PIN verification
-- [ ] T060 [P] Add comprehensive logging for security events
-- [ ] T061 Clear PIN fields from memory after use
-- [ ] T062 [P] Add autocomplete="off" to all PIN input fields
-- [ ] T063 Bundle size check - ensure <2KB impact
-- [ ] T064 Run quickstart.md manual test scenarios
-- [ ] T065 [P] Security review of PIN handling
+- [X] T057 [P] Add accessibility attributes to PIN inputs in src/components/qd-pin-create.ts
+- [X] T058 [P] Add accessibility to lockout countdown in src/components/qd-login.ts
+- [X] T059 Performance optimization for PIN verification
+- [X] T060 [P] Add comprehensive logging for security events
+- [X] T061 Clear PIN fields from memory after use
+- [X] T062 [P] Add autocomplete="off" to all PIN input fields
+- [X] T063 Bundle size check - ensure <2KB impact
+- [ ] T064 Run quickstart.md manual test scenarios (manual)
+- [X] T065 [P] Security review of PIN handling
 
 ---
 
