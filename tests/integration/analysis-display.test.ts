@@ -108,7 +108,7 @@ describe('Analysis Table Instructor Display Integration (T046)', () => {
       const grouped = groupEntriesByCell(students, pageId);
 
       // Cell R1C1 should have 3 entries (Alice, Bob, Carol)
-      const cell1Entries = grouped['R1C1#f:abc123'];
+      const cell1Entries = grouped['R1C1#f:abc123'] || [];
       expect(cell1Entries).toHaveLength(3);
 
       // Sort entries
@@ -211,7 +211,7 @@ describe('Analysis Table Instructor Display Integration (T046)', () => {
       const grouped = groupEntriesByCell(allStudents, pageId);
 
       // Should only have 3 entries for R1C1, not 4
-      const entries = grouped['R1C1#f:abc123'];
+      const entries = grouped['R1C1#f:abc123'] || [];
       expect(entries).toHaveLength(3);
 
       // Should not contain "Other Student"
