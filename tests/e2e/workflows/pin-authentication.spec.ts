@@ -52,7 +52,19 @@ async function loginStudent(
   await loginForm.locator('button[type="submit"]').click();
 }
 
-// loginInstructor helper removed - T037 instructor test is skipped pending configuration
+/**
+ * Login as instructor
+ */
+async function loginInstructor(page: Page, password: string): Promise<void> {
+  // Click Instructor button (pierce shadow DOM)
+  await page.locator('qd-login >> button:has-text("Instructor")').click();
+
+  // Wait for modal and fill password (modal is in document.body, not shadow DOM)
+  const modal = page.locator('.qd-instructor-modal-overlay');
+  await expect(modal).toBeVisible({ timeout: 2000 });
+  await modal.locator('input[type="password"]').fill(password);
+  await modal.locator('button:has-text("Login")').click();
+}
 
 test.describe('PIN Authentication', () => {
   test.beforeEach(async ({ page }) => {
@@ -173,27 +185,28 @@ test.describe('PIN Authentication', () => {
   });
 
   test.describe('T037 - Instructor PIN Reset', () => {
-    test.skip('should allow instructor to reset student PIN', async ({ page }) => {
-      // This test requires instructor password to be configured
-      // Skip for now as it depends on page-specific configuration
+    test('should allow instructor to access reset dialog', async ({ page }) => {
+      // Login as instructor (password matches hash in dita-demo)
+      await loginInstructor(page, 'pwd');
 
-      // Create student first
-      await loginStudent(page, 'RESET01', 'Reset Test', '3333');
-      await page.waitForSelector('text=PIN Stored', { timeout: 2000 });
-      await page.waitForTimeout(3500);
+      // Wait for modal to close
+      await expect(page.locator('.qd-instructor-modal-overlay')).not.toBeVisible({ timeout: 2000 });
 
-      // Logout - pierce shadow DOM
-      await page.locator('qd-status >> .logout-button').click();
-      await waitForBootstrap(page);
+      // Verify instructor panel visible
+      await expect(page.locator('qd-instructor')).toBeVisible({ timeout: 2000 });
 
-      // Login as instructor (would need valid password hash in page)
-      // await loginInstructor(page, 'instructor-password');
+      // Click Reset PINs button (pierce shadow DOM)
+      await page.locator('qd-instructor >> button:has-text("Reset PINs")').click();
 
-      // Click Reset PINs button
-      // await page.locator('button:has-text("Reset PINs")').click();
+      // Wait for reset dialog overlay (in document.body)
+      const resetOverlay = page.locator('.qd-pin-reset-overlay');
+      await expect(resetOverlay).toBeVisible({ timeout: 2000 });
 
-      // Select student and reset
-      // ...
+      // Close dialog with Escape key
+      await page.keyboard.press('Escape');
+
+      // Verify dialog closed
+      await expect(resetOverlay).not.toBeVisible({ timeout: 2000 });
     });
   });
 
