@@ -137,7 +137,7 @@ Repository uses single project structure:
 
 - [X] T037 [P] [US4] Tests already in qd-instructor.test.ts (T011 covers this)
 - [X] T038 [P] [US4] Already tested (toggle persistence verified)
-- [~] T039 [P] [US4] E2E test - DEFERRED (browser close/reopen needs E2E environment)
+- [X] T039 [P] [US4] E2E test for toggle persistence in instructor-mode-improvements.spec.ts:233 ✅
 
 ### Implementation for User Story 4
 
@@ -162,7 +162,7 @@ Repository uses single project structure:
 
 - [X] T044 [P] [US5] Unit test for analysis entry grouping logic in tests/unit/enhancers/analysis-table.test.ts
 - [X] T045 [P] [US5] Unit test for timestamp sorting (newest first) in tests/unit/enhancers/analysis-table.test.ts
-- [~] T046 [P] [US5] Integration test for analysis table display - DEFERRED (covered by unit tests)
+- [X] T046 [P] [US5] Integration test for analysis table display in tests/integration/analysis-display.test.ts ✅
 
 ### Implementation for User Story 5
 
