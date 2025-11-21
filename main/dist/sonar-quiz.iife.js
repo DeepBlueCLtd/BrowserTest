@@ -346,15 +346,24 @@ const ot=e=>(t,n)=>{void 0!==n?n.addInitializer(()=>{customElements.define(e,t)}
         width: 100%;
       }
     }
-  `,St([at({type:String})],Et.prototype,"title",2),St([dt()],Et.prototype,"name",2),St([dt()],Et.prototype,"serviceId",2),St([dt()],Et.prototype,"instructorPassword",2),St([dt()],Et.prototype,"showInstructorModal",2),St([dt()],Et.prototype,"errorMessage",2),St([dt()],Et.prototype,"isSubmitting",2),Et=St([ot("qd-login")],Et);var $t=Object.defineProperty,Ct=Object.getOwnPropertyDescriptor,It=(e,t,n,s)=>{for(var o,r=s>1?void 0:s?Ct(t,n):t,a=e.length-1;a>=0;a--)(o=e[a])&&(r=(s?o(t,n,r):o(r))||r);return s&&r&&$t(t,n,r),r};let At=class extends i{constructor(){super(...arguments),this.total=0,this.correct=0,this.percentage=0,this.statusColor="red",this.handleStateChanged=()=>{this.loadCache()},this.handleLogin=()=>{this.updateVisibility(),this.loadCache()},this.handleLogoutEvent=()=>{this.updateVisibility()}}connectedCallback(){super.connectedCallback(),this.updateVisibility(),this.loadCache(),document.addEventListener("qd:state-changed",this.handleStateChanged),document.addEventListener("qd:login",this.handleLogin),document.addEventListener("qd:logout",this.handleLogoutEvent)}disconnectedCallback(){super.disconnectedCallback(),document.removeEventListener("qd:state-changed",this.handleStateChanged),document.removeEventListener("qd:login",this.handleLogin),document.removeEventListener("qd:logout",this.handleLogoutEvent)}render(){return Qe`
+  `,St([at({type:String})],Et.prototype,"title",2),St([dt()],Et.prototype,"name",2),St([dt()],Et.prototype,"serviceId",2),St([dt()],Et.prototype,"instructorPassword",2),St([dt()],Et.prototype,"showInstructorModal",2),St([dt()],Et.prototype,"errorMessage",2),St([dt()],Et.prototype,"isSubmitting",2),Et=St([ot("qd-login")],Et);var $t=Object.defineProperty,Ct=Object.getOwnPropertyDescriptor,It=(e,t,n,s)=>{for(var o,r=s>1?void 0:s?Ct(t,n):t,a=e.length-1;a>=0;a--)(o=e[a])&&(r=(s?o(t,n,r):o(r))||r);return s&&r&&$t(t,n,r),r};let At=class extends i{constructor(){super(...arguments),this.total=0,this.correct=0,this.percentage=0,this.statusColor="red",this.name="",this.serviceId="",this.handleStateChanged=()=>{this.loadCache()},this.handleLogin=()=>{this.updateVisibility(),this.loadCache()},this.handleLogoutEvent=()=>{this.updateVisibility()}}connectedCallback(){super.connectedCallback(),this.updateVisibility(),this.loadCache(),document.addEventListener("qd:state-changed",this.handleStateChanged),document.addEventListener("qd:login",this.handleLogin),document.addEventListener("qd:logout",this.handleLogoutEvent)}disconnectedCallback(){super.disconnectedCallback(),document.removeEventListener("qd:state-changed",this.handleStateChanged),document.removeEventListener("qd:login",this.handleLogin),document.removeEventListener("qd:logout",this.handleLogoutEvent)}render(){const e=this.serviceId.slice(-4);return Qe`
       <div class="status-panel">
-        <div class="status-indicator ${this.statusColor}"></div>
-        <div class="progress-label">Progress:</div>
-        <div class="progress-text">${this.correct}/${this.total} Correct (${this.percentage}%)</div>
-        <button class="logout-button" @click=${()=>this.handleLogout()}>Logout</button>
-        <qd-build-info></qd-build-info>
+        <div class="top-row">
+          <span class="user-info">
+            <span class="user-label">Test progress:</span>
+            ${this.name} **${e}
+          </span>
+          <button class="logout-button" @click=${()=>this.handleLogout()}>Logout</button>
+          <qd-build-info></qd-build-info>
+        </div>
+        <div class="bottom-row">
+          <div class="status-indicator ${this.statusColor}"></div>
+          <div class="progress-text">
+            ${this.correct}/${this.total} Correct (${this.percentage}%)
+          </div>
+        </div>
       </div>
-    `}loadCache(){const e=w(l.CACHE);if(!e)return this.total=0,this.correct=0,this.percentage=0,void(this.statusColor="red");this.total=e.totals.total,this.correct=e.totals.correct,this.percentage=this.calculatePercentage(e.totals.total,e.totals.correct),this.statusColor=this.calculateStatusColor(e.totals.total,e.totals.correct)}calculatePercentage(e,t){return 0===e?0:Math.round(t/e*100)}calculateStatusColor(e,t){return 0===e||0===t?"red":t===e?"green":"amber"}updateVisibility(){const e=w(l.SESSION),t="true"===sessionStorage.getItem(l.INSTRUCTOR);e&&!t?this.setAttribute("data-show",""):this.removeAttribute("data-show")}handleLogout(){const e=w(l.SESSION);(new SessionService).clearSession();const t=new CustomEvent("qd:logout",{detail:{serviceId:e?.serviceId||"unknown"},bubbles:!0,composed:!0});this.dispatchEvent(t)}};At.styles=le`
+    `}loadCache(){const e=w(l.SESSION);e?(this.name=e.name||"",this.serviceId=e.serviceId||""):(this.name="",this.serviceId="");const t=w(l.CACHE);if(!t)return this.total=0,this.correct=0,this.percentage=0,void(this.statusColor="red");this.total=t.totals.total,this.correct=t.totals.correct,this.percentage=this.calculatePercentage(t.totals.total,t.totals.correct),this.statusColor=this.calculateStatusColor(t.totals.total,t.totals.correct)}calculatePercentage(e,t){return 0===e?0:Math.round(t/e*100)}calculateStatusColor(e,t){return 0===e||0===t?"red":t===e?"green":"amber"}updateVisibility(){const e=w(l.SESSION),t="true"===sessionStorage.getItem(l.INSTRUCTOR);e&&!t?this.setAttribute("data-show",""):this.removeAttribute("data-show")}handleLogout(){const e=w(l.SESSION);(new SessionService).clearSession();const t=new CustomEvent("qd:logout",{detail:{serviceId:e?.serviceId||"unknown"},bubbles:!0,composed:!0});this.dispatchEvent(t)}};At.styles=le`
     :host {
       display: none; /* Hidden by default, shown when logged in */
       font-family:
@@ -369,12 +378,35 @@ const ot=e=>(t,n)=>{void 0!==n?n.addInitializer(()=>{customElements.define(e,t)}
 
     .status-panel {
       display: flex;
-      align-items: center;
-      gap: 8px;
+      flex-direction: column;
+      gap: 4px;
       padding: 6px 12px;
       background: #fff;
       border: 1px solid #ddd;
       border-radius: 4px;
+    }
+
+    .top-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .bottom-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .user-info {
+      font-size: 13px;
+      color: #333;
+      white-space: nowrap;
+    }
+
+    .user-label {
+      font-weight: 500;
+      color: #555;
     }
 
     .status-indicator {
@@ -425,7 +457,7 @@ const ot=e=>(t,n)=>{void 0!==n?n.addInitializer(()=>{customElements.define(e,t)}
     .logout-button:hover {
       background: #b71c1c;
     }
-  `,It([dt()],At.prototype,"total",2),It([dt()],At.prototype,"correct",2),It([dt()],At.prototype,"percentage",2),It([dt()],At.prototype,"statusColor",2),At=It([ot("qd-status")],At);const qt=le`
+  `,It([dt()],At.prototype,"total",2),It([dt()],At.prototype,"correct",2),It([dt()],At.prototype,"percentage",2),It([dt()],At.prototype,"statusColor",2),It([dt()],At.prototype,"name",2),It([dt()],At.prototype,"serviceId",2),At=It([ot("qd-status")],At);const qt=le`
   :host {
     display: inline-block;
     font-family:

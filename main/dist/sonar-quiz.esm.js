@@ -3647,6 +3647,8 @@ let QdStatus = class extends i {
     this.correct = 0;
     this.percentage = 0;
     this.statusColor = "red";
+    this.name = "";
+    this.serviceId = "";
     this.handleStateChanged = () => {
       this.loadCache();
     };
@@ -3673,13 +3675,23 @@ let QdStatus = class extends i {
     document.removeEventListener("qd:logout", this.handleLogoutEvent);
   }
   render() {
+    const last4 = this.serviceId.slice(-4);
     return x`
       <div class="status-panel">
-        <div class="status-indicator ${this.statusColor}"></div>
-        <div class="progress-label">Progress:</div>
-        <div class="progress-text">${this.correct}/${this.total} Correct (${this.percentage}%)</div>
-        <button class="logout-button" @click=${() => this.handleLogout()}>Logout</button>
-        <qd-build-info></qd-build-info>
+        <div class="top-row">
+          <span class="user-info">
+            <span class="user-label">Test progress:</span>
+            ${this.name} **${last4}
+          </span>
+          <button class="logout-button" @click=${() => this.handleLogout()}>Logout</button>
+          <qd-build-info></qd-build-info>
+        </div>
+        <div class="bottom-row">
+          <div class="status-indicator ${this.statusColor}"></div>
+          <div class="progress-text">
+            ${this.correct}/${this.total} Correct (${this.percentage}%)
+          </div>
+        </div>
       </div>
     `;
   }
@@ -3687,6 +3699,14 @@ let QdStatus = class extends i {
    * Load cache from storage and update state
    */
   loadCache() {
+    const session = getJSON(STORAGE_KEYS.SESSION);
+    if (session) {
+      this.name = session.name || "";
+      this.serviceId = session.serviceId || "";
+    } else {
+      this.name = "";
+      this.serviceId = "";
+    }
     const cache = getJSON(STORAGE_KEYS.CACHE);
     if (!cache) {
       this.total = 0;
@@ -3763,12 +3783,35 @@ QdStatus.styles = i$3`
 
     .status-panel {
       display: flex;
-      align-items: center;
-      gap: 8px;
+      flex-direction: column;
+      gap: 4px;
       padding: 6px 12px;
       background: #fff;
       border: 1px solid #ddd;
       border-radius: 4px;
+    }
+
+    .top-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .bottom-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .user-info {
+      font-size: 13px;
+      color: #333;
+      white-space: nowrap;
+    }
+
+    .user-label {
+      font-weight: 500;
+      color: #555;
     }
 
     .status-indicator {
@@ -3832,6 +3875,12 @@ __decorateClass$6([
 __decorateClass$6([
   r()
 ], QdStatus.prototype, "statusColor", 2);
+__decorateClass$6([
+  r()
+], QdStatus.prototype, "name", 2);
+__decorateClass$6([
+  r()
+], QdStatus.prototype, "serviceId", 2);
 QdStatus = __decorateClass$6([
   t("qd-status")
 ], QdStatus);
