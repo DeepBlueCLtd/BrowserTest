@@ -77,16 +77,20 @@ export class QdLogin extends LitElement {
   private modalOverlay: HTMLDivElement | null = null;
 
   /**
+   * Reference to modal error div for updating
+   */
+  private modalErrorDiv: HTMLDivElement | null = null;
+
+  /**
+   * Reference to modal password input for updating
+   */
+  private modalPasswordInput: HTMLInputElement | null = null;
+
+  /**
    * Error message to display
    */
   @state()
   private errorMessage = '';
-
-  /**
-   * Instructor error message
-   */
-  @state()
-  private instructorError = '';
 
   /**
    * Whether form is currently submitting
@@ -308,6 +312,8 @@ export class QdLogin extends LitElement {
       this.modalOverlay.remove();
       this.modalOverlay = null;
     }
+    this.modalErrorDiv = null;
+    this.modalPasswordInput = null;
   }
 
   /**
@@ -338,7 +344,6 @@ export class QdLogin extends LitElement {
     this.serviceId = '';
     this.instructorPassword = '';
     this.errorMessage = '';
-    this.instructorError = '';
     this.isSubmitting = false;
     this.showInstructorModal = false;
 
@@ -487,26 +492,33 @@ export class QdLogin extends LitElement {
     `;
     input.oninput = (e) => {
       this.instructorPassword = (e.target as HTMLInputElement).value;
-      this.instructorError = '';
-      if (errorDiv) errorDiv.remove();
+      // Hide error when user types
+      if (this.modalErrorDiv) {
+        this.modalErrorDiv.style.display = 'none';
+        this.modalErrorDiv.textContent = '';
+      }
     };
     bodyDiv.appendChild(input);
 
-    let errorDiv: HTMLDivElement | null = null;
-    if (this.instructorError) {
-      errorDiv = document.createElement('div');
-      errorDiv.textContent = this.instructorError;
-      errorDiv.style.cssText = `
-        color: #d32f2f;
-        font-size: 11px;
-        margin-top: 3px;
-        padding: 4px 8px;
-        background: #ffebee;
-        border-radius: 3px;
-        border-left: 3px solid #d32f2f;
-      `;
-      bodyDiv.appendChild(errorDiv);
-    }
+    // Store reference to password input
+    this.modalPasswordInput = input;
+
+    // Always create error div (hidden by default)
+    const errorDiv = document.createElement('div');
+    // give the new div an id for easier testing
+    errorDiv.id = 'qd-instructor-modal-error';
+    errorDiv.style.cssText = `
+      color: #d32f2f;
+      font-size: 11px;
+      margin-top: 8px;
+      padding: 4px 8px;
+      background: #ffebee;
+      border-radius: 3px;
+      border-left: 3px solid #d32f2f;
+      display: none;
+    `;
+    bodyDiv.appendChild(errorDiv);
+    this.modalErrorDiv = errorDiv;
 
     // Footer
     const footer = document.createElement('div');
@@ -680,7 +692,6 @@ export class QdLogin extends LitElement {
   private openInstructorModal() {
     this.showInstructorModal = true;
     this.instructorPassword = '';
-    this.instructorError = '';
     this.renderInstructorModalToBody();
   }
 
@@ -690,7 +701,6 @@ export class QdLogin extends LitElement {
   private closeInstructorModal() {
     this.showInstructorModal = false;
     this.instructorPassword = '';
-    this.instructorError = '';
     this.cleanupModal();
   }
 
@@ -727,13 +737,23 @@ export class QdLogin extends LitElement {
   }
 
   /**
+   * Show error in modal
+   */
+  private showModalError(message: string): void {
+    if (this.modalErrorDiv) {
+      this.modalErrorDiv.textContent = message;
+      this.modalErrorDiv.style.display = 'block';
+    }
+  }
+
+  /**
    * Handle instructor login
    */
   private async handleInstructorLogin(e: Event) {
     e.preventDefault();
 
     if (!this.instructorPassword) {
-      this.instructorError = 'Password is required';
+      this.showModalError('Password is required');
       return;
     }
 
@@ -742,13 +762,18 @@ export class QdLogin extends LitElement {
       const expectedHash = this.getExpectedHash();
 
       if (!expectedHash) {
-        this.instructorError = 'Instructor password not configured';
+        this.showModalError('Instructor password not configured');
         return;
       }
 
       if (passwordHash !== expectedHash) {
-        this.instructorError = 'Incorrect password';
+        this.showModalError('Incorrect password');
         this.instructorPassword = '';
+        // Clear the password input field
+        if (this.modalPasswordInput) {
+          this.modalPasswordInput.value = '';
+          this.modalPasswordInput.focus();
+        }
         // TODO: Implement rate limiting (5 attempts per 60 seconds)
         return;
       }
@@ -781,7 +806,7 @@ export class QdLogin extends LitElement {
       this.closeInstructorModal();
       this.updateVisibility();
     } catch (err) {
-      this.instructorError = 'Login failed. Please try again.';
+      this.showModalError('Login failed. Please try again.');
       console.error('Instructor login error:', err);
     }
   }
