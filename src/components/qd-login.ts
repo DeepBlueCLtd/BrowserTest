@@ -587,6 +587,8 @@ export class QdLogin extends LitElement {
 
     // Always create error div (hidden by default)
     const errorDiv = document.createElement('div');
+    // give the new div an id for easier testing
+    errorDiv.id = 'qd-instructor-modal-error';
     errorDiv.style.cssText = `
       color: #d32f2f;
       font-size: 11px;
