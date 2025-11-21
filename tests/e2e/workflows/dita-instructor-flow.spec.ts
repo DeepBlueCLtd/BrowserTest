@@ -198,6 +198,54 @@ test.describe('DITA Instructor Flow', () => {
     await expect(studentAnswers.first()).not.toBeVisible();
   });
 
+  test('Flow: Instructor login with incorrect password shows inline error', async ({ page }) => {
+    // Navigate to index page
+    await page.goto(`file://${ditaPath}/page-index.html`);
+    await waitForBootstrap(page);
+
+    // Click instructor button
+    const loginForm = page.locator('qd-login');
+    const instructorButton = loginForm.locator('button').filter({ hasText: /instructor/i });
+    await instructorButton.click();
+
+    // Wait for modal to appear
+    await page.waitForTimeout(300);
+
+    // Fill incorrect password in modal
+    const modalPassword = page.locator(
+      'body > div[style*="position: fixed"] input[type="password"]',
+    );
+    await expect(modalPassword).toBeVisible({ timeout: 2000 });
+    await modalPassword.fill('wrongpassword');
+
+    // Click login in modal
+    const modalLoginButton = page.locator(
+      'body > div[style*="position: fixed"] button[type="submit"]',
+    );
+    await modalLoginButton.click();
+
+    // Wait for error to appear
+    await page.waitForTimeout(300);
+
+    // Verify inline error message is displayed
+    const errorMessage = page.locator('#qd-instructor-modal-error');
+    await expect(errorMessage).toBeVisible({ timeout: 2000 });
+
+    // Verify password field is cleared
+    await expect(modalPassword).toHaveValue('');
+
+    // Verify modal is still open (can try again)
+    await expect(modalPassword).toBeVisible();
+
+    // Now enter correct password
+    await modalPassword.fill(TEST_PASSWORD);
+    await modalLoginButton.click();
+
+    // Wait for instructor panel to appear (login successful)
+    const instructorPanel = page.locator('qd-instructor');
+    await expect(instructorPanel).toBeVisible({ timeout: 3000 });
+  });
+
   test('Flow: Multi-page navigation with session persistence', async ({ page }) => {
     // Login as student
     await page.goto(`file://${ditaPath}/page-index.html`);

@@ -19,6 +19,7 @@ import { STORAGE_KEYS } from '../types/contracts.js';
 import type { SessionCache, SessionData } from '../types/contracts.js';
 import { getJSON } from '../utils/storage-helpers.js';
 import { SessionService } from '../services/session.js';
+import './qd-build-info.js';
 
 /**
  * Status panel component for student progress tracking
@@ -49,6 +50,18 @@ export class QdStatus extends LitElement {
   @state()
   private statusColor: 'red' | 'amber' | 'green' = 'red';
 
+  /**
+   * Student name
+   */
+  @state()
+  private name = '';
+
+  /**
+   * Service ID (last 4 digits displayed)
+   */
+  @state()
+  private serviceId = '';
+
   static styles = css`
     :host {
       display: none; /* Hidden by default, shown when logged in */
@@ -64,12 +77,35 @@ export class QdStatus extends LitElement {
 
     .status-panel {
       display: flex;
-      align-items: center;
-      gap: 8px;
+      flex-direction: column;
+      gap: 4px;
       padding: 6px 12px;
       background: #fff;
       border: 1px solid #ddd;
       border-radius: 4px;
+    }
+
+    .top-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .bottom-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .user-info {
+      font-size: 13px;
+      color: #333;
+      white-space: nowrap;
+    }
+
+    .user-label {
+      font-weight: 500;
+      color: #555;
     }
 
     .status-indicator {
@@ -141,12 +177,23 @@ export class QdStatus extends LitElement {
   }
 
   render() {
+    const last4 = this.serviceId.slice(-4);
     return html`
       <div class="status-panel">
-        <div class="status-indicator ${this.statusColor}"></div>
-        <div class="progress-label">Progress:</div>
-        <div class="progress-text">${this.correct}/${this.total} Correct (${this.percentage}%)</div>
-        <button class="logout-button" @click=${() => this.handleLogout()}>Logout</button>
+        <div class="top-row">
+          <span class="user-info">
+            <span class="user-label">Test progress:</span>
+            ${this.name} **${last4}
+          </span>
+          <button class="logout-button" @click=${() => this.handleLogout()}>Logout</button>
+          <qd-build-info></qd-build-info>
+        </div>
+        <div class="bottom-row">
+          <div class="status-indicator ${this.statusColor}"></div>
+          <div class="progress-text">
+            ${this.correct}/${this.total} Correct (${this.percentage}%)
+          </div>
+        </div>
       </div>
     `;
   }
@@ -155,6 +202,16 @@ export class QdStatus extends LitElement {
    * Load cache from storage and update state
    */
   private loadCache() {
+    // Load session data for name/serviceId
+    const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
+    if (session) {
+      this.name = session.name || '';
+      this.serviceId = session.serviceId || '';
+    } else {
+      this.name = '';
+      this.serviceId = '';
+    }
+
     const cache = getJSON<SessionCache>(STORAGE_KEYS.CACHE);
     if (!cache) {
       this.total = 0;

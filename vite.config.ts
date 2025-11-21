@@ -7,8 +7,11 @@ export default defineConfig(({ command, mode }) => {
   // Storybook sets mode to 'production' but doesn't define build.lib
   const isLibraryBuild = command === 'build' && !process.env.STORYBOOK;
 
-  // Generate build date at build time
-  const buildDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  // Generate build date at build time in DD/Mon/YYYY format
+  const now = new Date();
+  const day = now.getDate();
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const buildDate = `${day}/${months[now.getMonth()]}/${now.getFullYear()}`;
 
   return {
     define: {

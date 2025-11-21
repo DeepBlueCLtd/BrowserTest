@@ -14,6 +14,7 @@ import './qd-instructor-unlock.js';
 import './qd-instructor-scores.js';
 import './qd-instructor-export.js';
 import './qd-instructor-manage.js';
+import '../qd-build-info.js';
 
 /**
  * Main instructor panel orchestrating all sub-components
@@ -250,7 +251,7 @@ export class QdInstructor extends LitElement {
 
     return html`
       <div class="instructor-panel">
-        <div class="instructor-title">Instructor Mode</div>
+        <div class="instructor-title">Instructor Mode <qd-build-info></qd-build-info></div>
 
         <label class="toggle-label">
           <input
