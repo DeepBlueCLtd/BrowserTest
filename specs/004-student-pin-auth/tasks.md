@@ -59,7 +59,7 @@
 - [X] T011 [P] [US1] Unit test for PIN format validation in tests/unit/pin-service.test.ts
 - [X] T012 [P] [US1] Unit test for PIN hashing in tests/unit/pin-service.test.ts
 - [X] T013 [P] [US1] Unit test for PIN confirmation matching in tests/unit/pin-service.test.ts
-- [ ] T014 [US1] Integration test for PIN creation flow in tests/integration/login-flow.test.ts
+- [X] T014 [US1] Integration test for PIN creation flow in tests/integration/login-flow.test.ts
 - [ ] T015 [P] [US1] E2E test for new student PIN creation in tests/e2e/pin-creation.spec.ts
 
 ### Implementation for User Story 1
@@ -87,7 +87,7 @@
 
 - [X] T024 [P] [US2] Unit test for PIN verification in tests/unit/pin-service.test.ts
 - [X] T025 [P] [US2] Unit test for rate limiting logic in tests/unit/rate-limiter.test.ts
-- [ ] T026 [US2] Integration test for PIN authentication in tests/integration/login-flow.test.ts
+- [X] T026 [US2] Integration test for PIN authentication in tests/integration/login-flow.test.ts
 - [ ] T027 [P] [US2] E2E test for returning student login in tests/e2e/pin-authentication.spec.ts
 
 ### Implementation for User Story 2
@@ -122,7 +122,7 @@
 - [X] T039 [US3] Add student list with search in src/components/qd-pin-reset-dialog.ts
 - [X] T040 [US3] Implement PIN reset confirmation in src/components/qd-pin-reset-dialog.ts
 - [X] T041 [US3] Extend instructor status panel with reset button in src/components/qd-instructor-status.ts
-- [ ] T042 [US3] Add Reset PIN button to scores modal in src/components/qd-scores-modal.ts
+- [X] T042 [US3] Add Reset PIN button to scores modal in src/components/qd-instructor-scores.ts
 - [X] T043 [US3] Implement PIN reset in storage service in src/services/storage/indexeddb.ts
 - [X] T044 [US3] Create audit log entry for reset events in src/services/storage/indexeddb.ts
 - [X] T045 [US3] Emit qd:pin-reset event after reset
@@ -141,7 +141,7 @@
 
 - [X] T046 [P] [US4] Unit test for schema detection in tests/unit/migration.test.ts
 - [X] T047 [P] [US4] Unit test for v1→v2 migration in tests/unit/migration.test.ts
-- [ ] T048 [US4] Integration test for migration flow in tests/integration/login-flow.test.ts
+- [X] T048 [US4] Integration test for migration flow in tests/integration/login-flow.test.ts
 - [ ] T049 [P] [US4] E2E test for existing student migration in tests/e2e/pin-migration.spec.ts
 
 ### Implementation for User Story 4
