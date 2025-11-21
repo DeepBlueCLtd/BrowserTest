@@ -105,13 +105,15 @@ if (typeof window !== 'undefined') {
     const domConfig = readDOMConfig();
 
     // Bootstrap with DOM config and debug mode
-    void bootstrap({
+    bootstrap({
       debug: DEBUG_MODE,
       dbName: domConfig.dbName,
       statusPanelContainer: domConfig.statusPanelContainer,
       autoEnhanceQuizTables: true,
       autoEnhanceAnalysisTables: true,
       autoEnhanceHomeBadges: true,
+    }).catch((err) => {
+      console.error('[FATAL] Bootstrap failed:', err);
     });
   };
 

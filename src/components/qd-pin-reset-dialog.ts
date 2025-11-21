@@ -92,9 +92,7 @@ export class QdPinResetDialog extends LitElement {
     }
     const search = this.searchText.toLowerCase().trim();
     return this.students.filter(
-      (s) =>
-        s.name.toLowerCase().includes(search) ||
-        s.serviceId.toLowerCase().includes(search),
+      (s) => s.name.toLowerCase().includes(search) || s.serviceId.toLowerCase().includes(search),
     );
   }
 

@@ -227,6 +227,7 @@ export class QdInstructorScores extends LitElement {
         <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Attempted</th>
         <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Correct</th>
         <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Percentage</th>
+        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">PIN</th>
       </tr>
     `;
     table.appendChild(thead);
@@ -240,17 +241,69 @@ export class QdInstructorScores extends LitElement {
       // Main student row
       const tr = document.createElement('tr');
       tr.style.cssText = 'cursor: pointer; color: #333;';
-      tr.innerHTML = `
-        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">
-          <span style="display: inline-block; width: 16px; margin-right: 4px;">${isExpanded ? '▼' : '▶'}</span>
-          ${summary.name}
-        </td>
-        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">${summary.serviceId}</td>
-        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">${summary.attempted}</td>
-        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; ${summary.correct === summary.attempted ? 'color: #28a745;' : ''}">${summary.correct}</td>
-        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; ${summary.percentage === 100 ? 'color: #28a745;' : summary.percentage === 0 ? 'color: #dc3545;' : ''}">${summary.percentage}%</td>
+
+      // Name cell (clickable for expand)
+      const nameCell = document.createElement('td');
+      nameCell.style.cssText = 'padding: 8px; text-align: left; border-bottom: 1px solid #ddd;';
+      nameCell.innerHTML = `<span style="display: inline-block; width: 16px; margin-right: 4px;">${isExpanded ? '▼' : '▶'}</span>${summary.name}`;
+      nameCell.onclick = () => this.toggleStudent(student.serviceId);
+      tr.appendChild(nameCell);
+
+      // Other data cells (clickable for expand)
+      const serviceIdCell = document.createElement('td');
+      serviceIdCell.style.cssText =
+        'padding: 8px; text-align: left; border-bottom: 1px solid #ddd;';
+      serviceIdCell.textContent = summary.serviceId;
+      serviceIdCell.onclick = () => this.toggleStudent(student.serviceId);
+      tr.appendChild(serviceIdCell);
+
+      const attemptedCell = document.createElement('td');
+      attemptedCell.style.cssText =
+        'padding: 8px; text-align: left; border-bottom: 1px solid #ddd;';
+      attemptedCell.textContent = String(summary.attempted);
+      attemptedCell.onclick = () => this.toggleStudent(student.serviceId);
+      tr.appendChild(attemptedCell);
+
+      const correctCell = document.createElement('td');
+      correctCell.style.cssText = `padding: 8px; text-align: left; border-bottom: 1px solid #ddd; ${summary.correct === summary.attempted ? 'color: #28a745;' : ''}`;
+      correctCell.textContent = String(summary.correct);
+      correctCell.onclick = () => this.toggleStudent(student.serviceId);
+      tr.appendChild(correctCell);
+
+      const percentCell = document.createElement('td');
+      percentCell.style.cssText = `padding: 8px; text-align: left; border-bottom: 1px solid #ddd; ${summary.percentage === 100 ? 'color: #28a745;' : summary.percentage === 0 ? 'color: #dc3545;' : ''}`;
+      percentCell.textContent = `${summary.percentage}%`;
+      percentCell.onclick = () => this.toggleStudent(student.serviceId);
+      tr.appendChild(percentCell);
+
+      // Reset PIN button cell
+      const resetCell = document.createElement('td');
+      resetCell.style.cssText = 'padding: 8px; text-align: left; border-bottom: 1px solid #ddd;';
+      const resetBtn = document.createElement('button');
+      resetBtn.type = 'button';
+      resetBtn.textContent = 'Reset';
+      resetBtn.style.cssText = `
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 3px;
+        font-size: 11px;
+        cursor: pointer;
       `;
-      tr.onclick = () => this.toggleStudent(student.serviceId);
+      resetBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.dispatchEvent(
+          new CustomEvent('reset-pin', {
+            detail: { serviceId: student.serviceId, release: student.release },
+            bubbles: true,
+            composed: true,
+          }),
+        );
+      };
+      resetCell.appendChild(resetBtn);
+      tr.appendChild(resetCell);
+
       tbody.appendChild(tr);
 
       // Expanded details row
@@ -273,7 +326,7 @@ export class QdInstructorScores extends LitElement {
     tr.style.backgroundColor = '#f9f9f9';
 
     const td = document.createElement('td');
-    td.colSpan = 5;
+    td.colSpan = 6;
     td.style.cssText = 'padding: 8px 8px 8px 40px; border-bottom: 1px solid #ddd;';
 
     const pages = Object.entries(student.pages);

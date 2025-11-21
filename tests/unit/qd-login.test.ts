@@ -444,11 +444,16 @@ describe('QdLogin Component', () => {
       const serviceIdInput = element.shadowRoot?.querySelectorAll(
         'input[type="text"]',
       )[1] as HTMLInputElement;
+      const pinInput = element.shadowRoot?.querySelector(
+        'input[type="password"]',
+      ) as HTMLInputElement;
 
       nameInput.value = 'John Doe';
       nameInput.dispatchEvent(new Event('input'));
       serviceIdInput.value = 'RN2344';
       serviceIdInput.dispatchEvent(new Event('input'));
+      pinInput.value = '1234';
+      pinInput.dispatchEvent(new Event('input'));
       await element.updateComplete;
 
       const buttons = element.shadowRoot?.querySelectorAll('button');

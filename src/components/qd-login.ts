@@ -26,7 +26,7 @@ import { SessionService } from '../services/session.js';
 import { CONFIG_IDS } from '../config/dom-config-reader.js';
 import { getStorageAdapter } from '../services/storage/indexeddb.js';
 import { needsMigration, hasPinSet, completePinSetup } from '../services/storage/migration.js';
-import { verifyPin } from '../services/auth/pin-service.js';
+import { verifyPin, hashPin } from '../services/auth/pin-service.js';
 import {
   checkLockout,
   recordFailedAttempt,
@@ -34,7 +34,6 @@ import {
   getRemainingAttempts,
 } from '../services/auth/rate-limiter.js';
 import './qd-build-info.js';
-import './qd-pin-create.js';
 
 /**
  * Login event data
@@ -105,33 +104,16 @@ export class QdLogin extends LitElement {
   private isSubmitting = false;
 
   /**
-   * Whether PIN creation modal is showing
-   */
-  @state()
-  private showPinCreate = false;
-
-  /**
-   * PIN input for returning students
+   * PIN input
    */
   @state()
   private pin = '';
-
-  /**
-   * Whether student needs to enter PIN (has existing record with PIN)
-   */
-  @state()
-  private needsPin = false;
 
   /**
    * Lockout countdown in seconds
    */
   @state()
   private lockoutSeconds = 0;
-
-  /**
-   * Pending student record during PIN creation
-   */
-  private pendingStudent: StudentRecord | null = null;
 
   /**
    * Lockout countdown interval
@@ -181,6 +163,14 @@ export class QdLogin extends LitElement {
       width: 110px;
       min-width: 75px;
       max-width: 110px;
+    }
+
+    input.pin-input {
+      width: 50px;
+      min-width: 50px;
+      max-width: 50px;
+      text-align: center;
+      letter-spacing: 2px;
     }
 
     input:focus {
@@ -408,11 +398,8 @@ export class QdLogin extends LitElement {
     this.instructorError = '';
     this.isSubmitting = false;
     this.showInstructorModal = false;
-    this.showPinCreate = false;
     this.pin = '';
-    this.needsPin = false;
     this.lockoutSeconds = 0;
-    this.pendingStudent = null;
 
     // Clean up lockout interval
     if (this.lockoutInterval) {
@@ -439,7 +426,7 @@ export class QdLogin extends LitElement {
             placeholder="Name (J Smith)"
             .value=${this.name}
             @input=${(e: Event) => this.handleNameInput(e)}
-            ?disabled=${this.isSubmitting || this.needsPin}
+            ?disabled=${this.isSubmitting}
             required
           />
 
@@ -449,31 +436,27 @@ export class QdLogin extends LitElement {
             placeholder="Service ID (30012345)"
             .value=${this.serviceId}
             @input=${(e: Event) => this.handleServiceIdInput(e)}
-            ?disabled=${this.isSubmitting || this.needsPin}
+            ?disabled=${this.isSubmitting}
             pattern="[A-Za-z0-9]{2,10}"
             title="2-10 alphanumeric characters"
             required
           />
 
-          ${this.needsPin
-            ? html`
-                <input
-                  type="password"
-                  name="pin"
-                  class="pin-input"
-                  placeholder="PIN"
-                  inputmode="numeric"
-                  pattern="[0-9]*"
-                  maxlength="4"
-                  autocomplete="off"
-                  aria-label="Enter your 4-digit PIN"
-                  .value=${this.pin}
-                  @input=${(e: Event) => this.handlePinInput(e)}
-                  ?disabled=${this.isSubmitting || this.lockoutSeconds > 0}
-                  required
-                />
-              `
-            : ''}
+          <input
+            type="password"
+            name="pin"
+            class="pin-input"
+            placeholder="PIN"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            maxlength="4"
+            autocomplete="off"
+            aria-label="Enter your 4-digit PIN"
+            .value=${this.pin}
+            @input=${(e: Event) => this.handlePinInput(e)}
+            ?disabled=${this.isSubmitting || this.lockoutSeconds > 0}
+            required
+          />
 
           <button
             type="submit"
@@ -494,24 +477,12 @@ export class QdLogin extends LitElement {
 
           ${this.errorMessage ? html`<div class="error-message">${this.errorMessage}</div>` : ''}
           ${this.lockoutSeconds > 0
-            ? html`<div
-                class="lockout-message"
-                role="alert"
-                aria-live="polite"
-                aria-atomic="true"
-              >
+            ? html`<div class="lockout-message" role="alert" aria-live="polite" aria-atomic="true">
                 Too many attempts. Try again in ${this.lockoutSeconds}s
               </div>`
             : ''}
         </form>
       </div>
-
-      ${this.showPinCreate
-        ? html`<qd-pin-create
-            @qd:pin-created=${this.handlePinCreated}
-            @qd:pin-cancelled=${this.handlePinCancelled}
-          ></qd-pin-create>`
-        : ''}
     `;
   }
 
@@ -711,9 +682,6 @@ export class QdLogin extends LitElement {
     const input = e.target as HTMLInputElement;
     this.serviceId = input.value;
     this.errorMessage = '';
-    // Reset PIN state when service ID changes
-    this.needsPin = false;
-    this.pin = '';
   }
 
   /**
@@ -740,8 +708,8 @@ export class QdLogin extends LitElement {
     const serviceIdPattern = /^[A-Za-z0-9]{2,10}$/;
     if (!serviceIdPattern.test(serviceId)) return false;
 
-    // PIN: if needed, must be 4 digits
-    if (this.needsPin && this.pin.length !== 4) return false;
+    // PIN: must be 4 digits
+    if (this.pin.length !== 4) return false;
 
     return true;
   }
@@ -767,7 +735,7 @@ export class QdLogin extends LitElement {
     e.preventDefault();
 
     if (!this.isValid()) {
-      this.errorMessage = 'Please enter valid name and service ID (2-10 alphanumeric)';
+      this.errorMessage = 'Please enter name, service ID, and 4-digit PIN';
       return;
     }
 
@@ -799,24 +767,29 @@ export class QdLogin extends LitElement {
       const existingStudent = await storage.getStudent(release, serviceId);
 
       if (existingStudent) {
-        // Check if student needs migration (v1 without PIN)
+        // Check if student needs PIN setup (migration or no PIN)
         if (needsMigration(existingStudent) || !hasPinSet(existingStudent)) {
-          // Student exists but has no PIN - trigger PIN creation
-          this.pendingStudent = existingStudent;
-          this.showPinCreate = true;
-          this.isSubmitting = false;
+          // Hash the entered PIN and update student
+          const pinHash = await hashPin(this.pin);
+          const updatedStudent = completePinSetup(existingStudent, pinHash);
+          await storage.saveStudent(updatedStudent);
+
+          // Emit PIN created event
+          this.dispatchEvent(
+            new CustomEvent('qd:pin-created', {
+              detail: { serviceId, timestamp: new Date().toISOString() },
+              bubbles: true,
+              composed: true,
+            }),
+          );
+
+          // Show confirmation and complete login
+          this.showPinStoredConfirmation();
+          this.completeLogin(serviceId, name, release);
           return;
         }
 
-        // Student has PIN - check if we need to verify it
-        if (!this.needsPin) {
-          // First time seeing this student, show PIN field
-          this.needsPin = true;
-          this.isSubmitting = false;
-          return;
-        }
-
-        // Verify the PIN
+        // Existing student with PIN - verify it
         const isValid = await verifyPin(this.pin, existingStudent.pinHash || '');
         if (!isValid) {
           // Record failed attempt
@@ -837,19 +810,16 @@ export class QdLogin extends LitElement {
 
         // PIN verified - clear rate limit and emit event
         clearAttemptState(serviceId);
-
-        // Emit PIN verified event
-        const pinVerifiedEvent = new CustomEvent('qd:pin-verified', {
-          detail: {
-            serviceId,
-            timestamp: new Date().toISOString(),
-          },
-          bubbles: true,
-          composed: true,
-        });
-        this.dispatchEvent(pinVerifiedEvent);
+        this.dispatchEvent(
+          new CustomEvent('qd:pin-verified', {
+            detail: { serviceId, timestamp: new Date().toISOString() },
+            bubbles: true,
+            composed: true,
+          }),
+        );
       } else {
-        // New student - trigger PIN creation
+        // New student - hash PIN and create record
+        const pinHash = await hashPin(this.pin);
         const newStudent: StudentRecord = {
           schema: SCHEMA_VERSION,
           docId: '',
@@ -860,10 +830,23 @@ export class QdLogin extends LitElement {
           correct: 0,
           updated: new Date().toISOString(),
           pages: {},
+          pinHash,
+          pinCreatedAt: new Date().toISOString(),
         };
-        this.pendingStudent = newStudent;
-        this.showPinCreate = true;
-        this.isSubmitting = false;
+        await storage.saveStudent(newStudent);
+
+        // Emit PIN created event
+        this.dispatchEvent(
+          new CustomEvent('qd:pin-created', {
+            detail: { serviceId, timestamp: new Date().toISOString() },
+            bubbles: true,
+            composed: true,
+          }),
+        );
+
+        // Show confirmation and complete login
+        this.showPinStoredConfirmation();
+        this.completeLogin(serviceId, name, release);
         return;
       }
 
@@ -874,6 +857,77 @@ export class QdLogin extends LitElement {
       console.error('Student login error:', err);
       this.isSubmitting = false;
     }
+  }
+
+  /**
+   * Show confirmation popup that PIN has been stored
+   */
+  private showPinStoredConfirmation(): void {
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+    `;
+
+    // Create modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      max-width: 320px;
+      text-align: center;
+      font-family: system-ui, -apple-system, sans-serif;
+    `;
+
+    modal.innerHTML = `
+      <div style="font-size: 32px; margin-bottom: 12px;">✓</div>
+      <h3 style="margin: 0 0 8px 0; font-size: 16px;">PIN Stored</h3>
+      <p style="margin: 0 0 16px 0; font-size: 13px; color: #666;">
+        Your PIN has been saved. Use it with your name and service ID on future logins.
+      </p>
+      <button style="
+        background: #0066cc;
+        color: white;
+        border: none;
+        padding: 8px 24px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+      ">OK</button>
+    `;
+
+    // Close on button click
+    const button = modal.querySelector('button');
+    button?.addEventListener('click', () => {
+      document.body.removeChild(overlay);
+    });
+
+    // Close on overlay click
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        document.body.removeChild(overlay);
+      }
+    });
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    // Auto-close after 3 seconds
+    setTimeout(() => {
+      if (document.body.contains(overlay)) {
+        document.body.removeChild(overlay);
+      }
+    }, 3000);
   }
 
   /**
@@ -899,59 +953,6 @@ export class QdLogin extends LitElement {
   }
 
   /**
-   * Handle successful PIN creation
-   */
-  private handlePinCreated = async (e: CustomEvent<{ pinHash: string }>) => {
-    const { pinHash } = e.detail;
-
-    if (!this.pendingStudent) {
-      this.errorMessage = 'Internal error: no pending student';
-      this.showPinCreate = false;
-      return;
-    }
-
-    try {
-      // Complete PIN setup
-      const updatedStudent = completePinSetup(this.pendingStudent, pinHash);
-
-      // Save to storage
-      const storage = getStorageAdapter();
-      await storage.init();
-      await storage.saveStudent(updatedStudent);
-
-      // Emit PIN created event
-      const pinEvent = new CustomEvent('qd:pin-created', {
-        detail: {
-          serviceId: updatedStudent.serviceId,
-          timestamp: new Date().toISOString(),
-        },
-        bubbles: true,
-        composed: true,
-      });
-      this.dispatchEvent(pinEvent);
-
-      // Complete login
-      this.showPinCreate = false;
-      this.completeLogin(updatedStudent.serviceId, updatedStudent.name, updatedStudent.release);
-    } catch (err) {
-      this.errorMessage = 'Failed to save PIN. Please try again.';
-      console.error('PIN save error:', err);
-      this.showPinCreate = false;
-      this.isSubmitting = false;
-    }
-  };
-
-  /**
-   * Handle PIN creation cancelled
-   */
-  private handlePinCancelled = () => {
-    this.showPinCreate = false;
-    this.pendingStudent = null;
-    this.isSubmitting = false;
-    // Don't show error - just return to login form
-  };
-
-  /**
    * Complete the login process
    */
   private completeLogin(serviceId: string, name: string, release: string): void {
@@ -975,8 +976,6 @@ export class QdLogin extends LitElement {
 
     // Reset state
     this.pin = '';
-    this.needsPin = false;
-    this.pendingStudent = null;
     this.isSubmitting = false;
 
     // Hide component on successful login

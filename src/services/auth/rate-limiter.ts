@@ -7,6 +7,7 @@
 
 import type { PinAttemptState, ServiceId } from '../../types/contracts.js';
 import { PIN_CONSTANTS, STORAGE_KEYS } from '../../types/contracts.js';
+import { info, warn, maskServiceId } from '../../utils/logger.js';
 
 /**
  * Get the storage key for a service ID's PIN attempts
@@ -86,6 +87,13 @@ export function recordFailedAttempt(serviceId: ServiceId): PinAttemptState {
   if (state.attempts >= PIN_CONSTANTS.MAX_ATTEMPTS) {
     const lockoutTime = new Date(Date.now() + PIN_CONSTANTS.LOCKOUT_MS);
     state.lockoutUntil = lockoutTime.toISOString();
+    warn(
+      `PIN lockout triggered for ${maskServiceId(serviceId)} after ${state.attempts} failed attempts`,
+    );
+  } else {
+    info(
+      `Failed PIN attempt ${state.attempts}/${PIN_CONSTANTS.MAX_ATTEMPTS} for ${maskServiceId(serviceId)}`,
+    );
   }
 
   // Save to sessionStorage
@@ -101,6 +109,12 @@ export function recordFailedAttempt(serviceId: ServiceId): PinAttemptState {
  * @param serviceId - Student service ID
  */
 export function clearAttemptState(serviceId: ServiceId): void {
+  const state = getAttemptState(serviceId);
+  if (state && state.attempts > 0) {
+    info(
+      `Cleared ${state.attempts} failed PIN attempts for ${maskServiceId(serviceId)} on successful login`,
+    );
+  }
   const key = getAttemptKey(serviceId);
   sessionStorage.removeItem(key);
 }

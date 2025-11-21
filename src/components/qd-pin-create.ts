@@ -11,7 +11,11 @@
 
 import { LitElement, html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { hashPin, validatePinFormat, validatePinConfirmation } from '../services/auth/pin-service.js';
+import {
+  hashPin,
+  validatePinFormat,
+  validatePinConfirmation,
+} from '../services/auth/pin-service.js';
 import { PIN_CONSTANTS } from '../types/contracts.js';
 
 @customElement('qd-pin-create')
@@ -43,7 +47,10 @@ export class QdPinCreate extends LitElement {
   static styles = css`
     :host {
       display: block;
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
     }
 
     .modal-overlay {
@@ -199,8 +206,8 @@ export class QdPinCreate extends LitElement {
           <div class="modal-header">
             <h3 class="modal-title">Create Your PIN</h3>
             <p class="modal-description">
-              Create a ${PIN_CONSTANTS.PIN_LENGTH}-digit PIN to protect your quiz data.
-              You'll need this PIN each time you log in.
+              Create a ${PIN_CONSTANTS.PIN_LENGTH}-digit PIN to protect your quiz data. You'll need
+              this PIN each time you log in.
             </p>
           </div>
 
@@ -245,9 +252,7 @@ export class QdPinCreate extends LitElement {
               />
             </div>
 
-            ${this.errorMessage
-              ? html`<div class="error-message">${this.errorMessage}</div>`
-              : ''}
+            ${this.errorMessage ? html`<div class="error-message">${this.errorMessage}</div>` : ''}
 
             <div class="modal-footer">
               <button

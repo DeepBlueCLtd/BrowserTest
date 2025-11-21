@@ -22,7 +22,7 @@ import {
   StorageError,
   StorageQuotaError,
 } from './adapter-utils.js';
-import { info, warn as logWarn, error as logError } from '../../utils/logger.js';
+import { warn as logWarn, error as logError } from '../../utils/logger.js';
 
 /** Default database name */
 const DEFAULT_DB_NAME = 'BrowserTest';
@@ -88,19 +88,69 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     }
 
     this.initPromise = new Promise<void>((resolve, reject) => {
+      // Timeout for hung database operations
+      const OPEN_TIMEOUT_MS = 5000;
+      let timeoutId: number | undefined;
+      let resolved = false;
+
+      const cleanup = () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = undefined;
+        }
+      };
+
+      timeoutId = window.setTimeout(() => {
+        if (resolved) return;
+        resolved = true;
+        this.initPromise = null;
+
+        logWarn(`IndexedDB open timed out after ${OPEN_TIMEOUT_MS}ms - attempting recovery`);
+
+        // Try to delete and recreate
+        const deleteReq = indexedDB.deleteDatabase(this.dbName);
+        deleteReq.onsuccess = () => {
+          this.init().then(resolve).catch(reject);
+        };
+        deleteReq.onerror = () => {
+          reject(
+            new StorageError(
+              `Database "${this.dbName}" appears corrupted. Please clear site data in browser settings.`,
+              'init',
+            ),
+          );
+        };
+        deleteReq.onblocked = () => {
+          reject(
+            new StorageError(
+              `Cannot recover database - close all other tabs with this site and reload.`,
+              'init',
+            ),
+          );
+        };
+      }, OPEN_TIMEOUT_MS);
+
       const request = indexedDB.open(this.dbName, DB_VERSION);
 
       request.onerror = () => {
+        if (resolved) return;
+        resolved = true;
+        cleanup();
+        logError(`IndexedDB open error: ${request.error?.message || 'unknown'}`);
         this.initPromise = null;
         reject(new StorageError('Failed to open database', 'init', request.error as Error));
       };
 
-      request.onsuccess = () => {
-        this.db = request.result;
+      request.onblocked = () => {
+        logWarn('IndexedDB open blocked - close other tabs with this database');
+      };
 
-        info(
-          `IndexedDB opened: ${this.dbName} v${this.db.version}, stores: [${Array.from(this.db.objectStoreNames).join(', ')}]`,
-        );
+      request.onsuccess = () => {
+        if (resolved) return;
+        resolved = true;
+        cleanup();
+
+        this.db = request.result;
 
         // Verify object stores exist - if not, database is corrupted
         if (
@@ -118,7 +168,6 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
           // Delete corrupted database
           const deleteRequest = indexedDB.deleteDatabase(this.dbName);
           deleteRequest.onsuccess = () => {
-            logWarn('Corrupted database deleted, retrying init...');
             // Retry initialization
             this.initPromise = null;
             this.init().then(resolve).catch(reject);
@@ -141,64 +190,45 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
       };
 
       request.onupgradeneeded = (event) => {
-        const upgradeEvent = event;
         const db = (event.target as IDBOpenDBRequest).result;
+        const transaction = (event.target as IDBOpenDBRequest).transaction;
 
-        info(
-          `IndexedDB upgrade: ${this.dbName} v${upgradeEvent.oldVersion} → v${upgradeEvent.newVersion}`,
-        );
+        if (transaction) {
+          transaction.onerror = () => {
+            logError(`Upgrade transaction error: ${transaction.error?.message || 'unknown'}`);
+          };
+          transaction.onabort = () => {
+            logError(`Upgrade transaction aborted: ${transaction.error?.message || 'unknown'}`);
+          };
+        }
 
         try {
           // Create students object store
           if (!db.objectStoreNames.contains(STORE_STUDENTS)) {
-            info('Creating students object store...');
             const studentsStore = db.createObjectStore(STORE_STUDENTS, { keyPath: null });
-
-            // Create indexes for efficient queries
             studentsStore.createIndex('by-release', 'release', { unique: false });
             studentsStore.createIndex('by-service-id', 'serviceId', { unique: false });
-            info('Students store created with indexes');
-          } else {
-            info('Students store already exists, skipping');
           }
 
           // Create backups object store
           if (!db.objectStoreNames.contains(STORE_BACKUPS)) {
-            info('Creating backups object store...');
             const backupsStore = db.createObjectStore(STORE_BACKUPS, { keyPath: null });
-
-            // Create indexes for backup queries
             backupsStore.createIndex('by-original-key', 'originalKey', { unique: false });
             backupsStore.createIndex('by-timestamp', 'timestamp', { unique: false });
-            info('Backups store created with indexes');
-          } else {
-            info('Backups store already exists, skipping');
           }
 
           // Create audit log object store (v3 - PIN reset events)
           if (!db.objectStoreNames.contains(STORE_AUDIT_LOG)) {
-            info('Creating auditLog object store...');
             const auditStore = db.createObjectStore(STORE_AUDIT_LOG, {
               keyPath: 'eventId',
             });
-
-            // Create indexes for audit queries
             auditStore.createIndex('by-service-id', 'serviceId', { unique: false });
             auditStore.createIndex('by-reset-at', 'resetAt', { unique: false });
-            info('AuditLog store created with indexes');
-          } else {
-            info('AuditLog store already exists, skipping');
           }
-
-          info(`Upgrade complete. Stores: [${Array.from(db.objectStoreNames).join(', ')}]`);
         } catch (err) {
           logError('Error during database upgrade', err as Error);
           throw err;
         }
-      };
-
-      request.onblocked = () => {
-        logWarn('IndexedDB upgrade blocked by another connection');
       };
     });
 
