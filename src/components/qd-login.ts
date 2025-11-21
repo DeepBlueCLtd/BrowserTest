@@ -91,7 +91,6 @@ export class QdLogin extends LitElement {
   @state()
   private errorMessage = '';
 
-
   /**
    * Whether form is currently submitting
    */
