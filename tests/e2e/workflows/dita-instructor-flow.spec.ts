@@ -228,9 +228,7 @@ test.describe('DITA Instructor Flow', () => {
     await page.waitForTimeout(300);
 
     // Verify inline error message is displayed
-    const errorMessage = page.locator('body > div[style*="position: fixed"] div').filter({
-      hasText: 'Incorrect password',
-    });
+    const errorMessage = page.locator('#qd-instructor-modal-error');
     await expect(errorMessage).toBeVisible({ timeout: 2000 });
 
     // Verify password field is cleared
