@@ -354,6 +354,7 @@ const ot=e=>(t,n)=>{void 0!==n?n.addInitializer(()=>{customElements.define(e,t)}
             ${this.name} **${e}
           </span>
           <button class="logout-button" @click=${()=>this.handleLogout()}>Logout</button>
+          <qd-build-info></qd-build-info>
         </div>
         <div class="bottom-row">
           <div class="status-indicator ${this.statusColor}"></div>
@@ -361,7 +362,6 @@ const ot=e=>(t,n)=>{void 0!==n?n.addInitializer(()=>{customElements.define(e,t)}
             ${this.correct}/${this.total} Correct (${this.percentage}%)
           </div>
         </div>
-        <qd-build-info></qd-build-info>
       </div>
     `}loadCache(){const e=w(l.SESSION);e?(this.name=e.name||"",this.serviceId=e.serviceId||""):(this.name="",this.serviceId="");const t=w(l.CACHE);if(!t)return this.total=0,this.correct=0,this.percentage=0,void(this.statusColor="red");this.total=t.totals.total,this.correct=t.totals.correct,this.percentage=this.calculatePercentage(t.totals.total,t.totals.correct),this.statusColor=this.calculateStatusColor(t.totals.total,t.totals.correct)}calculatePercentage(e,t){return 0===e?0:Math.round(t/e*100)}calculateStatusColor(e,t){return 0===e||0===t?"red":t===e?"green":"amber"}updateVisibility(){const e=w(l.SESSION),t="true"===sessionStorage.getItem(l.INSTRUCTOR);e&&!t?this.setAttribute("data-show",""):this.removeAttribute("data-show")}handleLogout(){const e=w(l.SESSION);(new SessionService).clearSession();const t=new CustomEvent("qd:logout",{detail:{serviceId:e?.serviceId||"unknown"},bubbles:!0,composed:!0});this.dispatchEvent(t)}};At.styles=le`
     :host {
