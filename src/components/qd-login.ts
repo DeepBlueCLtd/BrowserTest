@@ -469,6 +469,7 @@ export class QdLogin extends LitElement {
     bodyDiv.style.marginBottom = '20px';
 
     const input = document.createElement('input');
+    input.id = 'qd-instructor-password';
     input.type = 'password';
     input.placeholder = 'Password';
     input.required = true;
@@ -529,6 +530,7 @@ export class QdLogin extends LitElement {
     cancelBtn.onclick = () => this.closeInstructorModal();
 
     const loginBtn = document.createElement('button');
+    loginBtn.id = 'qd-instructor-submit';
     loginBtn.textContent = 'Login';
     loginBtn.type = 'submit';
     loginBtn.style.cssText = `
