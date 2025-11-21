@@ -2888,15 +2888,15 @@ let QdLogin = class extends i {
     this.instructorPassword = "";
     this.showInstructorModal = false;
     this.modalOverlay = null;
+    this.modalErrorDiv = null;
+    this.modalPasswordInput = null;
     this.errorMessage = "";
-    this.instructorError = "";
     this.isSubmitting = false;
     this.handleLogoutEvent = () => {
       this.name = "";
       this.serviceId = "";
       this.instructorPassword = "";
       this.errorMessage = "";
-      this.instructorError = "";
       this.isSubmitting = false;
       this.showInstructorModal = false;
       this.cleanupModal();
@@ -2928,6 +2928,8 @@ let QdLogin = class extends i {
       this.modalOverlay.remove();
       this.modalOverlay = null;
     }
+    this.modalErrorDiv = null;
+    this.modalPasswordInput = null;
   }
   /**
    * Lifecycle: Called after first render completes (shadow DOM ready)
@@ -3075,25 +3077,27 @@ let QdLogin = class extends i {
     `;
     input.oninput = (e2) => {
       this.instructorPassword = e2.target.value;
-      this.instructorError = "";
-      if (errorDiv) errorDiv.remove();
+      if (this.modalErrorDiv) {
+        this.modalErrorDiv.style.display = "none";
+        this.modalErrorDiv.textContent = "";
+      }
     };
     bodyDiv.appendChild(input);
-    let errorDiv = null;
-    if (this.instructorError) {
-      errorDiv = document.createElement("div");
-      errorDiv.textContent = this.instructorError;
-      errorDiv.style.cssText = `
-        color: #d32f2f;
-        font-size: 11px;
-        margin-top: 3px;
-        padding: 4px 8px;
-        background: #ffebee;
-        border-radius: 3px;
-        border-left: 3px solid #d32f2f;
-      `;
-      bodyDiv.appendChild(errorDiv);
-    }
+    this.modalPasswordInput = input;
+    const errorDiv = document.createElement("div");
+    errorDiv.id = "qd-instructor-modal-error";
+    errorDiv.style.cssText = `
+      color: #d32f2f;
+      font-size: 11px;
+      margin-top: 8px;
+      padding: 4px 8px;
+      background: #ffebee;
+      border-radius: 3px;
+      border-left: 3px solid #d32f2f;
+      display: none;
+    `;
+    bodyDiv.appendChild(errorDiv);
+    this.modalErrorDiv = errorDiv;
     const footer = document.createElement("div");
     footer.style.cssText = `display: flex; gap: 8px; justify-content: flex-end;`;
     const cancelBtn = document.createElement("button");
@@ -3230,7 +3234,6 @@ let QdLogin = class extends i {
   openInstructorModal() {
     this.showInstructorModal = true;
     this.instructorPassword = "";
-    this.instructorError = "";
     this.renderInstructorModalToBody();
   }
   /**
@@ -3239,7 +3242,6 @@ let QdLogin = class extends i {
   closeInstructorModal() {
     this.showInstructorModal = false;
     this.instructorPassword = "";
-    this.instructorError = "";
     this.cleanupModal();
   }
   /**
@@ -3260,24 +3262,37 @@ let QdLogin = class extends i {
     return hashElement?.textContent?.trim() || "";
   }
   /**
+   * Show error in modal
+   */
+  showModalError(message) {
+    if (this.modalErrorDiv) {
+      this.modalErrorDiv.textContent = message;
+      this.modalErrorDiv.style.display = "block";
+    }
+  }
+  /**
    * Handle instructor login
    */
   async handleInstructorLogin(e2) {
     e2.preventDefault();
     if (!this.instructorPassword) {
-      this.instructorError = "Password is required";
+      this.showModalError("Password is required");
       return;
     }
     try {
       const passwordHash = await this.hashPassword(this.instructorPassword);
       const expectedHash = this.getExpectedHash();
       if (!expectedHash) {
-        this.instructorError = "Instructor password not configured";
+        this.showModalError("Instructor password not configured");
         return;
       }
       if (passwordHash !== expectedHash) {
-        this.instructorError = "Incorrect password";
+        this.showModalError("Incorrect password");
         this.instructorPassword = "";
+        if (this.modalPasswordInput) {
+          this.modalPasswordInput.value = "";
+          this.modalPasswordInput.focus();
+        }
         return;
       }
       const release = this.getRelease();
@@ -3299,7 +3314,7 @@ let QdLogin = class extends i {
       this.closeInstructorModal();
       this.updateVisibility();
     } catch (err) {
-      this.instructorError = "Login failed. Please try again.";
+      this.showModalError("Login failed. Please try again.");
       console.error("Instructor login error:", err);
     }
   }
@@ -3512,9 +3527,6 @@ __decorateClass$7([
 __decorateClass$7([
   r()
 ], QdLogin.prototype, "errorMessage", 2);
-__decorateClass$7([
-  r()
-], QdLogin.prototype, "instructorError", 2);
 __decorateClass$7([
   r()
 ], QdLogin.prototype, "isSubmitting", 2);
