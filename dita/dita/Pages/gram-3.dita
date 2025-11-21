@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<topic id="gram1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<topic id="Untitled" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="urn:oasis:names:tc:dita:xsd:topic.xsd">
     <title>Gram Analysis 3</title>
     <body>
+        <p>Note: this page contains two grams</p>
         <p>Advanced spectrogram analysis exercise. Analyze multiple contacts and environmental conditions.</p>
-        <section id="section_r1z_rym_bgc">
+        <section id="gram">
             <title>Gram</title>
-            <table frame="all" rowsep="1" colsep="1" id="table_uyb_bym_bgc"
+            <table frame="all" rowsep="1" colsep="1" id="gram3223"
                 outputclass="gram-config">
                 <tgroup cols="2" align="center">
                     <colspec colname="c1" colnum="1" colwidth="1*"/>
@@ -37,9 +38,40 @@
                     </tbody>
                 </tgroup>
             </table>
+            <table frame="all" rowsep="1" colsep="1" id="gram2"
+                outputclass="gram-config">
+                <tgroup cols="2" align="center">
+                    <colspec colname="c1" colnum="1" colwidth="1*"/>
+                    <colspec colname="c2" colnum="2" colwidth="1*"/>
+                    <tbody>
+                        <row>
+                            <entry namest="c1" nameend="c2">
+                                <image placement="break" href="images/gram-1.png" align="center"
+                                    id="image_svr_dym_bgc2"/>
+                            </entry>
+                        </row>
+                        <row>
+                            <entry>time-start</entry>
+                            <entry>0</entry>
+                        </row>
+                        <row>
+                            <entry>time-end</entry>
+                            <entry>40</entry>
+                        </row>
+                        <row>
+                            <entry>freq-start</entry>
+                            <entry>100</entry>
+                        </row>
+                        <row>
+                            <entry>freq-end</entry>
+                            <entry>300</entry>
+                        </row>
+                    </tbody>
+                </tgroup>
+            </table>
         </section>
-        <section id="section_zmv_tym_bgc">
-            <title>Comprehensive Analysis</title>
+        <section id="analysis">
+            <title>Analysis</title>
             <p>Complete your comprehensive analysis based on the spectrogram above:</p>
             <simpletable frame="all" relcolwidth="1.5* 3.0*" outputclass="qd-analysis">
                 <strow>
@@ -68,5 +100,31 @@
                 </strow>
             </simpletable>
         </section>
+        <section id="assessment">
+            <title>Assessment</title>
+            <p>Summarise your analysis by answering the following quetsions</p>
+            <simpletable frame="all" relcolwidth="2.0* 0.5* 2.5*" outputclass="qd-quiz">
+                <sthead>
+                    <stentry>Question</stentry>
+                    <stentry>Answer</stentry>
+                    <stentry>Options</stentry>
+                </sthead>
+                <strow>
+                    <stentry>What is the maximum temperature reached</stentry>
+                    <stentry>22</stentry>
+                    <stentry>4</stentry>
+                </strow>
+                <strow>
+                    <stentry>How many seconds was the peak level observed for?</stentry>
+                    <stentry>6</stentry>
+                    <stentry>1</stentry>
+                </strow>
+            </simpletable>
+        </section>
     </body>
+    <related-links>
+        <link href="#Untitled/gram"/>
+        <link href="#Untitled/analysis"/>
+        <link href="#Untitled/assessment"/>
+    </related-links>
 </topic>

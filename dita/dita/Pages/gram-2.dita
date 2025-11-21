@@ -4,7 +4,7 @@
     <title>Gram Analysis 2<ph audience="-trainee"> - Spirit of Whale Island</ph></title>
     <body>
         <p>Note: this is Gram 2 - LOFAR 1. Analyze the LOFAR gram and complete your assessment.</p>
-        <section id="section_r1z_rym_bgc">
+        <section id="gram">
             <title>Gram</title>
             <table frame="all" rowsep="1" colsep="1" id="table_uyb_bym_bgc"
                 outputclass="gram-config">
@@ -38,7 +38,7 @@
                 </tgroup>
             </table>
         </section>
-        <section id="section_zmv_tym_bgc">
+        <section id="analysis">
             <title>Analysis</title>
             <p>Complete your LOFAR analysis based on the spectrogram above:</p>
             <simpletable frame="all" relcolwidth="1.5* 3.0*" outputclass="qd-analysis">
@@ -64,5 +64,31 @@
                 </strow>
             </simpletable>
         </section>
+        <section id="assessment">
+            <title>Assessment</title>
+            <p>Summarise your analysis by answering the following quetsions</p>
+            <simpletable frame="all" relcolwidth="2.0* 0.5* 2.5*" outputclass="qd-quiz">
+                <sthead>
+                    <stentry>Question</stentry>
+                    <stentry>Answer</stentry>
+                    <stentry>Options</stentry>
+                </sthead>
+                <strow>
+                    <stentry>What is the maximum temperature reached</stentry>
+                    <stentry>22</stentry>
+                    <stentry>4</stentry>
+                </strow>
+                <strow>
+                    <stentry>How many seconds was the peak level observed for?</stentry>
+                    <stentry>6</stentry>
+                    <stentry>1</stentry>
+                </strow>
+            </simpletable>
+        </section>
     </body>
+    <related-links>
+        <link href="#Untitled/gram"/>
+        <link href="#Untitled/analysis"/>
+        <link href="#Untitled/assessment"/>
+    </related-links>
 </topic>
