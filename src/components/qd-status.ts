@@ -19,6 +19,7 @@ import { STORAGE_KEYS } from '../types/contracts.js';
 import type { SessionCache, SessionData } from '../types/contracts.js';
 import { getJSON } from '../utils/storage-helpers.js';
 import { SessionService } from '../services/session.js';
+import './qd-build-info.js';
 
 /**
  * Status panel component for student progress tracking
@@ -147,6 +148,7 @@ export class QdStatus extends LitElement {
         <div class="progress-label">Progress:</div>
         <div class="progress-text">${this.correct}/${this.total} Correct (${this.percentage}%)</div>
         <button class="logout-button" @click=${() => this.handleLogout()}>Logout</button>
+        <qd-build-info></qd-build-info>
       </div>
     `;
   }

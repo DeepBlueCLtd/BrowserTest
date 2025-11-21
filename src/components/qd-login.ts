@@ -24,6 +24,7 @@ import type { SessionData } from '../types/contracts.js';
 import { getJSON } from '../utils/storage-helpers.js';
 import { SessionService } from '../services/session.js';
 import { CONFIG_IDS } from '../config/dom-config-reader.js';
+import './qd-build-info.js';
 
 /**
  * Login event data
@@ -351,7 +352,7 @@ export class QdLogin extends LitElement {
   render() {
     return html`
       <div class="login-container">
-        <div class="title">${this.title}</div>
+        <div class="title">${this.title} <qd-build-info></qd-build-info></div>
 
         <form class="login-form" @submit=${(e: Event) => this.handleStudentLogin(e)}>
           <input
