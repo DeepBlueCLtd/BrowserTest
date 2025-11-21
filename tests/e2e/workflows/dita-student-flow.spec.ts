@@ -371,4 +371,142 @@ test.describe('DITA Student Flow', () => {
     const content = await reloadedCell.textContent();
     expect(content).toContain('Test analysis entry');
   });
+
+  // Task 3: Quiz Table Structure Tests
+  test('Structure: MCQ quiz table hides detail column and secures answers', async ({ page }) => {
+    // Login
+    const loginForm = page.locator('qd-login');
+    await loginForm.locator('input[name="serviceId"]').fill('STRUCT01');
+    await loginForm.locator('input[name="name"]').fill('Structure Test');
+    await loginForm.locator('button[type="submit"]').click();
+    await page.locator('qd-status').waitFor();
+
+    // Navigate to MCQ quiz page
+    await page.click('a.quizPageBtn[href*="quiz-mcq"]');
+    await page.waitForURL(/quiz-mcq\.html/);
+    await waitForBootstrap(page);
+
+    const quizTable = page.locator('table.qd-quiz');
+    await expect(quizTable).toBeVisible();
+
+    // Get header row
+    const headerRow = quizTable.locator('thead tr');
+    const headerCells = headerRow.locator('th');
+
+    // Table should have 3 columns: Question, Answer, Detail
+    const cellCount = await headerCells.count();
+    expect(cellCount).toBe(3);
+
+    // Detail column (3rd) should be hidden - contains MCQ options/tolerances
+    const detailHeader = headerCells.nth(2);
+    await expect(detailHeader).toHaveClass(/qd-hidden/);
+
+    // Verify body cells in detail column are also hidden
+    const firstBodyRow = quizTable.locator('tbody tr').first();
+    const bodyCells = firstBodyRow.locator('td');
+    await expect(bodyCells.nth(2)).toHaveClass(/qd-hidden/);
+
+    // Answer column (2nd) is visible in interactive mode but contains input controls
+    // Original answer text should be replaced - verify it contains a select element
+    const answerCell = bodyCells.nth(1);
+    await expect(answerCell).not.toHaveClass(/qd-hidden/);
+    const inputControl = answerCell.locator('.qd-quiz-input');
+    await expect(inputControl).toBeVisible();
+  });
+
+  test('Structure: Numeric quiz table hides detail column and secures answers', async ({
+    page,
+  }) => {
+    // Login
+    const loginForm = page.locator('qd-login');
+    await loginForm.locator('input[name="serviceId"]').fill('STRUCT02');
+    await loginForm.locator('input[name="name"]').fill('Structure Test 2');
+    await loginForm.locator('button[type="submit"]').click();
+    await page.locator('qd-status').waitFor();
+
+    // Navigate to numeric quiz page
+    await page.click('a.quizPageBtn[href*="quiz-numeric"]');
+    await page.waitForURL(/quiz-numeric\.html/);
+    await waitForBootstrap(page);
+
+    const quizTable = page.locator('table.qd-quiz');
+    await expect(quizTable).toBeVisible();
+
+    // Get header row
+    const headerRow = quizTable.locator('thead tr');
+    const headerCells = headerRow.locator('th');
+
+    // Detail column (3rd) should be hidden - contains tolerances
+    const detailHeader = headerCells.nth(2);
+    await expect(detailHeader).toHaveClass(/qd-hidden/);
+
+    // Answer column (2nd) is visible in interactive mode but contains input controls
+    const firstBodyRow = quizTable.locator('tbody tr').first();
+    const bodyCells = firstBodyRow.locator('td');
+    const answerCell = bodyCells.nth(1);
+    await expect(answerCell).not.toHaveClass(/qd-hidden/);
+    const inputControl = answerCell.locator('.qd-quiz-input');
+    await expect(inputControl).toBeVisible();
+  });
+
+  test('Structure: MCQ questions render as select elements', async ({ page }) => {
+    // Login
+    const loginForm = page.locator('qd-login');
+    await loginForm.locator('input[name="serviceId"]').fill('STRUCT03');
+    await loginForm.locator('input[name="name"]').fill('Structure Test 3');
+    await loginForm.locator('button[type="submit"]').click();
+    await page.locator('qd-status').waitFor();
+
+    // Navigate to MCQ quiz page
+    await page.click('a.quizPageBtn[href*="quiz-mcq"]');
+    await page.waitForURL(/quiz-mcq\.html/);
+    await waitForBootstrap(page);
+
+    const quizTable = page.locator('table.qd-quiz');
+    await expect(quizTable).toBeVisible();
+
+    // All inputs in MCQ table should be select elements
+    const inputs = quizTable.locator('.qd-quiz-input');
+    const inputCount = await inputs.count();
+    expect(inputCount).toBeGreaterThan(0);
+
+    // Verify each input is a select element
+    for (let i = 0; i < inputCount; i++) {
+      const input = inputs.nth(i);
+      const tagName = await input.evaluate((el) => el.tagName.toLowerCase());
+      expect(tagName).toBe('select');
+    }
+  });
+
+  test('Structure: Numeric questions render as text input elements', async ({ page }) => {
+    // Login
+    const loginForm = page.locator('qd-login');
+    await loginForm.locator('input[name="serviceId"]').fill('STRUCT04');
+    await loginForm.locator('input[name="name"]').fill('Structure Test 4');
+    await loginForm.locator('button[type="submit"]').click();
+    await page.locator('qd-status').waitFor();
+
+    // Navigate to numeric quiz page
+    await page.click('a.quizPageBtn[href*="quiz-numeric"]');
+    await page.waitForURL(/quiz-numeric\.html/);
+    await waitForBootstrap(page);
+
+    const quizTable = page.locator('table.qd-quiz');
+    await expect(quizTable).toBeVisible();
+
+    // All inputs in numeric table should be text input elements
+    const inputs = quizTable.locator('.qd-quiz-input');
+    const inputCount = await inputs.count();
+    expect(inputCount).toBeGreaterThan(0);
+
+    // Verify each input is an input[type="text"] element
+    for (let i = 0; i < inputCount; i++) {
+      const input = inputs.nth(i);
+      const tagName = await input.evaluate((el) => el.tagName.toLowerCase());
+      expect(tagName).toBe('input');
+
+      const inputType = await input.getAttribute('type');
+      expect(inputType).toBe('text');
+    }
+  });
 });

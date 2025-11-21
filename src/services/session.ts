@@ -123,6 +123,9 @@ export class SessionService {
     sessionStorage.removeItem(STORAGE_KEYS.CACHE);
     sessionStorage.removeItem(STORAGE_KEYS.INSTRUCTOR);
 
+    // Clear instructor-specific state (FR-001)
+    sessionStorage.removeItem('qd/instructor/showAnswers');
+
     if (session) {
       info(`Session cleared for ${session.serviceId}`);
 
@@ -244,8 +247,8 @@ export class SessionService {
    */
   private emitEvent(eventName: string, detail: unknown): void {
     try {
-      const event = new CustomEvent(eventName, { detail });
-      window.dispatchEvent(event);
+      const event = new CustomEvent(eventName, { detail, bubbles: true });
+      document.dispatchEvent(event);
     } catch (err) {
       error(`Failed to emit event ${eventName}`, err);
     }

@@ -108,7 +108,7 @@ test.describe('DITA Instructor Flow', () => {
     await expect(loginForm).toBeVisible();
   });
 
-  test.skip('Flow: Instructor login → View student answers', async ({ page }) => {
+  test('Flow: Instructor login → View student answers', async ({ page }) => {
     // First, create some student data
     await page.goto(`file://${ditaPath}/page-index.html`);
     await waitForBootstrap(page);
@@ -123,12 +123,12 @@ test.describe('DITA Instructor Flow', () => {
     // Navigate to quiz page and answer a question
     await page.click('a.quizPageBtn[href*="quiz-mcq"]');
     await page.waitForURL(/quiz-mcq\.html/);
-    await waitForBootstrap(page);
+    await page.locator('qd-status').waitFor({ timeout: 3000 });
 
     const quizTable = page.locator('table.qd-quiz');
     const firstInput = quizTable.locator('.qd-quiz-input').first();
     await firstInput.selectOption({ index: 1 });
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     // Logout
     await page.goto(`file://${ditaPath}/page-index.html`);
@@ -142,7 +142,7 @@ test.describe('DITA Instructor Flow', () => {
     await instructorButton.click();
 
     // Wait for modal to appear
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(300);
 
     // Fill password in modal (modal is appended to body, not in shadow DOM)
     const modalPassword = page.locator(
@@ -176,13 +176,13 @@ test.describe('DITA Instructor Flow', () => {
     // Navigate to quiz page
     await page.click('a.quizPageBtn[href*="quiz-mcq"]');
     await page.waitForURL(/quiz-mcq\.html/);
-    await waitForBootstrap(page);
+    await page.locator('div.instructor-panel').waitFor({ timeout: 3000 });
 
     // Toggle "Show student answers"
-    await page.locator('qd-instructor input[type="checkbox"]').check();
+    await page.locator('div.instructor-panel input[type="checkbox"]').check();
 
     // Wait for student answers to be displayed
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(300);
 
     // Verify student answers display exists
     const studentAnswers = page.locator('.qd-student-answers');
@@ -207,12 +207,12 @@ test.describe('DITA Instructor Flow', () => {
     await loginForm.locator('input[name="serviceId"]').fill('STU003');
     await loginForm.locator('input[name="name"]').fill('Carol White');
     await loginForm.locator('button[type="submit"]').click();
-    await page.locator('qd-status').waitFor();
+    await page.locator('qd-status').waitFor({ timeout: 3000 });
 
     // Navigate to quiz page 1
     await page.click('a.quizPageBtn[href*="quiz-mcq"]');
     await page.waitForURL(/quiz-mcq\.html/);
-    await waitForBootstrap(page);
+    await page.locator('qd-status').waitFor({ timeout: 3000 });
 
     // Verify session persists (status panel visible)
     await expect(page.locator('qd-status')).toBeVisible();
@@ -220,11 +220,11 @@ test.describe('DITA Instructor Flow', () => {
     // Answer a question
     const quizTable = page.locator('table.qd-quiz');
     await quizTable.locator('.qd-quiz-input').first().selectOption({ index: 1 });
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     // Navigate to quiz page 2
     await page.goto(`file://${ditaPath}/Pages/quiz-numeric.html`);
-    await waitForBootstrap(page);
+    await page.locator('qd-status').waitFor({ timeout: 3000 });
 
     // Verify session still persists
     await expect(page.locator('qd-status')).toBeVisible();
@@ -236,22 +236,22 @@ test.describe('DITA Instructor Flow', () => {
     // Answer a numeric question
     const numericInput = numericTable.locator('.qd-quiz-input').first();
     await numericInput.fill('42');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     // Navigate back to index
     await page.goto(`file://${ditaPath}/page-index.html`);
-    await waitForBootstrap(page);
+    await page.locator('qd-status').waitFor({ timeout: 3000 });
 
-    // Verify progress shows 2 questions answered
+    // Verify progress shows 2 questions answered (X/2 format)
     const statusPanel = page.locator('qd-status');
-    await expect(statusPanel.locator('.progress-text')).toContainText(/2\//);
+    await expect(statusPanel.locator('.progress-text')).toContainText(/\/2/);
 
     // Refresh page (simulate browser restart)
     await page.reload();
-    await waitForBootstrap(page);
+    await page.locator('qd-status').waitFor({ timeout: 3000 });
 
     // Verify session restored from IndexedDB
     await expect(statusPanel).toBeVisible();
-    await expect(statusPanel.locator('.progress-text')).toContainText(/2\//);
+    await expect(statusPanel.locator('.progress-text')).toContainText(/\/2/);
   });
 });

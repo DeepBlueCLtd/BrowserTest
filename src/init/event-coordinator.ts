@@ -4,8 +4,17 @@
  */
 
 import { info } from '../utils/logger.js';
-import { enhanceQuizTable } from '../enhancers/quiz-table.js';
-import { enhanceAnalysisTable } from '../enhancers/analysis-table.js';
+import {
+  enhanceQuizTable,
+  getQuizTableMetadata,
+  resetQuizTableToNonInteractive,
+  showStudentAnswersForTable,
+  hideStudentAnswersForTable,
+} from '../enhancers/quiz-table.js';
+import {
+  enhanceAnalysisTable,
+  resetAnalysisTableToNonInteractive,
+} from '../enhancers/analysis-table.js';
 import { getStorageService } from '../services/storage-service.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
 import { setJSON, getJSON } from '../utils/storage-helpers.js';
@@ -136,8 +145,53 @@ export class EventCoordinator {
       info(
         'Instructor session detected, tables remain in non-interactive mode with answers visible',
       );
-      // Tables are already enhanced during bootstrap, no need to re-enhance
-      // Event listeners for instructor features are already set up
+      // Restore answer and detail columns for instructor view
+      const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
+
+      quizTables.forEach((table) => {
+        // Get parsed metadata (contains correct answers)
+        const metadata = getQuizTableMetadata(table);
+        if (!metadata) return;
+
+        // Update metadata with pageId for instructor toggle
+        metadata.pageId = pageId;
+
+        // Remove qd-hidden class from answer column (column 1)
+        const answerCells = table.querySelectorAll('td:nth-child(2), th:nth-child(2)');
+        answerCells.forEach((cell) => {
+          cell.classList.remove('qd-hidden');
+        });
+
+        // Restore answer text to data cells only (not header)
+        const answerDataCells = table.querySelectorAll('tbody td:nth-child(2)');
+        answerDataCells.forEach((cell, index) => {
+          const question = metadata.parsed.questions[index];
+          if (question && cell instanceof HTMLTableCellElement) {
+            cell.textContent = question.correctAnswer;
+          }
+        });
+
+        // Remove qd-hidden class from detail column (column 2)
+        const detailCells = table.querySelectorAll('td:nth-child(3), th:nth-child(3)');
+        detailCells.forEach((cell) => cell.classList.remove('qd-hidden'));
+
+        // Set up instructor toggle event listeners (since table is non-interactive)
+        const showAnswersHandler = () => {
+          void showStudentAnswersForTable(table, metadata);
+        };
+        const hideAnswersHandler = () => {
+          hideStudentAnswersForTable(table);
+        };
+
+        document.addEventListener('qd:instructor-show-answers', showAnswersHandler);
+        document.addEventListener('qd:instructor-hide-answers', hideAnswersHandler);
+
+        // Check if toggle already enabled
+        const showAnswers = sessionStorage.getItem('qd/instructor/showAnswers') === 'true';
+        if (showAnswers) {
+          void showAnswersHandler();
+        }
+      });
       return;
     }
 
@@ -167,6 +221,18 @@ export class EventCoordinator {
     this.addEventListener('qd:logout', (event) => {
       const detail = (event as CustomEvent<LogoutEventDetail>).detail;
       info(`Logout event: ${detail.serviceId}`);
+
+      // Reset all quiz tables to non-interactive mode
+      const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
+      quizTables.forEach((table) => {
+        resetQuizTableToNonInteractive(table);
+      });
+
+      // Reset all analysis tables to non-interactive mode
+      const analysisTables = document.querySelectorAll<HTMLTableElement>('table.qd-analysis');
+      analysisTables.forEach((table) => {
+        resetAnalysisTableToNonInteractive(table);
+      });
 
       // Clear any cached data
       this.dispatchEvent('qd:cache-clear', {});

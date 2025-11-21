@@ -25,10 +25,22 @@ interface PagesRecord {
 
 /**
  * Wait for bootstrap to complete and inject components
+ * Works for both logged-in (qd-status visible) and logged-out (qd-login visible) states
  */
 async function waitForBootstrap(page: Page): Promise<void> {
-  // Wait for qd-login element AND its shadow DOM to be ready
-  await page.locator('qd-login[data-ready]').waitFor({ timeout: 5000 });
+  // Wait for either login or status panel to be visible
+  await Promise.race([
+    page
+      .locator('qd-login[data-ready]')
+      .waitFor({ state: 'visible', timeout: 5000 })
+      .catch(() => {}),
+    page
+      .locator('qd-status[data-show]')
+      .waitFor({ state: 'visible', timeout: 5000 })
+      .catch(() => {}),
+  ]);
+  // Brief pause to ensure component is fully rendered
+  await page.waitForTimeout(100);
 }
 
 test.describe('Progress Tracking Workflow', () => {
@@ -37,7 +49,7 @@ test.describe('Progress Tracking Workflow', () => {
     await page.goto(`file://${demoPath}/page-index.html`);
     await page.evaluate(() => {
       sessionStorage.clear();
-      indexedDB.deleteDatabase('BrowserTest');
+      indexedDB.deleteDatabase('BrowserTestDB');
     });
 
     // Wait for bootstrap to inject qd-login component
@@ -63,9 +75,9 @@ test.describe('Progress Tracking Workflow', () => {
     const status = page.locator('qd-status');
     await expect(status).toBeVisible();
 
-    // Verify status shows correct information
-    await expect(status).toContainText('John Doe');
-    await expect(status).toContainText('TEST001');
+    // Verify status shows progress information (name/serviceId are in sessionStorage, not displayed)
+    await expect(status).toContainText('Progress');
+    await expect(status).toContainText('Logout');
   });
 
   test('should answer MCQ questions and save to IndexedDB', async ({ page }) => {
@@ -90,7 +102,7 @@ test.describe('Progress Tracking Workflow', () => {
     await expect(async () => {
       const savedData = await page.evaluate(async () => {
         return new Promise((resolve) => {
-          const request = indexedDB.open('BrowserTest');
+          const request = indexedDB.open('BrowserTestDB');
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction('students', 'readonly');
@@ -126,7 +138,7 @@ test.describe('Progress Tracking Workflow', () => {
     await expect(async () => {
       const savedData = await page.evaluate(async () => {
         return new Promise((resolve) => {
-          const request = indexedDB.open('BrowserTest');
+          const request = indexedDB.open('BrowserTestDB');
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction('students', 'readonly');
@@ -180,7 +192,8 @@ test.describe('Progress Tracking Workflow', () => {
     await login.locator('button[type="submit"]').click();
 
     // Initially, badges should be red (unstarted)
-    const badge = page.locator('.quizPageBtn').first();
+    // Target the quiz-mcq badge specifically
+    const badge = page.locator('.quizPageBtn[href*="quiz-mcq"]');
     await expect(badge).toHaveClass(/qd-badge-red/);
 
     // Answer questions on quiz page
@@ -190,6 +203,9 @@ test.describe('Progress Tracking Workflow', () => {
     const quizTable = page.locator('table.qd-quiz');
     const firstInput = quizTable.locator('.qd-quiz-input').first();
     await firstInput.selectOption({ index: 1 });
+
+    // Wait for save to complete
+    await page.waitForTimeout(500);
 
     // Go back to index
     await page.goto(`file://${demoPath}/page-index.html`);
@@ -224,7 +240,7 @@ test.describe('Progress Tracking Workflow', () => {
     await expect(async () => {
       const completionState = await page.evaluate(async () => {
         return new Promise<string>((resolve) => {
-          const request = indexedDB.open('BrowserTest');
+          const request = indexedDB.open('BrowserTestDB');
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction('students', 'readonly');

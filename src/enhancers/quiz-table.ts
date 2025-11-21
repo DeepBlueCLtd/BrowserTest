@@ -31,6 +31,7 @@ import { getJSON, setJSON } from '../utils/storage-helpers.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
 import { info, error as logError, warn } from '../utils/logger.js';
 import { getStorageService } from '../services/storage-service.js';
+import { formatStoredTimestamp } from '../utils/date-helpers.js';
 
 /**
  * Enhancement options
@@ -88,24 +89,28 @@ export function enhanceQuizTable(
 ): boolean {
   // Check if already enhanced
   const existing = tableMetadata.get(table);
+  let parsed: ParsedQuizTable;
+
   if (existing) {
     // If upgrading from non-interactive to interactive, proceed
     if (!existing.interactive && options.interactive) {
       info('Upgrading quiz table from non-interactive to interactive mode');
+      // Reuse existing parsed data (answers already extracted before clearing DOM)
+      parsed = existing.parsed;
     } else {
       // Already enhanced in same or higher mode, skip
       info('Quiz table already enhanced, skipping');
       return true;
     }
-  }
+  } else {
+    // Parse the table (first enhancement)
+    parsed = parseQuizTable(table);
 
-  // Parse the table
-  const parsed = parseQuizTable(table);
-
-  // Check for parsing errors
-  if (parsed.errors && parsed.errors.length > 0) {
-    logError('Quiz table has validation errors:', parsed.errors);
-    // Still continue enhancement to show errors visually
+    // Check for parsing errors
+    if (parsed.errors && parsed.errors.length > 0) {
+      logError('Quiz table has validation errors:', parsed.errors);
+      // Still continue enhancement to show errors visually
+    }
   }
 
   // Store metadata in WeakMap
@@ -300,10 +305,27 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
     void showStudentAnswersForTable(table, metadata);
   }
 
+  // Add logout listener to clear student-specific UI state (FR-001, FR-002)
+  const logoutHandler = () => {
+    // Clear student-specific color-coded feedback
+    const answerCells = table.querySelectorAll('td.qd-answer-correct, td.qd-answer-incorrect');
+    answerCells.forEach((cell) => {
+      removeClass(cell, 'qd-answer-correct', 'qd-answer-incorrect');
+    });
+
+    // Clear any displayed student answers
+    hideStudentAnswersForTable(table);
+
+    info('Cleared student UI state from quiz table on logout');
+  };
+
+  document.addEventListener('qd:logout', logoutHandler);
+
   // Store cleanup function in metadata
   metadata.cleanupInstructorListeners = () => {
     document.removeEventListener('qd:instructor-show-answers', showAnswersHandler);
     document.removeEventListener('qd:instructor-hide-answers', hideAnswersHandler);
+    document.removeEventListener('qd:logout', logoutHandler);
   };
 
   addClass(table, 'qd-quiz-interactive');
@@ -538,8 +560,9 @@ function removeColgroup(table: HTMLTableElement): void {
 /**
  * Hide answer column (column index 1)
  *
- * Hides the Answer column which contains the correct answers.
- * This prevents users from seeing correct answers before logging in.
+ * SECURITY: Removes correct answers from DOM to prevent inspection via DevTools/view-source.
+ * Answers are already parsed and stored in memory (WeakMap), so they're available for
+ * validation when needed but not exposed in the DOM.
  *
  * @param table - Quiz table element
  */
@@ -550,12 +573,13 @@ function hideAnswerColumn(table: HTMLTableElement): void {
     addClass(headerCells[1], 'qd-hidden');
   }
 
-  // Hide answer cells in all rows
+  // Hide answer cells and REMOVE content from DOM (security)
   const rows = table.querySelectorAll('tbody tr');
   rows.forEach((row) => {
     const cells = row.querySelectorAll('td');
     if (cells[1]) {
       addClass(cells[1], 'qd-hidden');
+      cells[1].textContent = ''; // Remove answer from DOM
     }
   });
 }
@@ -631,12 +655,41 @@ export function isQuizTableEnhanced(table: HTMLTableElement): boolean {
 }
 
 /**
+ * Reset quiz table to non-interactive mode
+ * Called on logout to allow re-enhancement on next login
+ *
+ * @param table - Quiz table element
+ */
+export function resetQuizTableToNonInteractive(table: HTMLTableElement): void {
+  const metadata = tableMetadata.get(table);
+  if (!metadata) return;
+
+  // Update metadata to mark as non-interactive
+  metadata.interactive = false;
+  metadata.pageId = undefined;
+  metadata.inputs = undefined;
+
+  // Cleanup event listeners if they exist
+  metadata.cleanupInstructorListeners?.();
+  metadata.cleanupInstructorListeners = undefined;
+
+  // Hide answer and detail columns
+  hideAnswerColumn(table);
+  hideDetailColumn(table);
+
+  // Remove interactive class
+  removeClass(table, 'qd-quiz-interactive');
+
+  info('Quiz table reset to non-interactive mode');
+}
+
+/**
  * Show student answers for all questions in table (instructor mode)
  *
  * @param table - Quiz table element
  * @param metadata - Table metadata
  */
-async function showStudentAnswersForTable(
+export async function showStudentAnswersForTable(
   table: HTMLTableElement,
   metadata: QuizTableMetadata,
 ): Promise<void> {
@@ -653,6 +706,15 @@ async function showStudentAnswersForTable(
   try {
     // Load all student records for current release
     const students = await storageService.getStudentsByRelease(session.release);
+
+    // Check if there are any students
+    if (students.length === 0) {
+      info('No student data available for this release');
+      alert(
+        'No student data available for this release. Students need to log in and answer questions first.',
+      );
+      return;
+    }
 
     // Get tbody rows
     const tbody = table.querySelector('tbody');
@@ -709,14 +771,9 @@ async function showStudentAnswersForTable(
           const answerDiv = document.createElement('div');
           answerDiv.className = `qd-student-answer ${sa.success ? 'qd-correct' : 'qd-incorrect'}`;
 
-          // Format: Name (last 4 of serviceId): answer [timestamp]
+          // Format: Name (last 4 of serviceId): answer [timestamp] (FR-007: 24-hour format)
           const last4 = sa.serviceId.slice(-4);
-          const timestamp = new Date(sa.timestamp).toLocaleString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          });
+          const timestamp = formatStoredTimestamp(sa.timestamp);
 
           answerDiv.innerHTML = `
             <span class="qd-student-name">${sa.name} (${last4})</span>:
@@ -742,7 +799,7 @@ async function showStudentAnswersForTable(
  *
  * @param table - Quiz table element
  */
-function hideStudentAnswersForTable(table: HTMLTableElement): void {
+export function hideStudentAnswersForTable(table: HTMLTableElement): void {
   const displays = table.querySelectorAll('.qd-student-answers');
   displays.forEach((display) => display.remove());
   info('Hid student answers from quiz table');

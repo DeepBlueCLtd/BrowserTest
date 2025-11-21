@@ -18,6 +18,14 @@ Object.defineProperty(globalThis, 'crypto', {
 // Setup DOM testing utilities
 import { afterEach } from 'vitest';
 
+// Mock URL.createObjectURL and URL.revokeObjectURL for jsdom
+if (typeof URL.createObjectURL === 'undefined') {
+  URL.createObjectURL = () => 'blob:mock-url';
+}
+if (typeof URL.revokeObjectURL === 'undefined') {
+  URL.revokeObjectURL = () => {};
+}
+
 // Auto-cleanup after each test
 afterEach(() => {
   // Clear storage after each test

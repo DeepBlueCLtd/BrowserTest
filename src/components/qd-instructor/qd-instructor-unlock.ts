@@ -134,7 +134,9 @@ export class QdInstructorUnlock extends LitElement {
             />
           </div>
 
-          ${this.error ? html`<div class="error">${this.error}</div>` : ''}
+          ${this.error
+            ? html`<div class="error" role="alert" aria-live="polite">${this.error}</div>`
+            : ''}
 
           <button type="submit" class="primary" ?disabled=${isLocked || !this.password}>
             ${isLocked ? `Locked (${this.remainingSeconds}s)` : 'Unlock'}

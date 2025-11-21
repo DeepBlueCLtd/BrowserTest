@@ -66,6 +66,19 @@ export class QdInstructor extends LitElement {
     const savedState = sessionStorage.getItem('qd/instructor/showAnswers');
     if (savedState !== null) {
       this.showStudentAnswers = savedState === 'true';
+
+      // If toggle was enabled and instructor is logged in, dispatch event to show answers
+      if (this.showStudentAnswers && isInstructor) {
+        // Dispatch after tables are enhanced (use setTimeout to defer)
+        setTimeout(() => {
+          this.dispatchEvent(
+            new CustomEvent('qd:instructor-show-answers', {
+              bubbles: true,
+              composed: true,
+            }),
+          );
+        }, 100);
+      }
     }
 
     document.addEventListener('qd:login', this.handleLoginEvent);
@@ -193,9 +206,24 @@ export class QdInstructor extends LitElement {
     );
   };
 
-  private handleToggleStudentAnswers = (e: Event): void => {
+  private handleToggleStudentAnswers = async (e: Event): Promise<void> => {
     const checkbox = e.target as HTMLInputElement;
     this.showStudentAnswers = checkbox.checked;
+
+    // FR-004: Load student data in fresh session when toggle is enabled
+    if (this.showStudentAnswers && this.students.length === 0) {
+      const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
+      if (session) {
+        try {
+          const { getStorageService } = await import('../../services/storage-service.js');
+          const storageService = getStorageService();
+          const students = await storageService.getStudentsByRelease(session.release);
+          this.students = students;
+        } catch (err) {
+          console.error('Failed to load students for toggle:', err);
+        }
+      }
+    }
 
     // Emit event to notify table enhancers
     const eventName = this.showStudentAnswers

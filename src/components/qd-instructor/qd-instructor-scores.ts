@@ -38,17 +38,43 @@ export class QdInstructorScores extends LitElement {
   @state()
   private expandedStudents = new Set<string>();
 
-  private handleClose = (): void => {
-    this.dispatchEvent(new CustomEvent('close'));
+  // Modal DOM element reference
+  private modalElement: HTMLElement | null = null;
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    document.addEventListener('keydown', this.handleEscape);
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    document.removeEventListener('keydown', this.handleEscape);
+    this.removeModalFromBody();
+  }
+
+  override updated(changedProperties: Map<string, unknown>): void {
+    if (changedProperties.has('showModal')) {
+      if (this.showModal) {
+        // Expand all students by default
+        this.expandedStudents.clear();
+        this.students.forEach((student) => {
+          this.expandedStudents.add(student.serviceId);
+        });
+        this.renderModalToBody();
+      } else {
+        this.removeModalFromBody();
+      }
+    }
+  }
+
+  private handleEscape = (e: KeyboardEvent): void => {
+    if (e.key === 'Escape' && this.showModal) {
+      this.handleClose();
+    }
   };
 
-  private toggleStudent = (serviceId: string): void => {
-    if (this.expandedStudents.has(serviceId)) {
-      this.expandedStudents.delete(serviceId);
-    } else {
-      this.expandedStudents.add(serviceId);
-    }
-    this.requestUpdate();
+  private handleClose = (): void => {
+    this.dispatchEvent(new CustomEvent('close'));
   };
 
   private calculateSummary(student: StudentRecord): StudentSummary {
@@ -64,131 +90,248 @@ export class QdInstructorScores extends LitElement {
     };
   }
 
-  private renderStudentRow(student: StudentRecord): unknown {
-    const summary = this.calculateSummary(student);
-    const isExpanded = this.expandedStudents.has(student.serviceId);
+  /**
+   * Render modal to document.body (outside shadow DOM) like login modal
+   */
+  private renderModalToBody(): void {
+    // Remove any existing modal first
+    this.removeModalFromBody();
 
-    return html`
-      <tr>
-        <td>
-          <button
-            @click=${() => this.toggleStudent(student.serviceId)}
-            style="border: none; background: none; cursor: pointer; padding: 0;"
-          >
-            ${isExpanded ? '▼' : '▶'}
-          </button>
-          ${summary.name}
-        </td>
-        <td>${summary.serviceId}</td>
-        <td>${summary.attempted}</td>
-        <td class=${summary.correct === summary.attempted ? 'correct' : ''}>${summary.correct}</td>
-        <td>
-          <span
-            class=${summary.percentage === 100
-              ? 'correct'
-              : summary.percentage === 0
-                ? 'incorrect'
-                : ''}
-          >
-            ${summary.percentage}%
-          </span>
-        </td>
-      </tr>
-      ${isExpanded ? this.renderExpandedDetails(student) : ''}
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'qd-scores-modal-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      font-family: system-ui, -apple-system, sans-serif;
+      pointer-events: auto;
     `;
-  }
+    overlay.onclick = (e) => {
+      if (e.target === overlay) this.handleClose();
+    };
 
-  private renderExpandedDetails(student: StudentRecord): unknown {
-    const pages = Object.entries(student.pages);
-    if (pages.length === 0) {
-      return html`
-        <tr>
-          <td colspan="5" style="padding-left: 40px; color: #666;">No quiz pages attempted</td>
-        </tr>
-      `;
+    // Create modal
+    const modal = document.createElement('div');
+    modal.className = 'qd-scores-modal';
+    modal.style.cssText = `
+      background: white;
+      color: #333;
+      border-radius: 8px;
+      padding: 24px;
+      max-width: 800px;
+      max-height: 80vh;
+      overflow: auto;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      pointer-events: auto;
+      position: relative;
+      z-index: 100000;
+    `;
+    modal.onclick = (e) => e.stopPropagation();
+
+    // Header
+    const header = document.createElement('div');
+    header.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    `;
+    const title = document.createElement('h2');
+    title.textContent = 'Student Scores';
+    title.style.cssText = `font-size: 18px; font-weight: 600; color: #000; margin: 0;`;
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕';
+    closeBtn.type = 'button';
+    closeBtn.style.cssText = `
+      background: none;
+      border: none;
+      font-size: 20px;
+      color: #666;
+      cursor: pointer;
+      padding: 4px 8px;
+      pointer-events: auto;
+    `;
+    closeBtn.onclick = () => this.handleClose();
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+
+    // Content
+    const content = document.createElement('div');
+    const sortedStudents = [...this.students].sort((a, b) => a.name.localeCompare(b.name));
+
+    if (sortedStudents.length === 0) {
+      content.innerHTML = '<p style="color: #333;">No student data available.</p>';
+    } else {
+      const table = this.createScoresTable(sortedStudents);
+      content.appendChild(table);
     }
 
-    return html`
-      <tr>
-        <td colspan="5" style="padding: 0;">
-          <table style="margin: 0; width: 100%;">
-            <thead>
-              <tr>
-                <th style="padding-left: 40px;">Page</th>
-                <th>Attempted</th>
-                <th>Correct</th>
-                <th>Percentage</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${pages.map(([pageId, pageData]) => {
-                const answers = pageData.answers || [];
-                const attempted = answers.filter((a) => a !== null).length;
-                const correct = answers.filter((a) => a?.success === true).length;
-                const percentage = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
+    modal.appendChild(header);
+    modal.appendChild(content);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
 
-                return html`
-                  <tr>
-                    <td style="padding-left: 40px;">${pageId}</td>
-                    <td>${attempted}</td>
-                    <td class=${correct === attempted ? 'correct' : ''}>${correct}</td>
-                    <td>
-                      <span
-                        class=${percentage === 100
-                          ? 'correct'
-                          : percentage === 0
-                            ? 'incorrect'
-                            : ''}
-                      >
-                        ${percentage}%
-                      </span>
-                    </td>
-                  </tr>
-                `;
-              })}
-            </tbody>
-          </table>
-        </td>
+    this.modalElement = overlay;
+  }
+
+  /**
+   * Remove modal from document.body
+   */
+  private removeModalFromBody(): void {
+    if (this.modalElement) {
+      this.modalElement.remove();
+      this.modalElement = null;
+    }
+  }
+
+  /**
+   * Toggle student expansion
+   */
+  private toggleStudent(serviceId: string): void {
+    if (this.expandedStudents.has(serviceId)) {
+      this.expandedStudents.delete(serviceId);
+    } else {
+      this.expandedStudents.add(serviceId);
+    }
+    // Re-render modal with updated expansion state
+    if (this.showModal) {
+      this.renderModalToBody();
+    }
+  }
+
+  /**
+   * Create scores table element with expandable rows
+   */
+  private createScoresTable(sortedStudents: StudentRecord[]): HTMLElement {
+    const table = document.createElement('table');
+    table.style.cssText = `
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+    `;
+
+    // Header
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+      <tr>
+        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Student</th>
+        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Service ID</th>
+        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Attempted</th>
+        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Correct</th>
+        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Percentage</th>
       </tr>
     `;
+    table.appendChild(thead);
+
+    // Body
+    const tbody = document.createElement('tbody');
+    sortedStudents.forEach((student) => {
+      const summary = this.calculateSummary(student);
+      const isExpanded = this.expandedStudents.has(student.serviceId);
+
+      // Main student row
+      const tr = document.createElement('tr');
+      tr.style.cssText = 'cursor: pointer; color: #333;';
+      tr.innerHTML = `
+        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">
+          <span style="display: inline-block; width: 16px; margin-right: 4px;">${isExpanded ? '▼' : '▶'}</span>
+          ${summary.name}
+        </td>
+        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">${summary.serviceId}</td>
+        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">${summary.attempted}</td>
+        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; ${summary.correct === summary.attempted ? 'color: #28a745;' : ''}">${summary.correct}</td>
+        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; ${summary.percentage === 100 ? 'color: #28a745;' : summary.percentage === 0 ? 'color: #dc3545;' : ''}">${summary.percentage}%</td>
+      `;
+      tr.onclick = () => this.toggleStudent(student.serviceId);
+      tbody.appendChild(tr);
+
+      // Expanded details row
+      if (isExpanded) {
+        const detailRow = this.createExpandedRow(student);
+        tbody.appendChild(detailRow);
+      }
+    });
+    table.appendChild(tbody);
+
+    return table;
+  }
+
+  /**
+   * Create expanded detail row for a student showing per-page answers
+   * Compact layout: page name on left, answers horizontally on right
+   */
+  private createExpandedRow(student: StudentRecord): HTMLTableRowElement {
+    const tr = document.createElement('tr');
+    tr.style.backgroundColor = '#f9f9f9';
+
+    const td = document.createElement('td');
+    td.colSpan = 5;
+    td.style.cssText = 'padding: 8px 8px 8px 40px; border-bottom: 1px solid #ddd;';
+
+    const pages = Object.entries(student.pages);
+    if (pages.length === 0) {
+      td.innerHTML = '<em style="color: #666;">No quiz pages attempted</em>';
+    } else {
+      const detailDiv = document.createElement('div');
+      detailDiv.style.cssText = 'display: flex; flex-direction: column; gap: 6px;';
+
+      pages.forEach(([pageId, pageData]) => {
+        const pageRow = document.createElement('div');
+        pageRow.style.cssText = 'display: flex; align-items: center; gap: 12px;';
+
+        // Page name
+        const pageName = document.createElement('span');
+        pageName.style.cssText = 'font-weight: 600; color: #000; min-width: 120px; flex-shrink: 0;';
+        pageName.textContent = pageId;
+        pageRow.appendChild(pageName);
+
+        // Answers (horizontal)
+        const answersList = document.createElement('div');
+        answersList.style.cssText = 'display: flex; flex-wrap: wrap; gap: 4px; flex: 1;';
+
+        pageData.answers.forEach((answer, index) => {
+          const answerBadge = document.createElement('span');
+          answerBadge.style.cssText = `
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 500;
+            ${
+              answer === null
+                ? 'background: #e0e0e0; color: #666;'
+                : answer.success
+                  ? 'background: #d4edda; color: #155724; border: 1px solid #c3e6cb;'
+                  : 'background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;'
+            }
+          `;
+          answerBadge.textContent = `Q${index + 1}: ${answer ? answer.answer : '—'}`;
+          answersList.appendChild(answerBadge);
+        });
+
+        pageRow.appendChild(answersList);
+        detailDiv.appendChild(pageRow);
+      });
+
+      td.appendChild(detailDiv);
+    }
+
+    tr.appendChild(td);
+    return tr;
   }
 
   override render() {
-    if (!this.showModal) {
-      return html``;
-    }
-
-    const sortedStudents = [...this.students].sort((a, b) => a.name.localeCompare(b.name));
-
-    return html`
-      <div class="modal-overlay" @click=${this.handleClose}>
-        <div class="modal-content" @click=${(e: Event) => e.stopPropagation()}>
-          <div class="modal-header">
-            <h2 class="modal-title">Student Scores</h2>
-            <button class="close-button" @click=${this.handleClose}>✕</button>
-          </div>
-
-          ${sortedStudents.length === 0
-            ? html`<p>No student data available.</p>`
-            : html`
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Service ID</th>
-                      <th>Attempted</th>
-                      <th>Correct</th>
-                      <th>Percentage</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${sortedStudents.map((student) => this.renderStudentRow(student))}
-                  </tbody>
-                </table>
-              `}
-        </div>
-      </div>
-    `;
+    // Modal is rendered to document.body in renderModalToBody()
+    // No shadow DOM content needed
+    return html``;
   }
 }
 

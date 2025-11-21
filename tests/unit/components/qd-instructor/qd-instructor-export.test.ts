@@ -133,10 +133,18 @@ describe('qd-instructor-export', () => {
           serviceId: 'TEST1',
           name: 'Student 1',
           release: '01-2025',
-          attempted: 0,
-          correct: 0,
+          attempted: 2,
+          correct: 1,
           updated: new Date().toISOString(),
-          pages: {},
+          pages: {
+            'page-1': {
+              state: 'incomplete',
+              answers: [
+                { answer: 'a', success: true, timestamp: '2025-01-01T00:00:00Z' },
+                { answer: 'b', success: false, timestamp: '2025-01-01T00:01:00Z' },
+              ],
+            },
+          },
         },
         {
           schema: 1,
@@ -144,10 +152,15 @@ describe('qd-instructor-export', () => {
           serviceId: 'TEST2',
           name: 'Student 2',
           release: '01-2025',
-          attempted: 0,
-          correct: 0,
+          attempted: 1,
+          correct: 1,
           updated: new Date().toISOString(),
-          pages: {},
+          pages: {
+            'page-1': {
+              state: 'complete',
+              answers: [{ answer: 'c', success: true, timestamp: '2025-01-01T00:00:00Z' }],
+            },
+          },
         },
       ];
       await element.updateComplete;
