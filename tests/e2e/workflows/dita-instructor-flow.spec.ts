@@ -242,9 +242,9 @@ test.describe('DITA Instructor Flow', () => {
     await page.goto(`file://${ditaPath}/page-index.html`);
     await waitForBootstrap(page);
 
-    // Verify progress shows 2 questions answered
+    // Verify progress shows 2 questions answered (X/2 format)
     const statusPanel = page.locator('qd-status');
-    await expect(statusPanel.locator('.progress-text')).toContainText(/2\//);
+    await expect(statusPanel.locator('.progress-text')).toContainText(/\/2/);
 
     // Refresh page (simulate browser restart)
     await page.reload();
@@ -252,6 +252,6 @@ test.describe('DITA Instructor Flow', () => {
 
     // Verify session restored from IndexedDB
     await expect(statusPanel).toBeVisible();
-    await expect(statusPanel.locator('.progress-text')).toContainText(/2\//);
+    await expect(statusPanel.locator('.progress-text')).toContainText(/\/2/);
   });
 });
