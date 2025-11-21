@@ -2,54 +2,75 @@
 
 ## Executive Summary
 
-This code review identifies 18 high-priority refactoring opportunities across 791 total lines in the largest files. The primary issues are:
-- **Large files**: 4 files exceed 400 lines (max: 791 lines)
+This code review identifies 18 high-priority refactoring opportunities across the largest files. The primary issues are:
+- **Large files**: 5 files exceed 400 lines (max: 819 lines)
 - **UI/Business coupling**: Heavy DOM manipulation in components, business logic in UI layers
 - **Deep nesting**: Methods exceeding 100 lines with 4+ nesting levels
 - **Missing component abstractions**: Complex UI patterns built with manual DOM manipulation
+
+**Status Update (2025-11-21)**: None of the suggested refactorings have been implemented yet. The files have grown slightly due to new features (username display, build info tooltip, improved error handling). All refactoring opportunities remain valid and actionable.
 
 ---
 
 ## 1. Large Files (>400 Lines)
 
-### 1.1 qd-login.ts (791 lines)
+### 1.1 qd-login.ts (819 lines) ⬆️
 **Location**: `/home/user/BrowserTest/src/components/qd-login.ts`
-**Size**: 791 lines (197% over threshold)
+**Size**: 819 lines (205% over threshold) - *increased from 791*
 **Priority**: HIGH
+**Status**: Not yet refactored
 
 **Issues**:
-- Massive `renderInstructorModalToBody()` method (lines 401-574, 173 lines)
+- Massive `renderInstructorModalToBody()` method (~173 lines)
 - Manual DOM creation with inline styles instead of Lit templates
 - Business logic mixed with rendering logic
-- Password hashing in UI component
+- Password hashing duplicated here instead of using `utils/security.ts` (line 719)
 
 **Suggested Refactoring**:
-1. Extract `<qd-instructor-login-modal>` component (lines 401-574)
-2. Move password hashing to `SecurityService` (lines 706-716)
-3. Centralize release ID extraction to `ConfigService` (lines 615-623)
+1. Extract `<qd-instructor-login-modal>` component
+2. Import and use `hashPassword` from `utils/security.ts` (already exported there)
+3. Centralize release ID extraction to `ConfigService`
 4. Target: Reduce to ~300 lines
 
-### 1.2 quiz-table.ts (749 lines)
+### 1.2 quiz-table.ts (806 lines) ⬆️
 **Location**: `/home/user/BrowserTest/src/enhancers/quiz-table.ts`
-**Size**: 749 lines (187% over threshold)
+**Size**: 806 lines (202% over threshold) - *increased from 749*
 **Priority**: HIGH
+**Status**: Not yet refactored
 
 **Issues**:
-- Complex `showStudentAnswersForTable()` with nested loops (lines 639-738, 100 lines)
-- `saveAnswer()` mixes storage and UI logic (lines 416-509, 94 lines)
-- `enhanceInteractive()` is doing too much (lines 182-313, 131 lines)
+- Complex `showStudentAnswersForTable()` with nested loops (~100 lines)
+- `saveAnswer()` mixes storage and UI logic (~94 lines)
+- `enhanceInteractive()` is doing too much (~131 lines)
 - Manual DOM manipulation throughout
 
 **Suggested Refactoring**:
-1. Extract `<qd-student-answers-list>` component for instructor view (lines 639-738)
-2. Move save logic to `QuizStorageService` (lines 416-509)
-3. Extract input creation to factory methods (lines 325-371)
+1. Extract `<qd-student-answers-list>` component for instructor view
+2. Move save logic to `QuizStorageService`
+3. Extract input creation to factory methods
 4. Target: Reduce to ~400 lines
 
-### 1.3 indexeddb.ts (501 lines)
+### 1.3 analysis-table.ts (637 lines) 🆕
+**Location**: `/home/user/BrowserTest/src/enhancers/analysis-table.ts`
+**Size**: 637 lines (159% over threshold)
+**Priority**: MEDIUM
+**Status**: Not yet refactored
+
+**Issues**:
+- Similar patterns to quiz-table.ts (storage logic in enhancer)
+- Manual DOM manipulation for instructor views
+- Deep nesting in complex methods
+
+**Suggested Refactoring**:
+1. Apply same component extraction patterns as quiz-table.ts
+2. Share common instructor view components with quiz-table.ts
+3. Target: Reduce to ~400 lines
+
+### 1.4 indexeddb.ts (501 lines)
 **Location**: `/home/user/BrowserTest/src/services/storage/indexeddb.ts`
 **Size**: 501 lines (125% over threshold)
 **Priority**: MEDIUM
+**Status**: Not yet refactored
 
 **Issues**:
 - Multiple responsibility violations (database management, error handling, singleton pattern)
@@ -62,20 +83,37 @@ This code review identifies 18 high-priority refactoring opportunities across 79
 3. Split into `IndexedDBCore` and `IndexedDBAdapter`
 4. Target: Reduce to ~350 lines
 
-### 1.4 session.ts (442 lines)
+### 1.5 session.ts (445 lines)
 **Location**: `/home/user/BrowserTest/src/services/session.ts`
-**Size**: 442 lines (110% over threshold)
+**Size**: 445 lines (111% over threshold) - *slightly increased from 442*
 **Priority**: MEDIUM
+**Status**: Not yet refactored
 
 **Issues**:
 - Mixed concerns: session management, cache building, storage operations
-- Cache utilities (lines 256-419) could be separate module
+- Cache utilities could be separate module
 - Large file but generally well-structured
 
 **Suggested Refactoring**:
-1. Extract cache utilities to `services/cache-builder.ts` (lines 256-419)
+1. Extract cache utilities to `services/cache-builder.ts`
 2. Create `CacheService` class for cache-specific operations
 3. Target: Reduce to ~280 lines
+
+### 1.6 bootstrap.ts (442 lines)
+**Location**: `/home/user/BrowserTest/src/init/bootstrap.ts`
+**Size**: 442 lines (110% over threshold)
+**Priority**: MEDIUM
+**Status**: Not yet refactored
+
+**Issues**:
+- Global styles injection (91 lines of CSS in JavaScript)
+- `checkExistingSessionAndUpgradeTables()` method with multiple responsibilities
+- Mixed initialization and runtime logic
+
+**Suggested Refactoring**:
+1. Move global styles to `src/styles/global.css`
+2. Extract session handling helpers
+3. Target: Reduce to ~300 lines
 
 ---
 
@@ -684,12 +722,21 @@ export class CacheService {
 
 | Category | Count | Total Lines | Avg Lines |
 |----------|-------|-------------|-----------|
-| Files >400 lines | 4 | 2,483 | 621 |
+| Files >400 lines | 6 | 3,650 | 608 |
 | High-priority refactors | 8 | ~800 | 100 |
-| Medium-priority refactors | 5 | ~400 | 80 |
+| Medium-priority refactors | 6 | ~500 | 83 |
 | Low-priority refactors | 3 | ~200 | 67 |
 
-**Potential Line Reduction**: ~1,200 lines (48% of large files)
+**Current Large Files** (updated 2025-11-21):
+- qd-login.ts: 819 lines ⬆️
+- quiz-table.ts: 806 lines ⬆️
+- analysis-table.ts: 637 lines 🆕
+- indexeddb.ts: 501 lines
+- session.ts: 445 lines
+- bootstrap.ts: 442 lines
+
+**Refactoring Status**: 0/18 completed
+**Potential Line Reduction**: ~1,400 lines (38% of large files)
 **New Components Needed**: 7 (instructor-modal, student-answers-list, student-answer-item, mcq-input, numeric-input, etc.)
 **New Services Needed**: 2 (QuizAnswerService, CacheService)
 
@@ -719,5 +766,10 @@ Each refactoring should include:
 ---
 
 **Generated**: 2025-11-19
+**Last Updated**: 2025-11-21
 **Reviewer**: Claude Code Agent
 **Codebase**: Sonar Quiz System (BrowserTest)
+
+## Changelog
+
+- **2025-11-21**: Updated line counts, added analysis-table.ts and bootstrap.ts to large files list, noted that no refactorings have been implemented yet, updated metrics summary
