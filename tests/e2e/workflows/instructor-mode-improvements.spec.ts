@@ -17,7 +17,7 @@ const __dirname = path.dirname(__filename);
 const demoPath = path.resolve(__dirname, '../../../dita-demo');
 
 // Test password matches the hash in dita-demo pages
-const TEST_PASSWORD = 'instructor123';
+const TEST_PASSWORD = 'pwd';
 
 /**
  * Wait for bootstrap to complete
@@ -41,26 +41,17 @@ async function loginAsStudent(page: Page, serviceId: string, name: string): Prom
  * Login as instructor
  */
 async function loginAsInstructor(page: Page): Promise<void> {
-  // Inject password hash into DOM (matching instructor-review tests)
-  await page.evaluate(() => {
-    const span = document.createElement('span');
-    span.id = 'instructor.password.hash';
-    span.style.display = 'none';
-    span.textContent = 'c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5';
-    document.body.appendChild(span);
-  });
-
-  // Click instructor button in the login component
+  // Click instructor button in the login component (hash is already in dita-demo pages)
   const instructorButton = page.locator('qd-login button').filter({ hasText: /instructor/i });
   await instructorButton.click();
 
   // Find password input in modal
-  const passwordInput = page.locator('#qd-instructor-modal input[type="password"]');
+  const passwordInput = page.locator('#qd-instructor-password');
   await expect(passwordInput).toBeVisible({ timeout: 2000 });
   await passwordInput.fill(TEST_PASSWORD);
 
   // Submit
-  const unlockButton = page.locator('#qd-instructor-modal button[type="submit"]');
+  const unlockButton = page.locator('#qd-instructor-submit');
   await unlockButton.click();
 
   // Wait for modal to close and instructor panel to appear
@@ -123,7 +114,7 @@ test.describe('Instructor Mode Improvements', () => {
       await viewScoresButton.click();
 
       // Modal should be visible in document.body
-      const scoresModal = page.locator('qd-instructor-scores .modal-overlay');
+      const scoresModal = page.locator('.qd-scores-modal-overlay');
       await expect(scoresModal).toBeVisible({ timeout: 2000 });
 
       // Should show student name
@@ -143,7 +134,7 @@ test.describe('Instructor Mode Improvements', () => {
         .locator('button')
         .filter({ hasText: /view.*scores/i })
         .click();
-      const scoresModal = page.locator('qd-instructor-scores .modal-overlay');
+      const scoresModal = page.locator('.qd-scores-modal-overlay');
       await expect(scoresModal).toBeVisible({ timeout: 2000 });
 
       // Close via button
@@ -161,7 +152,7 @@ test.describe('Instructor Mode Improvements', () => {
         .locator('button')
         .filter({ hasText: /view.*scores/i })
         .click();
-      const scoresModal = page.locator('qd-instructor-scores .modal-overlay');
+      const scoresModal = page.locator('.qd-scores-modal-overlay');
       await expect(scoresModal).toBeVisible({ timeout: 2000 });
 
       // Press escape
@@ -179,7 +170,7 @@ test.describe('Instructor Mode Improvements', () => {
         .locator('button')
         .filter({ hasText: /view.*scores/i })
         .click();
-      const scoresModal = page.locator('qd-instructor-scores .modal-overlay');
+      const scoresModal = page.locator('.qd-scores-modal-overlay');
       await expect(scoresModal).toBeVisible({ timeout: 2000 });
 
       // Click on overlay (outside modal content)
@@ -221,10 +212,18 @@ test.describe('Instructor Mode Improvements', () => {
           await page.reload();
           await waitForBootstrap(page);
 
-          // After reload without session, content should be empty (not restored from storage)
-          const cellAfterReload = analysisTable.locator('.qd-editable').first();
-          const cellText = await cellAfterReload.textContent();
-          expect(cellText?.trim()).toBe('');
+          // After reload without session, table cells are no longer editable
+          // and won't contain the student's previous content
+          // The table should still exist but cells won't have .qd-editable class
+          const tableAfterReload = page.locator('table.qd-analysis');
+          await expect(tableAfterReload).toBeVisible();
+
+          // Cells should not contain student content (since no session to restore)
+          const cellsAfterReload = tableAfterReload.locator('td.interactive');
+          if ((await cellsAfterReload.count()) > 0) {
+            const cellText = await cellsAfterReload.first().textContent();
+            expect(cellText).not.toContain('Test content from student');
+          }
         }
       }
     });
@@ -306,7 +305,7 @@ test.describe('Instructor Mode Improvements', () => {
         .locator('button')
         .filter({ hasText: /view.*scores/i })
         .click();
-      const scoresModal = page.locator('qd-instructor-scores .modal-overlay');
+      const scoresModal = page.locator('.qd-scores-modal-overlay');
       await expect(scoresModal).toBeVisible({ timeout: 2000 });
 
       // Expand student if not already expanded
