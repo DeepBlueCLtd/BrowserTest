@@ -52,10 +52,10 @@ export class QdBuildInfo extends LitElement {
 
     .tooltip {
       position: absolute;
-      bottom: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      margin-bottom: 8px;
+      top: 50%;
+      right: 100%;
+      transform: translateY(-50%);
+      margin-right: 8px;
       padding: 8px 12px;
       background: #333;
       color: white;
@@ -79,11 +79,11 @@ export class QdBuildInfo extends LitElement {
     .tooltip::after {
       content: '';
       position: absolute;
-      top: 100%;
-      left: 50%;
-      transform: translateX(-50%);
+      top: 50%;
+      left: 100%;
+      transform: translateY(-50%);
       border: 5px solid transparent;
-      border-top-color: #333;
+      border-left-color: #333;
     }
 
     .info-icon:hover + .tooltip,
