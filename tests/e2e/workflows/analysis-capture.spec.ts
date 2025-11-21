@@ -17,7 +17,6 @@ const __dirname = path.dirname(__filename);
 const demoPath = path.resolve(__dirname, '../../../dita-demo');
 
 const TEST_PASSWORD = 'pwd';
-const PASSWORD_HASH = 'a1159e9df3670d549d04524532629f5477ceb7deec9b45e47e8c009506ecb2c8';
 
 interface WindowWithSaveCount extends Window {
   __saveCount?: number;
@@ -201,15 +200,7 @@ test.describe('Analysis Capture Workflow', () => {
       await waitForBootstrap(page);
     }
 
-    // Inject password hash and login as instructor
-    await page.evaluate((hash) => {
-      const span = document.createElement('span');
-      span.id = 'qd-instructor-hash';
-      span.style.display = 'none';
-      span.textContent = hash;
-      document.body.appendChild(span);
-    }, PASSWORD_HASH);
-
+    // Page already has qd-instructor-hash element, just click instructor button
     const instructorButton = page
       .locator('button')
       .filter({ hasText: /instructor/i })
