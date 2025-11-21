@@ -32,7 +32,8 @@
       "Bash(find:*)",
       "Bash(npm run build:dita:*)",
       "WebFetch(domain:github.com)",
-      "Bash(npm run size-check:*)"
+      "Bash(npm run size-check:*)",
+      "Bash(shasum:*)"
     ],
     "deny": [],
     "ask": []
