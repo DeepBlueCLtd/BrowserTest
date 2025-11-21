@@ -5259,7 +5259,7 @@ function isInitialized() {
 }
 const DEBUG_MODE = true;
 const VERSION = "0.1.0-phase3.1";
-const BUILD_DATE = "2025-11-19";
+const BUILD_DATE = "2025-11-21";
 if (typeof window !== "undefined") {
   const init = () => {
     info("Auto-initializing Sonar Quiz System");
