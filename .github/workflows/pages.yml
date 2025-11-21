@@ -36,10 +36,14 @@ jobs:
       - name: Create demo site directory
         run: |
           mkdir -p _site
-          cp -r demo/* _site/
+          if [ -d "dita-demo" ]; then
+            cp -r dita-demo/* _site/
+            echo "✅ DITA demo copied to _site/"
+          else
+            echo "❌ Error: dita-demo directory not found"
+            exit 1
+          fi
           cp -r dist _site/
-          # Update paths in demo HTML files to use relative dist path
-          find _site -name "*.html" -type f -exec sed -i 's|../dist/|dist/|g' {} \;
 
       - name: Checkout gh-pages branch
         uses: actions/checkout@v4
