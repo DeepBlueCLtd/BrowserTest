@@ -31,7 +31,7 @@ jobs:
         run: npm ci
 
       - name: Build bundle
-        run: npm run build
+        run: npm run build:dita
 
       - name: Create demo site directory
         run: |
