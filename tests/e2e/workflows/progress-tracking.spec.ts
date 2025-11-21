@@ -30,8 +30,14 @@ interface PagesRecord {
 async function waitForBootstrap(page: Page): Promise<void> {
   // Wait for either login or status panel to be visible
   await Promise.race([
-    page.locator('qd-login[data-ready]').waitFor({ state: 'visible', timeout: 5000 }).catch(() => {}),
-    page.locator('qd-status[data-show]').waitFor({ state: 'visible', timeout: 5000 }).catch(() => {}),
+    page
+      .locator('qd-login[data-ready]')
+      .waitFor({ state: 'visible', timeout: 5000 })
+      .catch(() => {}),
+    page
+      .locator('qd-status[data-show]')
+      .waitFor({ state: 'visible', timeout: 5000 })
+      .catch(() => {}),
   ]);
   // Brief pause to ensure component is fully rendered
   await page.waitForTimeout(100);

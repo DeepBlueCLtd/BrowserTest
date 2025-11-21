@@ -414,7 +414,9 @@ test.describe('DITA Student Flow', () => {
     await expect(inputControl).toBeVisible();
   });
 
-  test('Structure: Numeric quiz table hides detail column and secures answers', async ({ page }) => {
+  test('Structure: Numeric quiz table hides detail column and secures answers', async ({
+    page,
+  }) => {
     // Login
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('STRUCT02');
