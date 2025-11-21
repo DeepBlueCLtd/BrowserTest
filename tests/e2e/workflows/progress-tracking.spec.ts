@@ -198,8 +198,8 @@ test.describe('Progress Tracking Workflow', () => {
     const firstInput = quizTable.locator('.qd-quiz-input').first();
     await firstInput.selectOption({ index: 1 });
 
-    // insert 200ms delay, for UI to update
-    await page.waitForTimeout(200);
+    // Wait for save to complete
+    await page.waitForTimeout(500);
 
     // Go back to index
     await page.goto(`file://${demoPath}/page-index.html`);
