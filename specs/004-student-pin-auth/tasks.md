@@ -60,7 +60,7 @@
 - [X] T012 [P] [US1] Unit test for PIN hashing in tests/unit/pin-service.test.ts
 - [X] T013 [P] [US1] Unit test for PIN confirmation matching in tests/unit/pin-service.test.ts
 - [X] T014 [US1] Integration test for PIN creation flow in tests/integration/login-flow.test.ts
-- [ ] T015 [P] [US1] E2E test for new student PIN creation in tests/e2e/pin-creation.spec.ts
+- [X] T015 [P] [US1] E2E test for new student PIN creation in tests/e2e/workflows/pin-authentication.spec.ts
 
 ### Implementation for User Story 1
 
@@ -88,7 +88,7 @@
 - [X] T024 [P] [US2] Unit test for PIN verification in tests/unit/pin-service.test.ts
 - [X] T025 [P] [US2] Unit test for rate limiting logic in tests/unit/rate-limiter.test.ts
 - [X] T026 [US2] Integration test for PIN authentication in tests/integration/login-flow.test.ts
-- [ ] T027 [P] [US2] E2E test for returning student login in tests/e2e/pin-authentication.spec.ts
+- [X] T027 [P] [US2] E2E test for returning student login in tests/e2e/workflows/pin-authentication.spec.ts
 
 ### Implementation for User Story 2
 
@@ -112,9 +112,9 @@
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T035 [P] [US3] Unit test for PIN reset logic in tests/unit/pin-service.test.ts
-- [ ] T036 [US3] Integration test for instructor reset in tests/integration/instructor-reset.test.ts
-- [ ] T037 [P] [US3] E2E test for PIN reset workflow in tests/e2e/pin-reset.spec.ts
+- [X] T035 [P] [US3] Unit test for PIN reset logic in tests/unit/services/auth/pin-service.test.ts
+- [X] T036 [US3] Integration test for instructor reset in tests/integration/login-flow.test.ts
+- [ ] T037 [P] [US3] E2E test for PIN reset workflow in tests/e2e/workflows/pin-authentication.spec.ts (skipped)
 
 ### Implementation for User Story 3
 
@@ -142,7 +142,7 @@
 - [X] T046 [P] [US4] Unit test for schema detection in tests/unit/migration.test.ts
 - [X] T047 [P] [US4] Unit test for v1→v2 migration in tests/unit/migration.test.ts
 - [X] T048 [US4] Integration test for migration flow in tests/integration/login-flow.test.ts
-- [ ] T049 [P] [US4] E2E test for existing student migration in tests/e2e/pin-migration.spec.ts
+- [X] T049 [P] [US4] E2E test for existing student migration in tests/e2e/workflows/pin-authentication.spec.ts
 
 ### Implementation for User Story 4
 
