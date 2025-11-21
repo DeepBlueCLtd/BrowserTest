@@ -27,7 +27,8 @@
       "Bash(npm run typecheck:*)",
       "Bash(npm run lint:fix:*)",
       "Bash(npm run update-dita-demo:*)",
-      "Bash(npx vitest:*)"
+      "Bash(npx vitest:*)",
+      "Bash(npx playwright test:*)"
     ],
     "deny": [],
     "ask": []
