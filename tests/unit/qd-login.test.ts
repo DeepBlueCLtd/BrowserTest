@@ -48,7 +48,7 @@ describe('QdLogin Component', () => {
     it('should render title', () => {
       const title = element.shadowRoot?.querySelector('.title');
       expect(title).toBeDefined();
-      expect(title?.textContent).toBe('Sonar Quiz System');
+      expect(title?.textContent?.trim()).toBe('Sonar Quiz System');
     });
 
     it('should render horizontal form with name and serviceId inputs', () => {
@@ -81,7 +81,7 @@ describe('QdLogin Component', () => {
       await element.updateComplete;
 
       const title = element.shadowRoot?.querySelector('.title');
-      expect(title?.textContent).toBe('Custom Quiz System');
+      expect(title?.textContent?.trim()).toBe('Custom Quiz System');
     });
   });
 
