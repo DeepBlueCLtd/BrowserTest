@@ -114,7 +114,7 @@
 
 - [X] T035 [P] [US3] Unit test for PIN reset logic in tests/unit/services/auth/pin-service.test.ts
 - [X] T036 [US3] Integration test for instructor reset in tests/integration/login-flow.test.ts
-- [ ] T037 [P] [US3] E2E test for PIN reset workflow in tests/e2e/workflows/pin-authentication.spec.ts (skipped)
+- [X] T037 [P] [US3] E2E test for PIN reset workflow in tests/e2e/workflows/pin-authentication.spec.ts
 
 ### Implementation for User Story 3
 
