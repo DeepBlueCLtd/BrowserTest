@@ -357,7 +357,9 @@ const ot=e=>(t,n)=>{void 0!==n?n.addInitializer(()=>{customElements.define(e,t)}
         </div>
         <div class="bottom-row">
           <div class="status-indicator ${this.statusColor}"></div>
-          <div class="progress-text">${this.correct}/${this.total} Correct (${this.percentage}%)</div>
+          <div class="progress-text">
+            ${this.correct}/${this.total} Correct (${this.percentage}%)
+          </div>
         </div>
         <qd-build-info></qd-build-info>
       </div>
