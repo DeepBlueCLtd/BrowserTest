@@ -160,7 +160,7 @@ declare interface QuizTableMetadata {
 
 export declare type ReleaseId = string;
 
-export declare const SCHEMA_VERSION = 1;
+export declare const SCHEMA_VERSION = 2;
 
 export declare type ServiceId = string;
 
@@ -192,6 +192,7 @@ export declare const STORAGE_KEYS: {
     readonly SESSION: "qd/session";
     readonly CACHE: "qd/state";
     readonly INSTRUCTOR: "qd/instructor";
+    readonly PIN_ATTEMPTS: "qd:pin-attempts";
 };
 
 export declare interface StudentRecord {
@@ -204,6 +205,9 @@ export declare interface StudentRecord {
     correct: number;
     updated: string;
     pages: Record<PageId, PageData>;
+    pinHash?: string;
+    pinCreatedAt?: string;
+    pinResetAt?: string;
 }
 
 export declare type TableId = string;

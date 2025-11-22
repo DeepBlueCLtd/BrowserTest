@@ -150,12 +150,19 @@ function validateAnswer(question, answer) {
     return Math.abs(userValue - correctValue) <= tolerance;
   }
 }
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const SESSION_TIMEOUT_MS = 30 * 60 * 1e3;
 const STORAGE_KEYS = {
   SESSION: "qd/session",
   CACHE: "qd/state",
-  INSTRUCTOR: "qd/instructor"
+  INSTRUCTOR: "qd/instructor",
+  PIN_ATTEMPTS: "qd:pin-attempts"
+};
+const PIN_CONSTANTS = {
+  /** Maximum failed attempts before lockout */
+  MAX_ATTEMPTS: 3,
+  /** Lockout duration in milliseconds (30 seconds) */
+  LOCKOUT_MS: 30 * 1e3
 };
 class SessionService {
   /**
@@ -601,9 +608,10 @@ class StorageQuotaError extends StorageError {
   }
 }
 const DEFAULT_DB_NAME = "BrowserTest";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE_STUDENTS = "students";
 const STORE_BACKUPS = "backups";
+const STORE_AUDIT_LOG = "auditLog";
 class IndexedDBStorageAdapter {
   /**
    * Create a new IndexedDB storage adapter
@@ -631,17 +639,59 @@ class IndexedDBStorageAdapter {
       return Promise.resolve();
     }
     this.initPromise = new Promise((resolve, reject) => {
+      const OPEN_TIMEOUT_MS = 5e3;
+      let timeoutId;
+      let resolved = false;
+      const cleanup2 = () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = void 0;
+        }
+      };
+      timeoutId = window.setTimeout(() => {
+        if (resolved) return;
+        resolved = true;
+        this.initPromise = null;
+        warn(`IndexedDB open timed out after ${OPEN_TIMEOUT_MS}ms - attempting recovery`);
+        const deleteReq = indexedDB.deleteDatabase(this.dbName);
+        deleteReq.onsuccess = () => {
+          this.init().then(resolve).catch(reject);
+        };
+        deleteReq.onerror = () => {
+          reject(
+            new StorageError(
+              `Database "${this.dbName}" appears corrupted. Please clear site data in browser settings.`,
+              "init"
+            )
+          );
+        };
+        deleteReq.onblocked = () => {
+          reject(
+            new StorageError(
+              `Cannot recover database - close all other tabs with this site and reload.`,
+              "init"
+            )
+          );
+        };
+      }, OPEN_TIMEOUT_MS);
       const request = indexedDB.open(this.dbName, DB_VERSION);
       request.onerror = () => {
+        if (resolved) return;
+        resolved = true;
+        cleanup2();
+        error(`IndexedDB open error: ${request.error?.message || "unknown"}`);
         this.initPromise = null;
         reject(new StorageError("Failed to open database", "init", request.error));
       };
+      request.onblocked = () => {
+        warn("IndexedDB open blocked - close other tabs with this database");
+      };
       request.onsuccess = () => {
+        if (resolved) return;
+        resolved = true;
+        cleanup2();
         this.db = request.result;
-        info(
-          `IndexedDB opened: ${this.dbName} v${this.db.version}, stores: [${Array.from(this.db.objectStoreNames).join(", ")}]`
-        );
-        if (!this.db.objectStoreNames.contains(STORE_STUDENTS) || !this.db.objectStoreNames.contains(STORE_BACKUPS)) {
+        if (!this.db.objectStoreNames.contains(STORE_STUDENTS) || !this.db.objectStoreNames.contains(STORE_BACKUPS) || !this.db.objectStoreNames.contains(STORE_AUDIT_LOG)) {
           warn(
             `Database corrupted (missing stores). Found: [${Array.from(this.db.objectStoreNames).join(", ")}]`
           );
@@ -649,7 +699,6 @@ class IndexedDBStorageAdapter {
           this.db = null;
           const deleteRequest = indexedDB.deleteDatabase(this.dbName);
           deleteRequest.onsuccess = () => {
-            warn("Corrupted database deleted, retrying init...");
             this.initPromise = null;
             this.init().then(resolve).catch(reject);
           };
@@ -669,38 +718,38 @@ class IndexedDBStorageAdapter {
         resolve();
       };
       request.onupgradeneeded = (event) => {
-        const upgradeEvent = event;
         const db = event.target.result;
-        info(
-          `IndexedDB upgrade: ${this.dbName} v${upgradeEvent.oldVersion} → v${upgradeEvent.newVersion}`
-        );
+        const transaction = event.target.transaction;
+        if (transaction) {
+          transaction.onerror = () => {
+            error(`Upgrade transaction error: ${transaction.error?.message || "unknown"}`);
+          };
+          transaction.onabort = () => {
+            error(`Upgrade transaction aborted: ${transaction.error?.message || "unknown"}`);
+          };
+        }
         try {
           if (!db.objectStoreNames.contains(STORE_STUDENTS)) {
-            info("Creating students object store...");
             const studentsStore = db.createObjectStore(STORE_STUDENTS, { keyPath: null });
             studentsStore.createIndex("by-release", "release", { unique: false });
             studentsStore.createIndex("by-service-id", "serviceId", { unique: false });
-            info("Students store created with indexes");
-          } else {
-            info("Students store already exists, skipping");
           }
           if (!db.objectStoreNames.contains(STORE_BACKUPS)) {
-            info("Creating backups object store...");
             const backupsStore = db.createObjectStore(STORE_BACKUPS, { keyPath: null });
             backupsStore.createIndex("by-original-key", "originalKey", { unique: false });
             backupsStore.createIndex("by-timestamp", "timestamp", { unique: false });
-            info("Backups store created with indexes");
-          } else {
-            info("Backups store already exists, skipping");
           }
-          info(`Upgrade complete. Stores: [${Array.from(db.objectStoreNames).join(", ")}]`);
+          if (!db.objectStoreNames.contains(STORE_AUDIT_LOG)) {
+            const auditStore = db.createObjectStore(STORE_AUDIT_LOG, {
+              keyPath: "eventId"
+            });
+            auditStore.createIndex("by-service-id", "serviceId", { unique: false });
+            auditStore.createIndex("by-reset-at", "resetAt", { unique: false });
+          }
         } catch (err) {
           error("Error during database upgrade", err);
           throw err;
         }
-      };
-      request.onblocked = () => {
-        warn("IndexedDB upgrade blocked by another connection");
       };
     });
     return this.initPromise;
@@ -837,22 +886,34 @@ class IndexedDBStorageAdapter {
     const db = this.ensureInitialized();
     return new Promise((resolve, reject) => {
       try {
-        const transaction = db.transaction([STORE_STUDENTS, STORE_BACKUPS], "readwrite");
+        const transaction = db.transaction(
+          [STORE_STUDENTS, STORE_BACKUPS, STORE_AUDIT_LOG],
+          "readwrite"
+        );
         const studentsStore = transaction.objectStore(STORE_STUDENTS);
         const backupsStore = transaction.objectStore(STORE_BACKUPS);
+        const auditStore = transaction.objectStore(STORE_AUDIT_LOG);
         const clearStudentsRequest = studentsStore.clear();
         const clearBackupsRequest = backupsStore.clear();
+        const clearAuditRequest = auditStore.clear();
         let studentsCleared = false;
         let backupsCleared = false;
+        let auditCleared = false;
         clearStudentsRequest.onsuccess = () => {
           studentsCleared = true;
-          if (backupsCleared) {
+          if (backupsCleared && auditCleared) {
             resolve();
           }
         };
         clearBackupsRequest.onsuccess = () => {
           backupsCleared = true;
-          if (studentsCleared) {
+          if (studentsCleared && auditCleared) {
+            resolve();
+          }
+        };
+        clearAuditRequest.onsuccess = () => {
+          auditCleared = true;
+          if (studentsCleared && backupsCleared) {
             resolve();
           }
         };
@@ -871,6 +932,15 @@ class IndexedDBStorageAdapter {
               "Failed to clear backups",
               "clearAll",
               clearBackupsRequest.error
+            )
+          );
+        };
+        clearAuditRequest.onerror = () => {
+          reject(
+            new StorageError(
+              "Failed to clear audit log",
+              "clearAll",
+              clearAuditRequest.error
             )
           );
         };
@@ -932,6 +1002,35 @@ class IndexedDBStorageAdapter {
         };
       } catch (error2) {
         reject(new StorageError("Failed to create backup", "backup", error2));
+      }
+    });
+  }
+  /**
+   * Save a PIN reset event to the audit log
+   *
+   * @param event - PIN reset event to log
+   */
+  async saveAuditEvent(event) {
+    const db = this.ensureInitialized();
+    return new Promise((resolve, reject) => {
+      try {
+        const transaction = db.transaction(STORE_AUDIT_LOG, "readwrite");
+        const store = transaction.objectStore(STORE_AUDIT_LOG);
+        const request = store.add(event);
+        request.onsuccess = () => {
+          resolve();
+        };
+        request.onerror = () => {
+          reject(
+            new StorageError(
+              "Failed to save audit event",
+              "saveAuditEvent",
+              request.error
+            )
+          );
+        };
+      } catch (error2) {
+        reject(new StorageError("Failed to save audit event", "saveAuditEvent", error2));
       }
     });
   }
@@ -1986,6 +2085,10 @@ class EventCoordinator {
       void (async () => {
         const detail = event.detail;
         info(`Login event: ${detail.serviceId} (${detail.name})`);
+        if (detail.serviceId === "INSTRUCTOR") {
+          info("Instructor login - skipping student record handling");
+          return;
+        }
         const session = getJSON(STORAGE_KEYS.SESSION);
         if (!session) {
           info("No session found in storage, skipping cache rebuild");
@@ -2869,9 +2972,128 @@ function readDOMConfig() {
   info("Configuration loaded:", config);
   return config;
 }
-var __getOwnPropDesc$8 = Object.getOwnPropertyDescriptor;
-var __decorateClass$8 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$8(target, key) : target;
+function needsMigration(record) {
+  return record.schema < SCHEMA_VERSION;
+}
+function hasPinSet(record) {
+  return Boolean(record.pinHash && record.pinHash.length > 0);
+}
+function completePinSetup(record, pinHash) {
+  return {
+    ...record,
+    schema: SCHEMA_VERSION,
+    pinHash,
+    pinCreatedAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
+}
+function resetPin(record) {
+  return {
+    ...record,
+    pinHash: "",
+    pinResetAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
+}
+async function hashPin(pin) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(pin);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b2) => b2.toString(16).padStart(2, "0")).join("");
+}
+async function verifyPin(pin, storedHash) {
+  const inputHash = await hashPin(pin);
+  return constantTimeCompare$1(inputHash, storedHash);
+}
+function constantTimeCompare$1(a2, b2) {
+  if (a2.length !== b2.length) {
+    return false;
+  }
+  let result = 0;
+  for (let i2 = 0; i2 < a2.length; i2++) {
+    result |= a2.charCodeAt(i2) ^ b2.charCodeAt(i2);
+  }
+  return result === 0;
+}
+function getAttemptKey(serviceId) {
+  return `${STORAGE_KEYS.PIN_ATTEMPTS}:${serviceId}`;
+}
+function getAttemptState(serviceId) {
+  const key = getAttemptKey(serviceId);
+  const data = sessionStorage.getItem(key);
+  if (!data) {
+    return null;
+  }
+  try {
+    return JSON.parse(data);
+  } catch {
+    return null;
+  }
+}
+function checkLockout(serviceId) {
+  const state2 = getAttemptState(serviceId);
+  if (!state2 || !state2.lockoutUntil) {
+    return { isLocked: false, remainingMs: 0 };
+  }
+  const lockoutTime = new Date(state2.lockoutUntil).getTime();
+  const now = Date.now();
+  if (lockoutTime > now) {
+    return { isLocked: true, remainingMs: lockoutTime - now };
+  }
+  clearAttemptState(serviceId);
+  return { isLocked: false, remainingMs: 0 };
+}
+function recordFailedAttempt(serviceId) {
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  let state2 = getAttemptState(serviceId);
+  if (!state2) {
+    state2 = {
+      serviceId,
+      attempts: 0,
+      lockoutUntil: null,
+      lastAttempt: now
+    };
+  }
+  state2.attempts += 1;
+  state2.lastAttempt = now;
+  if (state2.attempts >= PIN_CONSTANTS.MAX_ATTEMPTS) {
+    const lockoutTime = new Date(Date.now() + PIN_CONSTANTS.LOCKOUT_MS);
+    state2.lockoutUntil = lockoutTime.toISOString();
+    warn(
+      `PIN lockout triggered for ${maskServiceId(serviceId)} after ${state2.attempts} failed attempts`
+    );
+  } else {
+    info(
+      `Failed PIN attempt ${state2.attempts}/${PIN_CONSTANTS.MAX_ATTEMPTS} for ${maskServiceId(serviceId)}`
+    );
+  }
+  const key = getAttemptKey(serviceId);
+  sessionStorage.setItem(key, JSON.stringify(state2));
+  return state2;
+}
+function clearAttemptState(serviceId) {
+  const state2 = getAttemptState(serviceId);
+  if (state2 && state2.attempts > 0) {
+    info(
+      `Cleared ${state2.attempts} failed PIN attempts for ${maskServiceId(serviceId)} on successful login`
+    );
+  }
+  const key = getAttemptKey(serviceId);
+  sessionStorage.removeItem(key);
+}
+function getRemainingAttempts(serviceId) {
+  const state2 = getAttemptState(serviceId);
+  if (!state2) {
+    return PIN_CONSTANTS.MAX_ATTEMPTS;
+  }
+  const lockout = checkLockout(serviceId);
+  if (lockout.isLocked) {
+    return 0;
+  }
+  return Math.max(0, PIN_CONSTANTS.MAX_ATTEMPTS - state2.attempts);
+}
+var __getOwnPropDesc$9 = Object.getOwnPropertyDescriptor;
+var __decorateClass$9 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$9(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = decorator(result) || result;
@@ -2879,7 +3101,7 @@ var __decorateClass$8 = (decorators, target, key, kind) => {
 };
 let QdBuildInfo = class extends i {
   render() {
-    const buildDate = "21/Nov/2025";
+    const buildDate = "22/Nov/2025";
     return x`
       <span class="info-icon" tabindex="0" role="button" aria-label="Build information">i</span>
       <div class="tooltip" role="tooltip">
@@ -2963,17 +3185,17 @@ QdBuildInfo.styles = i$3`
       line-height: 1.4;
     }
   `;
-QdBuildInfo = __decorateClass$8([
+QdBuildInfo = __decorateClass$9([
   t("qd-build-info")
 ], QdBuildInfo);
-var __defProp$7 = Object.defineProperty;
-var __getOwnPropDesc$7 = Object.getOwnPropertyDescriptor;
-var __decorateClass$7 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$7(target, key) : target;
+var __defProp$8 = Object.defineProperty;
+var __getOwnPropDesc$8 = Object.getOwnPropertyDescriptor;
+var __decorateClass$8 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$8(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$7(target, key, result);
+  if (kind && result) __defProp$8(target, key, result);
   return result;
 };
 let QdLogin = class extends i {
@@ -2989,6 +3211,9 @@ let QdLogin = class extends i {
     this.modalPasswordInput = null;
     this.errorMessage = "";
     this.isSubmitting = false;
+    this.pin = "";
+    this.lockoutSeconds = 0;
+    this.lockoutInterval = null;
     this.handleLogoutEvent = () => {
       this.name = "";
       this.serviceId = "";
@@ -2996,6 +3221,12 @@ let QdLogin = class extends i {
       this.errorMessage = "";
       this.isSubmitting = false;
       this.showInstructorModal = false;
+      this.pin = "";
+      this.lockoutSeconds = 0;
+      if (this.lockoutInterval) {
+        clearInterval(this.lockoutInterval);
+        this.lockoutInterval = null;
+      }
       this.cleanupModal();
       this.updateVisibility();
     };
@@ -3016,6 +3247,10 @@ let QdLogin = class extends i {
     document.removeEventListener("keydown", this.handleEscape);
     document.removeEventListener("qd:logout", this.handleLogoutEvent);
     this.cleanupModal();
+    if (this.lockoutInterval) {
+      clearInterval(this.lockoutInterval);
+      this.lockoutInterval = null;
+    }
   }
   /**
    * Remove modal from document.body if present
@@ -3073,7 +3308,27 @@ let QdLogin = class extends i {
             required
           />
 
-          <button type="submit" class="login-btn" ?disabled=${this.isSubmitting || !this.isValid()}>
+          <input
+            type="password"
+            name="pin"
+            class="pin-input"
+            placeholder="PIN"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            maxlength="4"
+            autocomplete="off"
+            aria-label="Enter your 4-digit PIN"
+            .value=${this.pin}
+            @input=${(e2) => this.handlePinInput(e2)}
+            ?disabled=${this.isSubmitting || this.lockoutSeconds > 0}
+            required
+          />
+
+          <button
+            type="submit"
+            class="login-btn"
+            ?disabled=${this.isSubmitting || !this.isValid() || this.lockoutSeconds > 0}
+          >
             Login
           </button>
 
@@ -3087,6 +3342,9 @@ let QdLogin = class extends i {
           </button>
 
           ${this.errorMessage ? x`<div class="error-message">${this.errorMessage}</div>` : ""}
+          ${this.lockoutSeconds > 0 ? x`<div class="lockout-message" role="alert" aria-live="polite" aria-atomic="true">
+                Too many attempts. Try again in ${this.lockoutSeconds}s
+              </div>` : ""}
         </form>
       </div>
     `;
@@ -3266,6 +3524,14 @@ let QdLogin = class extends i {
     this.errorMessage = "";
   }
   /**
+   * Handle PIN input
+   */
+  handlePinInput(e2) {
+    const input = e2.target;
+    this.pin = input.value.replace(/\D/g, "");
+    this.errorMessage = "";
+  }
+  /**
    * Check if student form is valid
    */
   isValid() {
@@ -3274,6 +3540,7 @@ let QdLogin = class extends i {
     if (!name) return false;
     const serviceIdPattern = /^[A-Za-z0-9]{2,10}$/;
     if (!serviceIdPattern.test(serviceId)) return false;
+    if (this.pin.length !== 4) return false;
     return true;
   }
   /**
@@ -3289,10 +3556,10 @@ let QdLogin = class extends i {
   /**
    * Handle student login
    */
-  handleStudentLogin(e2) {
+  async handleStudentLogin(e2) {
     e2.preventDefault();
     if (!this.isValid()) {
-      this.errorMessage = "Please enter valid name and service ID (2-10 alphanumeric)";
+      this.errorMessage = "Please enter name, service ID, and 4-digit PIN";
       return;
     }
     this.isSubmitting = true;
@@ -3304,26 +3571,195 @@ let QdLogin = class extends i {
         this.isSubmitting = false;
         return;
       }
-      const sessionService = new SessionService();
-      sessionService.createSession(this.serviceId.trim(), this.name.trim(), release);
-      const loginData = {
-        serviceId: this.serviceId.trim(),
-        name: this.name.trim(),
-        release,
-        role: "student"
-      };
-      const event = new CustomEvent("qd:login", {
-        detail: loginData,
-        bubbles: true,
-        composed: true
-      });
-      this.dispatchEvent(event);
-      this.updateVisibility();
+      const serviceId = this.serviceId.trim();
+      const name = this.name.trim();
+      const lockout = checkLockout(serviceId);
+      if (lockout.isLocked) {
+        this.startLockoutCountdown(lockout.remainingMs);
+        this.isSubmitting = false;
+        return;
+      }
+      const dbNameElement = document.getElementById(CONFIG_IDS.dbName);
+      if (!dbNameElement?.textContent?.trim()) {
+        throw new Error(
+          `Database name not configured. Add <span id="${CONFIG_IDS.dbName}">dbName</span> to page.`
+        );
+      }
+      const dbName = dbNameElement.textContent.trim();
+      const storage = getStorageAdapter(dbName);
+      await storage.init();
+      const existingStudent = await storage.getStudent(release, serviceId);
+      if (existingStudent) {
+        if (needsMigration(existingStudent) || !hasPinSet(existingStudent)) {
+          const pinHash = await hashPin(this.pin);
+          const updatedStudent = completePinSetup(existingStudent, pinHash);
+          await storage.saveStudent(updatedStudent);
+          this.dispatchEvent(
+            new CustomEvent("qd:pin-created", {
+              detail: { serviceId, timestamp: (/* @__PURE__ */ new Date()).toISOString() },
+              bubbles: true,
+              composed: true
+            })
+          );
+          this.showPinStoredConfirmation();
+          this.completeLogin(serviceId, name, release);
+          return;
+        }
+        const isValid = await verifyPin(this.pin, existingStudent.pinHash || "");
+        if (!isValid) {
+          const state2 = recordFailedAttempt(serviceId);
+          const remaining = getRemainingAttempts(serviceId);
+          if (state2.lockoutUntil) {
+            const lockoutMs = new Date(state2.lockoutUntil).getTime() - Date.now();
+            this.startLockoutCountdown(lockoutMs);
+          } else {
+            this.errorMessage = `Incorrect PIN. ${remaining} attempt${remaining !== 1 ? "s" : ""} remaining`;
+          }
+          this.pin = "";
+          this.isSubmitting = false;
+          return;
+        }
+        clearAttemptState(serviceId);
+        this.dispatchEvent(
+          new CustomEvent("qd:pin-verified", {
+            detail: { serviceId, timestamp: (/* @__PURE__ */ new Date()).toISOString() },
+            bubbles: true,
+            composed: true
+          })
+        );
+      } else {
+        const pinHash = await hashPin(this.pin);
+        const newStudent = {
+          schema: SCHEMA_VERSION,
+          docId: "",
+          release,
+          serviceId,
+          name,
+          attempted: 0,
+          correct: 0,
+          updated: (/* @__PURE__ */ new Date()).toISOString(),
+          pages: {},
+          pinHash,
+          pinCreatedAt: (/* @__PURE__ */ new Date()).toISOString()
+        };
+        await storage.saveStudent(newStudent);
+        this.dispatchEvent(
+          new CustomEvent("qd:pin-created", {
+            detail: { serviceId, timestamp: (/* @__PURE__ */ new Date()).toISOString() },
+            bubbles: true,
+            composed: true
+          })
+        );
+        this.showPinStoredConfirmation();
+        this.completeLogin(serviceId, name, release);
+        return;
+      }
+      this.completeLogin(serviceId, name, release);
     } catch (err) {
       this.errorMessage = "Login failed. Please try again.";
       console.error("Student login error:", err);
       this.isSubmitting = false;
     }
+  }
+  /**
+   * Show confirmation popup that PIN has been stored
+   */
+  showPinStoredConfirmation() {
+    const overlay = document.createElement("div");
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+    `;
+    const modal = document.createElement("div");
+    modal.style.cssText = `
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      max-width: 320px;
+      text-align: center;
+      font-family: system-ui, -apple-system, sans-serif;
+    `;
+    modal.innerHTML = `
+      <div style="font-size: 32px; margin-bottom: 12px;">✓</div>
+      <h3 style="margin: 0 0 8px 0; font-size: 16px;">PIN Stored</h3>
+      <p style="margin: 0 0 16px 0; font-size: 13px; color: #666;">
+        Your PIN has been saved. Use it with your name and service ID on future logins.
+      </p>
+      <button style="
+        background: #0066cc;
+        color: white;
+        border: none;
+        padding: 8px 24px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+      ">OK</button>
+    `;
+    const button = modal.querySelector("button");
+    button?.addEventListener("click", () => {
+      document.body.removeChild(overlay);
+    });
+    overlay.addEventListener("click", (e2) => {
+      if (e2.target === overlay) {
+        document.body.removeChild(overlay);
+      }
+    });
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    setTimeout(() => {
+      if (document.body.contains(overlay)) {
+        document.body.removeChild(overlay);
+      }
+    }, 3e3);
+  }
+  /**
+   * Start lockout countdown timer
+   */
+  startLockoutCountdown(remainingMs) {
+    this.lockoutSeconds = Math.ceil(remainingMs / 1e3);
+    this.errorMessage = "";
+    if (this.lockoutInterval) {
+      clearInterval(this.lockoutInterval);
+    }
+    this.lockoutInterval = window.setInterval(() => {
+      this.lockoutSeconds--;
+      if (this.lockoutSeconds <= 0) {
+        if (this.lockoutInterval) {
+          clearInterval(this.lockoutInterval);
+          this.lockoutInterval = null;
+        }
+      }
+    }, 1e3);
+  }
+  /**
+   * Complete the login process
+   */
+  completeLogin(serviceId, name, release) {
+    const sessionService = new SessionService();
+    sessionService.createSession(serviceId, name, release);
+    const loginData = {
+      serviceId,
+      name,
+      release,
+      role: "student"
+    };
+    const event = new CustomEvent("qd:login", {
+      detail: loginData,
+      bubbles: true,
+      composed: true
+    });
+    this.dispatchEvent(event);
+    this.pin = "";
+    this.isSubmitting = false;
+    this.updateVisibility();
   }
   /**
    * Open instructor modal
@@ -3461,6 +3897,14 @@ QdLogin.styles = i$3`
       max-width: 110px;
     }
 
+    input.pin-input {
+      width: 45px;
+      min-width: 45px;
+      max-width: 45px;
+      text-align: center;
+      letter-spacing: 1px;
+    }
+
     input:focus {
       outline: none;
       border-color: #0066cc;
@@ -3515,6 +3959,17 @@ QdLogin.styles = i$3`
       background: #ffebee;
       border-radius: 3px;
       border-left: 3px solid #d32f2f;
+    }
+
+    .lockout-message {
+      width: 100%;
+      color: #f57c00;
+      font-size: 11px;
+      margin-top: 3px;
+      padding: 4px 8px;
+      background: #fff3e0;
+      border-radius: 3px;
+      border-left: 3px solid #f57c00;
     }
 
     /* Modal Overlay */
@@ -3606,38 +4061,44 @@ QdLogin.styles = i$3`
       }
     }
   `;
-__decorateClass$7([
+__decorateClass$8([
   n2({ type: String })
 ], QdLogin.prototype, "title", 2);
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdLogin.prototype, "name", 2);
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdLogin.prototype, "serviceId", 2);
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdLogin.prototype, "instructorPassword", 2);
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdLogin.prototype, "showInstructorModal", 2);
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdLogin.prototype, "errorMessage", 2);
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdLogin.prototype, "isSubmitting", 2);
-QdLogin = __decorateClass$7([
+__decorateClass$8([
+  r()
+], QdLogin.prototype, "pin", 2);
+__decorateClass$8([
+  r()
+], QdLogin.prototype, "lockoutSeconds", 2);
+QdLogin = __decorateClass$8([
   t("qd-login")
 ], QdLogin);
-var __defProp$6 = Object.defineProperty;
-var __getOwnPropDesc$6 = Object.getOwnPropertyDescriptor;
-var __decorateClass$6 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$6(target, key) : target;
+var __defProp$7 = Object.defineProperty;
+var __getOwnPropDesc$7 = Object.getOwnPropertyDescriptor;
+var __decorateClass$7 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$7(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$6(target, key, result);
+  if (kind && result) __defProp$7(target, key, result);
   return result;
 };
 let QdStatus = class extends i {
@@ -3863,25 +4324,25 @@ QdStatus.styles = i$3`
       background: #b71c1c;
     }
   `;
-__decorateClass$6([
+__decorateClass$7([
   r()
 ], QdStatus.prototype, "total", 2);
-__decorateClass$6([
+__decorateClass$7([
   r()
 ], QdStatus.prototype, "correct", 2);
-__decorateClass$6([
+__decorateClass$7([
   r()
 ], QdStatus.prototype, "percentage", 2);
-__decorateClass$6([
+__decorateClass$7([
   r()
 ], QdStatus.prototype, "statusColor", 2);
-__decorateClass$6([
+__decorateClass$7([
   r()
 ], QdStatus.prototype, "name", 2);
-__decorateClass$6([
+__decorateClass$7([
   r()
 ], QdStatus.prototype, "serviceId", 2);
-QdStatus = __decorateClass$6([
+QdStatus = __decorateClass$7([
   t("qd-status")
 ], QdStatus);
 const sharedStyles = i$3`
@@ -3978,6 +4439,17 @@ const sharedStyles = i$3`
   button.primary:hover {
     background: #0056b3;
     border-color: #0056b3;
+  }
+
+  button.secondary {
+    background: #ff9800;
+    color: white;
+    border-color: #ff9800;
+  }
+
+  button.secondary:hover {
+    background: #f57c00;
+    border-color: #f57c00;
   }
 
   button.danger {
@@ -4236,14 +4708,14 @@ function getInstructorPasswordHash() {
   }
   return hash.toLowerCase();
 }
-var __defProp$5 = Object.defineProperty;
-var __getOwnPropDesc$5 = Object.getOwnPropertyDescriptor;
-var __decorateClass$5 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$5(target, key) : target;
+var __defProp$6 = Object.defineProperty;
+var __getOwnPropDesc$6 = Object.getOwnPropertyDescriptor;
+var __decorateClass$6 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$6(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$5(target, key, result);
+  if (kind && result) __defProp$6(target, key, result);
   return result;
 };
 let QdInstructorUnlock = class extends i {
@@ -4345,26 +4817,26 @@ let QdInstructorUnlock = class extends i {
   }
 };
 QdInstructorUnlock.styles = sharedStyles;
-__decorateClass$5([
+__decorateClass$6([
   r()
 ], QdInstructorUnlock.prototype, "password", 2);
-__decorateClass$5([
+__decorateClass$6([
   r()
 ], QdInstructorUnlock.prototype, "error", 2);
-__decorateClass$5([
+__decorateClass$6([
   r()
 ], QdInstructorUnlock.prototype, "remainingSeconds", 2);
-QdInstructorUnlock = __decorateClass$5([
+QdInstructorUnlock = __decorateClass$6([
   t("qd-instructor-unlock")
 ], QdInstructorUnlock);
-var __defProp$4 = Object.defineProperty;
-var __getOwnPropDesc$4 = Object.getOwnPropertyDescriptor;
-var __decorateClass$4 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$4(target, key) : target;
+var __defProp$5 = Object.defineProperty;
+var __getOwnPropDesc$5 = Object.getOwnPropertyDescriptor;
+var __decorateClass$5 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$5(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$4(target, key, result);
+  if (kind && result) __defProp$5(target, key, result);
   return result;
 };
 let QdInstructorScores = class extends i {
@@ -4543,17 +5015,31 @@ let QdInstructorScores = class extends i {
       const isExpanded = this.expandedStudents.has(student.serviceId);
       const tr = document.createElement("tr");
       tr.style.cssText = "cursor: pointer; color: #333;";
-      tr.innerHTML = `
-        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">
-          <span style="display: inline-block; width: 16px; margin-right: 4px;">${isExpanded ? "▼" : "▶"}</span>
-          ${summary.name}
-        </td>
-        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">${summary.serviceId}</td>
-        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">${summary.attempted}</td>
-        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; ${summary.correct === summary.attempted ? "color: #28a745;" : ""}">${summary.correct}</td>
-        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; ${summary.percentage === 100 ? "color: #28a745;" : summary.percentage === 0 ? "color: #dc3545;" : ""}">${summary.percentage}%</td>
-      `;
-      tr.onclick = () => this.toggleStudent(student.serviceId);
+      const nameCell = document.createElement("td");
+      nameCell.style.cssText = "padding: 8px; text-align: left; border-bottom: 1px solid #ddd;";
+      nameCell.innerHTML = `<span style="display: inline-block; width: 16px; margin-right: 4px;">${isExpanded ? "▼" : "▶"}</span>${summary.name}`;
+      nameCell.onclick = () => this.toggleStudent(student.serviceId);
+      tr.appendChild(nameCell);
+      const serviceIdCell = document.createElement("td");
+      serviceIdCell.style.cssText = "padding: 8px; text-align: left; border-bottom: 1px solid #ddd;";
+      serviceIdCell.textContent = summary.serviceId;
+      serviceIdCell.onclick = () => this.toggleStudent(student.serviceId);
+      tr.appendChild(serviceIdCell);
+      const attemptedCell = document.createElement("td");
+      attemptedCell.style.cssText = "padding: 8px; text-align: left; border-bottom: 1px solid #ddd;";
+      attemptedCell.textContent = String(summary.attempted);
+      attemptedCell.onclick = () => this.toggleStudent(student.serviceId);
+      tr.appendChild(attemptedCell);
+      const correctCell = document.createElement("td");
+      correctCell.style.cssText = `padding: 8px; text-align: left; border-bottom: 1px solid #ddd; ${summary.correct === summary.attempted ? "color: #28a745;" : ""}`;
+      correctCell.textContent = String(summary.correct);
+      correctCell.onclick = () => this.toggleStudent(student.serviceId);
+      tr.appendChild(correctCell);
+      const percentCell = document.createElement("td");
+      percentCell.style.cssText = `padding: 8px; text-align: left; border-bottom: 1px solid #ddd; ${summary.percentage === 100 ? "color: #28a745;" : summary.percentage === 0 ? "color: #dc3545;" : ""}`;
+      percentCell.textContent = `${summary.percentage}%`;
+      percentCell.onclick = () => this.toggleStudent(student.serviceId);
+      tr.appendChild(percentCell);
       tbody.appendChild(tr);
       if (isExpanded) {
         const detailRow = this.createExpandedRow(student);
@@ -4614,26 +5100,26 @@ let QdInstructorScores = class extends i {
   }
 };
 QdInstructorScores.styles = sharedStyles;
-__decorateClass$4([
+__decorateClass$5([
   n2({ type: Array })
 ], QdInstructorScores.prototype, "students", 2);
-__decorateClass$4([
+__decorateClass$5([
   n2({ type: Boolean })
 ], QdInstructorScores.prototype, "showModal", 2);
-__decorateClass$4([
+__decorateClass$5([
   r()
 ], QdInstructorScores.prototype, "expandedStudents", 2);
-QdInstructorScores = __decorateClass$4([
+QdInstructorScores = __decorateClass$5([
   t("qd-instructor-scores")
 ], QdInstructorScores);
-var __defProp$3 = Object.defineProperty;
-var __getOwnPropDesc$3 = Object.getOwnPropertyDescriptor;
-var __decorateClass$3 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$3(target, key) : target;
+var __defProp$4 = Object.defineProperty;
+var __getOwnPropDesc$4 = Object.getOwnPropertyDescriptor;
+var __decorateClass$4 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$4(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$3(target, key, result);
+  if (kind && result) __defProp$4(target, key, result);
   return result;
 };
 let QdInstructorExport = class extends i {
@@ -4704,20 +5190,20 @@ let QdInstructorExport = class extends i {
   }
 };
 QdInstructorExport.styles = sharedStyles;
-__decorateClass$3([
+__decorateClass$4([
   n2({ type: Array })
 ], QdInstructorExport.prototype, "students", 2);
-QdInstructorExport = __decorateClass$3([
+QdInstructorExport = __decorateClass$4([
   t("qd-instructor-export")
 ], QdInstructorExport);
-var __defProp$2 = Object.defineProperty;
-var __getOwnPropDesc$2 = Object.getOwnPropertyDescriptor;
-var __decorateClass$2 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$2(target, key) : target;
+var __defProp$3 = Object.defineProperty;
+var __getOwnPropDesc$3 = Object.getOwnPropertyDescriptor;
+var __decorateClass$3 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$3(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$2(target, key, result);
+  if (kind && result) __defProp$3(target, key, result);
   return result;
 };
 let QdInstructorManage = class extends i {
@@ -4885,21 +5371,378 @@ let QdInstructorManage = class extends i {
   }
 };
 QdInstructorManage.styles = sharedStyles;
-__decorateClass$2([
+__decorateClass$3([
   r()
 ], QdInstructorManage.prototype, "showConfirmDialog", 2);
-__decorateClass$2([
+__decorateClass$3([
   r()
 ], QdInstructorManage.prototype, "confirmText", 2);
-__decorateClass$2([
+__decorateClass$3([
   r()
 ], QdInstructorManage.prototype, "error", 2);
-__decorateClass$2([
+__decorateClass$3([
   r()
 ], QdInstructorManage.prototype, "success", 2);
-QdInstructorManage = __decorateClass$2([
+QdInstructorManage = __decorateClass$3([
   t("qd-instructor-manage")
 ], QdInstructorManage);
+var __defProp$2 = Object.defineProperty;
+var __getOwnPropDesc$2 = Object.getOwnPropertyDescriptor;
+var __decorateClass$2 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$2(target, key) : target;
+  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
+    if (decorator = decorators[i2])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result) __defProp$2(target, key, result);
+  return result;
+};
+let QdPinResetDialog = class extends i {
+  constructor() {
+    super(...arguments);
+    this.students = [];
+    this.showModal = false;
+    this.searchText = "";
+    this.confirmingStudent = null;
+    this.modalElement = null;
+    this.handleEscape = (e2) => {
+      if (e2.key === "Escape" && this.showModal) {
+        if (this.confirmingStudent) {
+          this.confirmingStudent = null;
+        } else {
+          this.handleClose();
+        }
+      }
+    };
+    this.handleClose = () => {
+      this.confirmingStudent = null;
+      this.searchText = "";
+      this.dispatchEvent(new CustomEvent("close"));
+    };
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    document.addEventListener("keydown", this.handleEscape);
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    document.removeEventListener("keydown", this.handleEscape);
+    this.removeModalFromBody();
+  }
+  updated(changedProperties) {
+    if (changedProperties.has("showModal")) {
+      if (this.showModal) {
+        this.renderModalToBody();
+      } else {
+        this.removeModalFromBody();
+      }
+    }
+  }
+  get filteredStudents() {
+    if (!this.searchText.trim()) {
+      return this.students;
+    }
+    const search = this.searchText.toLowerCase().trim();
+    return this.students.filter(
+      (s2) => s2.name.toLowerCase().includes(search) || s2.serviceId.toLowerCase().includes(search)
+    );
+  }
+  renderModalToBody() {
+    this.removeModalFromBody();
+    const overlay = document.createElement("div");
+    overlay.className = "qd-pin-reset-overlay";
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      font-family: system-ui, -apple-system, sans-serif;
+    `;
+    const modal = document.createElement("div");
+    modal.style.cssText = `
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      min-width: 400px;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    `;
+    const header = document.createElement("div");
+    header.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    `;
+    const title = document.createElement("h3");
+    title.textContent = "Reset Student PIN";
+    title.style.cssText = `font-size: 18px; font-weight: 600; margin: 0;`;
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "×";
+    closeBtn.type = "button";
+    closeBtn.style.cssText = `
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #666;
+    `;
+    closeBtn.onclick = () => this.handleClose();
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+    const searchInput = document.createElement("input");
+    searchInput.type = "text";
+    searchInput.placeholder = "Search by name or ID...";
+    searchInput.style.cssText = `
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-bottom: 12px;
+      font-size: 12px;
+    `;
+    searchInput.oninput = (e2) => {
+      this.searchText = e2.target.value;
+      this.updateStudentList(modal);
+    };
+    const listContainer = document.createElement("div");
+    listContainer.className = "student-list";
+    listContainer.style.cssText = `
+      flex: 1;
+      overflow-y: auto;
+      max-height: 300px;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+    `;
+    modal.appendChild(header);
+    modal.appendChild(searchInput);
+    modal.appendChild(listContainer);
+    const errorDiv = document.createElement("div");
+    errorDiv.className = "error-message";
+    errorDiv.style.cssText = `
+      display: none;
+      color: #d32f2f;
+      font-size: 11px;
+      margin-top: 8px;
+      padding: 8px;
+      background: #ffebee;
+      border-radius: 4px;
+    `;
+    modal.appendChild(errorDiv);
+    overlay.appendChild(modal);
+    overlay.onclick = (e2) => {
+      if (e2.target === overlay) this.handleClose();
+    };
+    document.body.appendChild(overlay);
+    this.modalElement = overlay;
+    this.updateStudentList(modal);
+    searchInput.focus();
+  }
+  updateStudentList(modal) {
+    const listContainer = modal.querySelector(".student-list");
+    if (!listContainer) return;
+    listContainer.innerHTML = "";
+    const filtered = this.filteredStudents;
+    if (filtered.length === 0) {
+      const empty = document.createElement("div");
+      empty.textContent = this.searchText ? "No matching students" : "No students found";
+      empty.style.cssText = `padding: 16px; text-align: center; color: #666; font-size: 12px;`;
+      listContainer.appendChild(empty);
+      return;
+    }
+    filtered.forEach((student) => {
+      const item = document.createElement("div");
+      item.style.cssText = `
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        border-bottom: 1px solid #f0f0f0;
+      `;
+      const info2 = document.createElement("div");
+      const nameSpan = document.createElement("div");
+      nameSpan.textContent = student.name;
+      nameSpan.style.cssText = `font-size: 12px; font-weight: 500;`;
+      const idSpan = document.createElement("div");
+      idSpan.textContent = `ID: ${student.serviceId}`;
+      idSpan.style.cssText = `font-size: 10px; color: #666;`;
+      const pinStatus = document.createElement("div");
+      const hasPinHash = student.pinHash && student.pinHash.length > 0;
+      pinStatus.textContent = hasPinHash ? "PIN set" : "No PIN";
+      pinStatus.style.cssText = `font-size: 10px; color: ${hasPinHash ? "#4caf50" : "#ff9800"};`;
+      info2.appendChild(nameSpan);
+      info2.appendChild(idSpan);
+      info2.appendChild(pinStatus);
+      const resetBtn = document.createElement("button");
+      resetBtn.textContent = "Reset PIN";
+      resetBtn.type = "button";
+      resetBtn.style.cssText = `
+        background: #ff5722;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 10px;
+        cursor: pointer;
+      `;
+      resetBtn.onclick = () => this.showConfirmation(student, modal);
+      item.appendChild(info2);
+      item.appendChild(resetBtn);
+      listContainer.appendChild(item);
+    });
+  }
+  showConfirmation(student, modal) {
+    this.confirmingStudent = student;
+    const confirmOverlay = document.createElement("div");
+    confirmOverlay.className = "confirm-overlay";
+    confirmOverlay.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.95);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    `;
+    const confirmText = document.createElement("p");
+    confirmText.innerHTML = `Reset PIN for <strong>${student.name}</strong> (${student.serviceId})?`;
+    confirmText.style.cssText = `margin: 0 0 16px; text-align: center; font-size: 14px;`;
+    const warning = document.createElement("p");
+    warning.textContent = "They will need to create a new PIN on next login.";
+    warning.style.cssText = `margin: 0 0 16px; text-align: center; font-size: 11px; color: #666;`;
+    const btnContainer = document.createElement("div");
+    btnContainer.style.cssText = `display: flex; gap: 8px;`;
+    const cancelBtn = document.createElement("button");
+    cancelBtn.textContent = "Cancel";
+    cancelBtn.type = "button";
+    cancelBtn.style.cssText = `
+      background: #e0e0e0;
+      color: #333;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 16px;
+      font-size: 12px;
+      cursor: pointer;
+    `;
+    cancelBtn.onclick = () => {
+      this.confirmingStudent = null;
+      confirmOverlay.remove();
+    };
+    const confirmBtn = document.createElement("button");
+    confirmBtn.textContent = "Reset PIN";
+    confirmBtn.type = "button";
+    confirmBtn.style.cssText = `
+      background: #ff5722;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 16px;
+      font-size: 12px;
+      cursor: pointer;
+    `;
+    confirmBtn.onclick = () => this.executeReset(student, confirmOverlay, modal);
+    btnContainer.appendChild(cancelBtn);
+    btnContainer.appendChild(confirmBtn);
+    confirmOverlay.appendChild(confirmText);
+    confirmOverlay.appendChild(warning);
+    confirmOverlay.appendChild(btnContainer);
+    const modalDiv = modal.querySelector("div:first-child")?.parentElement || modal;
+    modalDiv.style.position = "relative";
+    modalDiv.appendChild(confirmOverlay);
+  }
+  async executeReset(student, confirmOverlay, modal) {
+    try {
+      const dbNameElement = document.getElementById(CONFIG_IDS.dbName);
+      if (!dbNameElement?.textContent?.trim()) {
+        throw new Error(
+          `Database name not configured. Add <span id="${CONFIG_IDS.dbName}">dbName</span> to page.`
+        );
+      }
+      const dbName = dbNameElement.textContent.trim();
+      const storage = getStorageAdapter(dbName);
+      await storage.init();
+      const updatedStudent = resetPin(student);
+      await storage.saveStudent(updatedStudent);
+      const auditEvent = {
+        eventId: crypto.randomUUID(),
+        serviceId: student.serviceId,
+        resetBy: "instructor",
+        resetAt: (/* @__PURE__ */ new Date()).toISOString(),
+        release: student.release
+      };
+      await storage.saveAuditEvent(auditEvent);
+      const index = this.students.findIndex((s2) => s2.serviceId === student.serviceId);
+      if (index >= 0) {
+        this.students[index] = updatedStudent;
+        this.students = [...this.students];
+      }
+      this.dispatchEvent(
+        new CustomEvent("qd:pin-reset", {
+          detail: {
+            serviceId: student.serviceId,
+            resetBy: "instructor",
+            timestamp: (/* @__PURE__ */ new Date()).toISOString()
+          },
+          bubbles: true,
+          composed: true
+        })
+      );
+      this.confirmingStudent = null;
+      confirmOverlay.remove();
+      this.updateStudentList(modal);
+    } catch (err) {
+      console.error("PIN reset error:", err);
+      const errorDiv = modal.querySelector(".error-message");
+      if (errorDiv) {
+        errorDiv.textContent = "Failed to reset PIN. Please try again.";
+        errorDiv.style.display = "block";
+      }
+    }
+  }
+  removeModalFromBody() {
+    if (this.modalElement) {
+      this.modalElement.remove();
+      this.modalElement = null;
+    }
+  }
+  render() {
+    return x``;
+  }
+};
+QdPinResetDialog.styles = i$3`
+    :host {
+      display: block;
+    }
+  `;
+__decorateClass$2([
+  n2({ type: Array })
+], QdPinResetDialog.prototype, "students", 2);
+__decorateClass$2([
+  n2({ type: Boolean })
+], QdPinResetDialog.prototype, "showModal", 2);
+__decorateClass$2([
+  r()
+], QdPinResetDialog.prototype, "searchText", 2);
+__decorateClass$2([
+  r()
+], QdPinResetDialog.prototype, "confirmingStudent", 2);
+QdPinResetDialog = __decorateClass$2([
+  t("qd-pin-reset-dialog")
+], QdPinResetDialog);
 var __defProp$1 = Object.defineProperty;
 var __getOwnPropDesc$1 = Object.getOwnPropertyDescriptor;
 var __decorateClass$1 = (decorators, target, key, kind) => {
@@ -4917,6 +5760,7 @@ let QdInstructor = class extends i {
     this.showScores = false;
     this.students = [];
     this.showStudentAnswers = false;
+    this.showPinReset = false;
     this.handleLoginEvent = (event) => {
       const customEvent = event;
       const role = customEvent.detail?.role;
@@ -4928,6 +5772,31 @@ let QdInstructor = class extends i {
     this.handleLogoutEvent = () => {
       this.updateVisibility();
       this.lock();
+    };
+    this.handleResetPins = async () => {
+      const session = getJSON(STORAGE_KEYS.SESSION);
+      if (!session) return;
+      try {
+        const { getStorageService: getStorageService2 } = await Promise.resolve().then(() => storageService);
+        const storageService$1 = getStorageService2();
+        const students = await storageService$1.getStudentsByRelease(session.release);
+        this.students = students;
+      } catch (err) {
+        console.error("Failed to load students:", err);
+        this.students = [];
+      }
+      this.showPinReset = true;
+    };
+    this.handleClosePinReset = () => {
+      this.showPinReset = false;
+    };
+    this.handlePinReset = () => {
+      this.dispatchEvent(
+        new CustomEvent("qd:pin-reset", {
+          bubbles: true,
+          composed: true
+        })
+      );
     };
     this.handleUnlock = () => {
       this.unlocked = true;
@@ -5062,6 +5931,7 @@ let QdInstructor = class extends i {
   lock() {
     this.unlocked = false;
     this.showScores = false;
+    this.showPinReset = false;
   }
   render() {
     if (!this.unlocked) {
@@ -5084,6 +5954,8 @@ let QdInstructor = class extends i {
 
         <button @click=${this.handleViewScores} class="primary compact">View All Scores</button>
 
+        <button @click=${this.handleResetPins} class="secondary compact">Reset PINs</button>
+
         <qd-instructor-export .students=${this.students}></qd-instructor-export>
 
         <qd-instructor-manage @qd:data-cleared=${this.handleDataCleared}></qd-instructor-manage>
@@ -5095,6 +5967,13 @@ let QdInstructor = class extends i {
           .showModal=${this.showScores}
           @close=${this.handleCloseScores}
         ></qd-instructor-scores>
+
+        <qd-pin-reset-dialog
+          .students=${this.students}
+          .showModal=${this.showPinReset}
+          @close=${this.handleClosePinReset}
+          @qd:pin-reset=${this.handlePinReset}
+        ></qd-pin-reset-dialog>
       </div>
     `;
   }
@@ -5123,6 +6002,9 @@ __decorateClass$1([
 __decorateClass$1([
   r()
 ], QdInstructor.prototype, "showStudentAnswers", 2);
+__decorateClass$1([
+  r()
+], QdInstructor.prototype, "showPinReset", 2);
 QdInstructor = __decorateClass$1([
   t("qd-instructor")
 ], QdInstructor);
@@ -5902,18 +6784,20 @@ function isInitialized() {
 }
 const DEBUG_MODE = true;
 const VERSION = "0.1.0-phase3.1";
-const BUILD_DATE = "21/Nov/2025";
+const BUILD_DATE = "22/Nov/2025";
 if (typeof window !== "undefined") {
   const init = () => {
     info("Auto-initializing Sonar Quiz System");
     const domConfig = readDOMConfig();
-    void bootstrap({
+    bootstrap({
       debug: DEBUG_MODE,
       dbName: domConfig.dbName,
       statusPanelContainer: domConfig.statusPanelContainer,
       autoEnhanceQuizTables: true,
       autoEnhanceAnalysisTables: true,
       autoEnhanceHomeBadges: true
+    }).catch((err) => {
+      console.error("[FATAL] Bootstrap failed:", err);
     });
   };
   if (document.readyState === "loading") {
