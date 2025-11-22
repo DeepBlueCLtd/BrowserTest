@@ -83,6 +83,12 @@ export class EventCoordinator {
         const detail = (event as CustomEvent<LoginEventDetail>).detail;
         info(`Login event: ${detail.serviceId} (${detail.name})`);
 
+        // Skip student record handling for instructor logins
+        if (detail.serviceId === 'INSTRUCTOR') {
+          info('Instructor login - skipping student record handling');
+          return;
+        }
+
         // Get session from storage (already created by SessionService)
         const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
         if (!session) {

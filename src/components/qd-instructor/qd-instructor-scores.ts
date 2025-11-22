@@ -240,17 +240,41 @@ export class QdInstructorScores extends LitElement {
       // Main student row
       const tr = document.createElement('tr');
       tr.style.cssText = 'cursor: pointer; color: #333;';
-      tr.innerHTML = `
-        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">
-          <span style="display: inline-block; width: 16px; margin-right: 4px;">${isExpanded ? '▼' : '▶'}</span>
-          ${summary.name}
-        </td>
-        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">${summary.serviceId}</td>
-        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">${summary.attempted}</td>
-        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; ${summary.correct === summary.attempted ? 'color: #28a745;' : ''}">${summary.correct}</td>
-        <td style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; ${summary.percentage === 100 ? 'color: #28a745;' : summary.percentage === 0 ? 'color: #dc3545;' : ''}">${summary.percentage}%</td>
-      `;
-      tr.onclick = () => this.toggleStudent(student.serviceId);
+
+      // Name cell (clickable for expand)
+      const nameCell = document.createElement('td');
+      nameCell.style.cssText = 'padding: 8px; text-align: left; border-bottom: 1px solid #ddd;';
+      nameCell.innerHTML = `<span style="display: inline-block; width: 16px; margin-right: 4px;">${isExpanded ? '▼' : '▶'}</span>${summary.name}`;
+      nameCell.onclick = () => this.toggleStudent(student.serviceId);
+      tr.appendChild(nameCell);
+
+      // Other data cells (clickable for expand)
+      const serviceIdCell = document.createElement('td');
+      serviceIdCell.style.cssText =
+        'padding: 8px; text-align: left; border-bottom: 1px solid #ddd;';
+      serviceIdCell.textContent = summary.serviceId;
+      serviceIdCell.onclick = () => this.toggleStudent(student.serviceId);
+      tr.appendChild(serviceIdCell);
+
+      const attemptedCell = document.createElement('td');
+      attemptedCell.style.cssText =
+        'padding: 8px; text-align: left; border-bottom: 1px solid #ddd;';
+      attemptedCell.textContent = String(summary.attempted);
+      attemptedCell.onclick = () => this.toggleStudent(student.serviceId);
+      tr.appendChild(attemptedCell);
+
+      const correctCell = document.createElement('td');
+      correctCell.style.cssText = `padding: 8px; text-align: left; border-bottom: 1px solid #ddd; ${summary.correct === summary.attempted ? 'color: #28a745;' : ''}`;
+      correctCell.textContent = String(summary.correct);
+      correctCell.onclick = () => this.toggleStudent(student.serviceId);
+      tr.appendChild(correctCell);
+
+      const percentCell = document.createElement('td');
+      percentCell.style.cssText = `padding: 8px; text-align: left; border-bottom: 1px solid #ddd; ${summary.percentage === 100 ? 'color: #28a745;' : summary.percentage === 0 ? 'color: #dc3545;' : ''}`;
+      percentCell.textContent = `${summary.percentage}%`;
+      percentCell.onclick = () => this.toggleStudent(student.serviceId);
+      tr.appendChild(percentCell);
+
       tbody.appendChild(tr);
 
       // Expanded details row

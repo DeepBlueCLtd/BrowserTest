@@ -556,6 +556,7 @@ function getStorageKey(release: ReleaseId, serviceId: ServiceId): string {
 ## Active Technologies
 - TypeScript 5.x / JavaScript ES2020+ + Lit 3.0 (Web Components), Vite 5.x (build), Vitest (testing) (001-security-refactor)
 - IndexedDB (primary), sessionStorage (active session) (001-security-refactor)
+- IndexedDB (primary), sessionStorage (rate limiting state) (004-student-pin-auth)
 
 ## Recent Changes
 - 001-security-refactor: Added TypeScript 5.x / JavaScript ES2020+ + Lit 3.0 (Web Components), Vite 5.x (build), Vitest (testing)

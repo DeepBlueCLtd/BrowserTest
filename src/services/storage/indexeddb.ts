@@ -9,24 +9,31 @@
  * Keys: qd/{release}/u{serviceId}
  */
 
-import type { StorageAdapter, StudentRecord, ReleaseId, ServiceId } from '../../types/contracts.js';
+import type {
+  StorageAdapter,
+  StudentRecord,
+  ReleaseId,
+  ServiceId,
+  PinResetEvent,
+} from '../../types/contracts.js';
 import {
   getStorageKey,
   StorageNotInitializedError,
   StorageError,
   StorageQuotaError,
 } from './adapter-utils.js';
-import { info, warn as logWarn, error as logError } from '../../utils/logger.js';
+import { warn as logWarn, error as logError } from '../../utils/logger.js';
 
 /** Default database name */
 const DEFAULT_DB_NAME = 'BrowserTest';
 
 /** Database version - increment to force schema upgrade */
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 /** Object store names */
 const STORE_STUDENTS = 'students';
 const STORE_BACKUPS = 'backups';
+const STORE_AUDIT_LOG = 'auditLog';
 
 /**
  * Backup record with metadata
@@ -81,24 +88,75 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     }
 
     this.initPromise = new Promise<void>((resolve, reject) => {
+      // Timeout for hung database operations
+      const OPEN_TIMEOUT_MS = 5000;
+      let timeoutId: number | undefined;
+      let resolved = false;
+
+      const cleanup = () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = undefined;
+        }
+      };
+
+      timeoutId = window.setTimeout(() => {
+        if (resolved) return;
+        resolved = true;
+        this.initPromise = null;
+
+        logWarn(`IndexedDB open timed out after ${OPEN_TIMEOUT_MS}ms - attempting recovery`);
+
+        // Try to delete and recreate
+        const deleteReq = indexedDB.deleteDatabase(this.dbName);
+        deleteReq.onsuccess = () => {
+          this.init().then(resolve).catch(reject);
+        };
+        deleteReq.onerror = () => {
+          reject(
+            new StorageError(
+              `Database "${this.dbName}" appears corrupted. Please clear site data in browser settings.`,
+              'init',
+            ),
+          );
+        };
+        deleteReq.onblocked = () => {
+          reject(
+            new StorageError(
+              `Cannot recover database - close all other tabs with this site and reload.`,
+              'init',
+            ),
+          );
+        };
+      }, OPEN_TIMEOUT_MS);
+
       const request = indexedDB.open(this.dbName, DB_VERSION);
 
       request.onerror = () => {
+        if (resolved) return;
+        resolved = true;
+        cleanup();
+        logError(`IndexedDB open error: ${request.error?.message || 'unknown'}`);
         this.initPromise = null;
         reject(new StorageError('Failed to open database', 'init', request.error as Error));
       };
 
-      request.onsuccess = () => {
-        this.db = request.result;
+      request.onblocked = () => {
+        logWarn('IndexedDB open blocked - close other tabs with this database');
+      };
 
-        info(
-          `IndexedDB opened: ${this.dbName} v${this.db.version}, stores: [${Array.from(this.db.objectStoreNames).join(', ')}]`,
-        );
+      request.onsuccess = () => {
+        if (resolved) return;
+        resolved = true;
+        cleanup();
+
+        this.db = request.result;
 
         // Verify object stores exist - if not, database is corrupted
         if (
           !this.db.objectStoreNames.contains(STORE_STUDENTS) ||
-          !this.db.objectStoreNames.contains(STORE_BACKUPS)
+          !this.db.objectStoreNames.contains(STORE_BACKUPS) ||
+          !this.db.objectStoreNames.contains(STORE_AUDIT_LOG)
         ) {
           // Database exists but stores missing - delete and recreate
           logWarn(
@@ -110,7 +168,6 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
           // Delete corrupted database
           const deleteRequest = indexedDB.deleteDatabase(this.dbName);
           deleteRequest.onsuccess = () => {
-            logWarn('Corrupted database deleted, retrying init...');
             // Retry initialization
             this.initPromise = null;
             this.init().then(resolve).catch(reject);
@@ -133,49 +190,45 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
       };
 
       request.onupgradeneeded = (event) => {
-        const upgradeEvent = event;
         const db = (event.target as IDBOpenDBRequest).result;
+        const transaction = (event.target as IDBOpenDBRequest).transaction;
 
-        info(
-          `IndexedDB upgrade: ${this.dbName} v${upgradeEvent.oldVersion} → v${upgradeEvent.newVersion}`,
-        );
+        if (transaction) {
+          transaction.onerror = () => {
+            logError(`Upgrade transaction error: ${transaction.error?.message || 'unknown'}`);
+          };
+          transaction.onabort = () => {
+            logError(`Upgrade transaction aborted: ${transaction.error?.message || 'unknown'}`);
+          };
+        }
 
         try {
           // Create students object store
           if (!db.objectStoreNames.contains(STORE_STUDENTS)) {
-            info('Creating students object store...');
             const studentsStore = db.createObjectStore(STORE_STUDENTS, { keyPath: null });
-
-            // Create indexes for efficient queries
             studentsStore.createIndex('by-release', 'release', { unique: false });
             studentsStore.createIndex('by-service-id', 'serviceId', { unique: false });
-            info('Students store created with indexes');
-          } else {
-            info('Students store already exists, skipping');
           }
 
           // Create backups object store
           if (!db.objectStoreNames.contains(STORE_BACKUPS)) {
-            info('Creating backups object store...');
             const backupsStore = db.createObjectStore(STORE_BACKUPS, { keyPath: null });
-
-            // Create indexes for backup queries
             backupsStore.createIndex('by-original-key', 'originalKey', { unique: false });
             backupsStore.createIndex('by-timestamp', 'timestamp', { unique: false });
-            info('Backups store created with indexes');
-          } else {
-            info('Backups store already exists, skipping');
           }
 
-          info(`Upgrade complete. Stores: [${Array.from(db.objectStoreNames).join(', ')}]`);
+          // Create audit log object store (v3 - PIN reset events)
+          if (!db.objectStoreNames.contains(STORE_AUDIT_LOG)) {
+            const auditStore = db.createObjectStore(STORE_AUDIT_LOG, {
+              keyPath: 'eventId',
+            });
+            auditStore.createIndex('by-service-id', 'serviceId', { unique: false });
+            auditStore.createIndex('by-reset-at', 'resetAt', { unique: false });
+          }
         } catch (err) {
           logError('Error during database upgrade', err as Error);
           throw err;
         }
-      };
-
-      request.onblocked = () => {
-        logWarn('IndexedDB upgrade blocked by another connection');
       };
     });
 
@@ -330,27 +383,40 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
     return new Promise<void>((resolve, reject) => {
       try {
-        const transaction = db.transaction([STORE_STUDENTS, STORE_BACKUPS], 'readwrite');
+        const transaction = db.transaction(
+          [STORE_STUDENTS, STORE_BACKUPS, STORE_AUDIT_LOG],
+          'readwrite',
+        );
 
         const studentsStore = transaction.objectStore(STORE_STUDENTS);
         const backupsStore = transaction.objectStore(STORE_BACKUPS);
+        const auditStore = transaction.objectStore(STORE_AUDIT_LOG);
 
         const clearStudentsRequest = studentsStore.clear();
         const clearBackupsRequest = backupsStore.clear();
+        const clearAuditRequest = auditStore.clear();
 
         let studentsCleared = false;
         let backupsCleared = false;
+        let auditCleared = false;
 
         clearStudentsRequest.onsuccess = () => {
           studentsCleared = true;
-          if (backupsCleared) {
+          if (backupsCleared && auditCleared) {
             resolve();
           }
         };
 
         clearBackupsRequest.onsuccess = () => {
           backupsCleared = true;
-          if (studentsCleared) {
+          if (studentsCleared && auditCleared) {
+            resolve();
+          }
+        };
+
+        clearAuditRequest.onsuccess = () => {
+          auditCleared = true;
+          if (studentsCleared && backupsCleared) {
             resolve();
           }
         };
@@ -371,6 +437,16 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
               'Failed to clear backups',
               'clearAll',
               clearBackupsRequest.error as Error,
+            ),
+          );
+        };
+
+        clearAuditRequest.onerror = () => {
+          reject(
+            new StorageError(
+              'Failed to clear audit log',
+              'clearAll',
+              clearAuditRequest.error as Error,
             ),
           );
         };
@@ -440,6 +516,39 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         };
       } catch (error) {
         reject(new StorageError('Failed to create backup', 'backup', error as Error));
+      }
+    });
+  }
+
+  /**
+   * Save a PIN reset event to the audit log
+   *
+   * @param event - PIN reset event to log
+   */
+  async saveAuditEvent(event: PinResetEvent): Promise<void> {
+    const db = this.ensureInitialized();
+
+    return new Promise<void>((resolve, reject) => {
+      try {
+        const transaction = db.transaction(STORE_AUDIT_LOG, 'readwrite');
+        const store = transaction.objectStore(STORE_AUDIT_LOG);
+        const request = store.add(event);
+
+        request.onsuccess = () => {
+          resolve();
+        };
+
+        request.onerror = () => {
+          reject(
+            new StorageError(
+              'Failed to save audit event',
+              'saveAuditEvent',
+              request.error as Error,
+            ),
+          );
+        };
+      } catch (error) {
+        reject(new StorageError('Failed to save audit event', 'saveAuditEvent', error as Error));
       }
     });
   }

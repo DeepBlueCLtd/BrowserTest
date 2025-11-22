@@ -31,7 +31,11 @@
       "Bash(npx playwright test:*)",
       "Bash(find:*)",
       "Bash(npm run build:dita:*)",
-      "Bash(pkill:*)"
+      "WebFetch(domain:github.com)",
+      "Bash(npm run size-check:*)",
+      "Bash(shasum:*)",
+      "Bash(open:*)",
+      "Bash(git merge:*)"
     ],
     "deny": [],
     "ask": []
