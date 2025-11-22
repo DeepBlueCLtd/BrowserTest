@@ -227,7 +227,6 @@ export class QdInstructorScores extends LitElement {
         <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Attempted</th>
         <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Correct</th>
         <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Percentage</th>
-        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">PIN</th>
       </tr>
     `;
     table.appendChild(thead);
@@ -276,34 +275,6 @@ export class QdInstructorScores extends LitElement {
       percentCell.onclick = () => this.toggleStudent(student.serviceId);
       tr.appendChild(percentCell);
 
-      // Reset PIN button cell
-      const resetCell = document.createElement('td');
-      resetCell.style.cssText = 'padding: 8px; text-align: left; border-bottom: 1px solid #ddd;';
-      const resetBtn = document.createElement('button');
-      resetBtn.type = 'button';
-      resetBtn.textContent = 'Reset';
-      resetBtn.style.cssText = `
-        background: #6c757d;
-        color: white;
-        border: none;
-        padding: 4px 8px;
-        border-radius: 3px;
-        font-size: 11px;
-        cursor: pointer;
-      `;
-      resetBtn.onclick = (e) => {
-        e.stopPropagation();
-        this.dispatchEvent(
-          new CustomEvent('reset-pin', {
-            detail: { serviceId: student.serviceId, release: student.release },
-            bubbles: true,
-            composed: true,
-          }),
-        );
-      };
-      resetCell.appendChild(resetBtn);
-      tr.appendChild(resetCell);
-
       tbody.appendChild(tr);
 
       // Expanded details row
@@ -326,7 +297,7 @@ export class QdInstructorScores extends LitElement {
     tr.style.backgroundColor = '#f9f9f9';
 
     const td = document.createElement('td');
-    td.colSpan = 6;
+    td.colSpan = 5;
     td.style.cssText = 'padding: 8px 8px 8px 40px; border-bottom: 1px solid #ddd;';
 
     const pages = Object.entries(student.pages);

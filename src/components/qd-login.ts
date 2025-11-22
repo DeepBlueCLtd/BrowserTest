@@ -166,11 +166,11 @@ export class QdLogin extends LitElement {
     }
 
     input.pin-input {
-      width: 50px;
-      min-width: 50px;
-      max-width: 50px;
+      width: 45px;
+      min-width: 45px;
+      max-width: 45px;
       text-align: center;
-      letter-spacing: 2px;
+      letter-spacing: 1px;
     }
 
     input:focus {
@@ -227,14 +227,6 @@ export class QdLogin extends LitElement {
       background: #ffebee;
       border-radius: 3px;
       border-left: 3px solid #d32f2f;
-    }
-
-    .pin-input {
-      width: 70px !important;
-      min-width: 70px !important;
-      max-width: 70px !important;
-      letter-spacing: 2px;
-      text-align: center;
     }
 
     .lockout-message {
