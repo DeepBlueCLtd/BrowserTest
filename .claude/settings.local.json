@@ -33,7 +33,8 @@
       "Bash(npm run build:dita:*)",
       "WebFetch(domain:github.com)",
       "Bash(npm run size-check:*)",
-      "Bash(shasum:*)"
+      "Bash(shasum:*)",
+      "Bash(open:*)"
     ],
     "deny": [],
     "ask": []
