@@ -34,7 +34,8 @@
       "WebFetch(domain:github.com)",
       "Bash(npm run size-check:*)",
       "Bash(shasum:*)",
-      "Bash(open:*)"
+      "Bash(open:*)",
+      "Bash(git merge:*)"
     ],
     "deny": [],
     "ask": []
