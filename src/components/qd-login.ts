@@ -761,8 +761,13 @@ export class QdLogin extends LitElement {
         return;
       }
 
-      // Get storage adapter and check for existing student
-      const storage = getStorageAdapter();
+      // Get storage adapter with configured db name
+      const dbNameElement = document.getElementById(CONFIG_IDS.dbName);
+      if (!dbNameElement?.textContent?.trim()) {
+        throw new Error(`Database name not configured. Add <span id="${CONFIG_IDS.dbName}">dbName</span> to page.`);
+      }
+      const dbName = dbNameElement.textContent.trim();
+      const storage = getStorageAdapter(dbName);
       await storage.init();
       const existingStudent = await storage.getStudent(release, serviceId);
 
