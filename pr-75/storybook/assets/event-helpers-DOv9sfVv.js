@@ -1,0 +1,1 @@
+function c(e,t,n){const s=new CustomEvent(e,{detail:t,bubbles:!0,composed:!0,cancelable:!1});return document.dispatchEvent(s)}function u(e,t,n,s){const o=new CustomEvent(t,{detail:n,bubbles:!0,composed:!0,cancelable:!1});return e.dispatchEvent(o)}export{u as d,c as e};
