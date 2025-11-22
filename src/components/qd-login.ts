@@ -768,7 +768,9 @@ export class QdLogin extends LitElement {
       // Get storage adapter with configured db name
       const dbNameElement = document.getElementById(CONFIG_IDS.dbName);
       if (!dbNameElement?.textContent?.trim()) {
-        throw new Error(`Database name not configured. Add <span id="${CONFIG_IDS.dbName}">dbName</span> to page.`);
+        throw new Error(
+          `Database name not configured. Add <span id="${CONFIG_IDS.dbName}">dbName</span> to page.`,
+        );
       }
       const dbName = dbNameElement.textContent.trim();
       const storage = getStorageAdapter(dbName);
