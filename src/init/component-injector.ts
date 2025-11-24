@@ -6,7 +6,6 @@
 import '../components/qd-login.js';
 import '../components/qd-status.js';
 import '../components/qd-instructor/qd-instructor.js';
-import '../components/qd-storage-monitor.js';
 import { info } from '../utils/logger.js';
 
 /**
@@ -15,8 +14,6 @@ import { info } from '../utils/logger.js';
 export const DEFAULT_CONTAINERS = {
   /** Where to inject status panel (Oxygen WebHelp default) */
   statusPanel: '.wh_top_menu_and_indexterms_link',
-  /** Where to inject storage monitor (body) */
-  storageMonitor: 'body',
 } as const;
 
 /**
@@ -25,12 +22,8 @@ export const DEFAULT_CONTAINERS = {
 export interface ComponentInjectorConfig {
   /** Selector for status panel container */
   statusPanelContainer?: string;
-  /** Selector for storage monitor container */
-  storageMonitorContainer?: string;
-  /** Database name for storage monitor */
+  /** Database name for storage service */
   dbName?: string;
-  /** Enable debug mode (shows storage monitor) */
-  debug?: boolean;
 }
 
 /**
@@ -82,32 +75,6 @@ export function injectInstructorComponent(containerSelector: string): HTMLElemen
 }
 
 /**
- * Inject storage monitor for debugging
- */
-export function injectStorageMonitor(
-  config: Pick<ComponentInjectorConfig, 'storageMonitorContainer' | 'dbName' | 'debug'>,
-): HTMLElement | null {
-  if (!config.debug) {
-    return null;
-  }
-
-  const containerSelector = config.storageMonitorContainer || DEFAULT_CONTAINERS.storageMonitor;
-  const container = document.querySelector(containerSelector);
-  if (!container) {
-    info(`Storage monitor not injected: container '${containerSelector}' not found`);
-    return null;
-  }
-
-  const monitor = document.createElement('qd-storage-monitor');
-  if (config.dbName) {
-    monitor.setAttribute('dbName', config.dbName);
-  }
-  container.appendChild(monitor);
-  info('Storage monitor injected (debug mode)');
-  return monitor;
-}
-
-/**
  * Inject all UI components based on configuration
  */
 export function injectComponents(config: ComponentInjectorConfig = {}): void {
@@ -121,11 +88,4 @@ export function injectComponents(config: ComponentInjectorConfig = {}): void {
 
   // Always inject instructor component (hidden until unlocked)
   injectInstructorComponent(statusPanelContainer);
-
-  // Inject storage monitor if debug mode enabled
-  injectStorageMonitor({
-    storageMonitorContainer: config.storageMonitorContainer,
-    dbName: config.dbName,
-    debug: config.debug,
-  });
 }

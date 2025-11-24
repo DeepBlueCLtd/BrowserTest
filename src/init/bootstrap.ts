@@ -174,9 +174,7 @@ export async function bootstrap(config: BootstrapConfig = {}): Promise<void> {
   // 4. Inject UI components
   injectComponents({
     statusPanelContainer: config.statusPanelContainer,
-    storageMonitorContainer: config.storageMonitorContainer,
     dbName: config.dbName,
-    debug: config.debug,
   });
 
   // 5. Auto-enhance tables if enabled
