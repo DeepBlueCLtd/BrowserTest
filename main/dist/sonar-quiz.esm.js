@@ -3101,7 +3101,7 @@ var __decorateClass$9 = (decorators, target, key, kind) => {
 };
 let QdBuildInfo = class extends i {
   render() {
-    const buildDate = "22/Nov/2025";
+    const buildDate = "24/Nov/2025";
     return x`
       <span class="info-icon" tabindex="0" role="button" aria-label="Build information">i</span>
       <div class="tooltip" role="tooltip">
@@ -6784,7 +6784,7 @@ function isInitialized() {
 }
 const DEBUG_MODE = true;
 const VERSION = "0.1.0-phase3.1";
-const BUILD_DATE = "22/Nov/2025";
+const BUILD_DATE = "24/Nov/2025";
 if (typeof window !== "undefined") {
   const init = () => {
     info("Auto-initializing Sonar Quiz System");
