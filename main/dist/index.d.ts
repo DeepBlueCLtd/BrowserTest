@@ -41,9 +41,7 @@ export declare type CompletionState = 'unstarted' | 'incomplete' | 'complete';
 
 export declare interface ComponentInjectorConfig {
     statusPanelContainer?: string;
-    storageMonitorContainer?: string;
     dbName?: string;
-    debug?: boolean;
 }
 
 export declare class Debouncer {
@@ -57,7 +55,6 @@ export declare class Debouncer {
 
 export declare const DEFAULT_CONTAINERS: {
     readonly statusPanel: ".wh_top_menu_and_indexterms_link";
-    readonly storageMonitor: "body";
 };
 
 export declare function enhanceAnalysisTable(table: HTMLTableElement, options: EnhanceAnalysisTableOptions): boolean;

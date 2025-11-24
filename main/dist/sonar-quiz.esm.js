@@ -3091,9 +3091,9 @@ function getRemainingAttempts(serviceId) {
   }
   return Math.max(0, PIN_CONSTANTS.MAX_ATTEMPTS - state2.attempts);
 }
-var __getOwnPropDesc$9 = Object.getOwnPropertyDescriptor;
-var __decorateClass$9 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$9(target, key) : target;
+var __getOwnPropDesc$8 = Object.getOwnPropertyDescriptor;
+var __decorateClass$8 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$8(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = decorator(result) || result;
@@ -3185,17 +3185,17 @@ QdBuildInfo.styles = i$3`
       line-height: 1.4;
     }
   `;
-QdBuildInfo = __decorateClass$9([
+QdBuildInfo = __decorateClass$8([
   t("qd-build-info")
 ], QdBuildInfo);
-var __defProp$8 = Object.defineProperty;
-var __getOwnPropDesc$8 = Object.getOwnPropertyDescriptor;
-var __decorateClass$8 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$8(target, key) : target;
+var __defProp$7 = Object.defineProperty;
+var __getOwnPropDesc$7 = Object.getOwnPropertyDescriptor;
+var __decorateClass$7 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$7(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$8(target, key, result);
+  if (kind && result) __defProp$7(target, key, result);
   return result;
 };
 let QdLogin = class extends i {
@@ -4061,44 +4061,44 @@ QdLogin.styles = i$3`
       }
     }
   `;
-__decorateClass$8([
+__decorateClass$7([
   n2({ type: String })
 ], QdLogin.prototype, "title", 2);
-__decorateClass$8([
+__decorateClass$7([
   r()
 ], QdLogin.prototype, "name", 2);
-__decorateClass$8([
+__decorateClass$7([
   r()
 ], QdLogin.prototype, "serviceId", 2);
-__decorateClass$8([
+__decorateClass$7([
   r()
 ], QdLogin.prototype, "instructorPassword", 2);
-__decorateClass$8([
+__decorateClass$7([
   r()
 ], QdLogin.prototype, "showInstructorModal", 2);
-__decorateClass$8([
+__decorateClass$7([
   r()
 ], QdLogin.prototype, "errorMessage", 2);
-__decorateClass$8([
+__decorateClass$7([
   r()
 ], QdLogin.prototype, "isSubmitting", 2);
-__decorateClass$8([
+__decorateClass$7([
   r()
 ], QdLogin.prototype, "pin", 2);
-__decorateClass$8([
+__decorateClass$7([
   r()
 ], QdLogin.prototype, "lockoutSeconds", 2);
-QdLogin = __decorateClass$8([
+QdLogin = __decorateClass$7([
   t("qd-login")
 ], QdLogin);
-var __defProp$7 = Object.defineProperty;
-var __getOwnPropDesc$7 = Object.getOwnPropertyDescriptor;
-var __decorateClass$7 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$7(target, key) : target;
+var __defProp$6 = Object.defineProperty;
+var __getOwnPropDesc$6 = Object.getOwnPropertyDescriptor;
+var __decorateClass$6 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$6(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$7(target, key, result);
+  if (kind && result) __defProp$6(target, key, result);
   return result;
 };
 let QdStatus = class extends i {
@@ -4324,25 +4324,25 @@ QdStatus.styles = i$3`
       background: #b71c1c;
     }
   `;
-__decorateClass$7([
+__decorateClass$6([
   r()
 ], QdStatus.prototype, "total", 2);
-__decorateClass$7([
+__decorateClass$6([
   r()
 ], QdStatus.prototype, "correct", 2);
-__decorateClass$7([
+__decorateClass$6([
   r()
 ], QdStatus.prototype, "percentage", 2);
-__decorateClass$7([
+__decorateClass$6([
   r()
 ], QdStatus.prototype, "statusColor", 2);
-__decorateClass$7([
+__decorateClass$6([
   r()
 ], QdStatus.prototype, "name", 2);
-__decorateClass$7([
+__decorateClass$6([
   r()
 ], QdStatus.prototype, "serviceId", 2);
-QdStatus = __decorateClass$7([
+QdStatus = __decorateClass$6([
   t("qd-status")
 ], QdStatus);
 const sharedStyles = i$3`
@@ -4708,14 +4708,14 @@ function getInstructorPasswordHash() {
   }
   return hash.toLowerCase();
 }
-var __defProp$6 = Object.defineProperty;
-var __getOwnPropDesc$6 = Object.getOwnPropertyDescriptor;
-var __decorateClass$6 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$6(target, key) : target;
+var __defProp$5 = Object.defineProperty;
+var __getOwnPropDesc$5 = Object.getOwnPropertyDescriptor;
+var __decorateClass$5 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$5(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$6(target, key, result);
+  if (kind && result) __defProp$5(target, key, result);
   return result;
 };
 let QdInstructorUnlock = class extends i {
@@ -4817,26 +4817,26 @@ let QdInstructorUnlock = class extends i {
   }
 };
 QdInstructorUnlock.styles = sharedStyles;
-__decorateClass$6([
+__decorateClass$5([
   r()
 ], QdInstructorUnlock.prototype, "password", 2);
-__decorateClass$6([
+__decorateClass$5([
   r()
 ], QdInstructorUnlock.prototype, "error", 2);
-__decorateClass$6([
+__decorateClass$5([
   r()
 ], QdInstructorUnlock.prototype, "remainingSeconds", 2);
-QdInstructorUnlock = __decorateClass$6([
+QdInstructorUnlock = __decorateClass$5([
   t("qd-instructor-unlock")
 ], QdInstructorUnlock);
-var __defProp$5 = Object.defineProperty;
-var __getOwnPropDesc$5 = Object.getOwnPropertyDescriptor;
-var __decorateClass$5 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$5(target, key) : target;
+var __defProp$4 = Object.defineProperty;
+var __getOwnPropDesc$4 = Object.getOwnPropertyDescriptor;
+var __decorateClass$4 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$4(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$5(target, key, result);
+  if (kind && result) __defProp$4(target, key, result);
   return result;
 };
 let QdInstructorScores = class extends i {
@@ -5100,26 +5100,26 @@ let QdInstructorScores = class extends i {
   }
 };
 QdInstructorScores.styles = sharedStyles;
-__decorateClass$5([
+__decorateClass$4([
   n2({ type: Array })
 ], QdInstructorScores.prototype, "students", 2);
-__decorateClass$5([
+__decorateClass$4([
   n2({ type: Boolean })
 ], QdInstructorScores.prototype, "showModal", 2);
-__decorateClass$5([
+__decorateClass$4([
   r()
 ], QdInstructorScores.prototype, "expandedStudents", 2);
-QdInstructorScores = __decorateClass$5([
+QdInstructorScores = __decorateClass$4([
   t("qd-instructor-scores")
 ], QdInstructorScores);
-var __defProp$4 = Object.defineProperty;
-var __getOwnPropDesc$4 = Object.getOwnPropertyDescriptor;
-var __decorateClass$4 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$4(target, key) : target;
+var __defProp$3 = Object.defineProperty;
+var __getOwnPropDesc$3 = Object.getOwnPropertyDescriptor;
+var __decorateClass$3 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$3(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$4(target, key, result);
+  if (kind && result) __defProp$3(target, key, result);
   return result;
 };
 let QdInstructorExport = class extends i {
@@ -5190,20 +5190,20 @@ let QdInstructorExport = class extends i {
   }
 };
 QdInstructorExport.styles = sharedStyles;
-__decorateClass$4([
+__decorateClass$3([
   n2({ type: Array })
 ], QdInstructorExport.prototype, "students", 2);
-QdInstructorExport = __decorateClass$4([
+QdInstructorExport = __decorateClass$3([
   t("qd-instructor-export")
 ], QdInstructorExport);
-var __defProp$3 = Object.defineProperty;
-var __getOwnPropDesc$3 = Object.getOwnPropertyDescriptor;
-var __decorateClass$3 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$3(target, key) : target;
+var __defProp$2 = Object.defineProperty;
+var __getOwnPropDesc$2 = Object.getOwnPropertyDescriptor;
+var __decorateClass$2 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$2(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$3(target, key, result);
+  if (kind && result) __defProp$2(target, key, result);
   return result;
 };
 let QdInstructorManage = class extends i {
@@ -5371,29 +5371,29 @@ let QdInstructorManage = class extends i {
   }
 };
 QdInstructorManage.styles = sharedStyles;
-__decorateClass$3([
+__decorateClass$2([
   r()
 ], QdInstructorManage.prototype, "showConfirmDialog", 2);
-__decorateClass$3([
+__decorateClass$2([
   r()
 ], QdInstructorManage.prototype, "confirmText", 2);
-__decorateClass$3([
+__decorateClass$2([
   r()
 ], QdInstructorManage.prototype, "error", 2);
-__decorateClass$3([
+__decorateClass$2([
   r()
 ], QdInstructorManage.prototype, "success", 2);
-QdInstructorManage = __decorateClass$3([
+QdInstructorManage = __decorateClass$2([
   t("qd-instructor-manage")
 ], QdInstructorManage);
-var __defProp$2 = Object.defineProperty;
-var __getOwnPropDesc$2 = Object.getOwnPropertyDescriptor;
-var __decorateClass$2 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$2(target, key) : target;
+var __defProp$1 = Object.defineProperty;
+var __getOwnPropDesc$1 = Object.getOwnPropertyDescriptor;
+var __decorateClass$1 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$1(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$2(target, key, result);
+  if (kind && result) __defProp$1(target, key, result);
   return result;
 };
 let QdPinResetDialog = class extends i {
@@ -5728,29 +5728,29 @@ QdPinResetDialog.styles = i$3`
       display: block;
     }
   `;
-__decorateClass$2([
+__decorateClass$1([
   n2({ type: Array })
 ], QdPinResetDialog.prototype, "students", 2);
-__decorateClass$2([
+__decorateClass$1([
   n2({ type: Boolean })
 ], QdPinResetDialog.prototype, "showModal", 2);
-__decorateClass$2([
+__decorateClass$1([
   r()
 ], QdPinResetDialog.prototype, "searchText", 2);
-__decorateClass$2([
+__decorateClass$1([
   r()
 ], QdPinResetDialog.prototype, "confirmingStudent", 2);
-QdPinResetDialog = __decorateClass$2([
+QdPinResetDialog = __decorateClass$1([
   t("qd-pin-reset-dialog")
 ], QdPinResetDialog);
-var __defProp$1 = Object.defineProperty;
-var __getOwnPropDesc$1 = Object.getOwnPropertyDescriptor;
-var __decorateClass$1 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$1(target, key) : target;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __decorateClass = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$1(target, key, result);
+  if (kind && result) __defProp(target, key, result);
   return result;
 };
 let QdInstructor = class extends i {
@@ -5990,355 +5990,27 @@ QdInstructor.styles = [
       }
     `
 ];
-__decorateClass$1([
+__decorateClass([
   r()
 ], QdInstructor.prototype, "unlocked", 2);
-__decorateClass$1([
+__decorateClass([
   r()
 ], QdInstructor.prototype, "showScores", 2);
-__decorateClass$1([
+__decorateClass([
   r()
 ], QdInstructor.prototype, "students", 2);
-__decorateClass$1([
+__decorateClass([
   r()
 ], QdInstructor.prototype, "showStudentAnswers", 2);
-__decorateClass$1([
+__decorateClass([
   r()
 ], QdInstructor.prototype, "showPinReset", 2);
-QdInstructor = __decorateClass$1([
+QdInstructor = __decorateClass([
   t("qd-instructor")
 ], QdInstructor);
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __decorateClass = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc(target, key) : target;
-  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
-    if (decorator = decorators[i2])
-      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp(target, key, result);
-  return result;
-};
-let QdStorageMonitor = class extends i {
-  constructor() {
-    super(...arguments);
-    this.dbName = "quiz-scores";
-    this.hidden = true;
-    this.visible = false;
-    this.indexedDBEntries = [];
-    this.sessionStorageEntries = [];
-    this.handleToggleEntry = (entry) => {
-      entry.expanded = !entry.expanded;
-      this.requestUpdate();
-    };
-    this.handleClearSessionStorage = () => {
-      if (confirm("Clear all sessionStorage?")) {
-        sessionStorage.clear();
-        void this.refreshData();
-      }
-    };
-    this.handleClearIndexedDB = async () => {
-      if (confirm(`Clear IndexedDB "${this.dbName}"?`)) {
-        try {
-          const db = await this.openDatabase();
-          for (const storeName of Array.from(db.objectStoreNames)) {
-            const tx = db.transaction(storeName, "readwrite");
-            const store = tx.objectStore(storeName);
-            store.clear();
-          }
-          await this.refreshData();
-        } catch (err) {
-          console.error("Failed to clear IndexedDB:", err);
-        }
-      }
-    };
-    this.handleClose = () => {
-      this.visible = false;
-      this.hidden = true;
-    };
-  }
-  connectedCallback() {
-    super.connectedCallback();
-    this.setupKeyboardShortcut();
-    this.startRefresh();
-  }
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    this.stopRefresh();
-  }
-  setupKeyboardShortcut() {
-    const handler = (e2) => {
-      if (e2.ctrlKey && e2.shiftKey && e2.key === "D") {
-        e2.preventDefault();
-        this.toggleVisibility();
-      }
-    };
-    document.addEventListener("keydown", handler);
-  }
-  toggleVisibility() {
-    this.visible = !this.visible;
-    this.hidden = !this.visible;
-  }
-  startRefresh() {
-    void this.refreshData();
-    this.refreshInterval = window.setInterval(() => {
-      void this.refreshData();
-    }, 1e3);
-  }
-  stopRefresh() {
-    if (this.refreshInterval) {
-      window.clearInterval(this.refreshInterval);
-    }
-  }
-  async refreshData() {
-    await this.refreshIndexedDB();
-    this.refreshSessionStorage();
-  }
-  async refreshIndexedDB() {
-    try {
-      const db = await this.openDatabase();
-      const entries = [];
-      for (const storeName of Array.from(db.objectStoreNames)) {
-        const tx = db.transaction(storeName, "readonly");
-        const store = tx.objectStore(storeName);
-        const request = store.getAll();
-        await new Promise((resolve, reject) => {
-          request.onsuccess = () => {
-            const items = request.result;
-            items.forEach((item, index) => {
-              entries.push({
-                key: `${storeName}[${index}]`,
-                value: item,
-                expanded: false
-              });
-            });
-            resolve();
-          };
-          request.onerror = () => reject(new Error(request.error?.message || "IndexedDB request failed"));
-        });
-      }
-      this.indexedDBEntries = entries;
-    } catch {
-      this.indexedDBEntries = [];
-    }
-  }
-  refreshSessionStorage() {
-    const entries = [];
-    for (let i2 = 0; i2 < sessionStorage.length; i2++) {
-      const key = sessionStorage.key(i2);
-      if (key) {
-        try {
-          const value = sessionStorage.getItem(key);
-          entries.push({
-            key,
-            value: value ? JSON.parse(value) : value,
-            expanded: false
-          });
-        } catch {
-          entries.push({
-            key,
-            value: sessionStorage.getItem(key),
-            expanded: false
-          });
-        }
-      }
-    }
-    this.sessionStorageEntries = entries;
-  }
-  openDatabase() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(new Error(request.error?.message || "Failed to open database"));
-    });
-  }
-  renderEntry(entry) {
-    return x`
-      <div class="entry">
-        <div class="entry-key" @click=${() => this.handleToggleEntry(entry)}>
-          ${entry.expanded ? "▼" : "▶"} ${entry.key}
-        </div>
-        ${entry.expanded ? x` <div class="entry-value">${JSON.stringify(entry.value, null, 2)}</div> ` : ""}
-      </div>
-    `;
-  }
-  render() {
-    return x`
-      <div class="header">
-        <span class="title">Storage Monitor (Ctrl+Shift+D)</span>
-        <div class="controls">
-          <button @click=${this.handleClose}>✕</button>
-        </div>
-      </div>
-      <div class="content">
-        <div class="section">
-          <div class="section-title">
-            IndexedDB: ${this.dbName}
-            <button
-              class="danger"
-              @click=${this.handleClearIndexedDB}
-              style="float: right; margin-top: -2px;"
-            >
-              Clear
-            </button>
-          </div>
-          ${this.indexedDBEntries.length === 0 ? x`<div class="empty">No entries</div>` : this.indexedDBEntries.map((e2) => this.renderEntry(e2))}
-        </div>
-
-        <div class="section">
-          <div class="section-title">
-            sessionStorage
-            <button
-              class="danger"
-              @click=${this.handleClearSessionStorage}
-              style="float: right; margin-top: -2px;"
-            >
-              Clear
-            </button>
-          </div>
-          ${this.sessionStorageEntries.length === 0 ? x`<div class="empty">No entries</div>` : this.sessionStorageEntries.map((e2) => this.renderEntry(e2))}
-        </div>
-      </div>
-    `;
-  }
-};
-QdStorageMonitor.styles = i$3`
-    :host {
-      position: fixed;
-      bottom: 0;
-      right: 0;
-      width: 400px;
-      max-height: 500px;
-      background: white;
-      border: 2px solid #333;
-      border-radius: 4px 0 0 0;
-      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
-      font-family: monospace;
-      font-size: 12px;
-      z-index: 9999; /* Below modal overlays (10001) */
-      display: flex;
-      flex-direction: column;
-      pointer-events: auto;
-    }
-
-    :host([hidden]) {
-      display: none;
-      pointer-events: none;
-    }
-
-    .header {
-      background: #333;
-      color: white;
-      padding: 8px 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .title {
-      font-weight: bold;
-    }
-
-    .controls {
-      display: flex;
-      gap: 8px;
-    }
-
-    button {
-      background: #555;
-      color: white;
-      border: none;
-      padding: 4px 8px;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 11px;
-    }
-
-    button:hover {
-      background: #777;
-    }
-
-    button.danger {
-      background: #dc3545;
-    }
-
-    button.danger:hover {
-      background: #c82333;
-    }
-
-    .content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px;
-    }
-
-    .section {
-      margin-bottom: 16px;
-    }
-
-    .section-title {
-      font-weight: bold;
-      margin-bottom: 4px;
-      padding: 4px;
-      background: #f0f0f0;
-    }
-
-    .entry {
-      margin: 4px 0;
-      padding: 4px;
-      border-left: 2px solid #ddd;
-      padding-left: 8px;
-    }
-
-    .entry-key {
-      color: #0066cc;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .entry-key:hover {
-      text-decoration: underline;
-    }
-
-    .entry-value {
-      color: #666;
-      margin-left: 16px;
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
-
-    .entry-actions {
-      margin-left: 16px;
-      margin-top: 4px;
-    }
-
-    .empty {
-      color: #999;
-      font-style: italic;
-    }
-  `;
-__decorateClass([
-  n2({ type: String })
-], QdStorageMonitor.prototype, "dbName", 2);
-__decorateClass([
-  n2({ type: Boolean, reflect: true })
-], QdStorageMonitor.prototype, "hidden", 2);
-__decorateClass([
-  r()
-], QdStorageMonitor.prototype, "visible", 2);
-__decorateClass([
-  r()
-], QdStorageMonitor.prototype, "indexedDBEntries", 2);
-__decorateClass([
-  r()
-], QdStorageMonitor.prototype, "sessionStorageEntries", 2);
-QdStorageMonitor = __decorateClass([
-  t("qd-storage-monitor")
-], QdStorageMonitor);
 const DEFAULT_CONTAINERS = {
   /** Where to inject status panel (Oxygen WebHelp default) */
-  statusPanel: ".wh_top_menu_and_indexterms_link",
-  /** Where to inject storage monitor (body) */
-  storageMonitor: "body"
+  statusPanel: ".wh_top_menu_and_indexterms_link"
 };
 function injectLoginComponent(containerSelector) {
   const container = document.querySelector(containerSelector);
@@ -6373,34 +6045,11 @@ function injectInstructorComponent(containerSelector) {
   info("Instructor component injected");
   return instructor;
 }
-function injectStorageMonitor(config) {
-  if (!config.debug) {
-    return null;
-  }
-  const containerSelector = config.storageMonitorContainer || DEFAULT_CONTAINERS.storageMonitor;
-  const container = document.querySelector(containerSelector);
-  if (!container) {
-    info(`Storage monitor not injected: container '${containerSelector}' not found`);
-    return null;
-  }
-  const monitor = document.createElement("qd-storage-monitor");
-  if (config.dbName) {
-    monitor.setAttribute("dbName", config.dbName);
-  }
-  container.appendChild(monitor);
-  info("Storage monitor injected (debug mode)");
-  return monitor;
-}
 function injectComponents(config = {}) {
   const statusPanelContainer = config.statusPanelContainer || DEFAULT_CONTAINERS.statusPanel;
   injectLoginComponent(statusPanelContainer);
   injectStatusComponent(statusPanelContainer);
   injectInstructorComponent(statusPanelContainer);
-  injectStorageMonitor({
-    storageMonitorContainer: config.storageMonitorContainer,
-    dbName: config.dbName,
-    debug: config.debug
-  });
 }
 const BADGE_CLASSES = {
   red: "qd-badge-red",
@@ -6613,9 +6262,7 @@ async function bootstrap(config = {}) {
   state.sessionCoordinator = sessionCoordinator;
   injectComponents({
     statusPanelContainer: config.statusPanelContainer,
-    storageMonitorContainer: config.storageMonitorContainer,
-    dbName: config.dbName,
-    debug: config.debug
+    dbName: config.dbName
   });
   if (config.autoEnhanceQuizTables !== false) {
     enhanceAllQuizTables();
@@ -6782,7 +6429,6 @@ function cleanup() {
 function isInitialized() {
   return state.initialized;
 }
-const DEBUG_MODE = true;
 const VERSION = "0.1.0-phase3.1";
 const BUILD_DATE = "24/Nov/2025";
 if (typeof window !== "undefined") {
@@ -6790,7 +6436,6 @@ if (typeof window !== "undefined") {
     info("Auto-initializing Sonar Quiz System");
     const domConfig = readDOMConfig();
     bootstrap({
-      debug: DEBUG_MODE,
       dbName: domConfig.dbName,
       statusPanelContainer: domConfig.statusPanelContainer,
       autoEnhanceQuizTables: true,
