@@ -35,7 +35,8 @@
       "Bash(npm run size-check:*)",
       "Bash(shasum:*)",
       "Bash(open:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Bash(.specify/scripts/bash/create-new-feature.sh:*)"
     ],
     "deny": [],
     "ask": []

@@ -10,18 +10,6 @@ import { bootstrap } from './init/bootstrap.js';
 import { info } from './utils/logger.js';
 import { readDOMConfig } from './config/dom-config-reader.js';
 
-/**
- * Debug mode toggle
- *
- * Set to `true` to enable:
- * - Console logging
- * - Storage monitor component
- * - Diagnostic output
- *
- * Set to `false` for production (silent operation)
- */
-const DEBUG_MODE = true;
-
 // Export quiz table enhancer (Phase 2.1)
 export {
   enhanceQuizTable,
@@ -104,9 +92,8 @@ if (typeof window !== 'undefined') {
     // Read configuration from hidden DOM elements
     const domConfig = readDOMConfig();
 
-    // Bootstrap with DOM config and debug mode
+    // Bootstrap with DOM config
     bootstrap({
-      debug: DEBUG_MODE,
       dbName: domConfig.dbName,
       statusPanelContainer: domConfig.statusPanelContainer,
       autoEnhanceQuizTables: true,

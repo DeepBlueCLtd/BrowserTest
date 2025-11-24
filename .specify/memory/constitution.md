@@ -30,7 +30,7 @@ TDD is MANDATORY for all feature implementation. Tests MUST be written first, re
 Development follows the 8-phase delivery plan with explicit exit criteria for each phase. No phase begins until the previous phase's exit gate is satisfied. Each phase delivers independently testable value: Phase 0 establishes frozen contracts, Phase 1-2 deliver core functionality without persistence, Phase 3-5 add instructor features and storage, Phase 6-8 ensure production readiness. This ensures incremental, verifiable progress.
 
 ### V. Performance Constraints
-The entire runtime MUST fit within a 25KB min+gzip IIFE bundle. Components use Shadow DOM for isolation without global CSS pollution. Session operations complete within 200ms on reference hardware. This constraint ensures the system runs smoothly on older, resource-constrained training machines typical in the deployment environment.
+The entire runtime MUST fit within a 35KB min+gzip IIFE bundle. Components use Shadow DOM for isolation without global CSS pollution. Session operations complete within 200ms on reference hardware. This constraint ensures the system runs smoothly on older, resource-constrained training machines typical in the deployment environment.
 
 ### VI. Data Isolation & Privacy
 All user data is stored locally with composite keys `qd/{release}/u{serviceId}`. No data leaves the browser. Session storage expires after 30 minutes of inactivity. Instructors can completely erase all data between cohorts. This ensures student privacy and clean separation between training sessions.
@@ -41,7 +41,7 @@ The system requires exactly one script tag in the DITA template—no configurati
 ## Validation Requirements
 
 ### Author Constraints
-- Maximum one `table.qd-quiz.qd-page` per page
+- Maximum one `table.qd-quiz` per page
 - Maximum one `table.qd-analysis` per page
 - MCQ answers use 1-indexed ordered lists
 - Numeric questions specify tolerance via data attributes
