@@ -38,6 +38,17 @@ async function clearStorage(page: Page): Promise<void> {
   });
 }
 
+/**
+ * Close PIN confirmation dialog if visible
+ */
+async function closePinConfirmationDialog(page: Page): Promise<void> {
+  try {
+    await page.locator('#qd-pin-confirmation-ok').click({ force: true, timeout: 2000 });
+  } catch {
+    // Dialog not visible or already closed, ignore
+  }
+}
+
 test.describe('DITA Student Flow', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`file://${ditaPath}/page-index.html`);
@@ -54,9 +65,13 @@ test.describe('DITA Student Flow', () => {
     // Fill login form
     await loginForm.locator('input[name="serviceId"]').fill('ALICE01');
     await loginForm.locator('input[name="name"]').fill('Alice Johnson');
+    await loginForm.locator('input[name="pin"]').fill('1234');
 
     // Submit login
     await loginForm.locator('button[type="submit"]').click();
+
+    // Close PIN confirmation dialog if it appears
+    await closePinConfirmationDialog(page);
 
     // Verify status panel appears (login successful)
     const statusPanel = page.locator('qd-status');
@@ -79,7 +94,9 @@ test.describe('DITA Student Flow', () => {
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('BOB02');
     await loginForm.locator('input[name="name"]').fill('Bob Smith');
+    await loginForm.locator('input[name="pin"]').fill('1234');
     await loginForm.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor();
 
     // Navigate to MCQ quiz page
@@ -116,7 +133,9 @@ test.describe('DITA Student Flow', () => {
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('CAROL03');
     await loginForm.locator('input[name="name"]').fill('Carol White');
+    await loginForm.locator('input[name="pin"]').fill('1234');
     await loginForm.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor();
 
     // Navigate to numeric quiz page
@@ -147,7 +166,9 @@ test.describe('DITA Student Flow', () => {
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('DAVE04');
     await loginForm.locator('input[name="name"]').fill('Dave Brown');
+    await loginForm.locator('input[name="pin"]').fill('1234');
     await loginForm.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
     const statusPanel = page.locator('qd-status');
     await statusPanel.waitFor();
 
@@ -194,7 +215,9 @@ test.describe('DITA Student Flow', () => {
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('EVE05');
     await loginForm.locator('input[name="name"]').fill('Eve Davis');
+    await loginForm.locator('input[name="pin"]').fill('1234');
     await loginForm.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor();
 
     // Verify initial badges are red (unstarted)
@@ -237,7 +260,9 @@ test.describe('DITA Student Flow', () => {
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('FRANK06');
     await loginForm.locator('input[name="name"]').fill('Frank Miller');
+    await loginForm.locator('input[name="pin"]').fill('1234');
     await loginForm.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor();
 
     // Navigate to quiz page and answer question
@@ -278,7 +303,9 @@ test.describe('DITA Student Flow', () => {
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('GRACE07');
     await loginForm.locator('input[name="name"]').fill('Grace Lee');
+    await loginForm.locator('input[name="pin"]').fill('1234');
     await loginForm.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
     const statusPanel = page.locator('qd-status');
     await statusPanel.waitFor();
 
@@ -312,7 +339,10 @@ test.describe('DITA Student Flow', () => {
     // Login again with different user
     await loginForm.locator('input[name="serviceId"]').fill('HENRY08');
     await loginForm.locator('input[name="name"]').fill('Henry Wilson');
+    await loginForm.locator('input[name="pin"]').fill('1234');
     await loginForm.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
+
     await statusPanel.waitFor();
 
     // Verify new session created (progress starts at 0)
@@ -330,12 +360,14 @@ test.describe('DITA Student Flow', () => {
     expect(value).toBe(''); // No pre-filled answer
   });
 
-  test.skip('Flow: Analysis table interaction and persistence', async ({ page }) => {
+  test('Flow: Analysis table interaction and persistence', async ({ page }) => {
     // Login
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('IVY09');
     await loginForm.locator('input[name="name"]').fill('Ivy Garcia');
+    await loginForm.locator('input[name="pin"]').fill('1234');
     await loginForm.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor();
 
     // Navigate to analysis page
@@ -378,7 +410,9 @@ test.describe('DITA Student Flow', () => {
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('STRUCT01');
     await loginForm.locator('input[name="name"]').fill('Structure Test');
+    await loginForm.locator('input[name="pin"]').fill('1234');
     await loginForm.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor();
 
     // Navigate to MCQ quiz page
@@ -421,7 +455,9 @@ test.describe('DITA Student Flow', () => {
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('STRUCT02');
     await loginForm.locator('input[name="name"]').fill('Structure Test 2');
+    await loginForm.locator('input[name="pin"]').fill('1234');
     await loginForm.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor();
 
     // Navigate to numeric quiz page
@@ -454,7 +490,9 @@ test.describe('DITA Student Flow', () => {
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('STRUCT03');
     await loginForm.locator('input[name="name"]').fill('Structure Test 3');
+    await loginForm.locator('input[name="pin"]').fill('1234');
     await loginForm.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor();
 
     // Navigate to MCQ quiz page
@@ -483,7 +521,9 @@ test.describe('DITA Student Flow', () => {
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('STRUCT04');
     await loginForm.locator('input[name="name"]').fill('Structure Test 4');
+    await loginForm.locator('input[name="pin"]').fill('1234');
     await loginForm.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor();
 
     // Navigate to numeric quiz page

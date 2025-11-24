@@ -67,6 +67,7 @@ test.describe('Progress Tracking Workflow', () => {
     // Fill in login form
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('input[name="pin"]').fill('1234');
 
     // Submit login
     await login.locator('button[type="submit"]').click();
@@ -87,6 +88,7 @@ test.describe('Progress Tracking Workflow', () => {
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
 
     // Navigate to quiz page
@@ -123,6 +125,7 @@ test.describe('Progress Tracking Workflow', () => {
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
 
     // Navigate to numeric quiz page
@@ -159,6 +162,7 @@ test.describe('Progress Tracking Workflow', () => {
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
 
     await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
@@ -189,6 +193,7 @@ test.describe('Progress Tracking Workflow', () => {
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
 
     // Initially, badges should be red (unstarted)
@@ -222,6 +227,7 @@ test.describe('Progress Tracking Workflow', () => {
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
 
     // Navigate to quiz with multiple questions
@@ -277,6 +283,7 @@ test.describe('Progress Tracking Workflow', () => {
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
 
     // Verify status panel visible

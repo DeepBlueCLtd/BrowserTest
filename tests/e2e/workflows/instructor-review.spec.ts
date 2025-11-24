@@ -44,6 +44,7 @@ test.describe.skip('Instructor Review Workflow', () => {
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
 
     // Wait for status to be visible

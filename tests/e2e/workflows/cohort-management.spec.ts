@@ -45,6 +45,7 @@ test.describe.skip('Cohort Management Workflow', () => {
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
     await expect(page.locator('qd-status')).toBeVisible();
 
@@ -137,6 +138,7 @@ test.describe.skip('Cohort Management Workflow', () => {
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
     await expect(page.locator('qd-status')).toBeVisible();
 
@@ -260,6 +262,7 @@ test.describe.skip('Cohort Management Workflow', () => {
     login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST002');
     await login.locator('input[name="name"]').fill('Jane Smith');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
     await expect(page.locator('qd-status')).toBeVisible();
 
@@ -341,6 +344,7 @@ test.describe.skip('Cohort Management Workflow', () => {
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
     await expect(page.locator('qd-status')).toBeVisible();
 

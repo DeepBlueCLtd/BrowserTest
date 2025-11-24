@@ -57,6 +57,7 @@ test.describe('Data Coexistence', () => {
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('COEX01');
     await login.locator('input[name="name"]').fill('Test User');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
     await expect(page.locator('qd-status')).toBeVisible();
   });
@@ -293,6 +294,7 @@ test.describe('Data Coexistence', () => {
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('COEX02');
     await login.locator('input[name="name"]').fill('Second User');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
     await expect(page.locator('qd-status')).toBeVisible();
 
@@ -321,6 +323,7 @@ test.describe('Data Coexistence', () => {
     const login2 = page.locator('qd-login');
     await login2.locator('input[name="serviceId"]').fill('COEX01');
     await login2.locator('input[name="name"]').fill('Test User');
+    await login2.locator('input[name="pin"]').fill('1234');
     await login2.locator('button[type="submit"]').click();
     await expect(page.locator('qd-status')).toBeVisible();
 
