@@ -43,6 +43,17 @@ async function waitForBootstrap(page: Page): Promise<void> {
   await page.waitForTimeout(100);
 }
 
+/**
+ * Close PIN confirmation dialog if visible
+ */
+async function closePinConfirmationDialog(page: Page): Promise<void> {
+  try {
+    await page.locator('#qd-pin-confirmation-ok').click({ force: true, timeout: 2000 });
+  } catch {
+    // Dialog not visible or already closed, ignore
+  }
+}
+
 test.describe('Progress Tracking Workflow', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage before each test
@@ -90,6 +101,8 @@ test.describe('Progress Tracking Workflow', () => {
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
+
 
     // Navigate to quiz page
     await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
