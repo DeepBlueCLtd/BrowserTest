@@ -22,7 +22,19 @@ const TEST_PASSWORD = 'instructor123';
  */
 async function waitForBootstrap(page: Page): Promise<void> {
   // Wait for qd-login element AND its shadow DOM to be ready
-  await page.locator('qd-login[data-ready]').waitFor({ timeout: 5000 });
+  // Use 'attached' state since qd-login may be hidden after login
+  await page.locator('qd-login[data-ready]').waitFor({ state: 'attached', timeout: 2000 });
+}
+
+/**
+ * Close PIN confirmation dialog if visible
+ */
+async function closePinConfirmationDialog(page: Page): Promise<void> {
+  try {
+    await page.locator('#qd-pin-confirmation-ok').click({ force: true, timeout: 2000 });
+  } catch {
+    // Dialog not visible or already closed, ignore
+  }
 }
 
 test.describe('Cohort Management Workflow', () => {
@@ -47,6 +59,7 @@ test.describe('Cohort Management Workflow', () => {
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
     await expect(page.locator('qd-status')).toBeVisible();
 
     // Answer some questions
@@ -78,6 +91,14 @@ test.describe('Cohort Management Workflow', () => {
     // Unlock instructor mode
     await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
+
+    // Logout first to make qd-login visible
+    const statusPanel = page.locator('qd-status');
+    const logoutButton = statusPanel.locator('button').filter({ hasText: /logout/i });
+    await logoutButton.click();
+    await expect(page.locator('qd-login')).toBeVisible();
+
+    // Inject instructor password hash
     await page.evaluate(() => {
       const span = document.createElement('span');
       span.id = 'instructor.password.hash';
@@ -87,10 +108,11 @@ test.describe('Cohort Management Workflow', () => {
     });
 
     const instructorButton = page.locator('qd-login button').filter({ hasText: /instructor/i });
-    await instructorButton.click();
+    await instructorButton.click({ force: true });
+    await page.waitForTimeout(500); // Wait for instructor modal to open
 
     const passwordInput = page.locator('qd-instructor input[type="password"]');
-    await expect(passwordInput).toBeVisible();
+    await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
     const unlockButton = page.locator('qd-instructor button[type="submit"]');
@@ -140,6 +162,7 @@ test.describe('Cohort Management Workflow', () => {
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
     await expect(page.locator('qd-status')).toBeVisible();
 
     // Answer a question
@@ -169,6 +192,14 @@ test.describe('Cohort Management Workflow', () => {
     // Unlock instructor mode
     await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
+
+    // Logout first to make qd-login visible
+    const instructorStatusPanel = page.locator('qd-status');
+    const instructorLogoutButton = instructorStatusPanel.locator('button').filter({ hasText: /logout/i });
+    await instructorLogoutButton.click();
+    await expect(page.locator('qd-login')).toBeVisible();
+
+    // Inject instructor password hash
     await page.evaluate(() => {
       const span = document.createElement('span');
       span.id = 'instructor.password.hash';
@@ -178,10 +209,11 @@ test.describe('Cohort Management Workflow', () => {
     });
 
     const instructorButton = page.locator('qd-login button').filter({ hasText: /instructor/i });
-    await instructorButton.click();
+    await instructorButton.click({ force: true });
+    await page.waitForTimeout(500); // Wait for instructor modal to open
 
     const passwordInput = page.locator('qd-instructor input[type="password"]');
-    await expect(passwordInput).toBeVisible();
+    await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
     const unlockButton = page.locator('qd-instructor button[type="submit"]');
@@ -223,7 +255,9 @@ test.describe('Cohort Management Workflow', () => {
     let login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
     await expect(page.locator('qd-status')).toBeVisible();
 
     // Answer a question as first student
@@ -264,6 +298,7 @@ test.describe('Cohort Management Workflow', () => {
     await login.locator('input[name="name"]').fill('Jane Smith');
     await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
     await expect(page.locator('qd-status')).toBeVisible();
 
     // Answer a question as second student
@@ -293,6 +328,14 @@ test.describe('Cohort Management Workflow', () => {
     // Unlock instructor and erase all data
     await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
+
+    // Logout first to make qd-login visible
+    const multiStatusPanel = page.locator('qd-status');
+    const multiLogoutButton = multiStatusPanel.locator('button').filter({ hasText: /logout/i });
+    await multiLogoutButton.click();
+    await expect(page.locator('qd-login')).toBeVisible();
+
+    // Inject instructor password hash
     await page.evaluate(() => {
       const span = document.createElement('span');
       span.id = 'instructor.password.hash';
@@ -302,10 +345,11 @@ test.describe('Cohort Management Workflow', () => {
     });
 
     const instructorButton = page.locator('qd-login button').filter({ hasText: /instructor/i });
-    await instructorButton.click();
+    await instructorButton.click({ force: true });
+    await page.waitForTimeout(500); // Wait for instructor modal to open
 
     const passwordInput = page.locator('qd-instructor input[type="password"]');
-    await expect(passwordInput).toBeVisible();
+    await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
     const unlockButton = page.locator('qd-instructor button[type="submit"]');
@@ -346,9 +390,17 @@ test.describe('Cohort Management Workflow', () => {
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
     await expect(page.locator('qd-status')).toBeVisible();
 
     // Unlock instructor
+    // Logout first to make qd-login visible
+    const eventStatusPanel = page.locator('qd-status');
+    const eventLogoutButton = eventStatusPanel.locator('button').filter({ hasText: /logout/i });
+    await eventLogoutButton.click();
+    await expect(page.locator('qd-login')).toBeVisible();
+
+    // Inject instructor password hash
     await page.evaluate(() => {
       const span = document.createElement('span');
       span.id = 'instructor.password.hash';
@@ -358,10 +410,11 @@ test.describe('Cohort Management Workflow', () => {
     });
 
     const instructorButton = page.locator('qd-login button').filter({ hasText: /instructor/i });
-    await instructorButton.click();
+    await instructorButton.click({ force: true });
+    await page.waitForTimeout(500); // Wait for instructor modal to open
 
     const passwordInput = page.locator('qd-instructor input[type="password"]');
-    await expect(passwordInput).toBeVisible();
+    await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
     const unlockButton = page.locator('qd-instructor button[type="submit"]');
