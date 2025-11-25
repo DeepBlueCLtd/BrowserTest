@@ -62,6 +62,17 @@ describe('Home Page Badges', () => {
       expect(link3?.classList.contains('qd-badge-red')).toBe(true);
     });
 
+    it.skip('should handle missing cache gracefully', () => {
+      // No cache in storage
+      enhanceHomeBadges();
+
+      // Should not throw, all links should have red badge (unstarted)
+      const links = document.querySelectorAll('.quizPageBtn');
+      links.forEach((link) => {
+        expect(link.classList.contains('qd-badge-red')).toBe(true);
+      });
+    });
+
     it('should handle missing pageId gracefully', () => {
       const cache: SessionCache = {
         totals: { total: 0, answered: 0, correct: 0 },
