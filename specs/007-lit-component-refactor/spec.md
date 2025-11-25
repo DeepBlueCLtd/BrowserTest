@@ -33,7 +33,7 @@ Business logic is currently mixed with Lit lifecycle and DOM manipulation, makin
 | `storage-service.ts` | Totals recalc | Lines 115-126 | **HIGH** |
 | `session.ts` | Expiry check | Lines 105-115 | **HIGH** |
 | `scores-service.ts` | Percentage calc | Multiple | **HIGH** |
-| `quiz-table.ts` | Answer display | Lines 725-795 | **MEDIUM** |
+| `quiz-table.ts` | Answer display | `showStudentAnswersForTable` fn | **MEDIUM** |
 
 Extracting these into pure helper functions enables comprehensive unit testing without DOM or Lit dependencies.
 

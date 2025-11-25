@@ -68,8 +68,8 @@
 - [ ] T015 [P] [US0b] Implement src/services/question-input.ts with QuestionInputSpec interface and getQuestionInputSpec function
 - [ ] T016 [P] [US0b] Implement src/services/answer-display.ts with StudentAnswerDisplay interface and formatStudentAnswersForDisplay function
 - [ ] T017 [US0b] Run tests and verify 100% coverage on both service files
-- [ ] T018 [US0b] Refactor quiz-table.ts to use getQuestionInputSpec (lines 347-393 logic extraction)
-- [ ] T019 [US0b] Refactor quiz-table.ts to use formatStudentAnswersForDisplay (lines 725-795 logic extraction)
+- [ ] T018 [US0b] Refactor quiz-table.ts to use getQuestionInputSpec (`createQuestionInput` function)
+- [ ] T019 [US0b] Refactor quiz-table.ts to use formatStudentAnswersForDisplay (`showStudentAnswersForTable` function, answer formatting block)
 
 **Checkpoint**: Enhancer services complete with 100% coverage. Quiz-table refactored.
 
