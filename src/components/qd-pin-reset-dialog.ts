@@ -15,6 +15,7 @@ import type { StudentRecord, PinResetEvent } from '../types/contracts.js';
 import { getStorageAdapter } from '../services/storage/indexeddb.js';
 import { resetPin } from '../services/storage/migration.js';
 import { CONFIG_IDS } from '../config/dom-config-reader.js';
+import './qd-confirm-dialog.js';
 
 @customElement('qd-pin-reset-dialog')
 export class QdPinResetDialog extends LitElement {
@@ -41,6 +42,12 @@ export class QdPinResetDialog extends LitElement {
    */
   @state()
   private confirmingStudent: StudentRecord | null = null;
+
+  /**
+   * Whether confirmation dialog is open
+   */
+  @state()
+  private confirmDialogOpen = false;
 
   private modalElement: HTMLElement | null = null;
 
@@ -73,16 +80,17 @@ export class QdPinResetDialog extends LitElement {
 
   private handleEscape = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && this.showModal) {
-      if (this.confirmingStudent) {
-        this.confirmingStudent = null;
-      } else {
-        this.handleClose();
+      if (this.confirmDialogOpen) {
+        // Let qd-confirm-dialog handle its own Escape
+        return;
       }
+      this.handleClose();
     }
   };
 
   private handleClose = () => {
     this.confirmingStudent = null;
+    this.confirmDialogOpen = false;
     this.searchText = '';
     this.dispatchEvent(new CustomEvent('close'));
   };
@@ -281,86 +289,32 @@ export class QdPinResetDialog extends LitElement {
     });
   }
 
-  private showConfirmation(student: StudentRecord, modal: HTMLElement) {
+  /**
+   * Show confirmation dialog for PIN reset
+   */
+  private showConfirmation(student: StudentRecord, _modal: HTMLElement) {
     this.confirmingStudent = student;
-
-    // Create confirmation overlay
-    const confirmOverlay = document.createElement('div');
-    confirmOverlay.className = 'confirm-overlay';
-    confirmOverlay.style.cssText = `
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(255, 255, 255, 0.95);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    `;
-
-    const confirmText = document.createElement('p');
-    confirmText.innerHTML = `Reset PIN for <strong>${student.name}</strong> (${student.serviceId})?`;
-    confirmText.style.cssText = `margin: 0 0 16px; text-align: center; font-size: 14px;`;
-
-    const warning = document.createElement('p');
-    warning.textContent = 'They will need to create a new PIN on next login.';
-    warning.style.cssText = `margin: 0 0 16px; text-align: center; font-size: 11px; color: #666;`;
-
-    const btnContainer = document.createElement('div');
-    btnContainer.style.cssText = `display: flex; gap: 8px;`;
-
-    const cancelBtn = document.createElement('button');
-    cancelBtn.textContent = 'Cancel';
-    cancelBtn.type = 'button';
-    cancelBtn.style.cssText = `
-      background: #e0e0e0;
-      color: #333;
-      border: none;
-      border-radius: 4px;
-      padding: 8px 16px;
-      font-size: 12px;
-      cursor: pointer;
-    `;
-    cancelBtn.onclick = () => {
-      this.confirmingStudent = null;
-      confirmOverlay.remove();
-    };
-
-    const confirmBtn = document.createElement('button');
-    confirmBtn.textContent = 'Reset PIN';
-    confirmBtn.type = 'button';
-    confirmBtn.style.cssText = `
-      background: #ff5722;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 8px 16px;
-      font-size: 12px;
-      cursor: pointer;
-    `;
-    confirmBtn.onclick = () => this.executeReset(student, confirmOverlay, modal);
-
-    btnContainer.appendChild(cancelBtn);
-    btnContainer.appendChild(confirmBtn);
-
-    confirmOverlay.appendChild(confirmText);
-    confirmOverlay.appendChild(warning);
-    confirmOverlay.appendChild(btnContainer);
-
-    // Make modal position relative for absolute overlay
-    const modalDiv = modal.querySelector('div:first-child')?.parentElement || modal;
-    modalDiv.style.position = 'relative';
-    modalDiv.appendChild(confirmOverlay);
+    this.confirmDialogOpen = true;
   }
 
-  private async executeReset(
-    student: StudentRecord,
-    confirmOverlay: HTMLElement,
-    modal: HTMLElement,
-  ) {
+  /**
+   * Handle confirm button click in confirmation dialog
+   */
+  private handleConfirmReset = (): void => {
+    if (this.confirmingStudent) {
+      void this.executeReset(this.confirmingStudent);
+    }
+  };
+
+  /**
+   * Handle cancel button click in confirmation dialog
+   */
+  private handleCancelReset = (): void => {
+    this.confirmDialogOpen = false;
+    this.confirmingStudent = null;
+  };
+
+  private async executeReset(student: StudentRecord) {
     try {
       const dbNameElement = document.getElementById(CONFIG_IDS.dbName);
       if (!dbNameElement?.textContent?.trim()) {
@@ -406,17 +360,29 @@ export class QdPinResetDialog extends LitElement {
         }),
       );
 
-      // Clean up and refresh
+      // Close dialog and refresh list
+      this.confirmDialogOpen = false;
       this.confirmingStudent = null;
-      confirmOverlay.remove();
-      this.updateStudentList(modal);
+      if (this.modalElement) {
+        const modal = this.modalElement.querySelector('div') as HTMLElement;
+        if (modal) {
+          this.updateStudentList(modal);
+        }
+      }
     } catch (err) {
       console.error('PIN reset error:', err);
-      const errorDiv = modal.querySelector('.error-message') as HTMLElement;
-      if (errorDiv) {
-        errorDiv.textContent = 'Failed to reset PIN. Please try again.';
-        errorDiv.style.display = 'block';
+      // Show error in main modal
+      if (this.modalElement) {
+        const modal = this.modalElement.querySelector('div') as HTMLElement;
+        const errorDiv = modal?.querySelector('.error-message') as HTMLElement;
+        if (errorDiv) {
+          errorDiv.textContent = 'Failed to reset PIN. Please try again.';
+          errorDiv.style.display = 'block';
+        }
       }
+      // Close the confirm dialog even on error
+      this.confirmDialogOpen = false;
+      this.confirmingStudent = null;
     }
   }
 
@@ -428,8 +394,23 @@ export class QdPinResetDialog extends LitElement {
   }
 
   render() {
-    // Renders nothing to shadow DOM - modal is in document.body
-    return html``;
+    const student = this.confirmingStudent;
+    const message = student
+      ? `Reset PIN for <strong>${student.name}</strong> (${student.serviceId})?<br><span style="font-size: 11px; color: #666;">They will need to create a new PIN on next login.</span>`
+      : '';
+
+    return html`
+      <qd-confirm-dialog
+        .open=${this.confirmDialogOpen}
+        title="Reset PIN"
+        .message=${message}
+        confirmText="Reset PIN"
+        cancelText="Cancel"
+        destructive
+        @qd:confirm=${this.handleConfirmReset}
+        @qd:cancel=${this.handleCancelReset}
+      ></qd-confirm-dialog>
+    `;
   }
 }
 
