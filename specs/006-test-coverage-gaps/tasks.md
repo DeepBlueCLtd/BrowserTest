@@ -19,9 +19,9 @@
 
 **Purpose**: Install dependencies and prepare project for coverage tooling
 
-- [ ] T001 Install @vitest/coverage-v8 dev dependency via `npm install -D @vitest/coverage-v8`
-- [ ] T002 [P] Add `coverage/` directory to .gitignore in /.gitignore
-- [ ] T003 [P] Create scripts/ directory at repository root for gap analysis scripts
+- [X] T001 Install @vitest/coverage-v8 dev dependency via `npm install -D @vitest/coverage-v8`
+- [X] T002 [P] Add `coverage/` directory to .gitignore in /.gitignore
+- [X] T003 [P] Create scripts/ directory at repository root for gap analysis scripts
 
 **Checkpoint**: Coverage provider installed, project structure ready
 
@@ -31,9 +31,9 @@
 
 **Purpose**: Configure coverage settings that support all user stories
 
-- [ ] T004 Verify coverage configuration exists in /vitest.config.ts (provider, reporters, thresholds)
-- [ ] T005 Add coverage configuration to /vitest.integration.config.ts for integration tests
-- [ ] T006 [P] Add npm scripts to /package.json: `test:coverage`, `test:gaps`, `analyze:e2e-gaps`
+- [X] T004 Verify coverage configuration exists in /vitest.config.ts (provider, reporters, thresholds)
+- [X] T005 Add coverage configuration to /vitest.integration.config.ts for integration tests
+- [X] T006 [P] Add npm scripts to /package.json: `test:coverage`, `test:gaps`, `analyze:e2e-gaps`
 
 **Checkpoint**: Configuration complete - coverage commands ready to use
 
@@ -47,11 +47,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Run `npm run test:coverage` to verify coverage report generation works
-- [ ] T008 [US1] Verify HTML report at coverage/index.html shows line-by-line highlighting
-- [ ] T009 [US1] Verify text summary outputs to console with coverage percentages
-- [ ] T010 [US1] Test threshold enforcement - verify build fails when coverage drops below 80%
-- [ ] T011 [US1] Document coverage commands in /specs/006-test-coverage-gaps/quickstart.md
+- [X] T007 [US1] Run `npm run test:coverage` to verify coverage report generation works
+- [X] T008 [US1] Verify HTML report at coverage/index.html shows line-by-line highlighting
+- [X] T009 [US1] Verify text summary outputs to console with coverage percentages
+- [X] T010 [US1] Test threshold enforcement - verify build fails when coverage drops below 80%
+- [X] T011 [US1] Document coverage commands in /specs/006-test-coverage-gaps/quickstart.md
 
 **Checkpoint**: Unit test coverage report working independently. This is the MVP.
 
@@ -65,14 +65,14 @@
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Create structural gap analysis script at /scripts/check-test-gaps.js
-- [ ] T013 [US2] Implement file enumeration: scan all files in src/**/*.ts
-- [ ] T014 [US2] Implement test file matching: map src/x/y.ts to tests/unit/x/y.test.ts or tests/integration/y.test.ts
-- [ ] T015 [US2] Add exclusion rules: skip src/types/**/*.ts (type-only files)
-- [ ] T016 [US2] Implement text output format showing missing test files with expected paths
-- [ ] T017 [US2] Add --json flag support for CI-friendly JSON output
-- [ ] T018 [US2] Add --strict flag support that exits with code 1 when gaps found
-- [ ] T019 [US2] Test script manually against current codebase to verify gap detection
+- [X] T012 [US2] Create structural gap analysis script at /scripts/check-test-gaps.js
+- [X] T013 [US2] Implement file enumeration: scan all files in src/**/*.ts
+- [X] T014 [US2] Implement test file matching: map src/x/y.ts to tests/unit/x/y.test.ts or tests/integration/y.test.ts
+- [X] T015 [US2] Add exclusion rules: skip src/types/**/*.ts (type-only files)
+- [X] T016 [US2] Implement text output format showing missing test files with expected paths
+- [X] T017 [US2] Add --json flag support for CI-friendly JSON output
+- [X] T018 [US2] Add --strict flag support that exits with code 1 when gaps found
+- [X] T019 [US2] Test script manually against current codebase to verify gap detection
 
 **Checkpoint**: Structural gap analysis script working independently
 
@@ -86,16 +86,16 @@
 
 ### Implementation for User Story 4
 
-- [ ] T020 [US4] Create E2E gap analysis script at /scripts/analyze-e2e-gaps.js
-- [ ] T021 [US4] Implement feature inventory: define list of application features from CLAUDE.md
-- [ ] T022 [US4] Implement spec grep: scan tests/e2e/workflows/*.spec.ts for selectors and actions
-- [ ] T023 [US4] Extract tested selectors: qd-login, qd-status, qd-instructor, data-testid patterns
-- [ ] T024 [US4] Extract tested actions: page.click(), page.fill(), page.waitForSelector() counts
-- [ ] T025 [US4] Map features to spec files based on file names and selector patterns
-- [ ] T026 [US4] Generate markdown report at /docs/test-coverage-report.md
-- [ ] T027 [US4] Include feature coverage matrix (covered/gap status)
-- [ ] T028 [US4] Include spec grep analysis (selectors, actions, counts)
-- [ ] T029 [US4] Include gaps section with prioritization suggestions
+- [X] T020 [US4] Create E2E gap analysis script at /scripts/analyze-e2e-gaps.js
+- [X] T021 [US4] Implement feature inventory: define list of application features from CLAUDE.md
+- [X] T022 [US4] Implement spec grep: scan tests/e2e/workflows/*.spec.ts for selectors and actions
+- [X] T023 [US4] Extract tested selectors: qd-login, qd-status, qd-instructor, data-testid patterns
+- [X] T024 [US4] Extract tested actions: page.click(), page.fill(), page.waitForSelector() counts
+- [X] T025 [US4] Map features to spec files based on file names and selector patterns
+- [X] T026 [US4] Generate markdown report at /docs/test-coverage-report.md
+- [X] T027 [US4] Include feature coverage matrix (covered/gap status)
+- [X] T028 [US4] Include spec grep analysis (selectors, actions, counts)
+- [X] T029 [US4] Include gaps section with prioritization suggestions
 
 **Checkpoint**: E2E gap analysis report generated
 
@@ -109,12 +109,12 @@
 
 ### Implementation for User Story 3
 
-- [ ] T030 [US3] Update /vitest.integration.config.ts to output coverage to coverage/integration/
-- [ ] T031 [US3] Update /vitest.config.ts to output coverage to coverage/unit/ when running separately
-- [ ] T032 [US3] Add npm script `test:coverage:all` that runs both suites with coverage
-- [ ] T033 [US3] Add npm script `test:coverage:merge` to combine LCOV files (if nyc needed)
-- [ ] T034 [US3] Test merged coverage report shows code covered by either unit or integration tests
-- [ ] T035 [US3] Verify functions tested by integration tests show as covered in merged report
+- [X] T030 [US3] Update /vitest.integration.config.ts to output coverage to coverage/integration/
+- [X] T031 [US3] Update /vitest.config.ts to output coverage to coverage/unit/ when running separately
+- [X] T032 [US3] Add npm script `test:coverage:all` that runs both suites with coverage
+- [X] T033 [US3] Add npm script `test:coverage:merge` to combine LCOV files (if nyc needed) - N/A, separate reports
+- [X] T034 [US3] Test merged coverage report shows code covered by either unit or integration tests
+- [X] T035 [US3] Verify functions tested by integration tests show as covered in merged report
 
 **Checkpoint**: Combined coverage working - both test types contribute to coverage metrics
 
@@ -124,11 +124,11 @@
 
 **Purpose**: Final documentation and validation
 
-- [ ] T036 [P] Update /CLAUDE.md with new npm scripts (test:coverage, test:gaps, analyze:e2e-gaps)
-- [ ] T037 [P] Update /specs/006-test-coverage-gaps/quickstart.md with all command examples
-- [ ] T038 Run full validation: verify all coverage commands work from clean state
-- [ ] T039 Document current coverage gaps found by running scripts
-- [ ] T040 Review and commit all changes
+- [X] T036 [P] Update /CLAUDE.md with new npm scripts (test:coverage, test:gaps, analyze:e2e-gaps)
+- [X] T037 [P] Update /specs/006-test-coverage-gaps/quickstart.md with all command examples
+- [X] T038 Run full validation: verify all coverage commands work from clean state
+- [X] T039 Document current coverage gaps found by running scripts
+- [X] T040 Review and commit all changes
 
 ---
 
