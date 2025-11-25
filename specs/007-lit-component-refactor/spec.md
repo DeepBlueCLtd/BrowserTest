@@ -1,11 +1,13 @@
-# Feature Specification: Lit Component Refactor
+# Feature Specification: Lit Component Refactor & Testability Improvements
 
 **Feature Branch**: `007-lit-component-refactor`
 **Created**: 2025-11-25
 **Status**: Draft
-**Input**: Refactor 59 `document.createElement()` calls in Lit components to use proper Lit declarative templates
+**Input**: Refactor createElement calls to Lit templates + extract business logic into testable helpers
 
 ## Problem Statement
+
+### Issue 1: Imperative DOM in Declarative Components
 
 The codebase contains 59 `document.createElement()` calls inside Lit components, mixing imperative DOM manipulation with Lit's declarative template system:
 
@@ -19,7 +21,105 @@ The codebase contains 59 `document.createElement()` calls inside Lit components,
 
 This causes: testing difficulties, bypassed reactivity, memory leak risk, and inconsistent architecture.
 
+### Issue 2: Business Logic Embedded in Components
+
+Business logic is currently mixed with Lit lifecycle and DOM manipulation, making unit testing difficult:
+
+| File | Logic Type | Location | Extraction Potential |
+|------|-----------|----------|---------------------|
+| `qd-login.ts` | Form validation | Lines 704-719 | **HIGH** |
+| `qd-login.ts` | PIN sanitization | Lines 694-699 | **HIGH** |
+| `qd-status.ts` | R/A/G indicator | Lines 244-248 | **HIGH** |
+| `storage-service.ts` | Totals recalc | Lines 115-126 | **HIGH** |
+| `session.ts` | Expiry check | Lines 105-115 | **HIGH** |
+| `scores-service.ts` | Percentage calc | Multiple | **HIGH** |
+| `quiz-table.ts` | Answer display | Lines 725-795 | **MEDIUM** |
+
+Extracting these into pure helper functions enables comprehensive unit testing without DOM or Lit dependencies.
+
 ## User Scenarios & Testing
+
+### User Story 0a - Validation & Calculation Helpers (Priority: P0)
+
+Extract core validation and calculation logic into pure helper functions for easy unit testing.
+
+**Why this priority**: Foundation work. Pure functions can be tested immediately, improving coverage before component refactoring begins.
+
+**Independent Test**: Create helper modules with 100% unit test coverage. No component changes required initially.
+
+**New Files**:
+- `src/utils/validation-helpers.ts` - Form validation, input sanitization
+- `src/utils/calculation-helpers.ts` - Totals, percentages, session expiry
+
+**Functions to Extract**:
+
+```typescript
+// validation-helpers.ts
+validateStudentForm(name: string, serviceId: string, pin: string): string[]
+sanitizePinInput(input: string): string
+validatePinMatch(pin: string, confirmPin: string): boolean
+
+// calculation-helpers.ts
+calculateStatusIndicator(total: number, correct: number): 'red' | 'amber' | 'green'
+calculatePercentage(correct: number, attempted: number): number
+recalculateTotalsFromPages(pages: Record<PageId, PageData>): { attempted: number; correct: number }
+isSessionExpired(expiresAt: string, now?: Date): boolean
+maskServiceId(serviceId: string, visibleDigits?: number): string
+```
+
+**Acceptance Scenarios**:
+
+1. **Given** `validateStudentForm('', 'AB12', '1234')`, **When** called, **Then** returns `['Name required']`
+2. **Given** `calculateStatusIndicator(10, 10)`, **When** called, **Then** returns `'green'`
+3. **Given** `calculateStatusIndicator(10, 5)`, **When** called, **Then** returns `'amber'`
+4. **Given** `calculateStatusIndicator(10, 0)`, **When** called, **Then** returns `'red'`
+5. **Given** `isSessionExpired('2025-01-01T00:00:00Z', new Date('2025-01-02'))`, **When** called, **Then** returns `true`
+6. **Given** `calculatePercentage(5, 0)`, **When** called, **Then** returns `0` (not NaN/Infinity)
+
+---
+
+### User Story 0b - Enhancer Logic Extraction (Priority: P0)
+
+Extract display formatting and input specification logic from enhancers into testable services.
+
+**Why this priority**: Enables testing complex quiz/analysis table logic without DOM setup.
+
+**Independent Test**: Create service modules with unit tests. Integrate with enhancers after tests pass.
+
+**New Files**:
+- `src/services/question-input.ts` - Question input spec generation
+- `src/services/answer-display.ts` - Student answer formatting
+
+**Functions to Extract**:
+
+```typescript
+// question-input.ts
+interface QuestionInputSpec {
+  type: 'select' | 'text';
+  value: string;
+  options?: string[];
+  placeholder?: string;
+}
+getQuestionInputSpec(question: QuizQuestion, existingAnswer?: AnswerRecord): QuestionInputSpec
+
+// answer-display.ts
+interface StudentAnswerDisplay {
+  name: string;
+  serviceIdLast4: string;
+  answer: string;
+  success: boolean;
+  formattedTimestamp: string;
+}
+formatStudentAnswersForDisplay(students: StudentRecord[], pageId: string, questionIndex: number): StudentAnswerDisplay[]
+```
+
+**Acceptance Scenarios**:
+
+1. **Given** MCQ question with options ['A','B','C'], **When** `getQuestionInputSpec()` called, **Then** returns `{type: 'select', options: ['A','B','C']}`
+2. **Given** numeric question, **When** `getQuestionInputSpec()` called, **Then** returns `{type: 'text', placeholder: 'Enter number'}`
+3. **Given** student with answer on page, **When** `formatStudentAnswersForDisplay()` called, **Then** returns formatted display object
+
+---
 
 ### User Story 1 - Reusable Modal Base Component (Priority: P1)
 
@@ -96,16 +196,31 @@ The PIN reset dialog (`qd-pin-reset-dialog.ts`, 21 calls) and data erase confirm
 
 ### Functional Requirements
 
-- **FR-001**: System MUST provide a `<qd-modal>` base component with open/close state management
-- **FR-002**: All modals MUST trap keyboard focus while open
-- **FR-003**: All modals MUST close on Escape key press (when closable)
-- **FR-004**: Backdrop click MUST close modal when `closable` prop is true
-- **FR-005**: System MUST maintain zero `document.createElement()` calls in component render methods
-- **FR-006**: New components MUST use Lit `html` tagged templates exclusively
-- **FR-007**: System MUST preserve existing custom event contracts (`qd:*` events)
+**Helper Extraction (US0a, US0b)**:
+- **FR-001**: System MUST provide `validation-helpers.ts` with pure form validation functions
+- **FR-002**: System MUST provide `calculation-helpers.ts` with pure calculation functions
+- **FR-003**: All helper functions MUST be pure (no side effects, no DOM access)
+- **FR-004**: Helper functions MUST have 100% unit test coverage
+- **FR-005**: Components/services MUST be refactored to use extracted helpers (no duplication)
+
+**Modal Components (US1-US4)**:
+- **FR-006**: System MUST provide a `<qd-modal>` base component with open/close state management
+- **FR-007**: All modals MUST trap keyboard focus while open
+- **FR-008**: All modals MUST close on Escape key press (when closable)
+- **FR-009**: Backdrop click MUST close modal when `closable` prop is true
+- **FR-010**: System MUST maintain zero `document.createElement()` calls in component render methods
+- **FR-011**: New components MUST use Lit `html` tagged templates exclusively
+- **FR-012**: System MUST preserve existing custom event contracts (`qd:*` events)
 
 ### Key Entities
 
+**Helper Modules**:
+- **validation-helpers**: Form validation, input sanitization, PIN validation
+- **calculation-helpers**: Status indicators, percentages, totals, session expiry
+- **question-input**: Question input specification generation
+- **answer-display**: Student answer formatting for display
+
+**Modal Components**:
 - **Modal**: Overlay container with backdrop, manages open state and focus
 - **ScoresModal**: Displays student scores in expandable table format
 - **PasswordModal**: Single input for instructor password
@@ -115,15 +230,35 @@ The PIN reset dialog (`qd-pin-reset-dialog.ts`, 21 calls) and data erase confirm
 
 ### Measurable Outcomes
 
-- **SC-001**: Zero `document.createElement()` calls in `src/components/**/*.ts`
-- **SC-002**: All existing E2E tests pass without modification
-- **SC-003**: New components have >80% unit test coverage
-- **SC-004**: Bundle size increase < 2KB gzipped
-- **SC-005**: No visual regressions (Chromatic baseline maintained)
+**Helper Extraction (Phase 0)**:
+- **SC-001**: Helper modules have 100% unit test coverage (lines, branches)
+- **SC-002**: Zero code duplication - all instances use shared helpers
+- **SC-003**: All helper functions are pure (verified by tests with no mocks)
+
+**Modal Components (Phase 1-2)**:
+- **SC-004**: Zero `document.createElement()` calls in `src/components/**/*.ts`
+- **SC-005**: All existing E2E tests pass without modification
+- **SC-006**: New components have >80% unit test coverage
+- **SC-007**: Bundle size increase < 2KB gzipped
+- **SC-008**: No visual regressions (Chromatic baseline maintained)
+
+**Overall**:
+- **SC-009**: Unit test coverage increases by ≥15% for affected files
+- **SC-010**: No new lint errors or type errors introduced
 
 ## Scope
 
 ### In Scope
+
+**Phase 0 - Helper Extraction**:
+- Create `src/utils/validation-helpers.ts` with form validation functions
+- Create `src/utils/calculation-helpers.ts` with calculation functions
+- Create `src/services/question-input.ts` with input spec generation
+- Create `src/services/answer-display.ts` with display formatting
+- Unit tests for all helper modules (100% coverage target)
+- Refactor components/services to use new helpers
+
+**Phase 1-2 - Modal Components**:
 - Create `<qd-modal>` base component
 - Extract `<qd-scores-modal>` from qd-instructor-scores.ts
 - Extract `<qd-password-modal>` from qd-login.ts
@@ -132,7 +267,7 @@ The PIN reset dialog (`qd-pin-reset-dialog.ts`, 21 calls) and data erase confirm
 - Storybook stories for new components
 
 ### Out of Scope
-- Refactoring enhancers (quiz-table.ts, analysis-table.ts)
+- Refactoring enhancers beyond extracting pure logic (quiz-table.ts DOM code stays)
 - Changing visual design or styling
 - Adding new user-facing features
 - Modifying existing event contracts
