@@ -4,7 +4,7 @@
  * Provides persistent storage for student records using browser IndexedDB.
  * Implements atomic transactions and proper error handling.
  *
- * Database: BrowserTest
+ * Database: Configured via #qd-db-name element (REQUIRED)
  * Stores: students (main data), backups (backup copies)
  * Keys: qd/{release}/u{serviceId}
  */
@@ -24,8 +24,7 @@ import {
 } from './adapter-utils.js';
 import { warn as logWarn, error as logError } from '../../utils/logger.js';
 
-/** Default database name */
-const DEFAULT_DB_NAME = 'BrowserTest';
+// NOTE: No default database name - must be provided by caller
 
 /** Database version - increment to force schema upgrade */
 const DB_VERSION = 3;
@@ -62,9 +61,12 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
   /**
    * Create a new IndexedDB storage adapter
    *
-   * @param dbName - Database name (defaults to 'BrowserTest')
+   * @param dbName - Database name (REQUIRED - no default)
    */
-  constructor(dbName: string = DEFAULT_DB_NAME) {
+  constructor(dbName: string) {
+    if (!dbName) {
+      throw new Error('FATAL: dbName is required for IndexedDBStorageAdapter');
+    }
     this.dbName = dbName;
   }
 
@@ -579,10 +581,14 @@ let currentDbName: string | null = null;
  * Creates a new instance on first call, reuses it thereafter.
  * If dbName changes, closes old instance and creates new one.
  *
- * @param dbName - Database name (defaults to 'BrowserTest')
+ * @param dbName - Database name (REQUIRED - no default)
  * @returns IndexedDB storage adapter
  */
-export function getStorageAdapter(dbName: string = DEFAULT_DB_NAME): IndexedDBStorageAdapter {
+export function getStorageAdapter(dbName: string): IndexedDBStorageAdapter {
+  if (!dbName) {
+    throw new Error('FATAL: dbName is required for getStorageAdapter()');
+  }
+
   // If dbName changed, close old instance and create new one
   if (storageInstance && currentDbName !== dbName) {
     storageInstance.close();

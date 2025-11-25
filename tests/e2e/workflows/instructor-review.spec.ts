@@ -180,7 +180,7 @@ test.describe('Instructor Review Workflow', () => {
   });
 
   // Skip: CSV export requires complex data setup - tested via display student scores modal instead
-  test.skip('should export CSV with student data', async ({ page }) => {
+  test.skip('should export CSV with student data', async ({ page: _page }) => {
     // This test is skipped because:
     // 1. The instructor mode loads student data asynchronously
     // 2. The Export CSV button remains disabled if no data found on initial load

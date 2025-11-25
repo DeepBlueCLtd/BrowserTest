@@ -29,9 +29,12 @@ export class StorageService {
   /**
    * Create storage service with specified database name
    *
-   * @param dbName - IndexedDB database name
+   * @param dbName - IndexedDB database name (REQUIRED - no default)
    */
-  constructor(dbName: string = 'BrowserTest') {
+  constructor(dbName: string) {
+    if (!dbName) {
+      throw new Error('FATAL: dbName is required for StorageService');
+    }
     this.dbName = dbName;
     this.adapter = getStorageAdapter(dbName);
   }
@@ -268,9 +271,11 @@ export function getStorageService(dbName?: string): StorageService {
 
   // Create new instance if none exists
   if (!storageServiceInstance) {
-    const actualDbName = dbName || 'BrowserTest';
-    storageServiceInstance = new StorageService(actualDbName);
-    currentServiceDbName = actualDbName;
+    if (!dbName) {
+      throw new Error('FATAL: dbName is required for first getStorageService() call');
+    }
+    storageServiceInstance = new StorageService(dbName);
+    currentServiceDbName = dbName;
   }
 
   return storageServiceInstance;
