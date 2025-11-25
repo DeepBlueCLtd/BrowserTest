@@ -906,7 +906,7 @@ export class QdLogin extends LitElement {
       <p style="margin: 0 0 16px 0; font-size: 13px; color: #666;">
         Your PIN has been saved. Use it with your name and service ID on future logins.
       </p>
-      <button style="
+      <button id="qd-pin-confirmation-ok" style="
         background: #0066cc;
         color: white;
         border: none;
@@ -938,7 +938,7 @@ export class QdLogin extends LitElement {
       if (document.body.contains(overlay)) {
         document.body.removeChild(overlay);
       }
-    }, 3000);
+    }, 30000);
   }
 
   /**
@@ -988,6 +988,9 @@ export class QdLogin extends LitElement {
     // Reset state
     this.pin = '';
     this.isSubmitting = false;
+
+    // Clean up any modal overlays before hiding component
+    this.cleanupModal();
 
     // Hide component on successful login
     this.updateVisibility();

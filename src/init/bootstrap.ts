@@ -157,8 +157,13 @@ export async function bootstrap(config: BootstrapConfig = {}): Promise<void> {
   injectGlobalStyles();
 
   // 1. Initialize storage service (IndexedDB)
-  const dbName = config.dbName || 'BrowserTest';
-  const storageService = getStorageService(dbName);
+  // dbName is REQUIRED - readDOMConfig() throws if missing
+  if (!config.dbName) {
+    const msg = 'FATAL: dbName not provided in bootstrap config. Processing stopped.';
+    console.error(msg);
+    throw new Error(msg);
+  }
+  const storageService = getStorageService(config.dbName);
   await storageService.init();
 
   // 2. Initialize event coordinator

@@ -14,11 +14,16 @@ import {
 import { setJSON, clearQuizData } from '../../src/utils/storage-helpers.js';
 import { STORAGE_KEYS } from '../../src/types/contracts.js';
 import type { SessionData } from '../../src/types/contracts.js';
+import { getStorageService, resetStorageService } from '../../src/services/storage-service.js';
+import { resetStorageAdapter } from '../../src/services/storage/indexeddb.js';
+
+// Test database name - matches DOM config in production
+const TEST_DB_NAME = 'BrowserTestDB';
 
 describe('Analysis Table Enhancement', () => {
   let container: HTMLDivElement;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Create container
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -28,12 +33,20 @@ describe('Analysis Table Enhancement', () => {
 
     // Clear any event listeners
     vi.clearAllMocks();
+
+    // Initialize storage service singleton (required before enhancers run)
+    const storageService = getStorageService(TEST_DB_NAME);
+    await storageService.init();
   });
 
   afterEach(() => {
     // Clean up DOM
     document.body.removeChild(container);
     clearQuizData();
+
+    // Reset storage singletons
+    resetStorageService();
+    resetStorageAdapter();
   });
 
   /**

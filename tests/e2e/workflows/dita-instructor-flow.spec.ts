@@ -31,6 +31,17 @@ async function waitForBootstrap(page: Page): Promise<void> {
   await page.waitForTimeout(500);
 }
 
+/**
+ * Close PIN confirmation dialog if visible
+ */
+async function closePinConfirmationDialog(page: Page): Promise<void> {
+  try {
+    await page.locator('#qd-pin-confirmation-ok').click({ force: true, timeout: 2000 });
+  } catch {
+    // Dialog not visible or already closed, ignore
+  }
+}
+
 test.describe('DITA Instructor Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage before each test
@@ -40,7 +51,7 @@ test.describe('DITA Instructor Flow', () => {
       localStorage.clear();
       // Clear IndexedDB (may be BrowserTestDB based on DITA config)
       indexedDB.deleteDatabase('BrowserTestDB');
-      indexedDB.deleteDatabase('BrowserTest');
+      indexedDB.deleteDatabase('BrowserTestDB');
     });
     await page.reload();
     await waitForBootstrap(page);
@@ -58,12 +69,17 @@ test.describe('DITA Instructor Flow', () => {
     // Fill student login form
     const serviceIdInput = loginForm.locator('input[name="serviceId"]');
     const nameInput = loginForm.locator('input[name="name"]');
+    const pinInput = loginForm.locator('input[name="pin"]');
     await serviceIdInput.fill('STU001');
     await nameInput.fill('Alice Smith');
+    await pinInput.fill('1234');
 
     // Click login button
     const loginButton = loginForm.locator('button[type="submit"]');
     await loginButton.click();
+
+    // Close PIN confirmation dialog if it appears
+    await closePinConfirmationDialog(page);
 
     // Wait for status panel to appear (login successful)
     const statusPanel = page.locator('qd-status');
@@ -117,7 +133,9 @@ test.describe('DITA Instructor Flow', () => {
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('STU002');
     await loginForm.locator('input[name="name"]').fill('Bob Jones');
+    await loginForm.locator('input[name="pin"]').fill('1234');
     await loginForm.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor({ timeout: 3000 });
 
     // Navigate to quiz page and answer a question
@@ -254,7 +272,9 @@ test.describe('DITA Instructor Flow', () => {
     const loginForm = page.locator('qd-login');
     await loginForm.locator('input[name="serviceId"]').fill('STU003');
     await loginForm.locator('input[name="name"]').fill('Carol White');
+    await loginForm.locator('input[name="pin"]').fill('1234');
     await loginForm.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor({ timeout: 3000 });
 
     // Navigate to quiz page 1

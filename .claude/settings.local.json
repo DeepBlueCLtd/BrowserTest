@@ -36,7 +36,10 @@
       "Bash(shasum:*)",
       "Bash(open:*)",
       "Bash(git merge:*)",
-      "Bash(.specify/scripts/bash/create-new-feature.sh:*)"
+      "Bash(.specify/scripts/bash/create-new-feature.sh:*)",
+      "Bash(tee:*)",
+      "Bash(killall:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []

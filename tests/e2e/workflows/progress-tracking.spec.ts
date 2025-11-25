@@ -43,6 +43,17 @@ async function waitForBootstrap(page: Page): Promise<void> {
   await page.waitForTimeout(100);
 }
 
+/**
+ * Close PIN confirmation dialog if visible
+ */
+async function closePinConfirmationDialog(page: Page): Promise<void> {
+  try {
+    await page.locator('#qd-pin-confirmation-ok').click({ force: true, timeout: 2000 });
+  } catch {
+    // Dialog not visible or already closed, ignore
+  }
+}
+
 test.describe('Progress Tracking Workflow', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage before each test
@@ -67,16 +78,18 @@ test.describe('Progress Tracking Workflow', () => {
     // Fill in login form
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('input[name="pin"]').fill('1234');
 
     // Submit login
     await login.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
 
     // Verify status panel appears
     const status = page.locator('qd-status');
     await expect(status).toBeVisible();
 
     // Verify status shows progress information (name/serviceId are in sessionStorage, not displayed)
-    await expect(status).toContainText('Progress');
+    await expect(status).toContainText('Test progress');
     await expect(status).toContainText('Logout');
   });
 
@@ -87,7 +100,9 @@ test.describe('Progress Tracking Workflow', () => {
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
 
     // Navigate to quiz page
     await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
@@ -123,7 +138,9 @@ test.describe('Progress Tracking Workflow', () => {
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
 
     // Navigate to numeric quiz page
     await page.goto(`file://${demoPath}/Pages/quiz-numeric.html`);
@@ -159,7 +176,9 @@ test.describe('Progress Tracking Workflow', () => {
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
 
     await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
 
@@ -189,7 +208,9 @@ test.describe('Progress Tracking Workflow', () => {
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
 
     // Initially, badges should be red (unstarted)
     // Target the quiz-mcq badge specifically
@@ -222,7 +243,9 @@ test.describe('Progress Tracking Workflow', () => {
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
 
     // Navigate to quiz with multiple questions
     await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
@@ -277,7 +300,10 @@ test.describe('Progress Tracking Workflow', () => {
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
+
+    await closePinConfirmationDialog(page);
 
     // Verify status panel visible
     const status = page.locator('qd-status');

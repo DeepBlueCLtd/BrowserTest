@@ -11,11 +11,14 @@ import {
 import { StorageNotInitializedError } from '../../../../src/services/storage/adapter-utils.js';
 import type { StudentRecord } from '../../../../src/types/contracts.js';
 
+// Test database name - must be provided for all adapter/service calls
+const TEST_DB_NAME = 'BrowserTestDB';
+
 describe('IndexedDB Storage Adapter', () => {
   let adapter: IndexedDBStorageAdapter;
 
   beforeEach(async () => {
-    adapter = new IndexedDBStorageAdapter();
+    adapter = new IndexedDBStorageAdapter(TEST_DB_NAME);
     await adapter.init();
     // Clear all data to ensure test isolation
     await adapter.clearAll();
@@ -27,7 +30,7 @@ describe('IndexedDB Storage Adapter', () => {
 
   describe('init()', () => {
     it('should initialize database successfully', async () => {
-      const freshAdapter = new IndexedDBStorageAdapter();
+      const freshAdapter = new IndexedDBStorageAdapter(TEST_DB_NAME);
       await expect(freshAdapter.init()).resolves.toBeUndefined();
       freshAdapter.close();
     });
@@ -40,7 +43,7 @@ describe('IndexedDB Storage Adapter', () => {
     });
 
     it('should reuse existing connection', async () => {
-      const freshAdapter = new IndexedDBStorageAdapter();
+      const freshAdapter = new IndexedDBStorageAdapter(TEST_DB_NAME);
       await freshAdapter.init();
 
       // Second init should return immediately
@@ -60,7 +63,7 @@ describe('IndexedDB Storage Adapter', () => {
     });
 
     it('should throw error if not initialized', async () => {
-      const uninitializedAdapter = new IndexedDBStorageAdapter();
+      const uninitializedAdapter = new IndexedDBStorageAdapter(TEST_DB_NAME);
 
       await expect(uninitializedAdapter.getStudent('11-2024', 'RN2344')).rejects.toThrow(
         StorageNotInitializedError,
@@ -212,7 +215,7 @@ describe('IndexedDB Storage Adapter', () => {
     });
 
     it('should throw error if not initialized', async () => {
-      const uninitializedAdapter = new IndexedDBStorageAdapter();
+      const uninitializedAdapter = new IndexedDBStorageAdapter(TEST_DB_NAME);
       const record: StudentRecord = {
         schema: 1,
         docId: 'doc-test',
@@ -292,7 +295,7 @@ describe('IndexedDB Storage Adapter', () => {
     });
 
     it('should throw error if not initialized', async () => {
-      const uninitializedAdapter = new IndexedDBStorageAdapter();
+      const uninitializedAdapter = new IndexedDBStorageAdapter(TEST_DB_NAME);
 
       await expect(uninitializedAdapter.getStudentsByRelease('11-2024')).rejects.toThrow(
         StorageNotInitializedError,
@@ -361,7 +364,7 @@ describe('IndexedDB Storage Adapter', () => {
     });
 
     it('should throw error if not initialized', async () => {
-      const uninitializedAdapter = new IndexedDBStorageAdapter();
+      const uninitializedAdapter = new IndexedDBStorageAdapter(TEST_DB_NAME);
 
       await expect(uninitializedAdapter.clearAll()).rejects.toThrow(StorageNotInitializedError);
 
@@ -407,7 +410,7 @@ describe('IndexedDB Storage Adapter', () => {
     });
 
     it('should throw error if not initialized', async () => {
-      const uninitializedAdapter = new IndexedDBStorageAdapter();
+      const uninitializedAdapter = new IndexedDBStorageAdapter(TEST_DB_NAME);
       const record: StudentRecord = {
         schema: 1,
         docId: 'doc-test',
@@ -466,22 +469,22 @@ describe('IndexedDB Storage Adapter', () => {
     });
 
     it('should return same instance', () => {
-      const instance1 = getStorageAdapter();
-      const instance2 = getStorageAdapter();
+      const instance1 = getStorageAdapter(TEST_DB_NAME);
+      const instance2 = getStorageAdapter(TEST_DB_NAME);
 
       expect(instance1).toBe(instance2);
     });
 
     it('should create new instance after reset', () => {
-      const instance1 = getStorageAdapter();
+      const instance1 = getStorageAdapter(TEST_DB_NAME);
       resetStorageAdapter();
-      const instance2 = getStorageAdapter();
+      const instance2 = getStorageAdapter(TEST_DB_NAME);
 
       expect(instance1).not.toBe(instance2);
     });
 
     it('should close connection on reset', async () => {
-      const instance = getStorageAdapter();
+      const instance = getStorageAdapter(TEST_DB_NAME);
       await instance.init();
 
       resetStorageAdapter();
@@ -511,7 +514,7 @@ describe('IndexedDB Storage Adapter', () => {
       adapter.close();
 
       // Create new adapter instance
-      const newAdapter = new IndexedDBStorageAdapter();
+      const newAdapter = new IndexedDBStorageAdapter(TEST_DB_NAME);
       await newAdapter.init();
 
       const retrieved = await newAdapter.getStudent('11-2024', 'RN2344');

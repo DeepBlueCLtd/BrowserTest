@@ -29,10 +29,16 @@ async function waitForBootstrap(page: Page): Promise<void> {
 /**
  * Login as student
  */
-async function loginAsStudent(page: Page, serviceId: string, name: string): Promise<void> {
+async function loginAsStudent(
+  page: Page,
+  serviceId: string,
+  name: string,
+  pin = '1234',
+): Promise<void> {
   const login = page.locator('qd-login');
   await login.locator('input[name="serviceId"]').fill(serviceId);
   await login.locator('input[name="name"]').fill(name);
+  await login.locator('input[name="pin"]').fill(pin);
   await login.locator('button[type="submit"]').click();
   await expect(page.locator('qd-status')).toBeVisible({ timeout: 2000 });
 }
@@ -67,7 +73,7 @@ test.describe('Instructor Mode Improvements', () => {
       sessionStorage.clear();
       // Properly await IndexedDB deletion
       await new Promise<void>((resolve, reject) => {
-        const request = indexedDB.deleteDatabase('BrowserTest');
+        const request = indexedDB.deleteDatabase('BrowserTestDB');
         request.onsuccess = () => resolve();
         request.onerror = () =>
           reject(new Error(request.error?.message || 'Failed to delete database'));

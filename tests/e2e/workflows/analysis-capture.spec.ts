@@ -37,7 +37,7 @@ test.describe('Analysis Capture Workflow', () => {
     await page.goto(`file://${demoPath}/page-index.html`);
     await page.evaluate(() => {
       sessionStorage.clear();
-      indexedDB.deleteDatabase('BrowserTest');
+      indexedDB.deleteDatabase('BrowserTestDB');
     });
 
     // Wait for bootstrap to inject qd-login component
@@ -47,6 +47,7 @@ test.describe('Analysis Capture Workflow', () => {
     const login = page.locator('qd-login');
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
+    await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
     await expect(page.locator('qd-status')).toBeVisible();
   });

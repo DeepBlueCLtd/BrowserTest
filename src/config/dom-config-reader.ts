@@ -36,7 +36,7 @@ export interface DOMConfig {
 
   /**
    * IndexedDB database name
-   * Default: 'BrowserTest'
+   * REQUIRED: Must be provided via #qd-db-name element - no default
    * DOM ID: 'qd-db-name'
    */
   dbName: string;
@@ -44,12 +44,13 @@ export interface DOMConfig {
 
 /**
  * Default configuration values
+ * NOTE: dbName has NO default - it MUST be provided via #qd-db-name element
  */
-const DEFAULT_CONFIG: DOMConfig = {
+const DEFAULT_CONFIG: Omit<DOMConfig, 'dbName'> & { dbName: string } = {
   statusPanelContainer: '.wh_top_menu_and_indexterms_link',
   titleSelector: '.wh_publication_title .title',
   instructorHash: '',
-  dbName: 'BrowserTest',
+  dbName: '', // No default - must be provided by page
 };
 
 /**
@@ -88,6 +89,34 @@ function readConfigElement(elementId: string, defaultValue: string): string {
 }
 
 /**
+ * Read a REQUIRED configuration value from a hidden DOM element
+ *
+ * @param elementId - ID of the hidden element
+ * @throws Error if element not found or value is empty
+ * @returns Trimmed text content
+ */
+function readRequiredConfigElement(elementId: string): string {
+  const element = document.querySelector(`#${elementId}`);
+
+  if (!element) {
+    const msg = `FATAL: Required config element #${elementId} not found in DOM. Processing stopped.`;
+    console.error(msg);
+    throw new Error(msg);
+  }
+
+  const value = element.textContent?.trim() || '';
+
+  if (value === '') {
+    const msg = `FATAL: Required config element #${elementId} is empty. Processing stopped.`;
+    console.error(msg);
+    throw new Error(msg);
+  }
+
+  info(`Required config read from #${elementId}: "${value}"`);
+  return value;
+}
+
+/**
  * Read all configuration from DOM
  *
  * Scans the document for hidden configuration elements and returns a complete
@@ -98,6 +127,9 @@ function readConfigElement(elementId: string, defaultValue: string): string {
 export function readDOMConfig(): DOMConfig {
   info('Reading configuration from DOM...');
 
+  // dbName is REQUIRED - throws if missing/empty
+  const dbName = readRequiredConfigElement(CONFIG_IDS.dbName);
+
   const config: DOMConfig = {
     statusPanelContainer: readConfigElement(
       CONFIG_IDS.statusPanelContainer,
@@ -105,7 +137,7 @@ export function readDOMConfig(): DOMConfig {
     ),
     titleSelector: readConfigElement(CONFIG_IDS.titleSelector, DEFAULT_CONFIG.titleSelector),
     instructorHash: readConfigElement(CONFIG_IDS.instructorHash, DEFAULT_CONFIG.instructorHash),
-    dbName: readConfigElement(CONFIG_IDS.dbName, DEFAULT_CONFIG.dbName),
+    dbName,
   };
 
   info('Configuration loaded:', config);
