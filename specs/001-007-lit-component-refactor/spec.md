@@ -1,115 +1,153 @@
-# Feature Specification: [FEATURE NAME]
+# Feature Specification: Lit Component Refactor
 
-**Feature Branch**: `[###-feature-name]`  
-**Created**: [DATE]  
-**Status**: Draft  
-**Input**: User description: "$ARGUMENTS"
+**Feature Branch**: `007-lit-component-refactor`
+**Created**: 2025-11-25
+**Status**: Draft
+**Input**: Refactor 59 `document.createElement()` calls in Lit components to use proper Lit declarative templates
 
-## User Scenarios & Testing *(mandatory)*
+## Problem Statement
 
-<!--
-  IMPORTANT: User stories should be PRIORITIZED as user journeys ordered by importance.
-  Each user story/journey must be INDEPENDENTLY TESTABLE - meaning if you implement just ONE of them,
-  you should still have a viable MVP (Minimum Viable Product) that delivers value.
-  
-  Assign priorities (P1, P2, P3, etc.) to each story, where P1 is the most critical.
-  Think of each story as a standalone slice of functionality that can be:
-  - Developed independently
-  - Tested independently
-  - Deployed independently
-  - Demonstrated to users independently
--->
+The codebase contains 59 `document.createElement()` calls inside Lit components, mixing imperative DOM manipulation with Lit's declarative template system:
 
-### User Story 1 - [Brief Title] (Priority: P1)
+| File | createElement calls | Creates |
+|------|---------------------|---------|
+| `qd-instructor-scores.ts` | 22 | Modal overlay, scores table, row expansion |
+| `qd-pin-reset-dialog.ts` | 21 | Reset dialog, form, confirmation |
+| `qd-login.ts` | 14 | Instructor password modal |
+| `qd-instructor-manage.ts` | 1 | Minor element |
+| `qd-instructor-export.ts` | 1 | Minor element |
 
-[Describe this user journey in plain language]
+This causes: testing difficulties, bypassed reactivity, memory leak risk, and inconsistent architecture.
 
-**Why this priority**: [Explain the value and why it has this priority level]
+## User Scenarios & Testing
 
-**Independent Test**: [Describe how this can be tested independently - e.g., "Can be fully tested by [specific action] and delivers [specific value]"]
+### User Story 1 - Reusable Modal Base Component (Priority: P1)
 
-**Acceptance Scenarios**:
+Developers need a consistent modal pattern. Currently, each component creates its own modal overlay with duplicated code for backdrop, positioning, close handling, and keyboard events.
 
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
-2. **Given** [initial state], **When** [action], **Then** [expected outcome]
+**Why this priority**: Foundation for all other modal components. Eliminates ~50% of createElement calls.
 
----
-
-### User Story 2 - [Brief Title] (Priority: P2)
-
-[Describe this user journey in plain language]
-
-**Why this priority**: [Explain the value and why it has this priority level]
-
-**Independent Test**: [Describe how this can be tested independently]
+**Independent Test**: Create `<qd-modal>` component with tests. Can be demonstrated in Storybook independently before integrating into existing components.
 
 **Acceptance Scenarios**:
 
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
+1. **Given** a parent component, **When** it renders `<qd-modal open>`, **Then** a centered overlay with backdrop appears
+2. **Given** an open modal, **When** user presses Escape, **Then** `qd:modal-close` event fires and modal closes
+3. **Given** an open modal, **When** user clicks backdrop, **Then** modal closes (if `closable` prop is true)
+4. **Given** an open modal, **When** focus moves, **Then** focus stays trapped within modal content
 
 ---
 
-### User Story 3 - [Brief Title] (Priority: P3)
+### User Story 2 - Scores Modal Extraction (Priority: P2)
 
-[Describe this user journey in plain language]
+The instructor scores display (`qd-instructor-scores.ts`) has 22 createElement calls building a complex table with expandable rows. This should be a proper Lit component.
 
-**Why this priority**: [Explain the value and why it has this priority level]
+**Why this priority**: Largest concentration of createElement calls. High-value target.
 
-**Independent Test**: [Describe how this can be tested independently]
+**Independent Test**: Replace scores modal rendering with `<qd-scores-modal>`. Verify via existing E2E test `instructor-review.spec.ts` that "View All Scores" functionality works.
 
 **Acceptance Scenarios**:
 
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
+1. **Given** instructor is logged in, **When** they click "View All Scores", **Then** `<qd-scores-modal>` renders with student data
+2. **Given** scores modal is open, **When** user clicks a student row, **Then** row expands to show per-page breakdown
+3. **Given** scores modal is open, **When** user presses Escape, **Then** modal closes
 
 ---
 
-[Add more user stories as needed, each with an assigned priority]
+### User Story 3 - Password Modal Extraction (Priority: P2)
+
+The instructor password modal in `qd-login.ts` (14 createElement calls) should use `<qd-modal>` base.
+
+**Why this priority**: Medium complexity, good test case for modal reuse.
+
+**Independent Test**: Replace password modal with `<qd-password-modal>`. Verify via E2E test `dita-instructor-flow.spec.ts`.
+
+**Acceptance Scenarios**:
+
+1. **Given** login form displayed, **When** user clicks "Instructor", **Then** `<qd-password-modal>` opens
+2. **Given** password modal open, **When** user enters password and submits, **Then** `qd:password-submit` event fires
+3. **Given** password modal open, **When** user presses Escape, **Then** modal closes
+
+---
+
+### User Story 4 - Confirmation Dialog (Priority: P3)
+
+The PIN reset dialog (`qd-pin-reset-dialog.ts`, 21 calls) and data erase confirmation need a reusable confirm/cancel pattern.
+
+**Why this priority**: Lower urgency but completes the modal extraction.
+
+**Independent Test**: Create `<qd-confirm-dialog>`. Replace PIN reset confirmation with it.
+
+**Acceptance Scenarios**:
+
+1. **Given** destructive action requested, **When** `<qd-confirm-dialog>` shown, **Then** user sees confirm/cancel buttons
+2. **Given** confirm dialog open, **When** user clicks Confirm, **Then** `qd:confirm` event fires
+3. **Given** confirm dialog open, **When** user clicks Cancel, **Then** `qd:cancel` event fires and dialog closes
+
+---
 
 ### Edge Cases
 
-<!--
-  ACTION REQUIRED: The content in this section represents placeholders.
-  Fill them out with the right edge cases.
--->
+- What happens when modal opens while another is already open? (Should stack or replace?)
+- How does system handle rapid open/close? (Debounce animations)
+- What if modal content exceeds viewport height? (Scroll within modal)
 
-- What happens when [boundary condition]?
-- How does system handle [error scenario]?
-
-## Requirements *(mandatory)*
-
-<!--
-  ACTION REQUIRED: The content in this section represents placeholders.
-  Fill them out with the right functional requirements.
--->
+## Requirements
 
 ### Functional Requirements
 
-- **FR-001**: System MUST [specific capability, e.g., "allow users to create accounts"]
-- **FR-002**: System MUST [specific capability, e.g., "validate email addresses"]  
-- **FR-003**: Users MUST be able to [key interaction, e.g., "reset their password"]
-- **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
-- **FR-005**: System MUST [behavior, e.g., "log all security events"]
+- **FR-001**: System MUST provide a `<qd-modal>` base component with open/close state management
+- **FR-002**: All modals MUST trap keyboard focus while open
+- **FR-003**: All modals MUST close on Escape key press (when closable)
+- **FR-004**: Backdrop click MUST close modal when `closable` prop is true
+- **FR-005**: System MUST maintain zero `document.createElement()` calls in component render methods
+- **FR-006**: New components MUST use Lit `html` tagged templates exclusively
+- **FR-007**: System MUST preserve existing custom event contracts (`qd:*` events)
 
-*Example of marking unclear requirements:*
+### Key Entities
 
-- **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
-- **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
+- **Modal**: Overlay container with backdrop, manages open state and focus
+- **ScoresModal**: Displays student scores in expandable table format
+- **PasswordModal**: Single input for instructor password
+- **ConfirmDialog**: Binary confirm/cancel prompt
 
-### Key Entities *(include if feature involves data)*
-
-- **[Entity 1]**: [What it represents, key attributes without implementation]
-- **[Entity 2]**: [What it represents, relationships to other entities]
-
-## Success Criteria *(mandatory)*
-
-<!--
-  ACTION REQUIRED: Define measurable success criteria.
-  These must be technology-agnostic and measurable.
--->
+## Success Criteria
 
 ### Measurable Outcomes
 
-- **SC-001**: [Measurable metric, e.g., "Users can complete account creation in under 2 minutes"]
-- **SC-002**: [Measurable metric, e.g., "System handles 1000 concurrent users without degradation"]
-- **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
-- **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
+- **SC-001**: Zero `document.createElement()` calls in `src/components/**/*.ts`
+- **SC-002**: All existing E2E tests pass without modification
+- **SC-003**: New components have >80% unit test coverage
+- **SC-004**: Bundle size increase < 2KB gzipped
+- **SC-005**: No visual regressions (Chromatic baseline maintained)
+
+## Scope
+
+### In Scope
+- Create `<qd-modal>` base component
+- Extract `<qd-scores-modal>` from qd-instructor-scores.ts
+- Extract `<qd-password-modal>` from qd-login.ts
+- Extract `<qd-confirm-dialog>` from qd-pin-reset-dialog.ts
+- Unit tests for all new components
+- Storybook stories for new components
+
+### Out of Scope
+- Refactoring enhancers (quiz-table.ts, analysis-table.ts)
+- Changing visual design or styling
+- Adding new user-facing features
+- Modifying existing event contracts
+
+## Dependencies
+
+- Lit 3.x (existing)
+- Existing component test patterns
+- Storybook for development
+
+## Risks
+
+| Risk | Mitigation |
+|------|------------|
+| Breaking existing flows | Run E2E suite after each component extraction |
+| Event contract changes | Audit events before/after, maintain signatures |
+| CSS scoping issues | Keep all styles in Shadow DOM |
+| Focus management bugs | Test with keyboard-only navigation |
