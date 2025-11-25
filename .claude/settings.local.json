@@ -37,7 +37,9 @@
       "Bash(open:*)",
       "Bash(git merge:*)",
       "Bash(.specify/scripts/bash/create-new-feature.sh:*)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "Bash(killall:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []
