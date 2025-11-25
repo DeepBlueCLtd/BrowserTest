@@ -25,13 +25,13 @@ async function waitForBootstrap(page: Page): Promise<void> {
   await page.locator('qd-login[data-ready]').waitFor({ timeout: 5000 });
 }
 
-test.describe.skip('Cohort Management Workflow', () => {
+test.describe('Cohort Management Workflow', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage
     await page.goto(`file://${demoPath}/page-index.html`);
     await page.evaluate(() => {
       sessionStorage.clear();
-      indexedDB.deleteDatabase('BrowserTest');
+      indexedDB.deleteDatabase('BrowserTestDB');
     });
 
     // Wait for bootstrap to inject qd-login component
@@ -62,7 +62,7 @@ test.describe.skip('Cohort Management Workflow', () => {
     await expect(async () => {
       const dataBefore = await page.evaluate(async () => {
         return new Promise((resolve) => {
-          const request = indexedDB.open('BrowserTest');
+          const request = indexedDB.open('BrowserTestDB');
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction('students', 'readonly');
@@ -114,7 +114,7 @@ test.describe.skip('Cohort Management Workflow', () => {
     // Verify IndexedDB cleared
     const dataAfter = await page.evaluate(async () => {
       return new Promise((resolve) => {
-        const request = indexedDB.open('BrowserTest');
+        const request = indexedDB.open('BrowserTestDB');
         request.onsuccess = () => {
           const db = request.result;
           const tx = db.transaction('students', 'readonly');
@@ -131,7 +131,7 @@ test.describe.skip('Cohort Management Workflow', () => {
     expect(sessionData).toBeNull();
   });
 
-  test.skip('should cancel data erasure on confirmation reject', async ({ page }) => {
+  test('should cancel data erasure on confirmation reject', async ({ page }) => {
     // Create student data
     await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
@@ -153,7 +153,7 @@ test.describe.skip('Cohort Management Workflow', () => {
     await expect(async () => {
       const savedData = await page.evaluate(async () => {
         return new Promise((resolve) => {
-          const request = indexedDB.open('BrowserTest');
+          const request = indexedDB.open('BrowserTestDB');
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction('students', 'readonly');
@@ -202,7 +202,7 @@ test.describe.skip('Cohort Management Workflow', () => {
     // Verify data still exists
     const dataAfter = await page.evaluate(async () => {
       return new Promise<unknown[]>((resolve) => {
-        const request = indexedDB.open('BrowserTest');
+        const request = indexedDB.open('BrowserTestDB');
         request.onsuccess = () => {
           const db = request.result;
           const tx = db.transaction('students', 'readonly');
@@ -216,7 +216,7 @@ test.describe.skip('Cohort Management Workflow', () => {
     expect(dataAfter.length).toBeGreaterThan(0);
   });
 
-  test.skip('should erase multiple student records', async ({ page }) => {
+  test('should erase multiple student records', async ({ page }) => {
     // Create first student
     await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
@@ -237,7 +237,7 @@ test.describe.skip('Cohort Management Workflow', () => {
     await expect(async () => {
       const savedData = await page.evaluate(async () => {
         return new Promise((resolve) => {
-          const request = indexedDB.open('BrowserTest');
+          const request = indexedDB.open('BrowserTestDB');
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction('students', 'readonly');
@@ -277,7 +277,7 @@ test.describe.skip('Cohort Management Workflow', () => {
     await expect(async () => {
       const studentsBefore = await page.evaluate(async () => {
         return new Promise<unknown[]>((resolve) => {
-          const request = indexedDB.open('BrowserTest');
+          const request = indexedDB.open('BrowserTestDB');
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction('students', 'readonly');
@@ -324,7 +324,7 @@ test.describe.skip('Cohort Management Workflow', () => {
     // Verify all students cleared
     const studentsAfter = await page.evaluate(async () => {
       return new Promise((resolve) => {
-        const request = indexedDB.open('BrowserTest');
+        const request = indexedDB.open('BrowserTestDB');
         request.onsuccess = () => {
           const db = request.result;
           const tx = db.transaction('students', 'readonly');
@@ -337,7 +337,7 @@ test.describe.skip('Cohort Management Workflow', () => {
     expect(studentsAfter).toEqual([]);
   });
 
-  test.skip('should emit data-cleared event after erasure', async ({ page }) => {
+  test('should emit data-cleared event after erasure', async ({ page }) => {
     // Create student data
     await page.goto(`file://${demoPath}/page-index.html`);
     await waitForBootstrap(page);
