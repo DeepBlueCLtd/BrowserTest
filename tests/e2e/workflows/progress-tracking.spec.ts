@@ -60,7 +60,7 @@ test.describe('Progress Tracking Workflow', () => {
     await page.goto(`file://${demoPath}/page-index.html`);
     await page.evaluate(() => {
       sessionStorage.clear();
-      indexedDB.deleteDatabase('BrowserTestDB');
+      indexedDB.deleteDatabase('BrowserTest');
     });
 
     // Wait for bootstrap to inject qd-login component
@@ -117,7 +117,7 @@ test.describe('Progress Tracking Workflow', () => {
     await expect(async () => {
       const savedData = await page.evaluate(async () => {
         return new Promise((resolve) => {
-          const request = indexedDB.open('BrowserTestDB');
+          const request = indexedDB.open('BrowserTest');
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction('students', 'readonly');
@@ -140,6 +140,7 @@ test.describe('Progress Tracking Workflow', () => {
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
 
     // Navigate to numeric quiz page
     await page.goto(`file://${demoPath}/Pages/quiz-numeric.html`);
@@ -154,7 +155,7 @@ test.describe('Progress Tracking Workflow', () => {
     await expect(async () => {
       const savedData = await page.evaluate(async () => {
         return new Promise((resolve) => {
-          const request = indexedDB.open('BrowserTestDB');
+          const request = indexedDB.open('BrowserTest');
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction('students', 'readonly');
@@ -177,6 +178,7 @@ test.describe('Progress Tracking Workflow', () => {
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
 
     await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
 
@@ -208,6 +210,7 @@ test.describe('Progress Tracking Workflow', () => {
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
 
     // Initially, badges should be red (unstarted)
     // Target the quiz-mcq badge specifically
@@ -242,6 +245,7 @@ test.describe('Progress Tracking Workflow', () => {
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
 
     // Navigate to quiz with multiple questions
     await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
@@ -259,7 +263,7 @@ test.describe('Progress Tracking Workflow', () => {
     await expect(async () => {
       const completionState = await page.evaluate(async () => {
         return new Promise<string>((resolve) => {
-          const request = indexedDB.open('BrowserTestDB');
+          const request = indexedDB.open('BrowserTest');
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction('students', 'readonly');

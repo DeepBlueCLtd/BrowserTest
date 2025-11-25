@@ -51,7 +51,7 @@ test.describe('DITA Instructor Flow', () => {
       localStorage.clear();
       // Clear IndexedDB (may be BrowserTestDB based on DITA config)
       indexedDB.deleteDatabase('BrowserTestDB');
-      indexedDB.deleteDatabase('BrowserTest');
+      indexedDB.deleteDatabase('BrowserTestDB');
     });
     await page.reload();
     await waitForBootstrap(page);

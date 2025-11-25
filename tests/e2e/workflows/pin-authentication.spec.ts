@@ -32,7 +32,7 @@ async function clearStorage(page: Page): Promise<void> {
     sessionStorage.clear();
     localStorage.clear();
     indexedDB.deleteDatabase('BrowserTestDB');
-    indexedDB.deleteDatabase('BrowserTest');
+    indexedDB.deleteDatabase('BrowserTestDB');
   });
 }
 

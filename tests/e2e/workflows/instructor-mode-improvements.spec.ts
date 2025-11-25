@@ -73,7 +73,7 @@ test.describe('Instructor Mode Improvements', () => {
       sessionStorage.clear();
       // Properly await IndexedDB deletion
       await new Promise<void>((resolve, reject) => {
-        const request = indexedDB.deleteDatabase('BrowserTest');
+        const request = indexedDB.deleteDatabase('BrowserTestDB');
         request.onsuccess = () => resolve();
         request.onerror = () =>
           reject(new Error(request.error?.message || 'Failed to delete database'));

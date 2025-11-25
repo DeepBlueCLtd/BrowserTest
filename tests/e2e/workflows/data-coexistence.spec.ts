@@ -47,7 +47,7 @@ test.describe('Data Coexistence', () => {
     await page.goto(`file://${demoPath}/page-index.html`);
     await page.evaluate(() => {
       sessionStorage.clear();
-      indexedDB.deleteDatabase('BrowserTest');
+      indexedDB.deleteDatabase('BrowserTestDB');
     });
 
     // Wait for bootstrap
