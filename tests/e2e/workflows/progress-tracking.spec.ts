@@ -104,7 +104,6 @@ test.describe('Progress Tracking Workflow', () => {
     await login.locator('button[type="submit"]').click();
     await closePinConfirmationDialog(page);
 
-
     // Navigate to quiz page
     await page.goto(`file://${demoPath}/Pages/quiz-mcq.html`);
 

@@ -29,7 +29,12 @@ async function waitForBootstrap(page: Page): Promise<void> {
 /**
  * Login as student
  */
-async function loginAsStudent(page: Page, serviceId: string, name: string, pin = '1234'): Promise<void> {
+async function loginAsStudent(
+  page: Page,
+  serviceId: string,
+  name: string,
+  pin = '1234',
+): Promise<void> {
   const login = page.locator('qd-login');
   await login.locator('input[name="serviceId"]').fill(serviceId);
   await login.locator('input[name="name"]').fill(name);

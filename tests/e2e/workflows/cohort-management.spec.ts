@@ -2,7 +2,7 @@
  * E2E Test: Cohort Management Workflow
  *
  * Tests data management functionality:
- * - Complete data erasure (IndexedDB + sessionStorage)
+ * - Complete data erasure (sessionStorage qd/ keys)
  * - Confirmation dialog workflow
  * - Multi-student data cleanup
  */
@@ -15,7 +15,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const demoPath = path.resolve(__dirname, '../../../dita-demo');
 
-const TEST_PASSWORD = 'instructor123';
+const TEST_PASSWORD = 'pwd';
 
 /**
  * Wait for bootstrap to complete and inject components
@@ -98,59 +98,54 @@ test.describe('Cohort Management Workflow', () => {
     await logoutButton.click();
     await expect(page.locator('qd-login')).toBeVisible();
 
-    // Inject instructor password hash
-    await page.evaluate(() => {
-      const span = document.createElement('span');
-      span.id = 'instructor.password.hash';
-      span.style.display = 'none';
-      span.textContent = 'c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5';
-      document.body.appendChild(span);
-    });
+    // Page already has qd-instructor-hash element with the correct hash
 
     const instructorButton = page.locator('qd-login button').filter({ hasText: /instructor/i });
     await instructorButton.click({ force: true });
     await page.waitForTimeout(500); // Wait for instructor modal to open
 
-    const passwordInput = page.locator('qd-instructor input[type="password"]');
+    const passwordInput = page.locator('.qd-instructor-modal-overlay input[type="password"]');
     await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
-    const unlockButton = page.locator('qd-instructor button[type="submit"]');
+    const unlockButton = page.locator('.qd-instructor-modal-overlay button[type="submit"]');
     await unlockButton.click();
+    await expect(passwordInput).not.toBeVisible();
+    await expect(page.getByText('View All Scores')).toBeVisible();
 
-    // Wait for instructor panel
-    await expect(page.locator('qd-instructor .instructor-panel')).toBeVisible();
-
-    // Setup dialog handler to confirm erasure
-    page.on('dialog', async (dialog) => {
-      expect(dialog.type()).toBe('confirm');
-      expect(dialog.message()).toMatch(/erase|delete|clear|all data/i);
-      await dialog.accept();
-    });
-
-    // Click erase button
+    // Click erase button to open confirmation modal
     const eraseButton = page.locator('button').filter({ hasText: /erase.*data/i });
     await expect(eraseButton).toBeVisible();
     await eraseButton.click();
 
-    // Verify IndexedDB cleared
-    const dataAfter = await page.evaluate(async () => {
-      return new Promise((resolve) => {
-        const request = indexedDB.open('BrowserTestDB');
-        request.onsuccess = () => {
-          const db = request.result;
-          const tx = db.transaction('students', 'readonly');
-          const store = tx.objectStore('students');
-          const getRequest = store.getAll();
-          getRequest.onsuccess = () => resolve(getRequest.result);
-        };
-      });
-    });
-    expect(dataAfter).toEqual([]);
+    // Fill in confirmation text in the modal
+    const confirmInput = page.locator('.qd-manage-modal-overlay input[type="text"]');
+    await expect(confirmInput).toBeVisible();
+    await confirmInput.fill('DELETE ALL DATA');
 
-    // Verify sessionStorage cleared
+    // Click confirm button
+    const confirmButton = page
+      .locator('.qd-manage-modal-overlay button')
+      .filter({ hasText: /delete/i });
+    await confirmButton.click();
+
+    // Wait for modal to close
+    await expect(confirmInput).not.toBeVisible();
+
+    // Verify sessionStorage cleared (clearQuizData clears sessionStorage, not IndexedDB)
     const sessionData = await page.evaluate(() => sessionStorage.getItem('qd/session'));
     expect(sessionData).toBeNull();
+
+    // Also verify no qd/ prefixed keys exist
+    const qdKeys = await page.evaluate(() => {
+      const keys: string[] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key?.startsWith('qd/')) keys.push(key);
+      }
+      return keys;
+    });
+    expect(qdKeys).toEqual([]);
   });
 
   test('should cancel data erasure on confirmation reject', async ({ page }) => {
@@ -195,41 +190,42 @@ test.describe('Cohort Management Workflow', () => {
 
     // Logout first to make qd-login visible
     const instructorStatusPanel = page.locator('qd-status');
-    const instructorLogoutButton = instructorStatusPanel.locator('button').filter({ hasText: /logout/i });
+    const instructorLogoutButton = instructorStatusPanel
+      .locator('button')
+      .filter({ hasText: /logout/i });
     await instructorLogoutButton.click();
     await expect(page.locator('qd-login')).toBeVisible();
 
-    // Inject instructor password hash
-    await page.evaluate(() => {
-      const span = document.createElement('span');
-      span.id = 'instructor.password.hash';
-      span.style.display = 'none';
-      span.textContent = 'c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5';
-      document.body.appendChild(span);
-    });
+    // Page already has qd-instructor-hash element with the correct hash
 
     const instructorButton = page.locator('qd-login button').filter({ hasText: /instructor/i });
     await instructorButton.click({ force: true });
     await page.waitForTimeout(500); // Wait for instructor modal to open
 
-    const passwordInput = page.locator('qd-instructor input[type="password"]');
+    const passwordInput = page.locator('.qd-instructor-modal-overlay input[type="password"]');
     await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
-    const unlockButton = page.locator('qd-instructor button[type="submit"]');
+    const unlockButton = page.locator('.qd-instructor-modal-overlay button[type="submit"]');
     await unlockButton.click();
-    await expect(page.locator('qd-instructor .instructor-panel')).toBeVisible();
+    await expect(passwordInput).not.toBeVisible();
+    await expect(page.getByText('View All Scores')).toBeVisible();
 
-    // Setup dialog handler to cancel erasure
-    page.on('dialog', async (dialog) => {
-      expect(dialog.type()).toBe('confirm');
-      await dialog.dismiss();
-    });
-
-    // Click erase button
+    // Click erase button to open confirmation modal
     const eraseButton = page.locator('button').filter({ hasText: /erase.*data/i });
     await expect(eraseButton).toBeVisible();
     await eraseButton.click();
+
+    // Verify modal appears
+    const confirmInput = page.locator('.qd-manage-modal-overlay input[type="text"]');
+    await expect(confirmInput).toBeVisible();
+
+    // Click cancel button (X button)
+    const cancelButton = page.locator('.qd-manage-modal-overlay button').filter({ hasText: '✕' });
+    await cancelButton.click();
+
+    // Wait for modal to close
+    await expect(confirmInput).not.toBeVisible();
 
     // Verify data still exists
     const dataAfter = await page.evaluate(async () => {
@@ -335,50 +331,54 @@ test.describe('Cohort Management Workflow', () => {
     await multiLogoutButton.click();
     await expect(page.locator('qd-login')).toBeVisible();
 
-    // Inject instructor password hash
-    await page.evaluate(() => {
-      const span = document.createElement('span');
-      span.id = 'instructor.password.hash';
-      span.style.display = 'none';
-      span.textContent = 'c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5';
-      document.body.appendChild(span);
-    });
+    // Page already has qd-instructor-hash element with the correct hash
 
     const instructorButton = page.locator('qd-login button').filter({ hasText: /instructor/i });
     await instructorButton.click({ force: true });
     await page.waitForTimeout(500); // Wait for instructor modal to open
 
-    const passwordInput = page.locator('qd-instructor input[type="password"]');
+    const passwordInput = page.locator('.qd-instructor-modal-overlay input[type="password"]');
     await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
-    const unlockButton = page.locator('qd-instructor button[type="submit"]');
+    const unlockButton = page.locator('.qd-instructor-modal-overlay button[type="submit"]');
     await unlockButton.click();
-    await expect(page.locator('qd-instructor .instructor-panel')).toBeVisible();
+    await expect(passwordInput).not.toBeVisible();
+    await expect(page.getByText('View All Scores')).toBeVisible();
 
-    // Confirm erasure
-    page.on('dialog', async (dialog) => {
-      await dialog.accept();
-    });
-
+    // Click erase button to open confirmation modal
     const eraseButton = page.locator('button').filter({ hasText: /erase.*data/i });
     await expect(eraseButton).toBeVisible();
     await eraseButton.click();
 
-    // Verify all students cleared
-    const studentsAfter = await page.evaluate(async () => {
-      return new Promise((resolve) => {
-        const request = indexedDB.open('BrowserTestDB');
-        request.onsuccess = () => {
-          const db = request.result;
-          const tx = db.transaction('students', 'readonly');
-          const store = tx.objectStore('students');
-          const getRequest = store.getAll();
-          getRequest.onsuccess = () => resolve(getRequest.result);
-        };
-      });
+    // Fill in confirmation text in the modal
+    const confirmInput = page.locator('.qd-manage-modal-overlay input[type="text"]');
+    await expect(confirmInput).toBeVisible();
+    await confirmInput.fill('DELETE ALL DATA');
+
+    // Click confirm button
+    const confirmButton = page
+      .locator('.qd-manage-modal-overlay button')
+      .filter({ hasText: /delete/i });
+    await confirmButton.click();
+
+    // Wait for modal to close
+    await expect(confirmInput).not.toBeVisible();
+
+    // Verify sessionStorage cleared (clearQuizData clears sessionStorage, not IndexedDB)
+    const sessionData = await page.evaluate(() => sessionStorage.getItem('qd/session'));
+    expect(sessionData).toBeNull();
+
+    // Also verify no qd/ prefixed keys exist
+    const qdKeys = await page.evaluate(() => {
+      const keys: string[] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key?.startsWith('qd/')) keys.push(key);
+      }
+      return keys;
     });
-    expect(studentsAfter).toEqual([]);
+    expect(qdKeys).toEqual([]);
   });
 
   test('should emit data-cleared event after erasure', async ({ page }) => {
@@ -400,26 +400,20 @@ test.describe('Cohort Management Workflow', () => {
     await eventLogoutButton.click();
     await expect(page.locator('qd-login')).toBeVisible();
 
-    // Inject instructor password hash
-    await page.evaluate(() => {
-      const span = document.createElement('span');
-      span.id = 'instructor.password.hash';
-      span.style.display = 'none';
-      span.textContent = 'c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5';
-      document.body.appendChild(span);
-    });
+    // Page already has qd-instructor-hash element with the correct hash
 
     const instructorButton = page.locator('qd-login button').filter({ hasText: /instructor/i });
     await instructorButton.click({ force: true });
     await page.waitForTimeout(500); // Wait for instructor modal to open
 
-    const passwordInput = page.locator('qd-instructor input[type="password"]');
+    const passwordInput = page.locator('.qd-instructor-modal-overlay input[type="password"]');
     await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
-    const unlockButton = page.locator('qd-instructor button[type="submit"]');
+    const unlockButton = page.locator('.qd-instructor-modal-overlay button[type="submit"]');
     await unlockButton.click();
-    await expect(page.locator('qd-instructor .instructor-panel')).toBeVisible();
+    await expect(passwordInput).not.toBeVisible();
+    await expect(page.getByText('View All Scores')).toBeVisible();
 
     // Setup event listener
     const eventPromise = page.evaluate(() => {
@@ -435,13 +429,23 @@ test.describe('Cohort Management Workflow', () => {
       });
     });
 
-    // Confirm and trigger erasure
-    page.on('dialog', async (dialog) => {
-      await dialog.accept();
-    });
-
+    // Click erase button to open confirmation modal
     const eraseButton = page.locator('button').filter({ hasText: /erase.*data/i });
     await eraseButton.click();
+
+    // Fill in confirmation text in the modal
+    const confirmInput = page.locator('.qd-manage-modal-overlay input[type="text"]');
+    await expect(confirmInput).toBeVisible();
+    await confirmInput.fill('DELETE ALL DATA');
+
+    // Click confirm button
+    const confirmButton = page
+      .locator('.qd-manage-modal-overlay button')
+      .filter({ hasText: /delete/i });
+    await confirmButton.click();
+
+    // Wait for modal to close
+    await expect(confirmInput).not.toBeVisible();
 
     // Verify event was emitted
     const eventFired = await eventPromise;
