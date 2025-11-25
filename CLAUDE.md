@@ -135,6 +135,12 @@ npm run test:integration # DOM upgrade integration tests
 npm run test:e2e        # Playwright E2E tests (auto-starts/stops Storybook)
 npm run chromatic       # Visual regression tests
 
+# Coverage & Gap Analysis
+npm run test:coverage   # Unit tests with v8 coverage report
+npm run test:coverage:all # Unit + integration coverage (separate reports)
+npm run test:gaps       # Structural gap analysis (files without tests)
+npm run analyze:e2e-gaps # E2E feature coverage report (docs/test-coverage-report.md)
+
 # Building
 npm run build           # Production build (IIFE + ESM)
 npm run build:dita      # Build + copy bundle to DITA directories
