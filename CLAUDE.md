@@ -566,6 +566,8 @@ function getStorageKey(release: ReleaseId, serviceId: ServiceId): string {
 - N/A (no data model changes) (005-code-reduction)
 - TypeScript 5.x / Node.js 18+ + @vitest/coverage-v8 (to install), Vitest 2.x, Playwright 1.x (existing) (006-test-coverage-gaps)
 - N/A (development tooling - outputs to coverage/ directory and markdown reports) (006-test-coverage-gaps)
+- TypeScript 5.x / ES2020+ + Lit 3.x (existing), Vitest 2.x (existing) (007-lit-component-refactor)
+- N/A (no data model changes—internal refactor only) (007-lit-component-refactor)
 
 ## Recent Changes
 - 001-security-refactor: Added TypeScript 5.x / JavaScript ES2020+ + Lit 3.0 (Web Components), Vite 5.x (build), Vitest (testing)
