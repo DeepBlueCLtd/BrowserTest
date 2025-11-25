@@ -40,7 +40,13 @@
       "Bash(tee:*)",
       "Bash(killall:*)",
       "Bash(pkill:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run test:coverage:*)",
+      "Bash(npm run test:gaps:*)",
+      "Bash(echo:*)",
+      "Bash(npm run analyze:e2e-gaps:*)",
+      "Bash(npm run test:coverage:integration:*)"
     ],
     "deny": [],
     "ask": []
