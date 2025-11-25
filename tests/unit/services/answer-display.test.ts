@@ -35,9 +35,7 @@ describe('answer-display service', () => {
           pages: {
             [pageId]: {
               state: 'complete',
-              answers: [
-                { answer: '2', success: true, timestamp: '2025-01-01T12:30:00Z' },
-              ],
+              answers: [{ answer: '2', success: true, timestamp: '2025-01-01T12:30:00Z' }],
             },
           },
         },
@@ -66,9 +64,7 @@ describe('answer-display service', () => {
           pages: {
             [pageId]: {
               state: 'incomplete',
-              answers: [
-                { answer: 'wrong', success: false, timestamp: '2025-01-15T14:30:45Z' },
-              ],
+              answers: [{ answer: 'wrong', success: false, timestamp: '2025-01-15T14:30:45Z' }],
             },
           },
         },
@@ -139,9 +135,7 @@ describe('answer-display service', () => {
           pages: {
             [pageId]: {
               state: 'incomplete',
-              answers: [
-                { answer: '1', success: true, timestamp: '2025-01-01T00:00:00Z' },
-              ],
+              answers: [{ answer: '1', success: true, timestamp: '2025-01-01T00:00:00Z' }],
             },
           },
         },
@@ -167,9 +161,7 @@ describe('answer-display service', () => {
           pages: {
             [pageId]: {
               state: 'complete',
-              answers: [
-                { answer: '1', success: true, timestamp: '2025-01-01T10:00:00Z' },
-              ],
+              answers: [{ answer: '1', success: true, timestamp: '2025-01-01T10:00:00Z' }],
             },
           },
         },
@@ -185,9 +177,7 @@ describe('answer-display service', () => {
           pages: {
             [pageId]: {
               state: 'incomplete',
-              answers: [
-                { answer: '3', success: false, timestamp: '2025-01-01T11:00:00Z' },
-              ],
+              answers: [{ answer: '3', success: false, timestamp: '2025-01-01T11:00:00Z' }],
             },
           },
         },
@@ -216,9 +206,7 @@ describe('answer-display service', () => {
           pages: {
             [pageId]: {
               state: 'complete',
-              answers: [
-                { answer: '2', success: true, timestamp: '2025-01-01T00:00:00Z' },
-              ],
+              answers: [{ answer: '2', success: true, timestamp: '2025-01-01T00:00:00Z' }],
             },
           },
         },
@@ -234,9 +222,7 @@ describe('answer-display service', () => {
           pages: {
             [pageId]: {
               state: 'incomplete',
-              answers: [
-                { answer: '1', success: false, timestamp: '2025-01-01T00:00:00Z' },
-              ],
+              answers: [{ answer: '1', success: false, timestamp: '2025-01-01T00:00:00Z' }],
             },
           },
         },

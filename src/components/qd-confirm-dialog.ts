@@ -136,7 +136,7 @@ export class QdConfirmDialog extends LitElement {
       new CustomEvent('qd:cancel', {
         bubbles: true,
         composed: true,
-      })
+      }),
     );
   };
 
@@ -149,7 +149,7 @@ export class QdConfirmDialog extends LitElement {
       new CustomEvent('qd:confirm', {
         bubbles: true,
         composed: true,
-      })
+      }),
     );
   };
 
@@ -162,7 +162,7 @@ export class QdConfirmDialog extends LitElement {
       new CustomEvent('qd:cancel', {
         bubbles: true,
         composed: true,
-      })
+      }),
     );
   };
 

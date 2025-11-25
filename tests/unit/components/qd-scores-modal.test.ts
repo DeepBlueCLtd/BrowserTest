@@ -39,10 +39,12 @@ describe('qd-scores-modal', () => {
     };
   }
 
-  async function createModal(options: {
-    open?: boolean;
-    students?: StudentRecord[];
-  } = {}): Promise<QdScoresModal> {
+  async function createModal(
+    options: {
+      open?: boolean;
+      students?: StudentRecord[];
+    } = {},
+  ): Promise<QdScoresModal> {
     element = document.createElement('qd-scores-modal');
     if (options.open) element.open = true;
     if (options.students) element.students = options.students;
@@ -172,7 +174,10 @@ describe('qd-scores-modal', () => {
           name: 'Alice',
           serviceId: 'A123',
           pages: {
-            'page-1': { state: 'complete', answers: [{ answer: '1', success: true, timestamp: '' }] },
+            'page-1': {
+              state: 'complete',
+              answers: [{ answer: '1', success: true, timestamp: '' }],
+            },
           },
         }),
       ];
@@ -189,7 +194,10 @@ describe('qd-scores-modal', () => {
           name: 'Alice',
           serviceId: 'A123',
           pages: {
-            'page-1': { state: 'complete', answers: [{ answer: '1', success: true, timestamp: '' }] },
+            'page-1': {
+              state: 'complete',
+              answers: [{ answer: '1', success: true, timestamp: '' }],
+            },
           },
         }),
       ];
@@ -209,7 +217,10 @@ describe('qd-scores-modal', () => {
       const students = [
         createStudent({
           pages: {
-            'page-1': { state: 'complete', answers: [{ answer: '1', success: true, timestamp: '' }] },
+            'page-1': {
+              state: 'complete',
+              answers: [{ answer: '1', success: true, timestamp: '' }],
+            },
           },
         }),
       ];

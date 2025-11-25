@@ -184,7 +184,7 @@ export class QdPasswordModal extends LitElement {
         detail: { password: this.password },
         bubbles: true,
         composed: true,
-      })
+      }),
     );
   };
 

@@ -117,9 +117,7 @@ export const NonClosable: Story = {
         <span slot="header">Required Action</span>
         <div>
           <p>This modal requires explicit action to close.</p>
-          <p style="color: #666; font-size: 14px;">
-            Backdrop click and Escape key are disabled.
-          </p>
+          <p style="color: #666; font-size: 14px;">Backdrop click and Escape key are disabled.</p>
           <button
             @click=${closeModal}
             style="margin-top: 12px; padding: 8px 16px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer;"

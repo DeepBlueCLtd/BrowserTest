@@ -23,7 +23,9 @@ describe('qd-modal', () => {
     container.remove();
   });
 
-  async function createModal(options: { open?: boolean; closable?: boolean } = {}): Promise<QdModal> {
+  async function createModal(
+    options: { open?: boolean; closable?: boolean } = {},
+  ): Promise<QdModal> {
     element = document.createElement('qd-modal');
     if (options.open) element.open = true;
     if (options.closable !== undefined) element.closable = options.closable;

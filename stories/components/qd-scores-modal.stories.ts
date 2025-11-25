@@ -127,12 +127,7 @@ const sampleStudents: StudentRecord[] = [
  * Shows modal with multiple students and their scores.
  */
 export const Default: Story = {
-  render: () => html`
-    <qd-scores-modal
-      open
-      .students=${sampleStudents}
-    ></qd-scores-modal>
-  `,
+  render: () => html` <qd-scores-modal open .students=${sampleStudents}></qd-scores-modal> `,
 };
 
 /**
@@ -141,12 +136,7 @@ export const Default: Story = {
  * Shows modal when no students have data.
  */
 export const EmptyState: Story = {
-  render: () => html`
-    <qd-scores-modal
-      open
-      .students=${[]}
-    ></qd-scores-modal>
-  `,
+  render: () => html` <qd-scores-modal open .students=${[]}></qd-scores-modal> `,
 };
 
 /**
@@ -155,12 +145,7 @@ export const EmptyState: Story = {
  * Shows modal with just one student.
  */
 export const SingleStudent: Story = {
-  render: () => html`
-    <qd-scores-modal
-      open
-      .students=${[sampleStudents[0]]}
-    ></qd-scores-modal>
-  `,
+  render: () => html` <qd-scores-modal open .students=${[sampleStudents[0]]}></qd-scores-modal> `,
 };
 
 /**
@@ -193,12 +178,7 @@ export const PerfectScore: Story = {
       },
     };
 
-    return html`
-      <qd-scores-modal
-        open
-        .students=${[perfectStudent]}
-      ></qd-scores-modal>
-    `;
+    return html` <qd-scores-modal open .students=${[perfectStudent]}></qd-scores-modal> `;
   },
 };
 
@@ -251,12 +231,7 @@ export const LowScores: Story = {
       },
     ];
 
-    return html`
-      <qd-scores-modal
-        open
-        .students=${lowScoreStudents}
-      ></qd-scores-modal>
-    `;
+    return html` <qd-scores-modal open .students=${lowScoreStudents}></qd-scores-modal> `;
   },
 };
 

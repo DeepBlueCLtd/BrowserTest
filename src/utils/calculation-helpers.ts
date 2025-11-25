@@ -61,9 +61,7 @@ export interface RecalculatedTotals {
  * @param pages - Record of page ID to page data
  * @returns Aggregated attempted and correct counts
  */
-export function recalculateTotalsFromPages(
-  pages: Record<PageId, PageData>,
-): RecalculatedTotals {
+export function recalculateTotalsFromPages(pages: Record<PageId, PageData>): RecalculatedTotals {
   let attempted = 0;
   let correct = 0;
 

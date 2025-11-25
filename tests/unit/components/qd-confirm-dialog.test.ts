@@ -23,14 +23,16 @@ describe('qd-confirm-dialog', () => {
     container.remove();
   });
 
-  async function createDialog(options: {
-    open?: boolean;
-    title?: string;
-    message?: string;
-    confirmText?: string;
-    cancelText?: string;
-    destructive?: boolean;
-  } = {}): Promise<QdConfirmDialog> {
+  async function createDialog(
+    options: {
+      open?: boolean;
+      title?: string;
+      message?: string;
+      confirmText?: string;
+      cancelText?: string;
+      destructive?: boolean;
+    } = {},
+  ): Promise<QdConfirmDialog> {
     element = document.createElement('qd-confirm-dialog');
     if (options.open) element.open = true;
     if (options.title) element.title = options.title;
@@ -85,7 +87,11 @@ describe('qd-confirm-dialog', () => {
 
   describe('title display', () => {
     it('displays title text', async () => {
-      const el = await createDialog({ open: true, title: 'Confirm Delete', message: 'Are you sure?' });
+      const el = await createDialog({
+        open: true,
+        title: 'Confirm Delete',
+        message: 'Are you sure?',
+      });
       const content = el.shadowRoot?.textContent || '';
       expect(content).toContain('Confirm Delete');
     });
@@ -99,7 +105,11 @@ describe('qd-confirm-dialog', () => {
 
   describe('message display', () => {
     it('displays message text', async () => {
-      const el = await createDialog({ open: true, title: 'Test', message: 'This action cannot be undone.' });
+      const el = await createDialog({
+        open: true,
+        title: 'Test',
+        message: 'This action cannot be undone.',
+      });
       const content = el.shadowRoot?.textContent || '';
       expect(content).toContain('This action cannot be undone.');
     });
@@ -127,7 +137,7 @@ describe('qd-confirm-dialog', () => {
       const el = await createDialog({ open: true, title: 'Test', message: 'Test' });
       const buttons = el.shadowRoot?.querySelectorAll('button');
       const confirmBtn = Array.from(buttons || []).find(
-        (b) => b.classList.contains('confirm-btn') || b.textContent?.trim() === 'Confirm'
+        (b) => b.classList.contains('confirm-btn') || b.textContent?.trim() === 'Confirm',
       );
       expect(confirmBtn?.textContent?.trim()).toBe('Confirm');
     });
@@ -141,7 +151,7 @@ describe('qd-confirm-dialog', () => {
       });
       const buttons = el.shadowRoot?.querySelectorAll('button');
       const hasCustomText = Array.from(buttons || []).some(
-        (b) => b.textContent?.trim() === 'Yes, Delete'
+        (b) => b.textContent?.trim() === 'Yes, Delete',
       );
       expect(hasCustomText).toBe(true);
     });
@@ -153,7 +163,7 @@ describe('qd-confirm-dialog', () => {
 
       const buttons = el.shadowRoot?.querySelectorAll('button');
       const confirmBtn = Array.from(buttons || []).find(
-        (b) => b.classList.contains('confirm-btn') || b.textContent?.trim() === 'Confirm'
+        (b) => b.classList.contains('confirm-btn') || b.textContent?.trim() === 'Confirm',
       );
       confirmBtn?.click();
       await el.updateComplete;
@@ -166,7 +176,7 @@ describe('qd-confirm-dialog', () => {
 
       const buttons = el.shadowRoot?.querySelectorAll('button');
       const confirmBtn = Array.from(buttons || []).find(
-        (b) => b.classList.contains('confirm-btn') || b.textContent?.trim() === 'Confirm'
+        (b) => b.classList.contains('confirm-btn') || b.textContent?.trim() === 'Confirm',
       );
       confirmBtn?.click();
       await el.updateComplete;
@@ -180,7 +190,8 @@ describe('qd-confirm-dialog', () => {
       const el = await createDialog({ open: true, title: 'Test', message: 'Test' });
       const buttons = el.shadowRoot?.querySelectorAll('button');
       const cancelBtn = Array.from(buttons || []).find(
-        (b) => b.classList.contains('cancel-btn') || b.textContent?.trim().toLowerCase() === 'cancel'
+        (b) =>
+          b.classList.contains('cancel-btn') || b.textContent?.trim().toLowerCase() === 'cancel',
       );
       expect(cancelBtn).toBeTruthy();
     });
@@ -189,7 +200,7 @@ describe('qd-confirm-dialog', () => {
       const el = await createDialog({ open: true, title: 'Test', message: 'Test' });
       const buttons = el.shadowRoot?.querySelectorAll('button');
       const cancelBtn = Array.from(buttons || []).find(
-        (b) => b.textContent?.trim().toLowerCase() === 'cancel'
+        (b) => b.textContent?.trim().toLowerCase() === 'cancel',
       );
       expect(cancelBtn).toBeTruthy();
     });
@@ -203,7 +214,7 @@ describe('qd-confirm-dialog', () => {
       });
       const buttons = el.shadowRoot?.querySelectorAll('button');
       const hasCustomText = Array.from(buttons || []).some(
-        (b) => b.textContent?.trim() === 'No, Keep'
+        (b) => b.textContent?.trim() === 'No, Keep',
       );
       expect(hasCustomText).toBe(true);
     });
@@ -215,7 +226,7 @@ describe('qd-confirm-dialog', () => {
 
       const buttons = el.shadowRoot?.querySelectorAll('button');
       const cancelBtn = Array.from(buttons || []).find(
-        (b) => b.textContent?.trim().toLowerCase() === 'cancel'
+        (b) => b.textContent?.trim().toLowerCase() === 'cancel',
       );
       cancelBtn?.click();
       await el.updateComplete;
@@ -228,7 +239,7 @@ describe('qd-confirm-dialog', () => {
 
       const buttons = el.shadowRoot?.querySelectorAll('button');
       const cancelBtn = Array.from(buttons || []).find(
-        (b) => b.textContent?.trim().toLowerCase() === 'cancel'
+        (b) => b.textContent?.trim().toLowerCase() === 'cancel',
       );
       cancelBtn?.click();
       await el.updateComplete;
@@ -253,7 +264,7 @@ describe('qd-confirm-dialog', () => {
 
       const buttons = el.shadowRoot?.querySelectorAll('button');
       const confirmBtn = Array.from(buttons || []).find(
-        (b) => b.classList.contains('confirm-btn') || b.textContent?.trim() === 'Confirm'
+        (b) => b.classList.contains('confirm-btn') || b.textContent?.trim() === 'Confirm',
       );
 
       // Should have destructive class or red-ish background
@@ -273,7 +284,7 @@ describe('qd-confirm-dialog', () => {
 
       const buttons = el.shadowRoot?.querySelectorAll('button');
       const confirmBtn = Array.from(buttons || []).find(
-        (b) => b.classList.contains('confirm-btn') || b.textContent?.trim() === 'Confirm'
+        (b) => b.classList.contains('confirm-btn') || b.textContent?.trim() === 'Confirm',
       );
 
       // Should NOT have destructive class
@@ -315,7 +326,7 @@ describe('qd-confirm-dialog', () => {
 
       const buttons = el.shadowRoot?.querySelectorAll('button');
       const confirmBtn = Array.from(buttons || []).find(
-        (b) => b.classList.contains('confirm-btn') || b.textContent?.trim() === 'Confirm'
+        (b) => b.classList.contains('confirm-btn') || b.textContent?.trim() === 'Confirm',
       );
       const activeElement = el.shadowRoot?.activeElement;
 

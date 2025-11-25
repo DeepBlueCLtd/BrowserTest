@@ -23,11 +23,13 @@ describe('qd-password-modal', () => {
     container.remove();
   });
 
-  async function createModal(options: {
-    open?: boolean;
-    title?: string;
-    error?: string;
-  } = {}): Promise<QdPasswordModal> {
+  async function createModal(
+    options: {
+      open?: boolean;
+      title?: string;
+      error?: string;
+    } = {},
+  ): Promise<QdPasswordModal> {
     element = document.createElement('qd-password-modal');
     if (options.open) element.open = true;
     if (options.title) element.title = options.title;
@@ -230,7 +232,7 @@ describe('qd-password-modal', () => {
       const el = await createModal({ open: true });
       const buttons = el.shadowRoot?.querySelectorAll('button');
       const cancelButton = Array.from(buttons || []).find(
-        (b) => b.textContent?.trim().toLowerCase() === 'cancel'
+        (b) => b.textContent?.trim().toLowerCase() === 'cancel',
       );
       expect(cancelButton).toBeTruthy();
     });
@@ -242,7 +244,7 @@ describe('qd-password-modal', () => {
 
       const buttons = el.shadowRoot?.querySelectorAll('button');
       const cancelButton = Array.from(buttons || []).find(
-        (b) => b.textContent?.trim().toLowerCase() === 'cancel'
+        (b) => b.textContent?.trim().toLowerCase() === 'cancel',
       );
       cancelButton?.click();
       await el.updateComplete;
@@ -262,7 +264,7 @@ describe('qd-password-modal', () => {
       // Cancel
       const buttons = el.shadowRoot?.querySelectorAll('button');
       const cancelButton = Array.from(buttons || []).find(
-        (b) => b.textContent?.trim().toLowerCase() === 'cancel'
+        (b) => b.textContent?.trim().toLowerCase() === 'cancel',
       );
       cancelButton?.click();
       await el.updateComplete;
@@ -318,8 +320,7 @@ describe('qd-password-modal', () => {
 
       // Check for either label, aria-label, or aria-labelledby
       const hasLabel =
-        input?.id &&
-        el.shadowRoot?.querySelector(`label[for="${input.id}"]`) !== null;
+        input?.id && el.shadowRoot?.querySelector(`label[for="${input.id}"]`) !== null;
       const hasAriaLabel = !!input?.getAttribute('aria-label');
       const hasAriaLabelledBy = !!input?.getAttribute('aria-labelledby');
 

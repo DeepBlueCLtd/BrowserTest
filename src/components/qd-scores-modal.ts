@@ -178,10 +178,7 @@ export class QdScoresModal extends LitElement {
 
   render() {
     return html`
-      <qd-modal
-        .open=${this.open}
-        @qd:modal-close=${this.handleModalClose}
-      >
+      <qd-modal .open=${this.open} @qd:modal-close=${this.handleModalClose}>
         <span slot="header">Student Scores</span>
         <div class="scores-content">
           ${this.students.length === 0
@@ -225,12 +222,14 @@ export class QdScoresModal extends LitElement {
         </td>
         <td>${summary.serviceId}</td>
         <td>${summary.attempted}</td>
-        <td class=${summary.correct === summary.attempted && summary.attempted > 0 ? 'correct-highlight' : ''}>
+        <td
+          class=${summary.correct === summary.attempted && summary.attempted > 0
+            ? 'correct-highlight'
+            : ''}
+        >
           ${summary.correct}
         </td>
-        <td class=${this.getPercentageClass(summary.percentage)}>
-          ${summary.percentage}%
-        </td>
+        <td class=${this.getPercentageClass(summary.percentage)}>${summary.percentage}%</td>
       </tr>
       ${isExpanded ? this.renderDetailRow(student) : nothing}
     `;
@@ -246,18 +245,22 @@ export class QdScoresModal extends LitElement {
             ? html`<span class="no-pages">No quiz pages attempted</span>`
             : html`
                 <div class="page-breakdown">
-                  ${pages.map(([pageId, pageData]) => html`
-                    <div class="page-row">
-                      <span class="page-name">${pageId}</span>
-                      <div class="answers-list">
-                        ${pageData.answers.map((answer, index) => html`
-                          <span class="answer-badge ${this.getAnswerClass(answer)}">
-                            Q${index + 1}: ${answer ? answer.answer : '—'}
-                          </span>
-                        `)}
+                  ${pages.map(
+                    ([pageId, pageData]) => html`
+                      <div class="page-row">
+                        <span class="page-name">${pageId}</span>
+                        <div class="answers-list">
+                          ${pageData.answers.map(
+                            (answer, index) => html`
+                              <span class="answer-badge ${this.getAnswerClass(answer)}">
+                                Q${index + 1}: ${answer ? answer.answer : '—'}
+                              </span>
+                            `,
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  `)}
+                    `,
+                  )}
                 </div>
               `}
         </td>

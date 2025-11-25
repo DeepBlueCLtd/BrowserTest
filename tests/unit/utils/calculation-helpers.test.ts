@@ -107,9 +107,7 @@ describe('calculation-helpers', () => {
         },
         'page-2': {
           state: 'incomplete',
-          answers: [
-            { answer: '3', success: false, timestamp: '2025-01-01T00:00:02Z' },
-          ],
+          answers: [{ answer: '3', success: false, timestamp: '2025-01-01T00:00:02Z' }],
         },
       };
       const result = recalculateTotalsFromPages(pages);

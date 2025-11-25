@@ -138,12 +138,7 @@ export class QdModal extends LitElement {
 
     return html`
       <div class="modal-backdrop" @click=${this.handleBackdropClick}>
-        <div
-          class="modal-content"
-          role="dialog"
-          aria-modal="true"
-          @click=${this.stopPropagation}
-        >
+        <div class="modal-content" role="dialog" aria-modal="true" @click=${this.stopPropagation}>
           <div class="modal-header">
             <slot name="header"></slot>
           </div>
