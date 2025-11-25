@@ -17,6 +17,7 @@ import type {
 import { getStorageAdapter } from './storage/indexeddb.js';
 import { buildCacheFromRecord } from './session.js';
 import { calculateCompletionState } from './state-calculator.js';
+import { recalculateTotalsFromPages } from '../utils/calculation-helpers.js';
 import { info, warn, error as logError } from '../utils/logger.js';
 
 /**
@@ -112,18 +113,10 @@ export class StorageService {
       // Update timestamp
       record.updated = new Date().toISOString();
 
-      // Recalculate totals from pages
-      let totalAttempted = 0;
-      let totalCorrect = 0;
-
-      for (const pageData of Object.values(record.pages)) {
-        const answered = pageData.answers.filter((a) => a.answer.trim() !== '');
-        totalAttempted += answered.length;
-        totalCorrect += answered.filter((a) => a.success).length;
-      }
-
-      record.attempted = totalAttempted;
-      record.correct = totalCorrect;
+      // Recalculate totals from pages using calculation helper
+      const totals = recalculateTotalsFromPages(record.pages);
+      record.attempted = totals.attempted;
+      record.correct = totals.correct;
 
       await this.adapter.saveStudent(record);
       info(`Saved student record for ${record.serviceId} to IndexedDB`);

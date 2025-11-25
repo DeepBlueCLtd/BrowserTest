@@ -22,6 +22,7 @@ import { customElement, state, property } from 'lit/decorators.js';
 import { STORAGE_KEYS, SCHEMA_VERSION } from '../types/contracts.js';
 import type { SessionData, StudentRecord } from '../types/contracts.js';
 import { getJSON } from '../utils/storage-helpers.js';
+import { validateStudentForm, sanitizePinInput } from '../utils/validation-helpers.js';
 import { SessionService } from '../services/session.js';
 import { CONFIG_IDS } from '../config/dom-config-reader.js';
 import { getStorageAdapter } from '../services/storage/indexeddb.js';
@@ -693,29 +694,17 @@ export class QdLogin extends LitElement {
    */
   private handlePinInput(e: Event) {
     const input = e.target as HTMLInputElement;
-    // Filter to digits only
-    this.pin = input.value.replace(/\D/g, '');
+    // Filter to digits only using validation helper
+    this.pin = sanitizePinInput(input.value);
     this.errorMessage = '';
   }
 
   /**
-   * Check if student form is valid
+   * Check if student form is valid using validation helper
    */
   private isValid(): boolean {
-    const name = this.name.trim();
-    const serviceId = this.serviceId.trim();
-
-    // Name: non-empty
-    if (!name) return false;
-
-    // Service ID: 2-10 alphanumeric
-    const serviceIdPattern = /^[A-Za-z0-9]{2,10}$/;
-    if (!serviceIdPattern.test(serviceId)) return false;
-
-    // PIN: must be 4 digits
-    if (this.pin.length !== 4) return false;
-
-    return true;
+    const errors = validateStudentForm(this.name, this.serviceId, this.pin);
+    return errors.length === 0;
   }
 
   /**

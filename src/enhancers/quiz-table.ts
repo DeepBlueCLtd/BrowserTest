@@ -24,6 +24,8 @@ import type {
 import { parseQuizTable } from '../services/quiz-parser.js';
 import { validateAnswer } from '../services/quiz-parser.js';
 import { registerPageQuestions } from '../services/session.js';
+import { getQuestionInputSpec } from '../services/question-input.js';
+import { formatStudentAnswersForDisplay } from '../services/answer-display.js';
 import { Debouncer } from '../utils/debouncer.js';
 import { createElement, addClass, removeClass } from '../utils/dom-helpers.js';
 import { emitCustomEvent } from '../utils/event-helpers.js';
@@ -31,7 +33,6 @@ import { getJSON, setJSON } from '../utils/storage-helpers.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
 import { info, error as logError, warn } from '../utils/logger.js';
 import { getStorageService } from '../services/storage-service.js';
-import { formatStoredTimestamp } from '../utils/date-helpers.js';
 
 /**
  * Enhancement options
@@ -340,6 +341,8 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
  * For MCQ questions: Creates a <select> dropdown with options
  * For numeric questions: Creates a text input
  *
+ * Uses getQuestionInputSpec() for pure logic, then creates DOM elements.
+ *
  * @param question - Quiz question
  * @param existingAnswer - Existing answer if any
  * @returns Input or select element
@@ -348,45 +351,41 @@ function createQuestionInput(
   question: QuizQuestion,
   existingAnswer?: AnswerRecord,
 ): HTMLInputElement | HTMLSelectElement {
-  if (question.kind === 'mcq' && question.options) {
+  const spec = getQuestionInputSpec(question, existingAnswer);
+
+  if (spec.type === 'select') {
     // Create select dropdown for MCQ
     const select = createElement('select');
-    select.className = 'qd-quiz-input';
+    select.className = spec.className;
 
     // Add placeholder option
     const placeholderOption = createElement('option');
     placeholderOption.value = '';
-    placeholderOption.textContent = 'Select an answer...';
+    placeholderOption.textContent = spec.placeholder;
     placeholderOption.disabled = true;
     select.appendChild(placeholderOption);
 
-    // Add options (1-indexed)
-    question.options.forEach((optionText, index) => {
-      const option = createElement('option');
-      option.value = String(index + 1); // 1-indexed
-      option.textContent = `${index + 1}. ${optionText}`;
-      select.appendChild(option);
-    });
-
-    // Pre-fill existing answer
-    if (existingAnswer) {
-      select.value = existingAnswer.answer;
-    } else {
-      select.value = ''; // Select placeholder
+    // Add options from spec
+    if (spec.options) {
+      spec.options.forEach((opt) => {
+        const option = createElement('option');
+        option.value = opt.value;
+        option.textContent = opt.text;
+        select.appendChild(option);
+      });
     }
+
+    // Set value from spec
+    select.value = spec.value;
 
     return select;
   } else {
     // Create text input for numeric questions
     const input = createElement('input');
-    input.type = 'text';
-    input.className = 'qd-quiz-input';
-    input.placeholder = 'Enter value';
-
-    // Pre-fill existing answer
-    if (existingAnswer) {
-      input.value = existingAnswer.answer;
-    }
+    input.type = spec.type;
+    input.className = spec.className;
+    input.placeholder = spec.placeholder;
+    input.value = spec.value;
 
     return input;
   }
@@ -722,7 +721,7 @@ export async function showStudentAnswersForTable(
 
     const rows = Array.from(tbody.querySelectorAll('tr'));
 
-    // For each question, collect student answers and display
+    // For each question, collect student answers and display using formatStudentAnswersForDisplay
     parsed.questions.forEach((_question, questionIndex) => {
       const row = rows[questionIndex];
       if (!row) return;
@@ -737,48 +736,23 @@ export async function showStudentAnswersForTable(
         existingDisplay.remove();
       }
 
-      // Collect answers from all students for this question
-      const studentAnswers: Array<{
-        name: string;
-        serviceId: string;
-        answer: string;
-        success: boolean;
-        timestamp: string;
-      }> = [];
+      // Use pure helper function to format student answers
+      const studentAnswers = formatStudentAnswersForDisplay(students, pageId, questionIndex);
 
-      students.forEach((student) => {
-        const pageData = student.pages[pageId];
-        if (!pageData || !pageData.answers) return;
-
-        const answerRecord = pageData.answers[questionIndex];
-        if (!answerRecord) return;
-
-        studentAnswers.push({
-          name: student.name,
-          serviceId: student.serviceId,
-          answer: answerRecord.answer,
-          success: answerRecord.success,
-          timestamp: answerRecord.timestamp,
-        });
-      });
-
-      // Create display element
+      // Create display element from formatted data
       if (studentAnswers.length > 0) {
         const display = document.createElement('div');
         display.className = 'qd-student-answers';
 
         studentAnswers.forEach((sa) => {
           const answerDiv = document.createElement('div');
-          answerDiv.className = `qd-student-answer ${sa.success ? 'qd-correct' : 'qd-incorrect'}`;
+          answerDiv.className = `qd-student-answer ${sa.cssClass}`;
 
           // Format: Name (last 4 of serviceId): answer [timestamp] (FR-007: 24-hour format)
-          const last4 = sa.serviceId.slice(-4);
-          const timestamp = formatStoredTimestamp(sa.timestamp);
-
           answerDiv.innerHTML = `
-            <span class="qd-student-name">${sa.name} (${last4})</span>:
+            <span class="qd-student-name">${sa.name} (${sa.maskedServiceId})</span>:
             <span class="qd-student-answer-text">${sa.answer}</span>
-            <span class="qd-timestamp">${timestamp}</span>
+            <span class="qd-timestamp">${sa.formattedTimestamp}</span>
           `;
 
           display.appendChild(answerDiv);

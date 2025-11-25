@@ -19,9 +19,9 @@
 
 **Purpose**: Create directory structure and baseline measurements
 
-- [ ] T001 Create src/utils/ directory for pure helper functions
-- [ ] T002 [P] Capture baseline bundle size via `npm run size-check` (document in PR)
-- [ ] T003 [P] Capture baseline coverage via `npm run test:coverage` (document in PR)
+- [x] T001 Create src/utils/ directory for pure helper functions
+- [x] T002 [P] Capture baseline bundle size via `npm run size-check` (document in PR) → **31.54 KB gzipped**
+- [x] T003 [P] Capture baseline coverage via `npm run test:coverage` (document in PR) → **49.58% lines, 62.05% functions**
 
 **Checkpoint**: Directory structure ready, baselines captured
 
@@ -35,18 +35,18 @@
 
 ### Tests for US0a (TDD - Write First, Must Fail)
 
-- [ ] T004 [P] [US0a] Create tests/unit/utils/validation-helpers.test.ts with tests for validateStudentForm, sanitizePinInput, validatePinMatch
-- [ ] T005 [P] [US0a] Create tests/unit/utils/calculation-helpers.test.ts with tests for calculateStatusIndicator, calculatePercentage, recalculateTotalsFromPages, isSessionExpired, maskServiceId
+- [x] T004 [P] [US0a] Create tests/unit/utils/validation-helpers.test.ts with tests for validateStudentForm, sanitizePinInput, validatePinMatch
+- [x] T005 [P] [US0a] Create tests/unit/utils/calculation-helpers.test.ts with tests for calculateStatusIndicator, calculatePercentage, recalculateTotalsFromPages, isSessionExpired, maskServiceId
 
 ### Implementation for US0a
 
-- [ ] T006 [P] [US0a] Implement src/utils/validation-helpers.ts with validateStudentForm, sanitizePinInput, validatePinMatch
-- [ ] T007 [P] [US0a] Implement src/utils/calculation-helpers.ts with calculateStatusIndicator, calculatePercentage, recalculateTotalsFromPages, isSessionExpired, maskServiceId
-- [ ] T008 [US0a] Run tests and verify 100% coverage on both helper files
-- [ ] T009 [US0a] Refactor qd-login.ts to use validation-helpers.ts (remove duplicated validation logic)
-- [ ] T010 [US0a] Refactor qd-status.ts to use calculation-helpers.ts (remove duplicated status indicator logic)
-- [ ] T011 [US0a] Refactor storage-service.ts to use recalculateTotalsFromPages from calculation-helpers.ts
-- [ ] T012 [US0a] Refactor session.ts to use isSessionExpired from calculation-helpers.ts
+- [x] T006 [P] [US0a] Implement src/utils/validation-helpers.ts with validateStudentForm, sanitizePinInput, validatePinMatch
+- [x] T007 [P] [US0a] Implement src/utils/calculation-helpers.ts with calculateStatusIndicator, calculatePercentage, recalculateTotalsFromPages, isSessionExpired, maskServiceId
+- [x] T008 [US0a] Run tests and verify 100% coverage on both helper files → **57 tests, 100% coverage**
+- [x] T009 [US0a] Refactor qd-login.ts to use validation-helpers.ts (remove duplicated validation logic)
+- [x] T010 [US0a] Refactor qd-status.ts to use calculation-helpers.ts (remove duplicated status indicator logic)
+- [x] T011 [US0a] Refactor storage-service.ts to use recalculateTotalsFromPages from calculation-helpers.ts
+- [x] T012 [US0a] Refactor session.ts to use isSessionExpired from calculation-helpers.ts
 
 **Checkpoint**: Helper modules complete with 100% coverage. Original files refactored.
 
@@ -60,18 +60,18 @@
 
 ### Tests for US0b (TDD - Write First, Must Fail)
 
-- [ ] T013 [P] [US0b] Create tests/unit/services/question-input.test.ts with tests for getQuestionInputSpec (MCQ and numeric cases)
-- [ ] T014 [P] [US0b] Create tests/unit/services/answer-display.test.ts with tests for formatStudentAnswersForDisplay
+- [x] T013 [P] [US0b] Create tests/unit/services/question-input.test.ts with tests for getQuestionInputSpec (MCQ and numeric cases)
+- [x] T014 [P] [US0b] Create tests/unit/services/answer-display.test.ts with tests for formatStudentAnswersForDisplay
 
 ### Implementation for US0b
 
-- [ ] T015 [P] [US0b] Implement src/services/question-input.ts with QuestionInputSpec interface and getQuestionInputSpec function
-- [ ] T016 [P] [US0b] Implement src/services/answer-display.ts with StudentAnswerDisplay interface and formatStudentAnswersForDisplay function
-- [ ] T017 [US0b] Run tests and verify 100% coverage on both service files
-- [ ] T018 [US0b] Refactor quiz-table.ts to use getQuestionInputSpec (`createQuestionInput` function)
-- [ ] T019 [US0b] Refactor quiz-table.ts to use formatStudentAnswersForDisplay (`showStudentAnswersForTable` function, answer formatting block)
+- [x] T015 [P] [US0b] Implement src/services/question-input.ts with QuestionInputSpec interface and getQuestionInputSpec function
+- [x] T016 [P] [US0b] Implement src/services/answer-display.ts with StudentAnswerDisplay interface and formatStudentAnswersForDisplay function
+- [x] T017 [US0b] Run tests and verify 100% coverage on both service files → **20 tests, 100% coverage**
+- [x] T018 [US0b] Refactor quiz-table.ts to use getQuestionInputSpec (`createQuestionInput` function)
+- [x] T019 [US0b] Refactor quiz-table.ts to use formatStudentAnswersForDisplay (`showStudentAnswersForTable` function, answer formatting block)
 
-**Checkpoint**: Enhancer services complete with 100% coverage. Quiz-table refactored.
+**Checkpoint**: Enhancer services complete with 100% coverage. Quiz-table refactored. Bundle: 31.77 KB (0.23 KB increase).
 
 ---
 
