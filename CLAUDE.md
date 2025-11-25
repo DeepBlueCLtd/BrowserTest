@@ -135,6 +135,12 @@ npm run test:integration # DOM upgrade integration tests
 npm run test:e2e        # Playwright E2E tests (auto-starts/stops Storybook)
 npm run chromatic       # Visual regression tests
 
+# Coverage & Gap Analysis
+npm run test:coverage   # Unit tests with v8 coverage report
+npm run test:coverage:all # Unit + integration coverage (separate reports)
+npm run test:gaps       # Structural gap analysis (files without tests)
+npm run analyze:e2e-gaps # E2E feature coverage report (docs/test-coverage-report.md)
+
 # Building
 npm run build           # Production build (IIFE + ESM)
 npm run build:dita      # Build + copy bundle to DITA directories
@@ -558,6 +564,8 @@ function getStorageKey(release: ReleaseId, serviceId: ServiceId): string {
 - IndexedDB (primary), sessionStorage (active session) (001-security-refactor)
 - IndexedDB (primary), sessionStorage (rate limiting state) (004-student-pin-auth)
 - N/A (no data model changes) (005-code-reduction)
+- TypeScript 5.x / Node.js 18+ + @vitest/coverage-v8 (to install), Vitest 2.x, Playwright 1.x (existing) (006-test-coverage-gaps)
+- N/A (development tooling - outputs to coverage/ directory and markdown reports) (006-test-coverage-gaps)
 
 ## Recent Changes
 - 001-security-refactor: Added TypeScript 5.x / JavaScript ES2020+ + Lit 3.0 (Web Components), Vite 5.x (build), Vitest (testing)

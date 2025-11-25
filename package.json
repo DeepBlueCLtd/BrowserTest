@@ -31,7 +31,13 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "chromatic": "chromatic --exit-zero-on-changes",
-    "size-check": "node scripts/check-bundle-size.js"
+    "size-check": "node scripts/check-bundle-size.js",
+    "test:coverage": "vitest run --coverage",
+    "test:coverage:unit": "vitest run --coverage",
+    "test:coverage:integration": "vitest run --config vitest.integration.config.ts --coverage",
+    "test:coverage:all": "npm run test:coverage:unit && npm run test:coverage:integration",
+    "test:gaps": "node scripts/check-test-gaps.js",
+    "analyze:e2e-gaps": "node scripts/analyze-e2e-gaps.js"
   },
   "keywords": [
     "quiz",
@@ -60,6 +66,7 @@
     "@storybook/web-components-vite": "8.6.14",
     "@testing-library/dom": "^10.4.1",
     "@types/jsdom": "^27.0.0",
+    "@vitest/coverage-v8": "^2.1.9",
     "chromatic": "^13.3.3",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
