@@ -5,10 +5,7 @@
 
 ## Prerequisites
 
-```bash
-# Install coverage dependency (one-time)
-npm install -D @vitest/coverage-v8
-```
+Coverage dependency already installed: `@vitest/coverage-v8@2.1.9`
 
 ## Commands
 
@@ -27,16 +24,20 @@ npm run test:unit -- --coverage
 ### 2. Generate Integration Test Coverage
 
 ```bash
-# Run integration tests with coverage
-npm run test:integration -- --coverage
+# Run integration tests with coverage (outputs to coverage/integration/)
+npm run test:coverage:integration
 ```
 
 ### 3. Generate Combined Coverage
 
 ```bash
-# Run both suites and merge
+# Run both unit and integration coverage sequentially
 npm run test:coverage:all
 ```
+
+**Output**:
+- Unit coverage: `coverage/` directory
+- Integration coverage: `coverage/integration/` directory
 
 ### 4. Structural Gap Analysis
 
@@ -57,17 +58,20 @@ npm run analyze:e2e-gaps
 
 **Output**: `docs/test-coverage-report.md`
 
-## NPM Scripts to Add
+## Available NPM Scripts
 
-```json
-{
-  "scripts": {
-    "test:coverage": "vitest run --coverage",
-    "test:coverage:all": "npm run test:unit -- --coverage && npm run test:integration -- --coverage",
-    "test:gaps": "node scripts/check-test-gaps.js",
-    "analyze:e2e-gaps": "node scripts/analyze-e2e-gaps.js"
-  }
-}
+```bash
+# Coverage commands
+npm run test:coverage           # Unit tests with coverage
+npm run test:coverage:unit      # Unit tests with coverage (explicit)
+npm run test:coverage:integration # Integration tests with coverage
+npm run test:coverage:all       # Both unit + integration coverage
+
+# Gap analysis
+npm run test:gaps               # Structural gap analysis
+npm run test:gaps -- --json     # JSON output for CI
+npm run test:gaps -- --strict   # Exit code 1 if gaps found
+npm run analyze:e2e-gaps        # E2E feature coverage report
 ```
 
 ## Viewing Reports
@@ -105,4 +109,7 @@ npm install -D @vitest/coverage-v8
 Ensure files are in `src/**/*.ts` and not excluded in `vitest.config.ts`.
 
 ### Structural gaps script not found
-The `scripts/check-test-gaps.js` file needs to be created as part of this feature implementation.
+Ensure `scripts/check-test-gaps.js` exists. Run `npm run test:gaps` to verify.
+
+### E2E gaps report not generated
+Run `npm run analyze:e2e-gaps` to create `docs/test-coverage-report.md`.
