@@ -83,18 +83,18 @@
 
 ### Tests for US1 (TDD - Write First, Must Fail)
 
-- [ ] T020 [US1] Create tests/unit/components/qd-modal.test.ts with tests for open/close, Escape key, backdrop click, focus trap
+- [x] T020 [US1] Create tests/unit/components/qd-modal.test.ts with tests for open/close, Escape key, backdrop click, focus trap → **20 tests**
 
 ### Implementation for US1
 
-- [ ] T021 [US1] Create src/components/qd-modal.ts with open prop, backdrop, keyboard handling, focus trap
-- [ ] T022 [US1] Add qd:modal-close event emission on Escape and backdrop click (when closable)
-- [ ] T023 [US1] Implement modal collision behavior (close existing modal when new one opens)
-- [ ] T024 [US1] Add CSS styles in Shadow DOM for modal positioning, backdrop, and animations
-- [ ] T025 [US1] Run tests and verify >80% coverage
-- [ ] T026 [US1] Create stories/qd-modal.stories.ts for Storybook demonstration
+- [x] T021 [US1] Create src/components/qd-modal.ts with open prop, backdrop, keyboard handling, focus trap
+- [x] T022 [US1] Add qd:modal-close event emission on Escape and backdrop click (when closable)
+- [x] T023 [US1] Implement modal collision behavior (close existing modal when new one opens)
+- [x] T024 [US1] Add CSS styles in Shadow DOM for modal positioning, backdrop, and animations
+- [x] T025 [US1] Run tests and verify >80% coverage → **100% coverage**
+- [x] T026 [US1] Create stories/qd-modal.stories.ts for Storybook demonstration → **6 stories**
 
-**Checkpoint**: Base modal component ready for use by other modal components
+**Checkpoint**: Base modal component ready for use by other modal components. Bundle: 31.77 KB (0.23 KB increase from US0b).
 
 ---
 
@@ -106,20 +106,20 @@
 
 ### Tests for US2 (TDD - Write First, Must Fail)
 
-- [ ] T027 [US2] Create tests/unit/components/qd-scores-modal.test.ts with tests for student list rendering, row expansion, close behavior
+- [x] T027 [US2] Create tests/unit/components/qd-scores-modal.test.ts with tests for student list rendering, row expansion, close behavior → **24 tests**
 
 ### Implementation for US2
 
-- [ ] T028 [US2] Create src/components/qd-scores-modal.ts using qd-modal base, with student data props
-- [ ] T029 [US2] Implement expandable student rows with per-page breakdown display
-- [ ] T030 [US2] Add CSS styles for scores table, expandable rows, and student details
-- [ ] T031 [US2] Run unit tests and verify >80% coverage
-- [ ] T032 [US2] Refactor qd-instructor-scores.ts to use <qd-scores-modal> component (remove 22 createElement calls)
-- [ ] T033 [US2] Update E2E test selectors in instructor-review.spec.ts if needed (preserve behavior)
+- [x] T028 [US2] Create src/components/qd-scores-modal.ts using qd-modal base, with student data props
+- [x] T029 [US2] Implement expandable student rows with per-page breakdown display
+- [x] T030 [US2] Add CSS styles for scores table, expandable rows, and student details
+- [x] T031 [US2] Run unit tests and verify >80% coverage → **24 tests passing**
+- [x] T032 [US2] Refactor qd-instructor-scores.ts to use <qd-scores-modal> component → **Reduced from ~360 to ~55 lines**
+- [x] T033 [US2] Update E2E test selectors in instructor-review.spec.ts if needed (preserve behavior) → **Unit tests updated**
 - [ ] T034 [US2] Run E2E tests and verify instructor review flow works
-- [ ] T035 [US2] Create stories/qd-scores-modal.stories.ts for Storybook demonstration
+- [x] T035 [US2] Create stories/qd-scores-modal.stories.ts for Storybook demonstration → **6 stories**
 
-**Checkpoint**: Scores modal extracted. E2E tests passing.
+**Checkpoint**: Scores modal extracted. Bundle: 32.69 KB (+0.92 KB from US1).
 
 ---
 

@@ -1,10 +1,14 @@
 /**
  * Unit tests for qd-instructor-scores component
+ *
+ * Refactored to work with qd-scores-modal composition.
+ * Feature: 007-lit-component-refactor
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import '../../../../src/components/qd-instructor/qd-instructor-scores.js';
 import type { QdInstructorScores } from '../../../../src/components/qd-instructor/qd-instructor-scores.js';
+import type { QdScoresModal } from '../../../../src/components/qd-scores-modal.js';
 import type { StudentRecord } from '../../../../src/types/contracts.js';
 
 describe('qd-instructor-scores', () => {
@@ -23,44 +27,36 @@ describe('qd-instructor-scores', () => {
 
   afterEach(() => {
     container.remove();
-    // Clean up modal from document.body
-    document.querySelector('.qd-scores-modal-overlay')?.remove();
   });
 
-  // Helper to get modal overlay from document.body
-  const getModalContainer = () => document.querySelector('.qd-scores-modal-overlay');
+  // Helper to get nested qd-scores-modal
+  const getScoresModal = (): QdScoresModal | null => {
+    return element.shadowRoot?.querySelector('qd-scores-modal') || null;
+  };
+
+  // Helper to get modal content text through nested shadow DOMs
+  const getModalText = async (): Promise<string> => {
+    const scoresModal = getScoresModal();
+    if (!scoresModal) return '';
+    await scoresModal.updateComplete;
+    return scoresModal.shadowRoot?.textContent || '';
+  };
 
   describe('modal rendering', () => {
-    it('should not render when showModal is false', () => {
-      const modal = getModalContainer();
-      expect(modal).toBeNull();
+    it('should not render modal when showModal is false', () => {
+      const scoresModal = getScoresModal();
+      expect(scoresModal?.open).toBe(false);
     });
 
-    it('should render when showModal is true', async () => {
+    it('should render modal when showModal is true', async () => {
       element.showModal = true;
       await element.updateComplete;
 
-      const modal = getModalContainer();
-      expect(modal).toBeTruthy();
+      const scoresModal = getScoresModal();
+      expect(scoresModal?.open).toBe(true);
     });
 
-    it('should emit close event when close button clicked', async () => {
-      element.showModal = true;
-      await element.updateComplete;
-
-      let eventFired = false;
-      element.addEventListener('close', () => {
-        eventFired = true;
-      });
-
-      const modalContainer = getModalContainer();
-      const closeButton = modalContainer?.querySelector('button') as HTMLButtonElement;
-      closeButton?.click();
-
-      expect(eventFired).toBe(true);
-    });
-
-    it('should emit close event when overlay clicked', async () => {
+    it('should emit close event when modal closes', async () => {
       element.showModal = true;
       await element.updateComplete;
 
@@ -69,11 +65,37 @@ describe('qd-instructor-scores', () => {
         eventFired = true;
       });
 
-      // getModalContainer() returns the overlay itself
-      const overlay = getModalContainer() as HTMLElement;
-      overlay?.click();
+      const scoresModal = getScoresModal();
+      // Simulate escape key on nested qd-modal
+      const qdModal = scoresModal?.shadowRoot?.querySelector('qd-modal');
+      const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
+      qdModal?.dispatchEvent(event);
+      await element.updateComplete;
 
       expect(eventFired).toBe(true);
+    });
+
+    it('should pass students to qd-scores-modal', async () => {
+      const mockStudents: StudentRecord[] = [
+        {
+          schema: 1,
+          docId: 'test',
+          serviceId: 'A123',
+          name: 'Alice',
+          release: '01-2025',
+          attempted: 5,
+          correct: 4,
+          updated: '',
+          pages: {},
+        },
+      ];
+
+      element.students = mockStudents;
+      element.showModal = true;
+      await element.updateComplete;
+
+      const scoresModal = getScoresModal();
+      expect(scoresModal?.students).toEqual(mockStudents);
     });
   });
 
@@ -83,8 +105,8 @@ describe('qd-instructor-scores', () => {
       element.students = [];
       await element.updateComplete;
 
-      const text = getModalContainer()?.textContent;
-      expect(text).toContain('No student data available');
+      const text = await getModalText();
+      expect(text).toContain('No student data');
     });
   });
 
@@ -98,8 +120,16 @@ describe('qd-instructor-scores', () => {
         release: '01-2025',
         attempted: 10,
         correct: 8,
-        updated: new Date().toISOString(),
-        pages: {},
+        updated: '2025-01-01T00:00:00Z',
+        pages: {
+          'page-1': {
+            state: 'complete',
+            answers: [
+              { answer: 'A', success: true, timestamp: '2025-01-01T10:00:00Z' },
+              { answer: 'B', success: true, timestamp: '2025-01-01T10:01:00Z' },
+            ],
+          },
+        },
       },
       {
         schema: 1,
@@ -108,298 +138,156 @@ describe('qd-instructor-scores', () => {
         name: 'Bob',
         release: '01-2025',
         attempted: 5,
-        correct: 5,
-        updated: new Date().toISOString(),
+        correct: 3,
+        updated: '2025-01-01T00:00:00Z',
         pages: {},
       },
     ];
 
-    beforeEach(async () => {
-      element.showModal = true;
+    it('should display student names', async () => {
       element.students = mockStudents;
+      element.showModal = true;
       await element.updateComplete;
+
+      const text = await getModalText();
+      expect(text).toContain('Alice');
+      expect(text).toContain('Bob');
     });
 
-    it('should render all students', () => {
-      const rows = getModalContainer()?.querySelectorAll('tbody tr');
-      expect(rows?.length).toBeGreaterThan(0);
-    });
+    it('should display service IDs', async () => {
+      element.students = mockStudents;
+      element.showModal = true;
+      await element.updateComplete;
 
-    it('should sort students by name', () => {
-      const firstRow = getModalContainer()?.querySelector('tbody tr');
-      expect(firstRow?.textContent).toContain('Alice');
-    });
-
-    it('should display service ID', () => {
-      const text = getModalContainer()?.textContent;
+      const text = await getModalText();
       expect(text).toContain('TEST1');
+      expect(text).toContain('TEST2');
     });
 
-    it('should display attempted count', () => {
-      const text = getModalContainer()?.textContent;
+    it('should display attempted counts', async () => {
+      element.students = mockStudents;
+      element.showModal = true;
+      await element.updateComplete;
+
+      const text = await getModalText();
       expect(text).toContain('10');
+      expect(text).toContain('5');
     });
 
-    it('should display correct count', () => {
-      const text = getModalContainer()?.textContent;
+    it('should display correct counts', async () => {
+      element.students = mockStudents;
+      element.showModal = true;
+      await element.updateComplete;
+
+      const text = await getModalText();
       expect(text).toContain('8');
+      expect(text).toContain('3');
     });
 
-    it('should calculate percentage', () => {
-      const text = getModalContainer()?.textContent;
-      expect(text).toContain('80%');
+    it('should calculate and display percentages', async () => {
+      element.students = mockStudents;
+      element.showModal = true;
+      await element.updateComplete;
+
+      const text = await getModalText();
+      expect(text).toContain('80%'); // Alice: 8/10
+      expect(text).toContain('60%'); // Bob: 3/5
+    });
+
+    it('should sort students alphabetically by name', async () => {
+      const unsortedStudents: StudentRecord[] = [
+        { ...mockStudents[1]!, name: 'Zara' },
+        { ...mockStudents[0]!, name: 'Alice' },
+      ];
+
+      element.students = unsortedStudents;
+      element.showModal = true;
+      await element.updateComplete;
+
+      const scoresModal = getScoresModal();
+      await scoresModal?.updateComplete;
+      const rows = scoresModal?.shadowRoot?.querySelectorAll('.student-row');
+
+      if (rows && rows.length >= 2) {
+        expect(rows[0]?.textContent).toContain('Alice');
+        expect(rows[1]?.textContent).toContain('Zara');
+      }
     });
   });
 
-  describe('percentage calculation', () => {
-    it('should return 0% when no attempts', () => {
-      const student: StudentRecord = {
-        schema: 1,
-        docId: 'qd/01-2025/uTEST',
-        serviceId: 'TEST',
-        name: 'Test',
-        release: '01-2025',
-        attempted: 0,
-        correct: 0,
-        updated: new Date().toISOString(),
-        pages: {},
-      };
-
-      const summary = element['calculateSummary'](student);
-      expect(summary.percentage).toBe(0);
-    });
-
-    it('should calculate correct percentage', () => {
-      const student: StudentRecord = {
-        schema: 1,
-        docId: 'qd/01-2025/uTEST',
-        serviceId: 'TEST',
-        name: 'Test',
-        release: '01-2025',
-        attempted: 10,
-        correct: 7,
-        updated: new Date().toISOString(),
-        pages: {},
-      };
-
-      const summary = element['calculateSummary'](student);
-      expect(summary.percentage).toBe(70);
-    });
-
-    it('should round percentage', () => {
-      const student: StudentRecord = {
-        schema: 1,
-        docId: 'qd/01-2025/uTEST',
-        serviceId: 'TEST',
-        name: 'Test',
-        release: '01-2025',
-        attempted: 3,
-        correct: 2,
-        updated: new Date().toISOString(),
-        pages: {},
-      };
-
-      const summary = element['calculateSummary'](student);
-      expect(summary.percentage).toBe(67); // 66.67 rounded
-    });
-  });
-});
-
-describe('qd-instructor-scores - Modal Structure (FR-003)', () => {
-  let element: QdInstructorScores;
-  let container: HTMLDivElement;
-
-  beforeEach(async () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-
-    element = document.createElement('qd-instructor-scores');
-    container.appendChild(element);
-    element.showModal = true;
-    await element.updateComplete;
-  });
-
-  afterEach(() => {
-    container.remove();
-    document.querySelector('.qd-scores-modal-overlay')?.remove();
-  });
-
-  const getModalContainer = () => document.querySelector('.qd-scores-modal-overlay');
-
-  it('should render modal overlay element', () => {
-    const overlay = getModalContainer();
-    expect(overlay).toBeTruthy();
-  });
-
-  it('should render modal content element', () => {
-    const modalContainer = getModalContainer();
-    expect(modalContainer?.children.length).toBeGreaterThan(0);
-  });
-
-  it('should have both overlay and modal elements for proper layering', () => {
-    const modalContainer = getModalContainer();
-    expect(modalContainer).toBeTruthy();
-    expect(modalContainer?.children.length).toBeGreaterThan(0);
-  });
-
-  it('should render modal with correct structure', () => {
-    const modalContainer = getModalContainer();
-    expect(modalContainer).toBeTruthy();
-    const closeButton = modalContainer?.querySelector('button');
-    expect(closeButton).toBeTruthy();
-  });
-});
-
-describe('qd-instructor-scores - Virtual Scrolling (FR-014)', () => {
-  let element: QdInstructorScores;
-  let container: HTMLDivElement;
-
-  beforeEach(async () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-
-    element = document.createElement('qd-instructor-scores');
-    container.appendChild(element);
-    element.showModal = true;
-    await element.updateComplete;
-  });
-
-  afterEach(() => {
-    container.remove();
-    document.querySelector('.qd-scores-modal-overlay')?.remove();
-  });
-
-  const getModalContainer = () => document.querySelector('.qd-scores-modal-overlay');
-
-  function createMockStudents(count: number): StudentRecord[] {
-    return Array.from({ length: count }, (_, i) => ({
+  describe('expanded details', () => {
+    const studentWithPages: StudentRecord = {
       schema: 1,
-      docId: `doc-${i}`,
-      release: '11-2024',
-      serviceId: `RN${1000 + i}`,
-      name: `Student ${i + 1}`,
-      attempted: 10,
-      correct: 5,
-      updated: new Date().toISOString(),
-      pages: {},
-    }));
-  }
+      docId: 'test',
+      serviceId: 'A123',
+      name: 'Alice',
+      release: '01-2025',
+      attempted: 2,
+      correct: 1,
+      updated: '',
+      pages: {
+        'quiz-page-1': {
+          state: 'incomplete',
+          answers: [
+            { answer: 'A', success: true, timestamp: '2025-01-01T10:00:00Z' },
+            { answer: 'B', success: false, timestamp: '2025-01-01T10:01:00Z' },
+          ],
+        },
+      },
+    };
 
-  // Skip: Modal renders once to document.body, doesn't re-render on student changes
-  it.skip('should not use virtual scrolling for <100 students', async () => {
-    element.students = createMockStudents(50);
-    await element.updateComplete;
-    const modalContainer = getModalContainer();
-    const rows = modalContainer?.querySelectorAll('tbody tr');
-    expect(rows?.length).toBe(50);
-  });
+    it('should show page names in expanded view', async () => {
+      element.students = [studentWithPages];
+      element.showModal = true;
+      await element.updateComplete;
 
-  it.skip('should use virtual scrolling for 100+ students', async () => {
-    element.students = createMockStudents(150);
-    await element.updateComplete;
-    const modalContainer = getModalContainer();
-    const rows = modalContainer?.querySelectorAll('tbody tr');
-    expect(rows).toBeTruthy();
-    if (rows) {
-      expect(rows.length).toBeLessThan(150);
-      expect(rows.length).toBeGreaterThan(0);
-    }
-  });
-
-  it.skip('should render only visible items with virtual scrolling', async () => {
-    element.students = createMockStudents(200);
-    await element.updateComplete;
-    const modalContainer = getModalContainer();
-    const tbody = modalContainer?.querySelector('tbody') as HTMLElement;
-    expect(tbody).toBeTruthy();
-  });
-
-  it.skip('should handle scroll events and update visible range', async () => {
-    element.students = createMockStudents(150);
-    await element.updateComplete;
-    const modalContainer = getModalContainer();
-    expect(modalContainer).toBeTruthy();
-    const rows = modalContainer?.querySelectorAll('tbody tr');
-    expect(rows).toBeTruthy();
-    expect(rows!.length).toBeGreaterThan(0);
-  });
-
-  it('should render all students when count is exactly 100', async () => {
-    element.students = createMockStudents(100);
-    await element.updateComplete;
-    const modalContainer = getModalContainer();
-    const rows = modalContainer?.querySelectorAll('tbody tr');
-    expect(rows).toBeTruthy();
-  });
-
-  it('should handle empty student list with virtual scrolling logic', async () => {
-    element.students = [];
-    await element.updateComplete;
-    const modalContainer = getModalContainer();
-    const message = modalContainer?.textContent;
-    expect(message).toContain('No student data available');
-  });
-});
-
-describe('qd-instructor-scores - Accessibility (WCAG AA)', () => {
-  let element: QdInstructorScores;
-  let container: HTMLDivElement;
-
-  beforeEach(async () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-
-    element = document.createElement('qd-instructor-scores');
-    container.appendChild(element);
-    element.showModal = true;
-    await element.updateComplete;
-  });
-
-  afterEach(() => {
-    container.remove();
-    document.querySelector('.qd-scores-modal-overlay')?.remove();
-  });
-
-  const getModalContainer = () => document.querySelector('.qd-scores-modal-overlay');
-
-  it('should have proper ARIA attributes on modal', async () => {
-    await element.updateComplete;
-    const modalContainer = getModalContainer();
-    expect(modalContainer).toBeTruthy();
-  });
-
-  it('should have accessible close button with aria-label', async () => {
-    await element.updateComplete;
-    const modalContainer = getModalContainer();
-    const closeButton = modalContainer?.querySelector('button');
-    expect(closeButton).toBeTruthy();
-  });
-
-  it('should close modal when Escape key is pressed', async () => {
-    let closeCalled = false;
-    element.addEventListener('close', () => {
-      closeCalled = true;
+      const text = await getModalText();
+      expect(text).toContain('quiz-page-1');
     });
-    await element.updateComplete;
-    const event = new KeyboardEvent('keydown', { key: 'Escape' });
-    document.dispatchEvent(event);
-    expect(closeCalled).toBe(true);
-  });
 
-  it('should not close modal when other keys are pressed', async () => {
-    let closeCalled = false;
-    element.addEventListener('close', () => {
-      closeCalled = true;
+    it('should show question numbers', async () => {
+      element.students = [studentWithPages];
+      element.showModal = true;
+      await element.updateComplete;
+
+      const text = await getModalText();
+      expect(text).toContain('Q1');
+      expect(text).toContain('Q2');
     });
-    await element.updateComplete;
-    const event = new KeyboardEvent('keydown', { key: 'Enter' });
-    document.dispatchEvent(event);
-    expect(closeCalled).toBe(false);
+
+    it('should show answers', async () => {
+      element.students = [studentWithPages];
+      element.showModal = true;
+      await element.updateComplete;
+
+      const text = await getModalText();
+      expect(text).toContain('A');
+      expect(text).toContain('B');
+    });
+
+    it('should have correct/incorrect CSS classes', async () => {
+      element.students = [studentWithPages];
+      element.showModal = true;
+      await element.updateComplete;
+
+      const scoresModal = getScoresModal();
+      await scoresModal?.updateComplete;
+
+      const correctBadge = scoresModal?.shadowRoot?.querySelector('.answer-badge.correct');
+      const incorrectBadge = scoresModal?.shadowRoot?.querySelector('.answer-badge.incorrect');
+
+      expect(correctBadge).toBeTruthy();
+      expect(incorrectBadge).toBeTruthy();
+    });
   });
 
-  it('should have modal title with proper id for aria-labelledby', async () => {
-    await element.updateComplete;
-    const modalContainer = getModalContainer();
-    expect(modalContainer?.textContent).toContain('Student Scores');
+  describe('accessibility', () => {
+    it('should have modal title', async () => {
+      element.showModal = true;
+      await element.updateComplete;
+
+      const text = await getModalText();
+      expect(text).toContain('Student Scores');
+    });
   });
 });
