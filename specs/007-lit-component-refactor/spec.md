@@ -188,7 +188,7 @@ The PIN reset dialog (`qd-pin-reset-dialog.ts`, 21 calls) and data erase confirm
 
 ### Edge Cases
 
-- What happens when modal opens while another is already open? (Should stack or replace?)
+- **Modal collision**: When a new modal opens while another is open, the existing modal closes first (replace behavior, no stacking)
 - How does system handle rapid open/close? (Debounce animations)
 - What if modal content exceeds viewport height? (Scroll within modal)
 
@@ -237,7 +237,7 @@ The PIN reset dialog (`qd-pin-reset-dialog.ts`, 21 calls) and data erase confirm
 
 **Modal Components (Phase 1-2)**:
 - **SC-004**: Zero `document.createElement()` calls in `src/components/**/*.ts`
-- **SC-005**: All existing E2E tests pass without modification
+- **SC-005**: All existing E2E tests pass (selectors/timing may be updated, but functional behavior preserved)
 - **SC-006**: New components have >80% unit test coverage
 - **SC-007**: Bundle size increase < 2KB gzipped
 - **SC-008**: No visual regressions (Chromatic baseline maintained)
@@ -286,3 +286,10 @@ The PIN reset dialog (`qd-pin-reset-dialog.ts`, 21 calls) and data erase confirm
 | Event contract changes | Audit events before/after, maintain signatures |
 | CSS scoping issues | Keep all styles in Shadow DOM |
 | Focus management bugs | Test with keyboard-only navigation |
+
+## Clarifications
+
+### Session 2025-11-25
+
+- Q: Should SC-005 require E2E tests pass without ANY modification, or can selectors/timing be updated? → A: E2E tests may update selectors/timing, but functional behavior must be preserved
+- Q: What happens when modal opens while another is already open? → A: Replace - new modal closes existing modal before opening
