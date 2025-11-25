@@ -298,7 +298,7 @@ npm run build
 - Configuration via hidden `<span>` elements injected by DITA/Oxygen transform:
   - `#qd-status-container`: CSS selector for status panel (default: `.wh_top_menu_and_indexterms_link`)
   - `#qd-title-selector`: CSS selector for publication title/Release ID (default: `.wh_publication_title .title`)
-  - `#qd-db-name`: IndexedDB database name (default: `BrowserTest`)
+  - `#qd-db-name`: IndexedDB database name (**REQUIRED** - no default, throws error if missing/empty)
   - `#qd-instructor-hash`: SHA-256 hash of instructor password (optional)
 - Debug mode controlled by `DEBUG_MODE` constant in `src/index.ts` (single toggle point)
 - No setup, no manual config, no network dependencies
@@ -309,7 +309,7 @@ npm run build
   <!-- Configuration spans (hidden, injected by Oxygen XSL transform) -->
   <span id="qd-status-container" style="display:none;">.wh_top_menu_and_indexterms_link</span>
   <span id="qd-title-selector" style="display:none;">.wh_publication_title .title</span>
-  <span id="qd-db-name" style="display:none;">BrowserTest</span>
+  <span id="qd-db-name" style="display:none;">BrowserTestDB</span>
   <span id="qd-instructor-hash" style="display:none;">5e884898da28...</span>
 
   <!-- Page content -->
