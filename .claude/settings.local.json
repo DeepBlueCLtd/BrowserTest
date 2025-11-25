@@ -39,7 +39,8 @@
       "Bash(.specify/scripts/bash/create-new-feature.sh:*)",
       "Bash(tee:*)",
       "Bash(killall:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(sed:*)"
     ],
     "deny": [],
     "ask": []
