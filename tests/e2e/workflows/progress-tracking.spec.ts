@@ -82,13 +82,14 @@ test.describe('Progress Tracking Workflow', () => {
 
     // Submit login
     await login.locator('button[type="submit"]').click();
+    await closePinConfirmationDialog(page);
 
     // Verify status panel appears
     const status = page.locator('qd-status');
     await expect(status).toBeVisible();
 
     // Verify status shows progress information (name/serviceId are in sessionStorage, not displayed)
-    await expect(status).toContainText('Progress');
+    await expect(status).toContainText('Test progress');
     await expect(status).toContainText('Logout');
   });
 
@@ -298,6 +299,8 @@ test.describe('Progress Tracking Workflow', () => {
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('input[name="pin"]').fill('1234');
     await login.locator('button[type="submit"]').click();
+
+    await closePinConfirmationDialog(page);
 
     // Verify status panel visible
     const status = page.locator('qd-status');
