@@ -607,7 +607,6 @@ class StorageQuotaError extends StorageError {
     this.name = "StorageQuotaError";
   }
 }
-const DEFAULT_DB_NAME = "BrowserTest";
 const DB_VERSION = 3;
 const STORE_STUDENTS = "students";
 const STORE_BACKUPS = "backups";
@@ -616,11 +615,14 @@ class IndexedDBStorageAdapter {
   /**
    * Create a new IndexedDB storage adapter
    *
-   * @param dbName - Database name (defaults to 'BrowserTest')
+   * @param dbName - Database name (REQUIRED - no default)
    */
-  constructor(dbName = DEFAULT_DB_NAME) {
+  constructor(dbName) {
     this.db = null;
     this.initPromise = null;
+    if (!dbName) {
+      throw new Error("FATAL: dbName is required for IndexedDBStorageAdapter");
+    }
     this.dbName = dbName;
   }
   /**
@@ -1049,7 +1051,10 @@ class IndexedDBStorageAdapter {
 }
 let storageInstance = null;
 let currentDbName = null;
-function getStorageAdapter(dbName = DEFAULT_DB_NAME) {
+function getStorageAdapter(dbName) {
+  if (!dbName) {
+    throw new Error("FATAL: dbName is required for getStorageAdapter()");
+  }
   if (storageInstance && currentDbName !== dbName) {
     storageInstance.close();
     storageInstance = null;
@@ -1085,9 +1090,12 @@ class StorageService {
   /**
    * Create storage service with specified database name
    *
-   * @param dbName - IndexedDB database name
+   * @param dbName - IndexedDB database name (REQUIRED - no default)
    */
-  constructor(dbName = "BrowserTest") {
+  constructor(dbName) {
+    if (!dbName) {
+      throw new Error("FATAL: dbName is required for StorageService");
+    }
     this.dbName = dbName;
     this.adapter = getStorageAdapter(dbName);
   }
@@ -1272,9 +1280,11 @@ function getStorageService(dbName) {
     return storageServiceInstance;
   }
   if (!storageServiceInstance) {
-    const actualDbName = dbName || "BrowserTest";
-    storageServiceInstance = new StorageService(actualDbName);
-    currentServiceDbName = actualDbName;
+    if (!dbName) {
+      throw new Error("FATAL: dbName is required for first getStorageService() call");
+    }
+    storageServiceInstance = new StorageService(dbName);
+    currentServiceDbName = dbName;
   }
   return storageServiceInstance;
 }
@@ -2936,8 +2946,7 @@ function r(r2) {
 const DEFAULT_CONFIG = {
   statusPanelContainer: ".wh_top_menu_and_indexterms_link",
   titleSelector: ".wh_publication_title .title",
-  instructorHash: "",
-  dbName: "BrowserTest"
+  instructorHash: ""
 };
 const CONFIG_IDS = {
   statusPanelContainer: "qd-status-container",
@@ -2958,8 +2967,25 @@ function readConfigElement(elementId, defaultValue) {
   info(`Config read from #${elementId}: "${value}"`);
   return value;
 }
+function readRequiredConfigElement(elementId) {
+  const element = document.querySelector(`#${elementId}`);
+  if (!element) {
+    const msg = `FATAL: Required config element #${elementId} not found in DOM. Processing stopped.`;
+    console.error(msg);
+    throw new Error(msg);
+  }
+  const value = element.textContent?.trim() || "";
+  if (value === "") {
+    const msg = `FATAL: Required config element #${elementId} is empty. Processing stopped.`;
+    console.error(msg);
+    throw new Error(msg);
+  }
+  info(`Required config read from #${elementId}: "${value}"`);
+  return value;
+}
 function readDOMConfig() {
   info("Reading configuration from DOM...");
+  const dbName = readRequiredConfigElement(CONFIG_IDS.dbName);
   const config = {
     statusPanelContainer: readConfigElement(
       CONFIG_IDS.statusPanelContainer,
@@ -2967,7 +2993,7 @@ function readDOMConfig() {
     ),
     titleSelector: readConfigElement(CONFIG_IDS.titleSelector, DEFAULT_CONFIG.titleSelector),
     instructorHash: readConfigElement(CONFIG_IDS.instructorHash, DEFAULT_CONFIG.instructorHash),
-    dbName: readConfigElement(CONFIG_IDS.dbName, DEFAULT_CONFIG.dbName)
+    dbName
   };
   info("Configuration loaded:", config);
   return config;
@@ -3101,7 +3127,7 @@ var __decorateClass$8 = (decorators, target, key, kind) => {
 };
 let QdBuildInfo = class extends i {
   render() {
-    const buildDate = "24/Nov/2025";
+    const buildDate = "25/Nov/2025";
     return x`
       <span class="info-icon" tabindex="0" role="button" aria-label="Build information">i</span>
       <div class="tooltip" role="tooltip">
@@ -3693,7 +3719,7 @@ let QdLogin = class extends i {
       <p style="margin: 0 0 16px 0; font-size: 13px; color: #666;">
         Your PIN has been saved. Use it with your name and service ID on future logins.
       </p>
-      <button style="
+      <button id="qd-pin-confirmation-ok" style="
         background: #0066cc;
         color: white;
         border: none;
@@ -3718,7 +3744,7 @@ let QdLogin = class extends i {
       if (document.body.contains(overlay)) {
         document.body.removeChild(overlay);
       }
-    }, 3e3);
+    }, 3e4);
   }
   /**
    * Start lockout countdown timer
@@ -3759,6 +3785,7 @@ let QdLogin = class extends i {
     this.dispatchEvent(event);
     this.pin = "";
     this.isSubmitting = false;
+    this.cleanupModal();
     this.updateVisibility();
   }
   /**
@@ -6251,8 +6278,12 @@ async function bootstrap(config = {}) {
   }
   info("Bootstrapping Sonar Quiz System...");
   injectGlobalStyles();
-  const dbName = config.dbName || "BrowserTest";
-  const storageService2 = getStorageService(dbName);
+  if (!config.dbName) {
+    const msg = "FATAL: dbName not provided in bootstrap config. Processing stopped.";
+    console.error(msg);
+    throw new Error(msg);
+  }
+  const storageService2 = getStorageService(config.dbName);
   await storageService2.init();
   const eventCoordinator = new EventCoordinator();
   eventCoordinator.initialize();
@@ -6430,7 +6461,7 @@ function isInitialized() {
   return state.initialized;
 }
 const VERSION = "0.1.0-phase3.1";
-const BUILD_DATE = "24/Nov/2025";
+const BUILD_DATE = "25/Nov/2025";
 if (typeof window !== "undefined") {
   const init = () => {
     info("Auto-initializing Sonar Quiz System");
