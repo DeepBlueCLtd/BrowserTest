@@ -12,23 +12,36 @@ import {
 } from '../../src/enhancers/quiz-table.js';
 import type { SessionData, SessionCache } from '../../src/types/contracts.js';
 import { STORAGE_KEYS } from '../../src/types/contracts.js';
+import { getStorageService, resetStorageService } from '../../src/services/storage-service.js';
+import { resetStorageAdapter } from '../../src/services/storage/indexeddb.js';
+
+// Test database name - matches DOM config in production
+const TEST_DB_NAME = 'BrowserTestDB';
 
 describe('Quiz Table Enhancement', () => {
   let container: HTMLDivElement;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Create container for tests
     container = document.createElement('div');
     document.body.appendChild(container);
 
     // Clear sessionStorage
     sessionStorage.clear();
+
+    // Initialize storage service singleton (required before enhancers run)
+    const storageService = getStorageService(TEST_DB_NAME);
+    await storageService.init();
   });
 
   afterEach(() => {
     // Cleanup
     container.remove();
     sessionStorage.clear();
+
+    // Reset storage singletons
+    resetStorageService();
+    resetStorageAdapter();
   });
 
   describe('Non-Interactive Mode', () => {
