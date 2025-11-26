@@ -164,6 +164,35 @@ const PIN_CONSTANTS = {
   /** Lockout duration in milliseconds (30 seconds) */
   LOCKOUT_MS: 30 * 1e3
 };
+function calculateStatusIndicator(total, correct) {
+  if (total === 0 || correct === 0) {
+    return "red";
+  }
+  if (correct === total) {
+    return "green";
+  }
+  return "amber";
+}
+function recalculateTotalsFromPages(pages) {
+  let attempted = 0;
+  let correct = 0;
+  for (const pageId in pages) {
+    const pageData = pages[pageId];
+    if (pageData && pageData.answers && Array.isArray(pageData.answers)) {
+      const answered = pageData.answers.filter((a2) => a2.answer.trim() !== "");
+      attempted += answered.length;
+      correct += answered.filter((a2) => a2.success).length;
+    }
+  }
+  return { attempted, correct };
+}
+function isSessionExpired(expiresAt, now = /* @__PURE__ */ new Date()) {
+  const expiryDate = new Date(expiresAt);
+  if (isNaN(expiryDate.getTime())) {
+    return true;
+  }
+  return now >= expiryDate;
+}
 class SessionService {
   /**
    * Create a new session
@@ -236,9 +265,7 @@ class SessionService {
     if (!session) {
       return true;
     }
-    const now = /* @__PURE__ */ new Date();
-    const expiresAt = new Date(session.expiresAt);
-    return now >= expiresAt;
+    return isSessionExpired(session.expiresAt);
   }
   /**
    * Clear the current session
@@ -417,6 +444,72 @@ function registerPageQuestions(cache, pageId, totalQuestions) {
     }
   };
 }
+function getQuestionInputSpec(question, existingAnswer) {
+  if (question.kind === "mcq") {
+    const options = (question.options || []).map((optionText, index) => ({
+      value: String(index + 1),
+      // 1-indexed
+      text: `${index + 1}. ${optionText}`
+    }));
+    return {
+      type: "select",
+      className: "qd-quiz-input",
+      placeholder: "Select an answer...",
+      value: existingAnswer?.answer || "",
+      options
+    };
+  } else {
+    return {
+      type: "text",
+      className: "qd-quiz-input",
+      placeholder: "Enter value",
+      value: existingAnswer?.answer || ""
+    };
+  }
+}
+function formatDisplayTimestamp(date) {
+  const month = date.toLocaleDateString("en-US", { month: "short" });
+  const day = date.getDate();
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  return `${month} ${day} ${hours}:${minutes}`;
+}
+function formatCSVTimestamp(date) {
+  return date.toISOString();
+}
+function formatTimestamp(date, format = "display") {
+  if (date == null) {
+    console.warn("Invalid date provided to formatTimestamp:", date);
+    return "Invalid Date";
+  }
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+  if (isNaN(dateObj.getTime())) {
+    console.warn("Invalid date provided to formatTimestamp:", date);
+    return "Invalid Date";
+  }
+  return format === "csv" ? formatCSVTimestamp(dateObj) : formatDisplayTimestamp(dateObj);
+}
+function formatStoredTimestamp(isoString) {
+  return formatTimestamp(isoString, "display");
+}
+function formatStudentAnswersForDisplay(students, pageId, questionIndex) {
+  const result = [];
+  for (const student of students) {
+    const pageData = student.pages[pageId];
+    if (!pageData || !pageData.answers) continue;
+    const answerRecord = pageData.answers[questionIndex];
+    if (!answerRecord) continue;
+    result.push({
+      name: student.name,
+      maskedServiceId: student.serviceId.slice(-4),
+      answer: answerRecord.answer,
+      success: answerRecord.success,
+      formattedTimestamp: formatStoredTimestamp(answerRecord.timestamp),
+      cssClass: answerRecord.success ? "qd-correct" : "qd-incorrect"
+    });
+  }
+  return result;
+}
 class Debouncer {
   constructor() {
     this.timers = /* @__PURE__ */ new Map();
@@ -568,8 +661,8 @@ function setJSON(key, value) {
 }
 function clearQuizData() {
   const keysToRemove = [];
-  for (let i2 = 0; i2 < sessionStorage.length; i2++) {
-    const key = sessionStorage.key(i2);
+  for (let i3 = 0; i3 < sessionStorage.length; i3++) {
+    const key = sessionStorage.key(i3);
     if (key && key.startsWith("qd/")) {
       keysToRemove.push(key);
     }
@@ -1164,15 +1257,9 @@ class StorageService {
   async saveStudentRecord(record) {
     try {
       record.updated = (/* @__PURE__ */ new Date()).toISOString();
-      let totalAttempted = 0;
-      let totalCorrect = 0;
-      for (const pageData of Object.values(record.pages)) {
-        const answered = pageData.answers.filter((a2) => a2.answer.trim() !== "");
-        totalAttempted += answered.length;
-        totalCorrect += answered.filter((a2) => a2.success).length;
-      }
-      record.attempted = totalAttempted;
-      record.correct = totalCorrect;
+      const totals = recalculateTotalsFromPages(record.pages);
+      record.attempted = totals.attempted;
+      record.correct = totals.correct;
       await this.adapter.saveStudent(record);
       info(`Saved student record for ${record.serviceId} to IndexedDB`);
     } catch (err) {
@@ -1293,31 +1380,6 @@ const storageService = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defi
   StorageService,
   getStorageService
 }, Symbol.toStringTag, { value: "Module" }));
-function formatDisplayTimestamp(date) {
-  const month = date.toLocaleDateString("en-US", { month: "short" });
-  const day = date.getDate();
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-  return `${month} ${day} ${hours}:${minutes}`;
-}
-function formatCSVTimestamp(date) {
-  return date.toISOString();
-}
-function formatTimestamp(date, format = "display") {
-  if (date == null) {
-    console.warn("Invalid date provided to formatTimestamp:", date);
-    return "Invalid Date";
-  }
-  const dateObj = typeof date === "string" ? new Date(date) : date;
-  if (isNaN(dateObj.getTime())) {
-    console.warn("Invalid date provided to formatTimestamp:", date);
-    return "Invalid Date";
-  }
-  return format === "csv" ? formatCSVTimestamp(dateObj) : formatDisplayTimestamp(dateObj);
-}
-function formatStoredTimestamp(isoString) {
-  return formatTimestamp(isoString, "display");
-}
 const tableMetadata$1 = /* @__PURE__ */ new WeakMap();
 function enhanceQuizTable(table, options) {
   const existing = tableMetadata$1.get(table);
@@ -1470,34 +1532,31 @@ function enhanceInteractive$1(table, metadata) {
   return true;
 }
 function createQuestionInput(question, existingAnswer) {
-  if (question.kind === "mcq" && question.options) {
+  const spec = getQuestionInputSpec(question, existingAnswer);
+  if (spec.type === "select") {
     const select = createElement("select");
-    select.className = "qd-quiz-input";
+    select.className = spec.className;
     const placeholderOption = createElement("option");
     placeholderOption.value = "";
-    placeholderOption.textContent = "Select an answer...";
+    placeholderOption.textContent = spec.placeholder;
     placeholderOption.disabled = true;
     select.appendChild(placeholderOption);
-    question.options.forEach((optionText, index) => {
-      const option = createElement("option");
-      option.value = String(index + 1);
-      option.textContent = `${index + 1}. ${optionText}`;
-      select.appendChild(option);
-    });
-    if (existingAnswer) {
-      select.value = existingAnswer.answer;
-    } else {
-      select.value = "";
+    if (spec.options) {
+      spec.options.forEach((opt) => {
+        const option = createElement("option");
+        option.value = opt.value;
+        option.textContent = opt.text;
+        select.appendChild(option);
+      });
     }
+    select.value = spec.value;
     return select;
   } else {
     const input = createElement("input");
-    input.type = "text";
-    input.className = "qd-quiz-input";
-    input.placeholder = "Enter value";
-    if (existingAnswer) {
-      input.value = existingAnswer.answer;
-    }
+    input.type = spec.type;
+    input.className = spec.className;
+    input.placeholder = spec.placeholder;
+    input.value = spec.value;
     return input;
   }
 }
@@ -1681,32 +1740,17 @@ async function showStudentAnswersForTable(table, metadata) {
       if (existingDisplay) {
         existingDisplay.remove();
       }
-      const studentAnswers = [];
-      students.forEach((student) => {
-        const pageData = student.pages[pageId];
-        if (!pageData || !pageData.answers) return;
-        const answerRecord = pageData.answers[questionIndex];
-        if (!answerRecord) return;
-        studentAnswers.push({
-          name: student.name,
-          serviceId: student.serviceId,
-          answer: answerRecord.answer,
-          success: answerRecord.success,
-          timestamp: answerRecord.timestamp
-        });
-      });
+      const studentAnswers = formatStudentAnswersForDisplay(students, pageId, questionIndex);
       if (studentAnswers.length > 0) {
         const display = document.createElement("div");
         display.className = "qd-student-answers";
         studentAnswers.forEach((sa) => {
           const answerDiv = document.createElement("div");
-          answerDiv.className = `qd-student-answer ${sa.success ? "qd-correct" : "qd-incorrect"}`;
-          const last4 = sa.serviceId.slice(-4);
-          const timestamp = formatStoredTimestamp(sa.timestamp);
+          answerDiv.className = `qd-student-answer ${sa.cssClass}`;
           answerDiv.innerHTML = `
-            <span class="qd-student-name">${sa.name} (${last4})</span>:
+            <span class="qd-student-name">${sa.name} (${sa.maskedServiceId})</span>:
             <span class="qd-student-answer-text">${sa.answer}</span>
-            <span class="qd-timestamp">${timestamp}</span>
+            <span class="qd-timestamp">${sa.formattedTimestamp}</span>
           `;
           display.appendChild(answerDiv);
         });
@@ -1725,8 +1769,8 @@ function hideStudentAnswersForTable(table) {
 }
 function hashString(input, length = 16) {
   let hash = 5381;
-  for (let i2 = 0; i2 < input.length; i2++) {
-    const char = input.charCodeAt(i2);
+  for (let i3 = 0; i3 < input.length; i3++) {
+    const char = input.charCodeAt(i3);
     hash = (hash << 5) + hash + char;
     hash = hash & hash;
   }
@@ -2378,7 +2422,7 @@ class SessionCoordinator {
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const t$2 = globalThis, e$2 = t$2.ShadowRoot && (void 0 === t$2.ShadyCSS || t$2.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, s$2 = Symbol(), o$4 = /* @__PURE__ */ new WeakMap();
+const t$3 = globalThis, e$6 = t$3.ShadowRoot && (void 0 === t$3.ShadyCSS || t$3.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, s$2 = Symbol(), o$5 = /* @__PURE__ */ new WeakMap();
 let n$3 = class n {
   constructor(t2, e2, o2) {
     if (this._$cssResult$ = true, o2 !== s$2) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
@@ -2387,9 +2431,9 @@ let n$3 = class n {
   get styleSheet() {
     let t2 = this.o;
     const s2 = this.t;
-    if (e$2 && void 0 === t2) {
+    if (e$6 && void 0 === t2) {
       const e2 = void 0 !== s2 && 1 === s2.length;
-      e2 && (t2 = o$4.get(s2)), void 0 === t2 && ((this.o = t2 = new CSSStyleSheet()).replaceSync(this.cssText), e2 && o$4.set(s2, t2));
+      e2 && (t2 = o$5.get(s2)), void 0 === t2 && ((this.o = t2 = new CSSStyleSheet()).replaceSync(this.cssText), e2 && o$5.set(s2, t2));
     }
     return t2;
   }
@@ -2397,7 +2441,7 @@ let n$3 = class n {
     return this.cssText;
   }
 };
-const r$4 = (t2) => new n$3("string" == typeof t2 ? t2 : t2 + "", void 0, s$2), i$3 = (t2, ...e2) => {
+const r$4 = (t2) => new n$3("string" == typeof t2 ? t2 : t2 + "", void 0, s$2), i$4 = (t2, ...e2) => {
   const o2 = 1 === t2.length ? t2[0] : e2.reduce((e3, s2, o3) => e3 + ((t3) => {
     if (true === t3._$cssResult$) return t3.cssText;
     if ("number" == typeof t3) return t3;
@@ -2405,12 +2449,12 @@ const r$4 = (t2) => new n$3("string" == typeof t2 ? t2 : t2 + "", void 0, s$2), 
   })(s2) + t2[o3 + 1], t2[0]);
   return new n$3(o2, t2, s$2);
 }, S$1 = (s2, o2) => {
-  if (e$2) s2.adoptedStyleSheets = o2.map((t2) => t2 instanceof CSSStyleSheet ? t2 : t2.styleSheet);
+  if (e$6) s2.adoptedStyleSheets = o2.map((t2) => t2 instanceof CSSStyleSheet ? t2 : t2.styleSheet);
   else for (const e2 of o2) {
-    const o3 = document.createElement("style"), n3 = t$2.litNonce;
+    const o3 = document.createElement("style"), n3 = t$3.litNonce;
     void 0 !== n3 && o3.setAttribute("nonce", n3), o3.textContent = e2.cssText, s2.appendChild(o3);
   }
-}, c$2 = e$2 ? (t2) => t2 : (t2) => t2 instanceof CSSStyleSheet ? ((t3) => {
+}, c$2 = e$6 ? (t2) => t2 : (t2) => t2 instanceof CSSStyleSheet ? ((t3) => {
   let e2 = "";
   for (const s2 of t3.cssRules) e2 += s2.cssText;
   return r$4(e2);
@@ -2420,7 +2464,7 @@ const r$4 = (t2) => new n$3("string" == typeof t2 ? t2 : t2 + "", void 0, s$2), 
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const { is: i$2, defineProperty: e$1, getOwnPropertyDescriptor: h$1, getOwnPropertyNames: r$3, getOwnPropertySymbols: o$3, getPrototypeOf: n$2 } = Object, a$1 = globalThis, c$1 = a$1.trustedTypes, l$1 = c$1 ? c$1.emptyScript : "", p$1 = a$1.reactiveElementPolyfillSupport, d$1 = (t2, s2) => t2, u$1 = { toAttribute(t2, s2) {
+const { is: i$3, defineProperty: e$5, getOwnPropertyDescriptor: h$1, getOwnPropertyNames: r$3, getOwnPropertySymbols: o$4, getPrototypeOf: n$2 } = Object, a$1 = globalThis, c$1 = a$1.trustedTypes, l$1 = c$1 ? c$1.emptyScript : "", p$1 = a$1.reactiveElementPolyfillSupport, d$1 = (t2, s2) => t2, u$1 = { toAttribute(t2, s2) {
   switch (s2) {
     case Boolean:
       t2 = t2 ? l$1 : null;
@@ -2431,24 +2475,24 @@ const { is: i$2, defineProperty: e$1, getOwnPropertyDescriptor: h$1, getOwnPrope
   }
   return t2;
 }, fromAttribute(t2, s2) {
-  let i2 = t2;
+  let i3 = t2;
   switch (s2) {
     case Boolean:
-      i2 = null !== t2;
+      i3 = null !== t2;
       break;
     case Number:
-      i2 = null === t2 ? null : Number(t2);
+      i3 = null === t2 ? null : Number(t2);
       break;
     case Object:
     case Array:
       try {
-        i2 = JSON.parse(t2);
+        i3 = JSON.parse(t2);
       } catch (t3) {
-        i2 = null;
+        i3 = null;
       }
   }
-  return i2;
-} }, f$1 = (t2, s2) => !i$2(t2, s2), b = { attribute: true, type: String, converter: u$1, reflect: false, useDefault: false, hasChanged: f$1 };
+  return i3;
+} }, f$1 = (t2, s2) => !i$3(t2, s2), b = { attribute: true, type: String, converter: u$1, reflect: false, useDefault: false, hasChanged: f$1 };
 Symbol.metadata ??= Symbol("metadata"), a$1.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
 let y$1 = class y extends HTMLElement {
   static addInitializer(t2) {
@@ -2459,11 +2503,11 @@ let y$1 = class y extends HTMLElement {
   }
   static createProperty(t2, s2 = b) {
     if (s2.state && (s2.attribute = false), this._$Ei(), this.prototype.hasOwnProperty(t2) && ((s2 = Object.create(s2)).wrapped = true), this.elementProperties.set(t2, s2), !s2.noAccessor) {
-      const i2 = Symbol(), h2 = this.getPropertyDescriptor(t2, i2, s2);
-      void 0 !== h2 && e$1(this.prototype, t2, h2);
+      const i3 = Symbol(), h2 = this.getPropertyDescriptor(t2, i3, s2);
+      void 0 !== h2 && e$5(this.prototype, t2, h2);
     }
   }
-  static getPropertyDescriptor(t2, s2, i2) {
+  static getPropertyDescriptor(t2, s2, i3) {
     const { get: e2, set: r2 } = h$1(this.prototype, t2) ?? { get() {
       return this[s2];
     }, set(t3) {
@@ -2471,7 +2515,7 @@ let y$1 = class y extends HTMLElement {
     } };
     return { get: e2, set(s3) {
       const h2 = e2?.call(this);
-      r2?.call(this, s3), this.requestUpdate(t2, h2, i2);
+      r2?.call(this, s3), this.requestUpdate(t2, h2, i3);
     }, configurable: true, enumerable: true };
   }
   static getPropertyOptions(t2) {
@@ -2485,32 +2529,32 @@ let y$1 = class y extends HTMLElement {
   static finalize() {
     if (this.hasOwnProperty(d$1("finalized"))) return;
     if (this.finalized = true, this._$Ei(), this.hasOwnProperty(d$1("properties"))) {
-      const t3 = this.properties, s2 = [...r$3(t3), ...o$3(t3)];
-      for (const i2 of s2) this.createProperty(i2, t3[i2]);
+      const t3 = this.properties, s2 = [...r$3(t3), ...o$4(t3)];
+      for (const i3 of s2) this.createProperty(i3, t3[i3]);
     }
     const t2 = this[Symbol.metadata];
     if (null !== t2) {
       const s2 = litPropertyMetadata.get(t2);
-      if (void 0 !== s2) for (const [t3, i2] of s2) this.elementProperties.set(t3, i2);
+      if (void 0 !== s2) for (const [t3, i3] of s2) this.elementProperties.set(t3, i3);
     }
     this._$Eh = /* @__PURE__ */ new Map();
     for (const [t3, s2] of this.elementProperties) {
-      const i2 = this._$Eu(t3, s2);
-      void 0 !== i2 && this._$Eh.set(i2, t3);
+      const i3 = this._$Eu(t3, s2);
+      void 0 !== i3 && this._$Eh.set(i3, t3);
     }
     this.elementStyles = this.finalizeStyles(this.styles);
   }
   static finalizeStyles(s2) {
-    const i2 = [];
+    const i3 = [];
     if (Array.isArray(s2)) {
       const e2 = new Set(s2.flat(1 / 0).reverse());
-      for (const s3 of e2) i2.unshift(c$2(s3));
-    } else void 0 !== s2 && i2.push(c$2(s2));
-    return i2;
+      for (const s3 of e2) i3.unshift(c$2(s3));
+    } else void 0 !== s2 && i3.push(c$2(s2));
+    return i3;
   }
   static _$Eu(t2, s2) {
-    const i2 = s2.attribute;
-    return false === i2 ? void 0 : "string" == typeof i2 ? i2 : "string" == typeof t2 ? t2.toLowerCase() : void 0;
+    const i3 = s2.attribute;
+    return false === i3 ? void 0 : "string" == typeof i3 ? i3 : "string" == typeof t2 ? t2.toLowerCase() : void 0;
   }
   constructor() {
     super(), this._$Ep = void 0, this.isUpdatePending = false, this.hasUpdated = false, this._$Em = null, this._$Ev();
@@ -2526,7 +2570,7 @@ let y$1 = class y extends HTMLElement {
   }
   _$E_() {
     const t2 = /* @__PURE__ */ new Map(), s2 = this.constructor.elementProperties;
-    for (const i2 of s2.keys()) this.hasOwnProperty(i2) && (t2.set(i2, this[i2]), delete this[i2]);
+    for (const i3 of s2.keys()) this.hasOwnProperty(i3) && (t2.set(i3, this[i3]), delete this[i3]);
     t2.size > 0 && (this._$Ep = t2);
   }
   createRenderRoot() {
@@ -2541,35 +2585,35 @@ let y$1 = class y extends HTMLElement {
   disconnectedCallback() {
     this._$EO?.forEach((t2) => t2.hostDisconnected?.());
   }
-  attributeChangedCallback(t2, s2, i2) {
-    this._$AK(t2, i2);
+  attributeChangedCallback(t2, s2, i3) {
+    this._$AK(t2, i3);
   }
   _$ET(t2, s2) {
-    const i2 = this.constructor.elementProperties.get(t2), e2 = this.constructor._$Eu(t2, i2);
-    if (void 0 !== e2 && true === i2.reflect) {
-      const h2 = (void 0 !== i2.converter?.toAttribute ? i2.converter : u$1).toAttribute(s2, i2.type);
+    const i3 = this.constructor.elementProperties.get(t2), e2 = this.constructor._$Eu(t2, i3);
+    if (void 0 !== e2 && true === i3.reflect) {
+      const h2 = (void 0 !== i3.converter?.toAttribute ? i3.converter : u$1).toAttribute(s2, i3.type);
       this._$Em = t2, null == h2 ? this.removeAttribute(e2) : this.setAttribute(e2, h2), this._$Em = null;
     }
   }
   _$AK(t2, s2) {
-    const i2 = this.constructor, e2 = i2._$Eh.get(t2);
+    const i3 = this.constructor, e2 = i3._$Eh.get(t2);
     if (void 0 !== e2 && this._$Em !== e2) {
-      const t3 = i2.getPropertyOptions(e2), h2 = "function" == typeof t3.converter ? { fromAttribute: t3.converter } : void 0 !== t3.converter?.fromAttribute ? t3.converter : u$1;
+      const t3 = i3.getPropertyOptions(e2), h2 = "function" == typeof t3.converter ? { fromAttribute: t3.converter } : void 0 !== t3.converter?.fromAttribute ? t3.converter : u$1;
       this._$Em = e2;
       const r2 = h2.fromAttribute(s2, t3.type);
       this[e2] = r2 ?? this._$Ej?.get(e2) ?? r2, this._$Em = null;
     }
   }
-  requestUpdate(t2, s2, i2) {
+  requestUpdate(t2, s2, i3) {
     if (void 0 !== t2) {
       const e2 = this.constructor, h2 = this[t2];
-      if (i2 ??= e2.getPropertyOptions(t2), !((i2.hasChanged ?? f$1)(h2, s2) || i2.useDefault && i2.reflect && h2 === this._$Ej?.get(t2) && !this.hasAttribute(e2._$Eu(t2, i2)))) return;
-      this.C(t2, s2, i2);
+      if (i3 ??= e2.getPropertyOptions(t2), !((i3.hasChanged ?? f$1)(h2, s2) || i3.useDefault && i3.reflect && h2 === this._$Ej?.get(t2) && !this.hasAttribute(e2._$Eu(t2, i3)))) return;
+      this.C(t2, s2, i3);
     }
     false === this.isUpdatePending && (this._$ES = this._$EP());
   }
-  C(t2, s2, { useDefault: i2, reflect: e2, wrapped: h2 }, r2) {
-    i2 && !(this._$Ej ??= /* @__PURE__ */ new Map()).has(t2) && (this._$Ej.set(t2, r2 ?? s2 ?? this[t2]), true !== h2 || void 0 !== r2) || (this._$AL.has(t2) || (this.hasUpdated || i2 || (s2 = void 0), this._$AL.set(t2, s2)), true === e2 && this._$Em !== t2 && (this._$Eq ??= /* @__PURE__ */ new Set()).add(t2));
+  C(t2, s2, { useDefault: i3, reflect: e2, wrapped: h2 }, r2) {
+    i3 && !(this._$Ej ??= /* @__PURE__ */ new Map()).has(t2) && (this._$Ej.set(t2, r2 ?? s2 ?? this[t2]), true !== h2 || void 0 !== r2) || (this._$AL.has(t2) || (this.hasUpdated || i3 || (s2 = void 0), this._$AL.set(t2, s2)), true === e2 && this._$Em !== t2 && (this._$Eq ??= /* @__PURE__ */ new Set()).add(t2));
   }
   async _$EP() {
     this.isUpdatePending = true;
@@ -2592,9 +2636,9 @@ let y$1 = class y extends HTMLElement {
         this._$Ep = void 0;
       }
       const t3 = this.constructor.elementProperties;
-      if (t3.size > 0) for (const [s3, i2] of t3) {
-        const { wrapped: t4 } = i2, e2 = this[s3];
-        true !== t4 || this._$AL.has(s3) || void 0 === e2 || this.C(s3, void 0, i2, e2);
+      if (t3.size > 0) for (const [s3, i3] of t3) {
+        const { wrapped: t4 } = i3, e2 = this[s3];
+        true !== t4 || this._$AL.has(s3) || void 0 === e2 || this.C(s3, void 0, i3, e2);
       }
     }
     let t2 = false;
@@ -2637,23 +2681,23 @@ y$1.elementStyles = [], y$1.shadowRootOptions = { mode: "open" }, y$1[d$1("eleme
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const t$1 = globalThis, i$1 = t$1.trustedTypes, s$1 = i$1 ? i$1.createPolicy("lit-html", { createHTML: (t2) => t2 }) : void 0, e = "$lit$", h = `lit$${Math.random().toFixed(9).slice(2)}$`, o$2 = "?" + h, n$1 = `<${o$2}>`, r$2 = document, l = () => r$2.createComment(""), c = (t2) => null === t2 || "object" != typeof t2 && "function" != typeof t2, a = Array.isArray, u = (t2) => a(t2) || "function" == typeof t2?.[Symbol.iterator], d = "[ 	\n\f\r]", f = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, v = /-->/g, _ = />/g, m = RegExp(`>|${d}(?:([^\\s"'>=/]+)(${d}*=${d}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`, "g"), p = /'/g, g = /"/g, $ = /^(?:script|style|textarea|title)$/i, y2 = (t2) => (i2, ...s2) => ({ _$litType$: t2, strings: i2, values: s2 }), x = y2(1), T = Symbol.for("lit-noChange"), E = Symbol.for("lit-nothing"), A = /* @__PURE__ */ new WeakMap(), C = r$2.createTreeWalker(r$2, 129);
-function P(t2, i2) {
+const t$2 = globalThis, i$2 = t$2.trustedTypes, s$1 = i$2 ? i$2.createPolicy("lit-html", { createHTML: (t2) => t2 }) : void 0, e$4 = "$lit$", h = `lit$${Math.random().toFixed(9).slice(2)}$`, o$3 = "?" + h, n$1 = `<${o$3}>`, r$2 = document, l = () => r$2.createComment(""), c = (t2) => null === t2 || "object" != typeof t2 && "function" != typeof t2, a = Array.isArray, u = (t2) => a(t2) || "function" == typeof t2?.[Symbol.iterator], d = "[ 	\n\f\r]", f = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, v = /-->/g, _ = />/g, m = RegExp(`>|${d}(?:([^\\s"'>=/]+)(${d}*=${d}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`, "g"), p = /'/g, g = /"/g, $ = /^(?:script|style|textarea|title)$/i, y2 = (t2) => (i3, ...s2) => ({ _$litType$: t2, strings: i3, values: s2 }), x = y2(1), T = Symbol.for("lit-noChange"), E = Symbol.for("lit-nothing"), A = /* @__PURE__ */ new WeakMap(), C = r$2.createTreeWalker(r$2, 129);
+function P(t2, i3) {
   if (!a(t2) || !t2.hasOwnProperty("raw")) throw Error("invalid template strings array");
-  return void 0 !== s$1 ? s$1.createHTML(i2) : i2;
+  return void 0 !== s$1 ? s$1.createHTML(i3) : i3;
 }
-const V = (t2, i2) => {
+const V = (t2, i3) => {
   const s2 = t2.length - 1, o2 = [];
-  let r2, l2 = 2 === i2 ? "<svg>" : 3 === i2 ? "<math>" : "", c2 = f;
-  for (let i3 = 0; i3 < s2; i3++) {
-    const s3 = t2[i3];
+  let r2, l2 = 2 === i3 ? "<svg>" : 3 === i3 ? "<math>" : "", c2 = f;
+  for (let i4 = 0; i4 < s2; i4++) {
+    const s3 = t2[i4];
     let a2, u2, d2 = -1, y3 = 0;
     for (; y3 < s3.length && (c2.lastIndex = y3, u2 = c2.exec(s3), null !== u2); ) y3 = c2.lastIndex, c2 === f ? "!--" === u2[1] ? c2 = v : void 0 !== u2[1] ? c2 = _ : void 0 !== u2[2] ? ($.test(u2[2]) && (r2 = RegExp("</" + u2[2], "g")), c2 = m) : void 0 !== u2[3] && (c2 = m) : c2 === m ? ">" === u2[0] ? (c2 = r2 ?? f, d2 = -1) : void 0 === u2[1] ? d2 = -2 : (d2 = c2.lastIndex - u2[2].length, a2 = u2[1], c2 = void 0 === u2[3] ? m : '"' === u2[3] ? g : p) : c2 === g || c2 === p ? c2 = m : c2 === v || c2 === _ ? c2 = f : (c2 = m, r2 = void 0);
-    const x2 = c2 === m && t2[i3 + 1].startsWith("/>") ? " " : "";
-    l2 += c2 === f ? s3 + n$1 : d2 >= 0 ? (o2.push(a2), s3.slice(0, d2) + e + s3.slice(d2) + h + x2) : s3 + h + (-2 === d2 ? i3 : x2);
+    const x2 = c2 === m && t2[i4 + 1].startsWith("/>") ? " " : "";
+    l2 += c2 === f ? s3 + n$1 : d2 >= 0 ? (o2.push(a2), s3.slice(0, d2) + e$4 + s3.slice(d2) + h + x2) : s3 + h + (-2 === d2 ? i4 : x2);
   }
-  return [P(t2, l2 + (t2[s2] || "<?>") + (2 === i2 ? "</svg>" : 3 === i2 ? "</math>" : "")), o2];
+  return [P(t2, l2 + (t2[s2] || "<?>") + (2 === i3 ? "</svg>" : 3 === i3 ? "</math>" : "")), o2];
 };
 class N {
   constructor({ strings: t2, _$litType$: s2 }, n3) {
@@ -2667,19 +2711,19 @@ class N {
     }
     for (; null !== (r2 = C.nextNode()) && d2.length < u2; ) {
       if (1 === r2.nodeType) {
-        if (r2.hasAttributes()) for (const t3 of r2.getAttributeNames()) if (t3.endsWith(e)) {
-          const i2 = v2[a2++], s3 = r2.getAttribute(t3).split(h), e2 = /([.?@])?(.*)/.exec(i2);
+        if (r2.hasAttributes()) for (const t3 of r2.getAttributeNames()) if (t3.endsWith(e$4)) {
+          const i3 = v2[a2++], s3 = r2.getAttribute(t3).split(h), e2 = /([.?@])?(.*)/.exec(i3);
           d2.push({ type: 1, index: c2, name: e2[2], strings: s3, ctor: "." === e2[1] ? H : "?" === e2[1] ? I : "@" === e2[1] ? L : k }), r2.removeAttribute(t3);
         } else t3.startsWith(h) && (d2.push({ type: 6, index: c2 }), r2.removeAttribute(t3));
         if ($.test(r2.tagName)) {
           const t3 = r2.textContent.split(h), s3 = t3.length - 1;
           if (s3 > 0) {
-            r2.textContent = i$1 ? i$1.emptyScript : "";
-            for (let i2 = 0; i2 < s3; i2++) r2.append(t3[i2], l()), C.nextNode(), d2.push({ type: 2, index: ++c2 });
+            r2.textContent = i$2 ? i$2.emptyScript : "";
+            for (let i3 = 0; i3 < s3; i3++) r2.append(t3[i3], l()), C.nextNode(), d2.push({ type: 2, index: ++c2 });
             r2.append(t3[s3], l());
           }
         }
-      } else if (8 === r2.nodeType) if (r2.data === o$2) d2.push({ type: 2, index: c2 });
+      } else if (8 === r2.nodeType) if (r2.data === o$3) d2.push({ type: 2, index: c2 });
       else {
         let t3 = -1;
         for (; -1 !== (t3 = r2.data.indexOf(h, t3 + 1)); ) d2.push({ type: 7, index: c2 }), t3 += h.length - 1;
@@ -2687,20 +2731,20 @@ class N {
       c2++;
     }
   }
-  static createElement(t2, i2) {
+  static createElement(t2, i3) {
     const s2 = r$2.createElement("template");
     return s2.innerHTML = t2, s2;
   }
 }
-function S(t2, i2, s2 = t2, e2) {
-  if (i2 === T) return i2;
+function S(t2, i3, s2 = t2, e2) {
+  if (i3 === T) return i3;
   let h2 = void 0 !== e2 ? s2._$Co?.[e2] : s2._$Cl;
-  const o2 = c(i2) ? void 0 : i2._$litDirective$;
-  return h2?.constructor !== o2 && (h2?._$AO?.(false), void 0 === o2 ? h2 = void 0 : (h2 = new o2(t2), h2._$AT(t2, s2, e2)), void 0 !== e2 ? (s2._$Co ??= [])[e2] = h2 : s2._$Cl = h2), void 0 !== h2 && (i2 = S(t2, h2._$AS(t2, i2.values), h2, e2)), i2;
+  const o2 = c(i3) ? void 0 : i3._$litDirective$;
+  return h2?.constructor !== o2 && (h2?._$AO?.(false), void 0 === o2 ? h2 = void 0 : (h2 = new o2(t2), h2._$AT(t2, s2, e2)), void 0 !== e2 ? (s2._$Co ??= [])[e2] = h2 : s2._$Cl = h2), void 0 !== h2 && (i3 = S(t2, h2._$AS(t2, i3.values), h2, e2)), i3;
 }
 class M {
-  constructor(t2, i2) {
-    this._$AV = [], this._$AN = void 0, this._$AD = t2, this._$AM = i2;
+  constructor(t2, i3) {
+    this._$AV = [], this._$AN = void 0, this._$AD = t2, this._$AM = i3;
   }
   get parentNode() {
     return this._$AM.parentNode;
@@ -2709,34 +2753,34 @@ class M {
     return this._$AM._$AU;
   }
   u(t2) {
-    const { el: { content: i2 }, parts: s2 } = this._$AD, e2 = (t2?.creationScope ?? r$2).importNode(i2, true);
+    const { el: { content: i3 }, parts: s2 } = this._$AD, e2 = (t2?.creationScope ?? r$2).importNode(i3, true);
     C.currentNode = e2;
     let h2 = C.nextNode(), o2 = 0, n3 = 0, l2 = s2[0];
     for (; void 0 !== l2; ) {
       if (o2 === l2.index) {
-        let i3;
-        2 === l2.type ? i3 = new R(h2, h2.nextSibling, this, t2) : 1 === l2.type ? i3 = new l2.ctor(h2, l2.name, l2.strings, this, t2) : 6 === l2.type && (i3 = new z(h2, this, t2)), this._$AV.push(i3), l2 = s2[++n3];
+        let i4;
+        2 === l2.type ? i4 = new R(h2, h2.nextSibling, this, t2) : 1 === l2.type ? i4 = new l2.ctor(h2, l2.name, l2.strings, this, t2) : 6 === l2.type && (i4 = new z(h2, this, t2)), this._$AV.push(i4), l2 = s2[++n3];
       }
       o2 !== l2?.index && (h2 = C.nextNode(), o2++);
     }
     return C.currentNode = r$2, e2;
   }
   p(t2) {
-    let i2 = 0;
-    for (const s2 of this._$AV) void 0 !== s2 && (void 0 !== s2.strings ? (s2._$AI(t2, s2, i2), i2 += s2.strings.length - 2) : s2._$AI(t2[i2])), i2++;
+    let i3 = 0;
+    for (const s2 of this._$AV) void 0 !== s2 && (void 0 !== s2.strings ? (s2._$AI(t2, s2, i3), i3 += s2.strings.length - 2) : s2._$AI(t2[i3])), i3++;
   }
 }
 class R {
   get _$AU() {
     return this._$AM?._$AU ?? this._$Cv;
   }
-  constructor(t2, i2, s2, e2) {
-    this.type = 2, this._$AH = E, this._$AN = void 0, this._$AA = t2, this._$AB = i2, this._$AM = s2, this.options = e2, this._$Cv = e2?.isConnected ?? true;
+  constructor(t2, i3, s2, e2) {
+    this.type = 2, this._$AH = E, this._$AN = void 0, this._$AA = t2, this._$AB = i3, this._$AM = s2, this.options = e2, this._$Cv = e2?.isConnected ?? true;
   }
   get parentNode() {
     let t2 = this._$AA.parentNode;
-    const i2 = this._$AM;
-    return void 0 !== i2 && 11 === t2?.nodeType && (t2 = i2.parentNode), t2;
+    const i3 = this._$AM;
+    return void 0 !== i3 && 11 === t2?.nodeType && (t2 = i3.parentNode), t2;
   }
   get startNode() {
     return this._$AA;
@@ -2744,8 +2788,8 @@ class R {
   get endNode() {
     return this._$AB;
   }
-  _$AI(t2, i2 = this) {
-    t2 = S(this, t2, i2), c(t2) ? t2 === E || null == t2 || "" === t2 ? (this._$AH !== E && this._$AR(), this._$AH = E) : t2 !== this._$AH && t2 !== T && this._(t2) : void 0 !== t2._$litType$ ? this.$(t2) : void 0 !== t2.nodeType ? this.T(t2) : u(t2) ? this.k(t2) : this._(t2);
+  _$AI(t2, i3 = this) {
+    t2 = S(this, t2, i3), c(t2) ? t2 === E || null == t2 || "" === t2 ? (this._$AH !== E && this._$AR(), this._$AH = E) : t2 !== this._$AH && t2 !== T && this._(t2) : void 0 !== t2._$litType$ ? this.$(t2) : void 0 !== t2.nodeType ? this.T(t2) : u(t2) ? this.k(t2) : this._(t2);
   }
   O(t2) {
     return this._$AA.parentNode.insertBefore(t2, this._$AB);
@@ -2757,28 +2801,28 @@ class R {
     this._$AH !== E && c(this._$AH) ? this._$AA.nextSibling.data = t2 : this.T(r$2.createTextNode(t2)), this._$AH = t2;
   }
   $(t2) {
-    const { values: i2, _$litType$: s2 } = t2, e2 = "number" == typeof s2 ? this._$AC(t2) : (void 0 === s2.el && (s2.el = N.createElement(P(s2.h, s2.h[0]), this.options)), s2);
-    if (this._$AH?._$AD === e2) this._$AH.p(i2);
+    const { values: i3, _$litType$: s2 } = t2, e2 = "number" == typeof s2 ? this._$AC(t2) : (void 0 === s2.el && (s2.el = N.createElement(P(s2.h, s2.h[0]), this.options)), s2);
+    if (this._$AH?._$AD === e2) this._$AH.p(i3);
     else {
       const t3 = new M(e2, this), s3 = t3.u(this.options);
-      t3.p(i2), this.T(s3), this._$AH = t3;
+      t3.p(i3), this.T(s3), this._$AH = t3;
     }
   }
   _$AC(t2) {
-    let i2 = A.get(t2.strings);
-    return void 0 === i2 && A.set(t2.strings, i2 = new N(t2)), i2;
+    let i3 = A.get(t2.strings);
+    return void 0 === i3 && A.set(t2.strings, i3 = new N(t2)), i3;
   }
   k(t2) {
     a(this._$AH) || (this._$AH = [], this._$AR());
-    const i2 = this._$AH;
+    const i3 = this._$AH;
     let s2, e2 = 0;
-    for (const h2 of t2) e2 === i2.length ? i2.push(s2 = new R(this.O(l()), this.O(l()), this, this.options)) : s2 = i2[e2], s2._$AI(h2), e2++;
-    e2 < i2.length && (this._$AR(s2 && s2._$AB.nextSibling, e2), i2.length = e2);
+    for (const h2 of t2) e2 === i3.length ? i3.push(s2 = new R(this.O(l()), this.O(l()), this, this.options)) : s2 = i3[e2], s2._$AI(h2), e2++;
+    e2 < i3.length && (this._$AR(s2 && s2._$AB.nextSibling, e2), i3.length = e2);
   }
-  _$AR(t2 = this._$AA.nextSibling, i2) {
-    for (this._$AP?.(false, true, i2); t2 !== this._$AB; ) {
-      const i3 = t2.nextSibling;
-      t2.remove(), t2 = i3;
+  _$AR(t2 = this._$AA.nextSibling, i3) {
+    for (this._$AP?.(false, true, i3); t2 !== this._$AB; ) {
+      const i4 = t2.nextSibling;
+      t2.remove(), t2 = i4;
     }
   }
   setConnected(t2) {
@@ -2792,17 +2836,17 @@ class k {
   get _$AU() {
     return this._$AM._$AU;
   }
-  constructor(t2, i2, s2, e2, h2) {
-    this.type = 1, this._$AH = E, this._$AN = void 0, this.element = t2, this.name = i2, this._$AM = e2, this.options = h2, s2.length > 2 || "" !== s2[0] || "" !== s2[1] ? (this._$AH = Array(s2.length - 1).fill(new String()), this.strings = s2) : this._$AH = E;
+  constructor(t2, i3, s2, e2, h2) {
+    this.type = 1, this._$AH = E, this._$AN = void 0, this.element = t2, this.name = i3, this._$AM = e2, this.options = h2, s2.length > 2 || "" !== s2[0] || "" !== s2[1] ? (this._$AH = Array(s2.length - 1).fill(new String()), this.strings = s2) : this._$AH = E;
   }
-  _$AI(t2, i2 = this, s2, e2) {
+  _$AI(t2, i3 = this, s2, e2) {
     const h2 = this.strings;
     let o2 = false;
-    if (void 0 === h2) t2 = S(this, t2, i2, 0), o2 = !c(t2) || t2 !== this._$AH && t2 !== T, o2 && (this._$AH = t2);
+    if (void 0 === h2) t2 = S(this, t2, i3, 0), o2 = !c(t2) || t2 !== this._$AH && t2 !== T, o2 && (this._$AH = t2);
     else {
       const e3 = t2;
       let n3, r2;
-      for (t2 = h2[0], n3 = 0; n3 < h2.length - 1; n3++) r2 = S(this, e3[s2 + n3], i2, n3), r2 === T && (r2 = this._$AH[n3]), o2 ||= !c(r2) || r2 !== this._$AH[n3], r2 === E ? t2 = E : t2 !== E && (t2 += (r2 ?? "") + h2[n3 + 1]), this._$AH[n3] = r2;
+      for (t2 = h2[0], n3 = 0; n3 < h2.length - 1; n3++) r2 = S(this, e3[s2 + n3], i3, n3), r2 === T && (r2 = this._$AH[n3]), o2 ||= !c(r2) || r2 !== this._$AH[n3], r2 === E ? t2 = E : t2 !== E && (t2 += (r2 ?? "") + h2[n3 + 1]), this._$AH[n3] = r2;
     }
     o2 && !e2 && this.j(t2);
   }
@@ -2827,11 +2871,11 @@ class I extends k {
   }
 }
 class L extends k {
-  constructor(t2, i2, s2, e2, h2) {
-    super(t2, i2, s2, e2, h2), this.type = 5;
+  constructor(t2, i3, s2, e2, h2) {
+    super(t2, i3, s2, e2, h2), this.type = 5;
   }
-  _$AI(t2, i2 = this) {
-    if ((t2 = S(this, t2, i2, 0) ?? E) === T) return;
+  _$AI(t2, i3 = this) {
+    if ((t2 = S(this, t2, i3, 0) ?? E) === T) return;
     const s2 = this._$AH, e2 = t2 === E && s2 !== E || t2.capture !== s2.capture || t2.once !== s2.once || t2.passive !== s2.passive, h2 = t2 !== E && (s2 === E || e2);
     e2 && this.element.removeEventListener(this.name, this, s2), h2 && this.element.addEventListener(this.name, this, t2), this._$AH = t2;
   }
@@ -2840,8 +2884,8 @@ class L extends k {
   }
 }
 class z {
-  constructor(t2, i2, s2) {
-    this.element = t2, this.type = 6, this._$AN = void 0, this._$AM = i2, this.options = s2;
+  constructor(t2, i3, s2) {
+    this.element = t2, this.type = 6, this._$AN = void 0, this._$AM = i3, this.options = s2;
   }
   get _$AU() {
     return this._$AM._$AU;
@@ -2850,14 +2894,14 @@ class z {
     S(this, t2);
   }
 }
-const j = t$1.litHtmlPolyfillSupport;
-j?.(N, R), (t$1.litHtmlVersions ??= []).push("3.3.1");
-const B = (t2, i2, s2) => {
-  const e2 = s2?.renderBefore ?? i2;
+const j = t$2.litHtmlPolyfillSupport;
+j?.(N, R), (t$2.litHtmlVersions ??= []).push("3.3.1");
+const B = (t2, i3, s2) => {
+  const e2 = s2?.renderBefore ?? i3;
   let h2 = e2._$litPart$;
   if (void 0 === h2) {
     const t3 = s2?.renderBefore ?? null;
-    e2._$litPart$ = h2 = new R(i2.insertBefore(l(), t3), t3, void 0, s2 ?? {});
+    e2._$litPart$ = h2 = new R(i3.insertBefore(l(), t3), t3, void 0, s2 ?? {});
   }
   return h2._$AI(t2), h2;
 };
@@ -2867,7 +2911,7 @@ const B = (t2, i2, s2) => {
  * SPDX-License-Identifier: BSD-3-Clause
  */
 const s = globalThis;
-class i extends y$1 {
+let i$1 = class i extends y$1 {
   constructor() {
     super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
   }
@@ -2888,17 +2932,17 @@ class i extends y$1 {
   render() {
     return T;
   }
-}
-i._$litElement$ = true, i["finalized"] = true, s.litElementHydrateSupport?.({ LitElement: i });
-const o$1 = s.litElementPolyfillSupport;
-o$1?.({ LitElement: i });
+};
+i$1._$litElement$ = true, i$1["finalized"] = true, s.litElementHydrateSupport?.({ LitElement: i$1 });
+const o$2 = s.litElementPolyfillSupport;
+o$2?.({ LitElement: i$1 });
 (s.litElementVersions ??= []).push("4.2.1");
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const t = (t2) => (e2, o2) => {
+const t$1 = (t2) => (e2, o2) => {
   void 0 !== o2 ? o2.addInitializer(() => {
     customElements.define(t2, e2);
   }) : customElements.define(t2, e2);
@@ -2908,10 +2952,10 @@ const t = (t2) => (e2, o2) => {
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const o = { attribute: true, type: String, converter: u$1, reflect: false, hasChanged: f$1 }, r$1 = (t2 = o, e2, r2) => {
-  const { kind: n3, metadata: i2 } = r2;
-  let s2 = globalThis.litPropertyMetadata.get(i2);
-  if (void 0 === s2 && globalThis.litPropertyMetadata.set(i2, s2 = /* @__PURE__ */ new Map()), "setter" === n3 && ((t2 = Object.create(t2)).wrapped = true), s2.set(r2.name, t2), "accessor" === n3) {
+const o$1 = { attribute: true, type: String, converter: u$1, reflect: false, hasChanged: f$1 }, r$1 = (t2 = o$1, e2, r2) => {
+  const { kind: n3, metadata: i3 } = r2;
+  let s2 = globalThis.litPropertyMetadata.get(i3);
+  if (void 0 === s2 && globalThis.litPropertyMetadata.set(i3, s2 = /* @__PURE__ */ new Map()), "setter" === n3 && ((t2 = Object.create(t2)).wrapped = true), s2.set(r2.name, t2), "accessor" === n3) {
     const { name: o2 } = r2;
     return { set(r3) {
       const n4 = e2.get.call(this);
@@ -2942,6 +2986,51 @@ function n2(t2) {
  */
 function r(r2) {
   return n2({ ...r2, state: true, attribute: false });
+}
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+const e$3 = (e2, t2, c2) => (c2.configurable = true, c2.enumerable = true, Reflect.decorate && "object" != typeof t2 && Object.defineProperty(e2, t2, c2), c2);
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+function e$2(e2, r2) {
+  return (n3, s2, i3) => {
+    const o2 = (t2) => t2.renderRoot?.querySelector(e2) ?? null;
+    return e$3(n3, s2, { get() {
+      return o2(this);
+    } });
+  };
+}
+function validateStudentForm(name, serviceId, pin) {
+  const errors = [];
+  if (!name || name.trim() === "") {
+    errors.push("Name required");
+  }
+  if (!serviceId) {
+    errors.push("Service ID required");
+  } else {
+    const serviceIdRegex = /^[a-zA-Z0-9]{2,10}$/;
+    if (!serviceIdRegex.test(serviceId)) {
+      errors.push("Service ID must be 2-10 alphanumeric characters");
+    }
+  }
+  if (!pin) {
+    errors.push("PIN required");
+  } else {
+    const pinRegex = /^\d{4}$/;
+    if (!pinRegex.test(pin)) {
+      errors.push("PIN must be exactly 4 digits");
+    }
+  }
+  return errors;
+}
+function sanitizePinInput(input) {
+  return input.replace(/\D/g, "");
 }
 const DEFAULT_CONFIG = {
   statusPanelContainer: ".wh_top_menu_and_indexterms_link",
@@ -3035,8 +3124,8 @@ function constantTimeCompare$1(a2, b2) {
     return false;
   }
   let result = 0;
-  for (let i2 = 0; i2 < a2.length; i2++) {
-    result |= a2.charCodeAt(i2) ^ b2.charCodeAt(i2);
+  for (let i3 = 0; i3 < a2.length; i3++) {
+    result |= a2.charCodeAt(i3) ^ b2.charCodeAt(i3);
   }
   return result === 0;
 }
@@ -3117,17 +3206,17 @@ function getRemainingAttempts(serviceId) {
   }
   return Math.max(0, PIN_CONSTANTS.MAX_ATTEMPTS - state2.attempts);
 }
-var __getOwnPropDesc$8 = Object.getOwnPropertyDescriptor;
-var __decorateClass$8 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$8(target, key) : target;
-  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
-    if (decorator = decorators[i2])
+var __getOwnPropDesc$c = Object.getOwnPropertyDescriptor;
+var __decorateClass$c = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$c(target, key) : target;
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
       result = decorator(result) || result;
   return result;
 };
-let QdBuildInfo = class extends i {
+let QdBuildInfo = class extends i$1 {
   render() {
-    const buildDate = "25/Nov/2025";
+    const buildDate = "26/Nov/2025";
     return x`
       <span class="info-icon" tabindex="0" role="button" aria-label="Build information">i</span>
       <div class="tooltip" role="tooltip">
@@ -3137,7 +3226,7 @@ let QdBuildInfo = class extends i {
     `;
   }
 };
-QdBuildInfo.styles = i$3`
+QdBuildInfo.styles = i$4`
     :host {
       display: inline-block;
       position: relative;
@@ -3211,83 +3300,840 @@ QdBuildInfo.styles = i$3`
       line-height: 1.4;
     }
   `;
-QdBuildInfo = __decorateClass$8([
-  t("qd-build-info")
+QdBuildInfo = __decorateClass$c([
+  t$1("qd-build-info")
 ], QdBuildInfo);
-var __defProp$7 = Object.defineProperty;
-var __getOwnPropDesc$7 = Object.getOwnPropertyDescriptor;
-var __decorateClass$7 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$7(target, key) : target;
-  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
-    if (decorator = decorators[i2])
+var __defProp$b = Object.defineProperty;
+var __getOwnPropDesc$b = Object.getOwnPropertyDescriptor;
+var __decorateClass$b = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$b(target, key) : target;
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$7(target, key, result);
+  if (kind && result) __defProp$b(target, key, result);
   return result;
 };
-let QdLogin = class extends i {
+let currentOpenModal = null;
+const MODAL_STYLES = `
+  .qd-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    font-family: system-ui, -apple-system, sans-serif;
+    animation: qd-modal-fadeIn 0.15s ease-out;
+  }
+
+  @keyframes qd-modal-fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .qd-modal-content {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: auto;
+    animation: qd-modal-slideIn 0.15s ease-out;
+  }
+
+  @keyframes qd-modal-slideIn {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .qd-modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #eee;
+    font-weight: 600;
+    font-size: 18px;
+  }
+
+  .qd-modal-header:empty {
+    display: none;
+  }
+
+  .qd-modal-body {
+    padding: 20px;
+  }
+
+  .error-message {
+    color: #d32f2f;
+    font-size: 12px;
+    padding: 8px;
+    background: #ffebee;
+    border-radius: 4px;
+    border-left: 3px solid #d32f2f;
+  }
+`;
+let QdModal = class extends i$1 {
+  constructor() {
+    super(...arguments);
+    this.open = false;
+    this.closable = true;
+    this.previouslyFocused = null;
+    this.portalElement = null;
+    this.cloneMap = /* @__PURE__ */ new Map();
+    this.childObserver = null;
+    this.handleKeyDown = (event) => {
+      if (event.key === "Escape" && this.open && this.closable) {
+        this.emitCloseEvent();
+        this.close();
+      }
+    };
+    this.handleBackdropClick = () => {
+      if (this.closable) {
+        this.emitCloseEvent();
+        this.close();
+      }
+    };
+    this.stopPropagation = (event) => {
+      event.stopPropagation();
+    };
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    document.addEventListener("keydown", this.handleKeyDown);
+    this.ensureStyles();
+    this.childObserver = new MutationObserver(() => {
+      if (this.open && this.portalElement) {
+        this.createPortal();
+      }
+    });
+    this.childObserver.observe(this, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    document.removeEventListener("keydown", this.handleKeyDown);
+    this.removePortal();
+    this.childObserver?.disconnect();
+    this.childObserver = null;
+    if (currentOpenModal === this) {
+      currentOpenModal = null;
+    }
+  }
+  updated(changedProperties) {
+    if (changedProperties.has("open")) {
+      if (this.open) {
+        this.handleOpen();
+      } else {
+        this.handleClose();
+      }
+    }
+  }
+  /**
+   * Ensure modal styles are added to document head (once)
+   */
+  ensureStyles() {
+    if (!QdModal.styleElement) {
+      QdModal.styleElement = document.createElement("style");
+      QdModal.styleElement.textContent = MODAL_STYLES;
+      document.head.appendChild(QdModal.styleElement);
+    }
+  }
+  /**
+   * Create and append portal to body
+   */
+  createPortal() {
+    this.removePortal();
+    this.cloneMap.clear();
+    this.portalElement = document.createElement("div");
+    this.portalElement.className = "qd-modal-backdrop";
+    this.portalElement.addEventListener("click", this.handleBackdropClick);
+    const content = document.createElement("div");
+    content.className = "qd-modal-content";
+    content.setAttribute("role", "dialog");
+    content.setAttribute("aria-modal", "true");
+    content.addEventListener("click", this.stopPropagation);
+    const header = document.createElement("div");
+    header.className = "qd-modal-header";
+    const body = document.createElement("div");
+    body.className = "qd-modal-body";
+    const headerSlot = this.querySelector('[slot="header"]');
+    if (headerSlot) {
+      header.appendChild(headerSlot.cloneNode(true));
+    }
+    Array.from(this.children).forEach((child) => {
+      if (!child.hasAttribute("slot") || child.getAttribute("slot") !== "header") {
+        const clone = child.cloneNode(true);
+        this.cloneMap.set(child, clone);
+        body.appendChild(clone);
+      }
+    });
+    content.appendChild(header);
+    content.appendChild(body);
+    this.portalElement.appendChild(content);
+    document.body.appendChild(this.portalElement);
+    this.setupFormEventForwarding(body);
+  }
+  /**
+   * Setup event forwarding for forms in cloned content
+   * Since cloneNode() loses Lit event bindings, we add native listeners
+   * that dispatch events to the original elements
+   */
+  setupFormEventForwarding(container) {
+    const forms = container.querySelectorAll("form");
+    forms.forEach((form) => {
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const data = {};
+        formData.forEach((value, key) => {
+          if (typeof value === "string") {
+            data[key] = value;
+          }
+        });
+        const passwordInput = form.querySelector('input[type="password"]');
+        if (passwordInput) {
+          data["password"] = passwordInput.value;
+        }
+        const submitEvent = new CustomEvent("qd:password-submit", {
+          detail: data,
+          bubbles: true,
+          composed: true
+        });
+        this.dispatchEvent(submitEvent);
+      });
+    });
+  }
+  /**
+   * Remove portal from body
+   */
+  removePortal() {
+    if (this.portalElement) {
+      this.portalElement.remove();
+      this.portalElement = null;
+    }
+  }
+  render() {
+    return E;
+  }
+  /**
+   * Open the modal
+   */
+  show() {
+    this.open = true;
+  }
+  /**
+   * Close the modal
+   */
+  close() {
+    this.open = false;
+  }
+  /**
+   * Refresh portal content by re-cloning from source
+   * Call this when slotted content changes and needs to sync to portal
+   */
+  refreshPortal() {
+    if (this.open && this.portalElement) {
+      this.createPortal();
+    }
+  }
+  /**
+   * Handle modal opening
+   */
+  handleOpen() {
+    if (currentOpenModal && currentOpenModal !== this) {
+      currentOpenModal.close();
+    }
+    currentOpenModal = this;
+    this.previouslyFocused = document.activeElement;
+    this.createPortal();
+    requestAnimationFrame(() => {
+      this.focusFirstElement();
+    });
+  }
+  /**
+   * Handle modal closing
+   */
+  handleClose() {
+    if (currentOpenModal === this) {
+      currentOpenModal = null;
+    }
+    this.removePortal();
+    if (this.previouslyFocused instanceof HTMLElement) {
+      this.previouslyFocused.focus();
+    }
+  }
+  /**
+   * Focus the first focusable element in the modal
+   */
+  focusFirstElement() {
+    if (!this.portalElement) return;
+    const focusable = this.portalElement.querySelector(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusable) {
+      focusable.focus();
+    }
+  }
+  /**
+   * Emit close event
+   */
+  emitCloseEvent() {
+    const event = new CustomEvent("qd:modal-close", {
+      bubbles: true,
+      composed: true
+    });
+    this.dispatchEvent(event);
+  }
+};
+QdModal.styleElement = null;
+__decorateClass$b([
+  n2({ type: Boolean, reflect: true })
+], QdModal.prototype, "open", 2);
+__decorateClass$b([
+  n2({ type: Boolean })
+], QdModal.prototype, "closable", 2);
+QdModal = __decorateClass$b([
+  t$1("qd-modal")
+], QdModal);
+var __defProp$a = Object.defineProperty;
+var __getOwnPropDesc$a = Object.getOwnPropertyDescriptor;
+var __decorateClass$a = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$a(target, key) : target;
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result) __defProp$a(target, key, result);
+  return result;
+};
+let QdPasswordModal = class extends i$1 {
+  constructor() {
+    super(...arguments);
+    this.open = false;
+    this.title = "Enter Password";
+    this.error = "";
+    this.password = "";
+    this.handleModalClose = () => {
+      this.close();
+    };
+    this.handleInput = (e2) => {
+      const input = e2.target;
+      this.password = input.value;
+      if (this.error) {
+        this.error = "";
+      }
+    };
+    this.handleSubmit = (e2) => {
+      e2.preventDefault();
+      if (!this.password.trim()) {
+        return;
+      }
+      this.dispatchEvent(
+        new CustomEvent("qd:password-submit", {
+          detail: { password: this.password },
+          bubbles: true,
+          composed: true
+        })
+      );
+    };
+    this.handleForwardedSubmit = (e2) => {
+      e2.stopPropagation();
+      const password = e2.detail?.password || "";
+      if (!password.trim()) {
+        return;
+      }
+      this.dispatchEvent(
+        new CustomEvent("qd:password-submit", {
+          detail: { password },
+          bubbles: true,
+          composed: true
+        })
+      );
+    };
+    this.handleCancel = () => {
+      this.close();
+    };
+  }
+  /**
+   * Show the modal
+   */
+  show() {
+    this.open = true;
+    this.password = "";
+    this.error = "";
+  }
+  /**
+   * Close the modal
+   */
+  close() {
+    this.open = false;
+    this.password = "";
+    this.error = "";
+    this.dispatchEvent(new CustomEvent("close", { bubbles: true, composed: true }));
+  }
+  /**
+   * Sync error message directly to portal DOM
+   * Since portal clones content once, we need to inject/update the error div directly
+   */
+  syncErrorToPortal() {
+    const backdrop = document.querySelector(".qd-modal-backdrop");
+    if (!backdrop) return;
+    const form = backdrop.querySelector("form.password-form");
+    if (!form) return;
+    let errorDiv = form.querySelector(".error-message");
+    if (this.error) {
+      if (!errorDiv) {
+        errorDiv = document.createElement("div");
+        errorDiv.className = "error-message";
+        errorDiv.style.cssText = `
+          color: #d32f2f;
+          font-size: 12px;
+          padding: 8px;
+          background: #ffebee;
+          border-radius: 4px;
+          border-left: 3px solid #d32f2f;
+        `;
+        const buttonRow = form.querySelector(".button-row");
+        if (buttonRow) {
+          form.insertBefore(errorDiv, buttonRow);
+        } else {
+          form.appendChild(errorDiv);
+        }
+      }
+      errorDiv.textContent = this.error;
+    } else {
+      errorDiv?.remove();
+    }
+  }
+  /**
+   * Focus password input when modal opens, refresh portal when error changes
+   */
+  updated(changedProps) {
+    if (changedProps.has("open") && this.open) {
+      this.password = "";
+      void this.updateComplete.then(() => {
+        this.passwordInput?.focus();
+      });
+    }
+    if (changedProps.has("error") && this.open) {
+      void this.updateComplete.then(() => {
+        setTimeout(() => {
+          this.syncErrorToPortal();
+        }, 0);
+      });
+    }
+  }
+  render() {
+    if (!this.open) {
+      return E;
+    }
+    return x`
+      <qd-modal
+        .open=${this.open}
+        @qd:modal-close=${this.handleModalClose}
+        @qd:password-submit=${this.handleForwardedSubmit}
+      >
+        <span slot="header">${this.title}</span>
+
+        <form class="password-form" @submit=${this.handleSubmit}>
+          <div class="form-field">
+            <label for="password-input">Password</label>
+            <input
+              id="password-input"
+              type="password"
+              placeholder="Password"
+              .value=${this.password}
+              @input=${this.handleInput}
+              required
+              aria-label="Enter your password"
+            />
+          </div>
+
+          ${this.error ? x`<div class="error-message">${this.error}</div>` : ""}
+
+          <div class="button-row">
+            <button type="button" @click=${this.handleCancel}>Cancel</button>
+            <button type="submit">Login</button>
+          </div>
+        </form>
+      </qd-modal>
+    `;
+  }
+};
+QdPasswordModal.styles = i$4`
+    :host {
+      display: contents;
+    }
+
+    .password-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 8px 0;
+    }
+
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    input[type='password'] {
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    input[type='password']:focus {
+      outline: none;
+      border-color: #0066cc;
+      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+    }
+
+    .error-message {
+      color: #d32f2f;
+      font-size: 12px;
+      padding: 8px;
+      background: #ffebee;
+      border-radius: 4px;
+      border-left: 3px solid #d32f2f;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    button[type='submit'] {
+      background: #0066cc;
+      color: white;
+    }
+
+    button[type='submit']:hover {
+      background: #0052a3;
+    }
+
+    button[type='button'] {
+      background: #e0e0e0;
+      color: #333;
+    }
+
+    button[type='button']:hover {
+      background: #d0d0d0;
+    }
+  `;
+__decorateClass$a([
+  n2({ type: Boolean, reflect: true })
+], QdPasswordModal.prototype, "open", 2);
+__decorateClass$a([
+  n2({ type: String })
+], QdPasswordModal.prototype, "title", 2);
+__decorateClass$a([
+  n2({ type: String })
+], QdPasswordModal.prototype, "error", 2);
+__decorateClass$a([
+  r()
+], QdPasswordModal.prototype, "password", 2);
+__decorateClass$a([
+  e$2('input[type="password"]')
+], QdPasswordModal.prototype, "passwordInput", 2);
+QdPasswordModal = __decorateClass$a([
+  t$1("qd-password-modal")
+], QdPasswordModal);
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+const t = { CHILD: 2 }, e$1 = (t2) => (...e2) => ({ _$litDirective$: t2, values: e2 });
+class i2 {
+  constructor(t2) {
+  }
+  get _$AU() {
+    return this._$AM._$AU;
+  }
+  _$AT(t2, e2, i3) {
+    this._$Ct = t2, this._$AM = e2, this._$Ci = i3;
+  }
+  _$AS(t2, e2) {
+    return this.update(t2, e2);
+  }
+  update(t2, e2) {
+    return this.render(...e2);
+  }
+}
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+class e extends i2 {
+  constructor(i3) {
+    if (super(i3), this.it = E, i3.type !== t.CHILD) throw Error(this.constructor.directiveName + "() can only be used in child bindings");
+  }
+  render(r2) {
+    if (r2 === E || null == r2) return this._t = void 0, this.it = r2;
+    if (r2 === T) return r2;
+    if ("string" != typeof r2) throw Error(this.constructor.directiveName + "() called with a non-string value");
+    if (r2 === this.it) return this._t;
+    this.it = r2;
+    const s2 = [r2];
+    return s2.raw = s2, this._t = { _$litType$: this.constructor.resultType, strings: s2, values: [] };
+  }
+}
+e.directiveName = "unsafeHTML", e.resultType = 1;
+const o = e$1(e);
+var __defProp$9 = Object.defineProperty;
+var __getOwnPropDesc$9 = Object.getOwnPropertyDescriptor;
+var __decorateClass$9 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$9(target, key) : target;
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result) __defProp$9(target, key, result);
+  return result;
+};
+let QdConfirmDialog = class extends i$1 {
+  constructor() {
+    super(...arguments);
+    this.open = false;
+    this.title = "Confirm";
+    this.message = "";
+    this.confirmText = "Confirm";
+    this.cancelText = "Cancel";
+    this.destructive = false;
+    this.handleModalClose = () => {
+      this.close();
+      this.dispatchEvent(
+        new CustomEvent("qd:cancel", {
+          bubbles: true,
+          composed: true
+        })
+      );
+    };
+    this.handleConfirm = () => {
+      this.close();
+      this.dispatchEvent(
+        new CustomEvent("qd:confirm", {
+          bubbles: true,
+          composed: true
+        })
+      );
+    };
+    this.handleCancel = () => {
+      this.close();
+      this.dispatchEvent(
+        new CustomEvent("qd:cancel", {
+          bubbles: true,
+          composed: true
+        })
+      );
+    };
+  }
+  /**
+   * Show the dialog
+   */
+  show() {
+    this.open = true;
+  }
+  /**
+   * Close the dialog
+   */
+  close() {
+    this.open = false;
+  }
+  render() {
+    return x`
+      <qd-modal .open=${this.open} @qd:modal-close=${this.handleModalClose}>
+        <span slot="header">${this.title}</span>
+
+        <div class="confirm-content">
+          <div class="message">${o(this.message)}</div>
+
+          <div class="button-row">
+            <button type="button" class="cancel-btn" @click=${this.handleCancel}>
+              ${this.cancelText}
+            </button>
+            <button
+              type="button"
+              class="confirm-btn ${this.destructive ? "destructive" : ""}"
+              @click=${this.handleConfirm}
+            >
+              ${this.confirmText}
+            </button>
+          </div>
+        </div>
+      </qd-modal>
+    `;
+  }
+};
+QdConfirmDialog.styles = i$4`
+    :host {
+      display: contents;
+    }
+
+    .confirm-content {
+      padding: 8px 0;
+    }
+
+    .message {
+      font-size: 14px;
+      color: #333;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .cancel-btn {
+      background: #e0e0e0;
+      color: #333;
+    }
+
+    .cancel-btn:hover {
+      background: #d0d0d0;
+    }
+
+    .confirm-btn {
+      background: #0066cc;
+      color: white;
+    }
+
+    .confirm-btn:hover {
+      background: #0052a3;
+    }
+
+    .confirm-btn.destructive {
+      background: #d32f2f;
+    }
+
+    .confirm-btn.destructive:hover {
+      background: #b71c1c;
+    }
+  `;
+__decorateClass$9([
+  n2({ type: Boolean, reflect: true })
+], QdConfirmDialog.prototype, "open", 2);
+__decorateClass$9([
+  n2({ type: String })
+], QdConfirmDialog.prototype, "title", 2);
+__decorateClass$9([
+  n2({ type: String })
+], QdConfirmDialog.prototype, "message", 2);
+__decorateClass$9([
+  n2({ type: String })
+], QdConfirmDialog.prototype, "confirmText", 2);
+__decorateClass$9([
+  n2({ type: String })
+], QdConfirmDialog.prototype, "cancelText", 2);
+__decorateClass$9([
+  n2({ type: Boolean })
+], QdConfirmDialog.prototype, "destructive", 2);
+QdConfirmDialog = __decorateClass$9([
+  t$1("qd-confirm-dialog")
+], QdConfirmDialog);
+var __defProp$8 = Object.defineProperty;
+var __getOwnPropDesc$8 = Object.getOwnPropertyDescriptor;
+var __decorateClass$8 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$8(target, key) : target;
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result) __defProp$8(target, key, result);
+  return result;
+};
+let QdLogin = class extends i$1 {
   constructor() {
     super(...arguments);
     this.title = "Sonar Quiz System";
     this.name = "";
     this.serviceId = "";
-    this.instructorPassword = "";
     this.showInstructorModal = false;
-    this.modalOverlay = null;
-    this.modalErrorDiv = null;
-    this.modalPasswordInput = null;
+    this.instructorError = "";
     this.errorMessage = "";
     this.isSubmitting = false;
     this.pin = "";
     this.lockoutSeconds = 0;
+    this.showPinConfirmation = false;
     this.lockoutInterval = null;
     this.handleLogoutEvent = () => {
       this.name = "";
       this.serviceId = "";
-      this.instructorPassword = "";
       this.errorMessage = "";
       this.isSubmitting = false;
       this.showInstructorModal = false;
+      this.instructorError = "";
       this.pin = "";
       this.lockoutSeconds = 0;
+      this.showPinConfirmation = false;
       if (this.lockoutInterval) {
         clearInterval(this.lockoutInterval);
         this.lockoutInterval = null;
       }
-      this.cleanupModal();
       this.updateVisibility();
     };
-    this.handleEscape = (e2) => {
-      if (e2.key === "Escape" && this.showInstructorModal) {
-        this.closeInstructorModal();
-      }
+    this.handleInstructorPasswordSubmit = (e2) => {
+      void this.handleInstructorLogin(e2.detail.password);
+    };
+    this.handleInstructorModalClose = () => {
+      this.showInstructorModal = false;
+      this.instructorError = "";
+    };
+    this.handlePinConfirmationDismiss = () => {
+      this.showPinConfirmation = false;
     };
   }
   connectedCallback() {
     super.connectedCallback();
     this.updateVisibility();
-    document.addEventListener("keydown", this.handleEscape);
     document.addEventListener("qd:logout", this.handleLogoutEvent);
   }
   disconnectedCallback() {
     super.disconnectedCallback();
-    document.removeEventListener("keydown", this.handleEscape);
     document.removeEventListener("qd:logout", this.handleLogoutEvent);
-    this.cleanupModal();
     if (this.lockoutInterval) {
       clearInterval(this.lockoutInterval);
       this.lockoutInterval = null;
     }
-  }
-  /**
-   * Remove modal from document.body if present
-   */
-  cleanupModal() {
-    if (this.modalOverlay) {
-      this.modalOverlay.remove();
-      this.modalOverlay = null;
-    }
-    this.modalErrorDiv = null;
-    this.modalPasswordInput = null;
   }
   /**
    * Lifecycle: Called after first render completes (shadow DOM ready)
@@ -3373,165 +4219,25 @@ let QdLogin = class extends i {
               </div>` : ""}
         </form>
       </div>
+
+      <qd-password-modal
+        .open=${this.showInstructorModal}
+        title="Instructor Login"
+        .error=${this.instructorError}
+        @qd:password-submit=${this.handleInstructorPasswordSubmit}
+        @close=${this.handleInstructorModalClose}
+      ></qd-password-modal>
+
+      <qd-confirm-dialog
+        .open=${this.showPinConfirmation}
+        title="PIN Stored"
+        message="Your PIN has been saved. Use it with your name and service ID on future logins."
+        confirmText="OK"
+        cancelText=""
+        @qd:confirm=${this.handlePinConfirmationDismiss}
+        @qd:cancel=${this.handlePinConfirmationDismiss}
+      ></qd-confirm-dialog>
     `;
-  }
-  /**
-   * Render instructor modal to document.body (outside shadow DOM)
-   */
-  renderInstructorModalToBody() {
-    const overlay = document.createElement("div");
-    overlay.className = "qd-instructor-modal-overlay";
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 99999;
-      font-family: system-ui, -apple-system, sans-serif;
-    `;
-    const modal = document.createElement("div");
-    modal.className = "qd-instructor-modal";
-    modal.style.cssText = `
-      background: white;
-      border-radius: 8px;
-      padding: 24px;
-      min-width: 320px;
-      max-width: 400px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-      pointer-events: auto;
-      position: relative;
-      z-index: 100000;
-    `;
-    const header = document.createElement("div");
-    header.style.cssText = `
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    `;
-    const title = document.createElement("h3");
-    title.textContent = "Instructor Login";
-    title.style.cssText = `font-size: 18px; font-weight: 600; color: #333; margin: 0;`;
-    const closeBtn = document.createElement("button");
-    closeBtn.textContent = "×";
-    closeBtn.type = "button";
-    closeBtn.style.cssText = `
-      background: none;
-      border: none;
-      font-size: 24px;
-      color: #666;
-      cursor: pointer;
-      padding: 0;
-      width: 28px;
-      height: 28px;
-      line-height: 1;
-      pointer-events: auto;
-      position: relative;
-      z-index: 1;
-    `;
-    closeBtn.onclick = () => this.closeInstructorModal();
-    header.appendChild(title);
-    header.appendChild(closeBtn);
-    const form = document.createElement("form");
-    const bodyDiv = document.createElement("div");
-    bodyDiv.style.marginBottom = "20px";
-    const input = document.createElement("input");
-    input.id = "qd-instructor-password";
-    input.type = "password";
-    input.placeholder = "Password";
-    input.required = true;
-    input.style.cssText = `
-      width: 100%;
-      box-sizing: border-box;
-      padding: 6px 10px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 11px;
-      pointer-events: auto;
-      position: relative;
-      z-index: 1;
-    `;
-    input.oninput = (e2) => {
-      this.instructorPassword = e2.target.value;
-      if (this.modalErrorDiv) {
-        this.modalErrorDiv.style.display = "none";
-        this.modalErrorDiv.textContent = "";
-      }
-    };
-    bodyDiv.appendChild(input);
-    this.modalPasswordInput = input;
-    const errorDiv = document.createElement("div");
-    errorDiv.id = "qd-instructor-modal-error";
-    errorDiv.style.cssText = `
-      color: #d32f2f;
-      font-size: 11px;
-      margin-top: 8px;
-      padding: 4px 8px;
-      background: #ffebee;
-      border-radius: 3px;
-      border-left: 3px solid #d32f2f;
-      display: none;
-    `;
-    bodyDiv.appendChild(errorDiv);
-    this.modalErrorDiv = errorDiv;
-    const footer = document.createElement("div");
-    footer.style.cssText = `display: flex; gap: 8px; justify-content: flex-end;`;
-    const cancelBtn = document.createElement("button");
-    cancelBtn.textContent = "Cancel";
-    cancelBtn.type = "button";
-    cancelBtn.style.cssText = `
-      background: #e0e0e0;
-      color: #333;
-      border: none;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 500;
-      cursor: pointer;
-      padding: 6px 12px;
-      pointer-events: auto;
-      position: relative;
-      z-index: 1;
-    `;
-    cancelBtn.onclick = () => this.closeInstructorModal();
-    const loginBtn = document.createElement("button");
-    loginBtn.id = "qd-instructor-submit";
-    loginBtn.textContent = "Login";
-    loginBtn.type = "submit";
-    loginBtn.style.cssText = `
-      background: #0066cc;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 500;
-      cursor: pointer;
-      padding: 6px 12px;
-      pointer-events: auto;
-      position: relative;
-      z-index: 1;
-    `;
-    footer.appendChild(cancelBtn);
-    footer.appendChild(loginBtn);
-    form.appendChild(bodyDiv);
-    form.appendChild(footer);
-    form.onsubmit = (e2) => {
-      e2.preventDefault();
-      void this.handleInstructorLogin(e2);
-    };
-    modal.appendChild(header);
-    modal.appendChild(form);
-    overlay.appendChild(modal);
-    overlay.onclick = (e2) => {
-      if (e2.target === overlay) this.closeInstructorModal();
-    };
-    document.body.appendChild(overlay);
-    this.modalOverlay = overlay;
-    setTimeout(() => input.focus(), 50);
   }
   /**
    * Handle name input
@@ -3554,20 +4260,15 @@ let QdLogin = class extends i {
    */
   handlePinInput(e2) {
     const input = e2.target;
-    this.pin = input.value.replace(/\D/g, "");
+    this.pin = sanitizePinInput(input.value);
     this.errorMessage = "";
   }
   /**
-   * Check if student form is valid
+   * Check if student form is valid using validation helper
    */
   isValid() {
-    const name = this.name.trim();
-    const serviceId = this.serviceId.trim();
-    if (!name) return false;
-    const serviceIdPattern = /^[A-Za-z0-9]{2,10}$/;
-    if (!serviceIdPattern.test(serviceId)) return false;
-    if (this.pin.length !== 4) return false;
-    return true;
+    const errors = validateStudentForm(this.name, this.serviceId, this.pin);
+    return errors.length === 0;
   }
   /**
    * Get release from document title
@@ -3691,60 +4392,7 @@ let QdLogin = class extends i {
    * Show confirmation popup that PIN has been stored
    */
   showPinStoredConfirmation() {
-    const overlay = document.createElement("div");
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 99999;
-    `;
-    const modal = document.createElement("div");
-    modal.style.cssText = `
-      background: white;
-      border-radius: 8px;
-      padding: 24px;
-      max-width: 320px;
-      text-align: center;
-      font-family: system-ui, -apple-system, sans-serif;
-    `;
-    modal.innerHTML = `
-      <div style="font-size: 32px; margin-bottom: 12px;">✓</div>
-      <h3 style="margin: 0 0 8px 0; font-size: 16px;">PIN Stored</h3>
-      <p style="margin: 0 0 16px 0; font-size: 13px; color: #666;">
-        Your PIN has been saved. Use it with your name and service ID on future logins.
-      </p>
-      <button id="qd-pin-confirmation-ok" style="
-        background: #0066cc;
-        color: white;
-        border: none;
-        padding: 8px 24px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 13px;
-      ">OK</button>
-    `;
-    const button = modal.querySelector("button");
-    button?.addEventListener("click", () => {
-      document.body.removeChild(overlay);
-    });
-    overlay.addEventListener("click", (e2) => {
-      if (e2.target === overlay) {
-        document.body.removeChild(overlay);
-      }
-    });
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-    setTimeout(() => {
-      if (document.body.contains(overlay)) {
-        document.body.removeChild(overlay);
-      }
-    }, 3e4);
+    this.showPinConfirmation = true;
   }
   /**
    * Start lockout countdown timer
@@ -3785,7 +4433,6 @@ let QdLogin = class extends i {
     this.dispatchEvent(event);
     this.pin = "";
     this.isSubmitting = false;
-    this.cleanupModal();
     this.updateVisibility();
   }
   /**
@@ -3793,16 +4440,7 @@ let QdLogin = class extends i {
    */
   openInstructorModal() {
     this.showInstructorModal = true;
-    this.instructorPassword = "";
-    this.renderInstructorModalToBody();
-  }
-  /**
-   * Close instructor modal
-   */
-  closeInstructorModal() {
-    this.showInstructorModal = false;
-    this.instructorPassword = "";
-    this.cleanupModal();
+    this.instructorError = "";
   }
   /**
    * Hash password using SHA-256
@@ -3822,37 +4460,18 @@ let QdLogin = class extends i {
     return hashElement?.textContent?.trim() || "";
   }
   /**
-   * Show error in modal
+   * Handle instructor login with password
    */
-  showModalError(message) {
-    if (this.modalErrorDiv) {
-      this.modalErrorDiv.textContent = message;
-      this.modalErrorDiv.style.display = "block";
-    }
-  }
-  /**
-   * Handle instructor login
-   */
-  async handleInstructorLogin(e2) {
-    e2.preventDefault();
-    if (!this.instructorPassword) {
-      this.showModalError("Password is required");
-      return;
-    }
+  async handleInstructorLogin(password) {
     try {
-      const passwordHash = await this.hashPassword(this.instructorPassword);
+      const passwordHash = await this.hashPassword(password);
       const expectedHash = this.getExpectedHash();
       if (!expectedHash) {
-        this.showModalError("Instructor password not configured");
+        this.instructorError = "Instructor password not configured";
         return;
       }
       if (passwordHash !== expectedHash) {
-        this.showModalError("Incorrect password");
-        this.instructorPassword = "";
-        if (this.modalPasswordInput) {
-          this.modalPasswordInput.value = "";
-          this.modalPasswordInput.focus();
-        }
+        this.instructorError = "Incorrect password";
         return;
       }
       const release = this.getRelease();
@@ -3871,15 +4490,16 @@ let QdLogin = class extends i {
         composed: true
       });
       this.dispatchEvent(event);
-      this.closeInstructorModal();
+      this.showInstructorModal = false;
+      this.instructorError = "";
       this.updateVisibility();
     } catch (err) {
-      this.showModalError("Login failed. Please try again.");
+      this.instructorError = "Login failed. Please try again.";
       console.error("Instructor login error:", err);
     }
   }
 };
-QdLogin.styles = i$3`
+QdLogin.styles = i$4`
     :host {
       display: none; /* Hidden if already logged in */
       font-family:
@@ -3999,83 +4619,6 @@ QdLogin.styles = i$3`
       border-left: 3px solid #f57c00;
     }
 
-    /* Modal Overlay */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10001; /* Above storage monitor (10000) */
-    }
-
-    .modal {
-      background: white;
-      border-radius: 8px;
-      padding: 24px;
-      min-width: 320px;
-      max-width: 400px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-
-    .modal-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: #333;
-      margin: 0;
-    }
-
-    .close-btn {
-      background: none;
-      border: none;
-      font-size: 24px;
-      color: #666;
-      cursor: pointer;
-      padding: 0;
-      width: 28px;
-      height: 28px;
-      line-height: 1;
-    }
-
-    .close-btn:hover {
-      color: #333;
-    }
-
-    .modal-body {
-      margin-bottom: 20px;
-    }
-
-    .modal-body input {
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    .modal-footer {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-    }
-
-    .cancel-btn {
-      background: #e0e0e0;
-      color: #333;
-    }
-
-    .cancel-btn:hover {
-      background: #d0d0d0;
-    }
-
     /* Responsive */
     @media (max-width: 600px) {
       .login-form {
@@ -4088,47 +4631,50 @@ QdLogin.styles = i$3`
       }
     }
   `;
-__decorateClass$7([
+__decorateClass$8([
   n2({ type: String })
 ], QdLogin.prototype, "title", 2);
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdLogin.prototype, "name", 2);
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdLogin.prototype, "serviceId", 2);
-__decorateClass$7([
-  r()
-], QdLogin.prototype, "instructorPassword", 2);
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdLogin.prototype, "showInstructorModal", 2);
-__decorateClass$7([
+__decorateClass$8([
+  r()
+], QdLogin.prototype, "instructorError", 2);
+__decorateClass$8([
   r()
 ], QdLogin.prototype, "errorMessage", 2);
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdLogin.prototype, "isSubmitting", 2);
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdLogin.prototype, "pin", 2);
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdLogin.prototype, "lockoutSeconds", 2);
-QdLogin = __decorateClass$7([
-  t("qd-login")
+__decorateClass$8([
+  r()
+], QdLogin.prototype, "showPinConfirmation", 2);
+QdLogin = __decorateClass$8([
+  t$1("qd-login")
 ], QdLogin);
-var __defProp$6 = Object.defineProperty;
-var __getOwnPropDesc$6 = Object.getOwnPropertyDescriptor;
-var __decorateClass$6 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$6(target, key) : target;
-  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
-    if (decorator = decorators[i2])
+var __defProp$7 = Object.defineProperty;
+var __getOwnPropDesc$7 = Object.getOwnPropertyDescriptor;
+var __decorateClass$7 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$7(target, key) : target;
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$6(target, key, result);
+  if (kind && result) __defProp$7(target, key, result);
   return result;
 };
-let QdStatus = class extends i {
+let QdStatus = class extends i$1 {
   constructor() {
     super(...arguments);
     this.total = 0;
@@ -4216,15 +4762,13 @@ let QdStatus = class extends i {
     return Math.round(correct / total * 100);
   }
   /**
-   * Calculate status indicator color
+   * Calculate status indicator color using calculation helper
    * Red: No questions registered or no answers
    * Green: All questions answered correctly
    * Amber: Some answered but not all correct
    */
   calculateStatusColor(total, correct) {
-    if (total === 0 || correct === 0) return "red";
-    if (correct === total) return "green";
-    return "amber";
+    return calculateStatusIndicator(total, correct);
   }
   /**
    * Update visibility based on session state
@@ -4256,7 +4800,7 @@ let QdStatus = class extends i {
     this.dispatchEvent(event);
   }
 };
-QdStatus.styles = i$3`
+QdStatus.styles = i$4`
     :host {
       display: none; /* Hidden by default, shown when logged in */
       font-family:
@@ -4351,28 +4895,28 @@ QdStatus.styles = i$3`
       background: #b71c1c;
     }
   `;
-__decorateClass$6([
+__decorateClass$7([
   r()
 ], QdStatus.prototype, "total", 2);
-__decorateClass$6([
+__decorateClass$7([
   r()
 ], QdStatus.prototype, "correct", 2);
-__decorateClass$6([
+__decorateClass$7([
   r()
 ], QdStatus.prototype, "percentage", 2);
-__decorateClass$6([
+__decorateClass$7([
   r()
 ], QdStatus.prototype, "statusColor", 2);
-__decorateClass$6([
+__decorateClass$7([
   r()
 ], QdStatus.prototype, "name", 2);
-__decorateClass$6([
+__decorateClass$7([
   r()
 ], QdStatus.prototype, "serviceId", 2);
-QdStatus = __decorateClass$6([
-  t("qd-status")
+QdStatus = __decorateClass$7([
+  t$1("qd-status")
 ], QdStatus);
-const sharedStyles = i$3`
+const sharedStyles = i$4`
   :host {
     display: inline-block;
     font-family:
@@ -4705,8 +5249,8 @@ async function constantTimeCompare(a2, b2) {
     const sigView = new Uint8Array(signature);
     const expView = new Uint8Array(expectedSignature);
     let result = 0;
-    for (let i2 = 0; i2 < sigView.length; i2++) {
-      result |= (sigView[i2] ?? 0) ^ (expView[i2] ?? 0);
+    for (let i3 = 0; i3 < sigView.length; i3++) {
+      result |= (sigView[i3] ?? 0) ^ (expView[i3] ?? 0);
     }
     return result === 0;
   } catch (error2) {
@@ -4735,17 +5279,17 @@ function getInstructorPasswordHash() {
   }
   return hash.toLowerCase();
 }
-var __defProp$5 = Object.defineProperty;
-var __getOwnPropDesc$5 = Object.getOwnPropertyDescriptor;
-var __decorateClass$5 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$5(target, key) : target;
-  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
-    if (decorator = decorators[i2])
+var __defProp$6 = Object.defineProperty;
+var __getOwnPropDesc$6 = Object.getOwnPropertyDescriptor;
+var __decorateClass$6 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$6(target, key) : target;
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$5(target, key, result);
+  if (kind && result) __defProp$6(target, key, result);
   return result;
 };
-let QdInstructorUnlock = class extends i {
+let QdInstructorUnlock = class extends i$1 {
   constructor() {
     super(...arguments);
     this.password = "";
@@ -4844,65 +5388,122 @@ let QdInstructorUnlock = class extends i {
   }
 };
 QdInstructorUnlock.styles = sharedStyles;
-__decorateClass$5([
+__decorateClass$6([
   r()
 ], QdInstructorUnlock.prototype, "password", 2);
-__decorateClass$5([
+__decorateClass$6([
   r()
 ], QdInstructorUnlock.prototype, "error", 2);
-__decorateClass$5([
+__decorateClass$6([
   r()
 ], QdInstructorUnlock.prototype, "remainingSeconds", 2);
-QdInstructorUnlock = __decorateClass$5([
-  t("qd-instructor-unlock")
+QdInstructorUnlock = __decorateClass$6([
+  t$1("qd-instructor-unlock")
 ], QdInstructorUnlock);
-var __defProp$4 = Object.defineProperty;
-var __getOwnPropDesc$4 = Object.getOwnPropertyDescriptor;
-var __decorateClass$4 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$4(target, key) : target;
-  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
-    if (decorator = decorators[i2])
+var __defProp$5 = Object.defineProperty;
+var __getOwnPropDesc$5 = Object.getOwnPropertyDescriptor;
+var __decorateClass$5 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$5(target, key) : target;
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$4(target, key, result);
+  if (kind && result) __defProp$5(target, key, result);
   return result;
 };
-let QdInstructorScores = class extends i {
+let QdScoresModal = class extends i$1 {
   constructor() {
     super(...arguments);
+    this.open = false;
     this.students = [];
-    this.showModal = false;
     this.expandedStudents = /* @__PURE__ */ new Set();
-    this.modalElement = null;
-    this.handleEscape = (e2) => {
-      if (e2.key === "Escape" && this.showModal) {
-        this.handleClose();
-      }
-    };
-    this.handleClose = () => {
+    this.handleModalClose = () => {
+      this.open = false;
       this.dispatchEvent(new CustomEvent("close"));
     };
   }
-  connectedCallback() {
-    super.connectedCallback();
-    document.addEventListener("keydown", this.handleEscape);
-  }
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    document.removeEventListener("keydown", this.handleEscape);
-    this.removeModalFromBody();
-  }
   updated(changedProperties) {
-    if (changedProperties.has("showModal")) {
-      if (this.showModal) {
-        this.expandedStudents.clear();
-        this.students.forEach((student) => {
-          this.expandedStudents.add(student.serviceId);
-        });
-        this.renderModalToBody();
-      } else {
-        this.removeModalFromBody();
-      }
+    if (changedProperties.has("open") && this.open) {
+      this.expandedStudents = new Set(this.students.map((s2) => s2.serviceId));
     }
+  }
+  render() {
+    return x`
+      <qd-modal .open=${this.open} @qd:modal-close=${this.handleModalClose}>
+        <span slot="header">Student Scores</span>
+        <div class="scores-content">
+          ${this.students.length === 0 ? x`<p class="empty-message">No student data available.</p>` : this.renderScoresTable()}
+        </div>
+      </qd-modal>
+    `;
+  }
+  renderScoresTable() {
+    const sortedStudents = [...this.students].sort((a2, b2) => a2.name.localeCompare(b2.name));
+    return x`
+      <table>
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Service ID</th>
+            <th>Attempted</th>
+            <th>Correct</th>
+            <th>Percentage</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${sortedStudents.map((student) => this.renderStudentRow(student))}
+        </tbody>
+      </table>
+    `;
+  }
+  renderStudentRow(student) {
+    const summary = this.calculateSummary(student);
+    const isExpanded = this.expandedStudents.has(student.serviceId);
+    return x`
+      <tr class="student-row" @click=${() => this.toggleStudent(student.serviceId)}>
+        <td>
+          <span class="expand-icon">${isExpanded ? "▼" : "▶"}</span>
+          ${summary.name}
+        </td>
+        <td>${summary.serviceId}</td>
+        <td>${summary.attempted}</td>
+        <td
+          class=${summary.correct === summary.attempted && summary.attempted > 0 ? "correct-highlight" : ""}
+        >
+          ${summary.correct}
+        </td>
+        <td class=${this.getPercentageClass(summary.percentage)}>${summary.percentage}%</td>
+      </tr>
+      ${isExpanded ? this.renderDetailRow(student) : E}
+    `;
+  }
+  renderDetailRow(student) {
+    const pages = Object.entries(student.pages);
+    return x`
+      <tr class="detail-row">
+        <td colspan="5">
+          ${pages.length === 0 ? x`<span class="no-pages">No quiz pages attempted</span>` : x`
+                <div class="page-breakdown">
+                  ${pages.map(
+      ([pageId, pageData]) => x`
+                      <div class="page-row">
+                        <span class="page-name">${pageId}</span>
+                        <div class="answers-list">
+                          ${pageData.answers.map(
+        (answer, index) => x`
+                              <span class="answer-badge ${this.getAnswerClass(answer)}">
+                                Q${index + 1}: ${answer ? answer.answer : "—"}
+                              </span>
+                            `
+      )}
+                        </div>
+                      </div>
+                    `
+    )}
+                </div>
+              `}
+        </td>
+      </tr>
+    `;
   }
   calculateSummary(student) {
     const percentage = student.attempted > 0 ? Math.round(student.correct / student.attempted * 100) : 0;
@@ -4914,216 +5515,197 @@ let QdInstructorScores = class extends i {
       percentage
     };
   }
-  /**
-   * Render modal to document.body (outside shadow DOM) like login modal
-   */
-  renderModalToBody() {
-    this.removeModalFromBody();
-    const overlay = document.createElement("div");
-    overlay.className = "qd-scores-modal-overlay";
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 99999;
-      font-family: system-ui, -apple-system, sans-serif;
-      pointer-events: auto;
-    `;
-    overlay.onclick = (e2) => {
-      if (e2.target === overlay) this.handleClose();
-    };
-    const modal = document.createElement("div");
-    modal.className = "qd-scores-modal";
-    modal.style.cssText = `
-      background: white;
-      color: #333;
-      border-radius: 8px;
-      padding: 24px;
-      max-width: 800px;
-      max-height: 80vh;
-      overflow: auto;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-      pointer-events: auto;
-      position: relative;
-      z-index: 100000;
-    `;
-    modal.onclick = (e2) => e2.stopPropagation();
-    const header = document.createElement("div");
-    header.style.cssText = `
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    `;
-    const title = document.createElement("h2");
-    title.textContent = "Student Scores";
-    title.style.cssText = `font-size: 18px; font-weight: 600; color: #000; margin: 0;`;
-    const closeBtn = document.createElement("button");
-    closeBtn.textContent = "✕";
-    closeBtn.type = "button";
-    closeBtn.style.cssText = `
-      background: none;
-      border: none;
-      font-size: 20px;
-      color: #666;
-      cursor: pointer;
-      padding: 4px 8px;
-      pointer-events: auto;
-    `;
-    closeBtn.onclick = () => this.handleClose();
-    header.appendChild(title);
-    header.appendChild(closeBtn);
-    const content = document.createElement("div");
-    const sortedStudents = [...this.students].sort((a2, b2) => a2.name.localeCompare(b2.name));
-    if (sortedStudents.length === 0) {
-      content.innerHTML = '<p style="color: #333;">No student data available.</p>';
-    } else {
-      const table = this.createScoresTable(sortedStudents);
-      content.appendChild(table);
-    }
-    modal.appendChild(header);
-    modal.appendChild(content);
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-    this.modalElement = overlay;
+  getPercentageClass(percentage) {
+    if (percentage === 100) return "correct-highlight";
+    if (percentage === 0) return "incorrect-highlight";
+    return "";
   }
-  /**
-   * Remove modal from document.body
-   */
-  removeModalFromBody() {
-    if (this.modalElement) {
-      this.modalElement.remove();
-      this.modalElement = null;
-    }
+  getAnswerClass(answer) {
+    if (!answer) return "unanswered";
+    return answer.success ? "correct" : "incorrect";
   }
-  /**
-   * Toggle student expansion
-   */
   toggleStudent(serviceId) {
-    if (this.expandedStudents.has(serviceId)) {
-      this.expandedStudents.delete(serviceId);
+    const newSet = new Set(this.expandedStudents);
+    if (newSet.has(serviceId)) {
+      newSet.delete(serviceId);
     } else {
-      this.expandedStudents.add(serviceId);
+      newSet.add(serviceId);
     }
-    if (this.showModal) {
-      this.renderModalToBody();
-    }
+    this.expandedStudents = newSet;
   }
   /**
-   * Create scores table element with expandable rows
+   * Open the modal
    */
-  createScoresTable(sortedStudents) {
-    const table = document.createElement("table");
-    table.style.cssText = `
+  show() {
+    this.open = true;
+  }
+  /**
+   * Close the modal
+   */
+  close() {
+    this.open = false;
+  }
+};
+QdScoresModal.styles = i$4`
+    :host {
+      display: contents;
+    }
+
+    .scores-content {
+      min-width: 600px;
+      max-width: 800px;
+    }
+
+    .empty-message {
+      color: #666;
+      padding: 20px;
+      text-align: center;
+    }
+
+    table {
       width: 100%;
       border-collapse: collapse;
-      margin: 16px 0;
-    `;
-    const thead = document.createElement("thead");
-    thead.innerHTML = `
-      <tr>
-        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Student</th>
-        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Service ID</th>
-        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Attempted</th>
-        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Correct</th>
-        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd; background: #f5f5f5; font-weight: 600; color: #000;">Percentage</th>
-      </tr>
-    `;
-    table.appendChild(thead);
-    const tbody = document.createElement("tbody");
-    sortedStudents.forEach((student) => {
-      const summary = this.calculateSummary(student);
-      const isExpanded = this.expandedStudents.has(student.serviceId);
-      const tr = document.createElement("tr");
-      tr.style.cssText = "cursor: pointer; color: #333;";
-      const nameCell = document.createElement("td");
-      nameCell.style.cssText = "padding: 8px; text-align: left; border-bottom: 1px solid #ddd;";
-      nameCell.innerHTML = `<span style="display: inline-block; width: 16px; margin-right: 4px;">${isExpanded ? "▼" : "▶"}</span>${summary.name}`;
-      nameCell.onclick = () => this.toggleStudent(student.serviceId);
-      tr.appendChild(nameCell);
-      const serviceIdCell = document.createElement("td");
-      serviceIdCell.style.cssText = "padding: 8px; text-align: left; border-bottom: 1px solid #ddd;";
-      serviceIdCell.textContent = summary.serviceId;
-      serviceIdCell.onclick = () => this.toggleStudent(student.serviceId);
-      tr.appendChild(serviceIdCell);
-      const attemptedCell = document.createElement("td");
-      attemptedCell.style.cssText = "padding: 8px; text-align: left; border-bottom: 1px solid #ddd;";
-      attemptedCell.textContent = String(summary.attempted);
-      attemptedCell.onclick = () => this.toggleStudent(student.serviceId);
-      tr.appendChild(attemptedCell);
-      const correctCell = document.createElement("td");
-      correctCell.style.cssText = `padding: 8px; text-align: left; border-bottom: 1px solid #ddd; ${summary.correct === summary.attempted ? "color: #28a745;" : ""}`;
-      correctCell.textContent = String(summary.correct);
-      correctCell.onclick = () => this.toggleStudent(student.serviceId);
-      tr.appendChild(correctCell);
-      const percentCell = document.createElement("td");
-      percentCell.style.cssText = `padding: 8px; text-align: left; border-bottom: 1px solid #ddd; ${summary.percentage === 100 ? "color: #28a745;" : summary.percentage === 0 ? "color: #dc3545;" : ""}`;
-      percentCell.textContent = `${summary.percentage}%`;
-      percentCell.onclick = () => this.toggleStudent(student.serviceId);
-      tr.appendChild(percentCell);
-      tbody.appendChild(tr);
-      if (isExpanded) {
-        const detailRow = this.createExpandedRow(student);
-        tbody.appendChild(detailRow);
-      }
-    });
-    table.appendChild(tbody);
-    return table;
-  }
-  /**
-   * Create expanded detail row for a student showing per-page answers
-   * Compact layout: page name on left, answers horizontally on right
-   */
-  createExpandedRow(student) {
-    const tr = document.createElement("tr");
-    tr.style.backgroundColor = "#f9f9f9";
-    const td = document.createElement("td");
-    td.colSpan = 5;
-    td.style.cssText = "padding: 8px 8px 8px 40px; border-bottom: 1px solid #ddd;";
-    const pages = Object.entries(student.pages);
-    if (pages.length === 0) {
-      td.innerHTML = '<em style="color: #666;">No quiz pages attempted</em>';
-    } else {
-      const detailDiv = document.createElement("div");
-      detailDiv.style.cssText = "display: flex; flex-direction: column; gap: 6px;";
-      pages.forEach(([pageId, pageData]) => {
-        const pageRow = document.createElement("div");
-        pageRow.style.cssText = "display: flex; align-items: center; gap: 12px;";
-        const pageName = document.createElement("span");
-        pageName.style.cssText = "font-weight: 600; color: #000; min-width: 120px; flex-shrink: 0;";
-        pageName.textContent = pageId;
-        pageRow.appendChild(pageName);
-        const answersList = document.createElement("div");
-        answersList.style.cssText = "display: flex; flex-wrap: wrap; gap: 4px; flex: 1;";
-        pageData.answers.forEach((answer, index) => {
-          const answerBadge = document.createElement("span");
-          answerBadge.style.cssText = `
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 11px;
-            font-weight: 500;
-            ${answer === null ? "background: #e0e0e0; color: #666;" : answer.success ? "background: #d4edda; color: #155724; border: 1px solid #c3e6cb;" : "background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;"}
-          `;
-          answerBadge.textContent = `Q${index + 1}: ${answer ? answer.answer : "—"}`;
-          answersList.appendChild(answerBadge);
-        });
-        pageRow.appendChild(answersList);
-        detailDiv.appendChild(pageRow);
-      });
-      td.appendChild(detailDiv);
     }
-    tr.appendChild(td);
-    return tr;
+
+    thead th {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+      background: #f5f5f5;
+      font-weight: 600;
+    }
+
+    .student-row {
+      cursor: pointer;
+    }
+
+    .student-row:hover {
+      background: #f9f9f9;
+    }
+
+    .student-row td {
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .expand-icon {
+      display: inline-block;
+      width: 16px;
+      margin-right: 4px;
+      text-align: center;
+    }
+
+    .correct-highlight {
+      color: #28a745;
+    }
+
+    .incorrect-highlight {
+      color: #dc3545;
+    }
+
+    .detail-row {
+      background: #f9f9f9;
+    }
+
+    .detail-row td {
+      padding: 8px 8px 8px 40px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .page-breakdown {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .page-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .page-name {
+      font-weight: 600;
+      min-width: 120px;
+      flex-shrink: 0;
+    }
+
+    .answers-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .answer-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .answer-badge.correct {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .answer-badge.incorrect {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .answer-badge.unanswered {
+      background: #e0e0e0;
+      color: #666;
+    }
+
+    .no-pages {
+      color: #666;
+      font-style: italic;
+    }
+  `;
+__decorateClass$5([
+  n2({ type: Boolean, reflect: true })
+], QdScoresModal.prototype, "open", 2);
+__decorateClass$5([
+  n2({ type: Array })
+], QdScoresModal.prototype, "students", 2);
+__decorateClass$5([
+  r()
+], QdScoresModal.prototype, "expandedStudents", 2);
+QdScoresModal = __decorateClass$5([
+  t$1("qd-scores-modal")
+], QdScoresModal);
+var __defProp$4 = Object.defineProperty;
+var __getOwnPropDesc$4 = Object.getOwnPropertyDescriptor;
+var __decorateClass$4 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$4(target, key) : target;
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result) __defProp$4(target, key, result);
+  return result;
+};
+let QdInstructorScores = class extends i$1 {
+  constructor() {
+    super(...arguments);
+    this.students = [];
+    this.showModal = false;
+    this.handleClose = () => {
+      this.dispatchEvent(new CustomEvent("close"));
+    };
   }
   render() {
-    return x``;
+    return x`
+      <qd-scores-modal
+        .open=${this.showModal}
+        .students=${this.students}
+        @close=${this.handleClose}
+      ></qd-scores-modal>
+    `;
   }
 };
 QdInstructorScores.styles = sharedStyles;
@@ -5133,23 +5715,20 @@ __decorateClass$4([
 __decorateClass$4([
   n2({ type: Boolean })
 ], QdInstructorScores.prototype, "showModal", 2);
-__decorateClass$4([
-  r()
-], QdInstructorScores.prototype, "expandedStudents", 2);
 QdInstructorScores = __decorateClass$4([
-  t("qd-instructor-scores")
+  t$1("qd-instructor-scores")
 ], QdInstructorScores);
 var __defProp$3 = Object.defineProperty;
 var __getOwnPropDesc$3 = Object.getOwnPropertyDescriptor;
 var __decorateClass$3 = (decorators, target, key, kind) => {
   var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$3(target, key) : target;
-  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
-    if (decorator = decorators[i2])
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
   if (kind && result) __defProp$3(target, key, result);
   return result;
 };
-let QdInstructorExport = class extends i {
+let QdInstructorExport = class extends i$1 {
   constructor() {
     super(...arguments);
     this.students = [];
@@ -5221,19 +5800,19 @@ __decorateClass$3([
   n2({ type: Array })
 ], QdInstructorExport.prototype, "students", 2);
 QdInstructorExport = __decorateClass$3([
-  t("qd-instructor-export")
+  t$1("qd-instructor-export")
 ], QdInstructorExport);
 var __defProp$2 = Object.defineProperty;
 var __getOwnPropDesc$2 = Object.getOwnPropertyDescriptor;
 var __decorateClass$2 = (decorators, target, key, kind) => {
   var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$2(target, key) : target;
-  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
-    if (decorator = decorators[i2])
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
   if (kind && result) __defProp$2(target, key, result);
   return result;
 };
-let QdInstructorManage = class extends i {
+let QdInstructorManage = class extends i$1 {
   constructor() {
     super(...arguments);
     this.showConfirmDialog = false;
@@ -5411,58 +5990,60 @@ __decorateClass$2([
   r()
 ], QdInstructorManage.prototype, "success", 2);
 QdInstructorManage = __decorateClass$2([
-  t("qd-instructor-manage")
+  t$1("qd-instructor-manage")
 ], QdInstructorManage);
 var __defProp$1 = Object.defineProperty;
 var __getOwnPropDesc$1 = Object.getOwnPropertyDescriptor;
 var __decorateClass$1 = (decorators, target, key, kind) => {
   var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$1(target, key) : target;
-  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
-    if (decorator = decorators[i2])
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
   if (kind && result) __defProp$1(target, key, result);
   return result;
 };
-let QdPinResetDialog = class extends i {
+let QdPinResetDialog = class extends i$1 {
   constructor() {
     super(...arguments);
     this.students = [];
-    this.showModal = false;
+    this.open = false;
     this.searchText = "";
     this.confirmingStudent = null;
-    this.modalElement = null;
-    this.handleEscape = (e2) => {
-      if (e2.key === "Escape" && this.showModal) {
-        if (this.confirmingStudent) {
-          this.confirmingStudent = null;
-        } else {
-          this.handleClose();
-        }
+    this.confirmDialogOpen = false;
+    this.errorMessage = "";
+    this.handleModalClose = () => {
+      if (this.confirmDialogOpen) {
+        return;
       }
-    };
-    this.handleClose = () => {
-      this.confirmingStudent = null;
-      this.searchText = "";
+      this.close();
       this.dispatchEvent(new CustomEvent("close"));
     };
-  }
-  connectedCallback() {
-    super.connectedCallback();
-    document.addEventListener("keydown", this.handleEscape);
-  }
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    document.removeEventListener("keydown", this.handleEscape);
-    this.removeModalFromBody();
-  }
-  updated(changedProperties) {
-    if (changedProperties.has("showModal")) {
-      if (this.showModal) {
-        this.renderModalToBody();
-      } else {
-        this.removeModalFromBody();
+    this.handleSearchInput = (e2) => {
+      const input = e2.target;
+      this.searchText = input.value;
+      void this.updateComplete.then(() => {
+        this.syncContentToPortal();
+      });
+    };
+    this.handleResetClick = (student) => {
+      this.confirmingStudent = student;
+      this.confirmDialogOpen = true;
+    };
+    this.handleConfirmReset = () => {
+      if (this.confirmingStudent) {
+        void this.executeReset(this.confirmingStudent);
       }
-    }
+    };
+    this.handleCancelReset = () => {
+      this.confirmDialogOpen = false;
+      this.confirmingStudent = null;
+    };
+  }
+  set showModal(value) {
+    this.open = value;
+  }
+  get showModal() {
+    return this.open;
   }
   get filteredStudents() {
     if (!this.searchText.trim()) {
@@ -5473,225 +6054,23 @@ let QdPinResetDialog = class extends i {
       (s2) => s2.name.toLowerCase().includes(search) || s2.serviceId.toLowerCase().includes(search)
     );
   }
-  renderModalToBody() {
-    this.removeModalFromBody();
-    const overlay = document.createElement("div");
-    overlay.className = "qd-pin-reset-overlay";
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 99999;
-      font-family: system-ui, -apple-system, sans-serif;
-    `;
-    const modal = document.createElement("div");
-    modal.style.cssText = `
-      background: white;
-      border-radius: 8px;
-      padding: 24px;
-      min-width: 400px;
-      max-width: 500px;
-      max-height: 80vh;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-    `;
-    const header = document.createElement("div");
-    header.style.cssText = `
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    `;
-    const title = document.createElement("h3");
-    title.textContent = "Reset Student PIN";
-    title.style.cssText = `font-size: 18px; font-weight: 600; margin: 0;`;
-    const closeBtn = document.createElement("button");
-    closeBtn.textContent = "×";
-    closeBtn.type = "button";
-    closeBtn.style.cssText = `
-      background: none;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      color: #666;
-    `;
-    closeBtn.onclick = () => this.handleClose();
-    header.appendChild(title);
-    header.appendChild(closeBtn);
-    const searchInput = document.createElement("input");
-    searchInput.type = "text";
-    searchInput.placeholder = "Search by name or ID...";
-    searchInput.style.cssText = `
-      width: 100%;
-      box-sizing: border-box;
-      padding: 8px 12px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      margin-bottom: 12px;
-      font-size: 12px;
-    `;
-    searchInput.oninput = (e2) => {
-      this.searchText = e2.target.value;
-      this.updateStudentList(modal);
-    };
-    const listContainer = document.createElement("div");
-    listContainer.className = "student-list";
-    listContainer.style.cssText = `
-      flex: 1;
-      overflow-y: auto;
-      max-height: 300px;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-    `;
-    modal.appendChild(header);
-    modal.appendChild(searchInput);
-    modal.appendChild(listContainer);
-    const errorDiv = document.createElement("div");
-    errorDiv.className = "error-message";
-    errorDiv.style.cssText = `
-      display: none;
-      color: #d32f2f;
-      font-size: 11px;
-      margin-top: 8px;
-      padding: 8px;
-      background: #ffebee;
-      border-radius: 4px;
-    `;
-    modal.appendChild(errorDiv);
-    overlay.appendChild(modal);
-    overlay.onclick = (e2) => {
-      if (e2.target === overlay) this.handleClose();
-    };
-    document.body.appendChild(overlay);
-    this.modalElement = overlay;
-    this.updateStudentList(modal);
-    searchInput.focus();
+  /**
+   * Close the modal
+   */
+  close() {
+    this.open = false;
+    this.confirmingStudent = null;
+    this.confirmDialogOpen = false;
+    this.searchText = "";
+    this.errorMessage = "";
   }
-  updateStudentList(modal) {
-    const listContainer = modal.querySelector(".student-list");
-    if (!listContainer) return;
-    listContainer.innerHTML = "";
-    const filtered = this.filteredStudents;
-    if (filtered.length === 0) {
-      const empty = document.createElement("div");
-      empty.textContent = this.searchText ? "No matching students" : "No students found";
-      empty.style.cssText = `padding: 16px; text-align: center; color: #666; font-size: 12px;`;
-      listContainer.appendChild(empty);
-      return;
-    }
-    filtered.forEach((student) => {
-      const item = document.createElement("div");
-      item.style.cssText = `
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 12px;
-        border-bottom: 1px solid #f0f0f0;
-      `;
-      const info2 = document.createElement("div");
-      const nameSpan = document.createElement("div");
-      nameSpan.textContent = student.name;
-      nameSpan.style.cssText = `font-size: 12px; font-weight: 500;`;
-      const idSpan = document.createElement("div");
-      idSpan.textContent = `ID: ${student.serviceId}`;
-      idSpan.style.cssText = `font-size: 10px; color: #666;`;
-      const pinStatus = document.createElement("div");
-      const hasPinHash = student.pinHash && student.pinHash.length > 0;
-      pinStatus.textContent = hasPinHash ? "PIN set" : "No PIN";
-      pinStatus.style.cssText = `font-size: 10px; color: ${hasPinHash ? "#4caf50" : "#ff9800"};`;
-      info2.appendChild(nameSpan);
-      info2.appendChild(idSpan);
-      info2.appendChild(pinStatus);
-      const resetBtn = document.createElement("button");
-      resetBtn.textContent = "Reset PIN";
-      resetBtn.type = "button";
-      resetBtn.style.cssText = `
-        background: #ff5722;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 4px 8px;
-        font-size: 10px;
-        cursor: pointer;
-      `;
-      resetBtn.onclick = () => this.showConfirmation(student, modal);
-      item.appendChild(info2);
-      item.appendChild(resetBtn);
-      listContainer.appendChild(item);
-    });
+  /**
+   * Show the modal
+   */
+  show() {
+    this.open = true;
   }
-  showConfirmation(student, modal) {
-    this.confirmingStudent = student;
-    const confirmOverlay = document.createElement("div");
-    confirmOverlay.className = "confirm-overlay";
-    confirmOverlay.style.cssText = `
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(255, 255, 255, 0.95);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    `;
-    const confirmText = document.createElement("p");
-    confirmText.innerHTML = `Reset PIN for <strong>${student.name}</strong> (${student.serviceId})?`;
-    confirmText.style.cssText = `margin: 0 0 16px; text-align: center; font-size: 14px;`;
-    const warning = document.createElement("p");
-    warning.textContent = "They will need to create a new PIN on next login.";
-    warning.style.cssText = `margin: 0 0 16px; text-align: center; font-size: 11px; color: #666;`;
-    const btnContainer = document.createElement("div");
-    btnContainer.style.cssText = `display: flex; gap: 8px;`;
-    const cancelBtn = document.createElement("button");
-    cancelBtn.textContent = "Cancel";
-    cancelBtn.type = "button";
-    cancelBtn.style.cssText = `
-      background: #e0e0e0;
-      color: #333;
-      border: none;
-      border-radius: 4px;
-      padding: 8px 16px;
-      font-size: 12px;
-      cursor: pointer;
-    `;
-    cancelBtn.onclick = () => {
-      this.confirmingStudent = null;
-      confirmOverlay.remove();
-    };
-    const confirmBtn = document.createElement("button");
-    confirmBtn.textContent = "Reset PIN";
-    confirmBtn.type = "button";
-    confirmBtn.style.cssText = `
-      background: #ff5722;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 8px 16px;
-      font-size: 12px;
-      cursor: pointer;
-    `;
-    confirmBtn.onclick = () => this.executeReset(student, confirmOverlay, modal);
-    btnContainer.appendChild(cancelBtn);
-    btnContainer.appendChild(confirmBtn);
-    confirmOverlay.appendChild(confirmText);
-    confirmOverlay.appendChild(warning);
-    confirmOverlay.appendChild(btnContainer);
-    const modalDiv = modal.querySelector("div:first-child")?.parentElement || modal;
-    modalDiv.style.position = "relative";
-    modalDiv.appendChild(confirmOverlay);
-  }
-  async executeReset(student, confirmOverlay, modal) {
+  async executeReset(student) {
     try {
       const dbNameElement = document.getElementById(CONFIG_IDS.dbName);
       if (!dbNameElement?.textContent?.trim()) {
@@ -5728,59 +6107,322 @@ let QdPinResetDialog = class extends i {
           composed: true
         })
       );
+      this.confirmDialogOpen = false;
       this.confirmingStudent = null;
-      confirmOverlay.remove();
-      this.updateStudentList(modal);
+      this.errorMessage = "";
+      void this.updateComplete.then(() => {
+        this.syncContentToPortal();
+      });
     } catch (err) {
       console.error("PIN reset error:", err);
-      const errorDiv = modal.querySelector(".error-message");
-      if (errorDiv) {
-        errorDiv.textContent = "Failed to reset PIN. Please try again.";
-        errorDiv.style.display = "block";
-      }
+      this.errorMessage = "Failed to reset PIN. Please try again.";
+      this.confirmDialogOpen = false;
+      this.confirmingStudent = null;
+      void this.updateComplete.then(() => {
+        this.syncContentToPortal();
+      });
     }
   }
-  removeModalFromBody() {
-    if (this.modalElement) {
-      this.modalElement.remove();
-      this.modalElement = null;
+  /**
+   * Sync dynamic content to portal DOM.
+   * Since qd-modal clones content and loses Lit bindings,
+   * we need to manually update the portal content.
+   */
+  syncContentToPortal() {
+    const backdrop = document.querySelector(".qd-modal-backdrop");
+    if (!backdrop) return;
+    const listContainer = backdrop.querySelector(".student-list");
+    if (!listContainer) return;
+    listContainer.innerHTML = "";
+    const filtered = this.filteredStudents;
+    if (filtered.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty-message";
+      empty.textContent = this.searchText ? "No matching students" : "No students found";
+      empty.style.cssText = "padding: 16px; text-align: center; color: #666; font-size: 12px;";
+      listContainer.appendChild(empty);
+    } else {
+      filtered.forEach((student) => {
+        const item = document.createElement("div");
+        item.className = "student-item";
+        item.style.cssText = `
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 12px;
+          border-bottom: 1px solid #f0f0f0;
+        `;
+        const info2 = document.createElement("div");
+        const nameSpan = document.createElement("div");
+        nameSpan.className = "student-name";
+        nameSpan.textContent = student.name;
+        nameSpan.style.cssText = "font-size: 12px; font-weight: 500;";
+        const idSpan = document.createElement("div");
+        idSpan.className = "student-id";
+        idSpan.textContent = `ID: ${student.serviceId}`;
+        idSpan.style.cssText = "font-size: 10px; color: #666;";
+        const pinStatus = document.createElement("div");
+        pinStatus.className = "pin-status";
+        const hasPinHash = student.pinHash && student.pinHash.length > 0;
+        pinStatus.textContent = hasPinHash ? "PIN set" : "No PIN";
+        pinStatus.style.cssText = `font-size: 10px; color: ${hasPinHash ? "#4caf50" : "#ff9800"};`;
+        info2.appendChild(nameSpan);
+        info2.appendChild(idSpan);
+        info2.appendChild(pinStatus);
+        const resetBtn = document.createElement("button");
+        resetBtn.className = "reset-btn";
+        resetBtn.textContent = "Reset PIN";
+        resetBtn.type = "button";
+        resetBtn.style.cssText = `
+          background: #ff5722;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          padding: 4px 8px;
+          font-size: 10px;
+          cursor: pointer;
+        `;
+        resetBtn.onclick = () => this.handleResetClick(student);
+        item.appendChild(info2);
+        item.appendChild(resetBtn);
+        listContainer.appendChild(item);
+      });
+    }
+    let errorDiv = backdrop.querySelector(".error-message");
+    if (this.errorMessage) {
+      if (!errorDiv) {
+        errorDiv = document.createElement("div");
+        errorDiv.className = "error-message";
+        const content = backdrop.querySelector(".qd-modal-body");
+        content?.appendChild(errorDiv);
+      }
+      errorDiv.textContent = this.errorMessage;
+      errorDiv.style.cssText = `
+        color: #d32f2f;
+        font-size: 11px;
+        margin-top: 8px;
+        padding: 8px;
+        background: #ffebee;
+        border-radius: 4px;
+      `;
+    } else {
+      errorDiv?.remove();
+    }
+  }
+  /**
+   * Setup event listeners in portal after open
+   */
+  setupPortalListeners() {
+    const backdrop = document.querySelector(".qd-modal-backdrop");
+    if (!backdrop) return;
+    const searchInput = backdrop.querySelector(".search-input");
+    if (searchInput) {
+      searchInput.oninput = this.handleSearchInput;
+      searchInput.focus();
+    }
+    this.syncContentToPortal();
+  }
+  updated(changedProps) {
+    if (changedProps.has("open") && this.open) {
+      setTimeout(() => {
+        this.setupPortalListeners();
+      }, 0);
+    }
+    if (changedProps.has("students") && this.open) {
+      void this.updateComplete.then(() => {
+        this.syncContentToPortal();
+      });
     }
   }
   render() {
-    return x``;
+    if (!this.open) {
+      return E;
+    }
+    const student = this.confirmingStudent;
+    const confirmMessage = student ? `Reset PIN for <strong>${student.name}</strong> (${student.serviceId})?<br><span style="font-size: 11px; color: #666;">They will need to create a new PIN on next login.</span>` : "";
+    return x`
+      <qd-modal
+        .open=${this.open && !this.confirmDialogOpen}
+        @qd:modal-close=${this.handleModalClose}
+      >
+        <span slot="header">Reset Student PIN</span>
+
+        <div class="pin-reset-content">
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Search by name or ID..."
+            .value=${this.searchText}
+          />
+
+          <div class="student-list">
+            ${this.filteredStudents.length === 0 ? x`<div class="empty-message">
+                  ${this.searchText ? "No matching students" : "No students found"}
+                </div>` : this.filteredStudents.map(
+      (s2) => x`
+                    <div class="student-item">
+                      <div>
+                        <div class="student-name">${s2.name}</div>
+                        <div class="student-id">ID: ${s2.serviceId}</div>
+                        <div class="pin-status ${s2.pinHash ? "has-pin" : "no-pin"}">
+                          ${s2.pinHash ? "PIN set" : "No PIN"}
+                        </div>
+                      </div>
+                      <button class="reset-btn" type="button">Reset PIN</button>
+                    </div>
+                  `
+    )}
+          </div>
+
+          ${this.errorMessage ? x`<div class="error-message">${this.errorMessage}</div>` : ""}
+        </div>
+      </qd-modal>
+
+      <qd-confirm-dialog
+        .open=${this.confirmDialogOpen}
+        title="Reset PIN"
+        .message=${confirmMessage}
+        confirmText="Reset PIN"
+        cancelText="Cancel"
+        destructive
+        @qd:confirm=${this.handleConfirmReset}
+        @qd:cancel=${this.handleCancelReset}
+      ></qd-confirm-dialog>
+    `;
   }
 };
-QdPinResetDialog.styles = i$3`
+QdPinResetDialog.styles = i$4`
     :host {
-      display: block;
+      display: contents;
+    }
+
+    .pin-reset-content {
+      min-width: 400px;
+      max-width: 500px;
+    }
+
+    .search-input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-bottom: 12px;
+      font-size: 12px;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: #0066cc;
+      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+    }
+
+    .student-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+    }
+
+    .student-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .student-item:last-child {
+      border-bottom: none;
+    }
+
+    .student-name {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .student-id {
+      font-size: 10px;
+      color: #666;
+    }
+
+    .pin-status {
+      font-size: 10px;
+    }
+
+    .pin-status.has-pin {
+      color: #4caf50;
+    }
+
+    .pin-status.no-pin {
+      color: #ff9800;
+    }
+
+    .reset-btn {
+      background: #ff5722;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    .reset-btn:hover {
+      background: #e64a19;
+    }
+
+    .empty-message {
+      padding: 16px;
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+    }
+
+    .error-message {
+      color: #d32f2f;
+      font-size: 11px;
+      margin-top: 8px;
+      padding: 8px;
+      background: #ffebee;
+      border-radius: 4px;
     }
   `;
 __decorateClass$1([
   n2({ type: Array })
 ], QdPinResetDialog.prototype, "students", 2);
 __decorateClass$1([
-  n2({ type: Boolean })
-], QdPinResetDialog.prototype, "showModal", 2);
+  n2({ type: Boolean, reflect: true })
+], QdPinResetDialog.prototype, "open", 2);
 __decorateClass$1([
   r()
 ], QdPinResetDialog.prototype, "searchText", 2);
 __decorateClass$1([
   r()
 ], QdPinResetDialog.prototype, "confirmingStudent", 2);
+__decorateClass$1([
+  r()
+], QdPinResetDialog.prototype, "confirmDialogOpen", 2);
+__decorateClass$1([
+  r()
+], QdPinResetDialog.prototype, "errorMessage", 2);
+__decorateClass$1([
+  n2({ type: Boolean })
+], QdPinResetDialog.prototype, "showModal", 1);
 QdPinResetDialog = __decorateClass$1([
-  t("qd-pin-reset-dialog")
+  t$1("qd-pin-reset-dialog")
 ], QdPinResetDialog);
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __decorateClass = (decorators, target, key, kind) => {
   var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc(target, key) : target;
-  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
-    if (decorator = decorators[i2])
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
   if (kind && result) __defProp(target, key, result);
   return result;
 };
-let QdInstructor = class extends i {
+let QdInstructor = class extends i$1 {
   constructor() {
     super(...arguments);
     this.unlocked = false;
@@ -6007,7 +6649,7 @@ let QdInstructor = class extends i {
 };
 QdInstructor.styles = [
   sharedStyles,
-  i$3`
+  i$4`
       :host {
         display: none; /* Hidden by default, shown when instructor logged in */
       }
@@ -6033,7 +6675,7 @@ __decorateClass([
   r()
 ], QdInstructor.prototype, "showPinReset", 2);
 QdInstructor = __decorateClass([
-  t("qd-instructor")
+  t$1("qd-instructor")
 ], QdInstructor);
 const DEFAULT_CONTAINERS = {
   /** Where to inject status panel (Oxygen WebHelp default) */
@@ -6461,7 +7103,7 @@ function isInitialized() {
   return state.initialized;
 }
 const VERSION = "0.1.0-phase3.1";
-const BUILD_DATE = "25/Nov/2025";
+const BUILD_DATE = "26/Nov/2025";
 if (typeof window !== "undefined") {
   const init = () => {
     info("Auto-initializing Sonar Quiz System");
