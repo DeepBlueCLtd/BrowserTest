@@ -131,7 +131,6 @@ export class QdPasswordModal extends LitElement {
   @query('input[type="password"]')
   private passwordInput!: HTMLInputElement;
 
-
   /**
    * Show the modal
    */

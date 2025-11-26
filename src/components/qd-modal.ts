@@ -71,6 +71,15 @@ const MODAL_STYLES = `
   .qd-modal-body {
     padding: 20px;
   }
+
+  .error-message {
+    color: #d32f2f;
+    font-size: 12px;
+    padding: 8px;
+    background: #ffebee;
+    border-radius: 4px;
+    border-left: 3px solid #d32f2f;
+  }
 `;
 
 /**
@@ -236,7 +245,9 @@ export class QdModal extends LitElement {
         const formData = new FormData(form);
         const data: Record<string, string> = {};
         formData.forEach((value, key) => {
-          data[key] = value.toString();
+          if (typeof value === 'string') {
+            data[key] = value;
+          }
         });
 
         // Find password input specifically for password modals
