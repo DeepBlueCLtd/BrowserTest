@@ -4,11 +4,11 @@ Generated: 2025-11-26
 
 ## Summary
 
-- **Total Features**: 12
-- **Covered**: 12 (100%)
+- **Total Features**: 11
+- **Covered**: 11 (100%)
 - **Gaps**: 0
-- **E2E Spec Files**: 13
-- **Total Tests**: 88
+- **E2E Spec Files**: 12
+- **Total Tests**: 82
 
 ## Feature Coverage Matrix
 
@@ -23,7 +23,6 @@ Generated: 2025-11-26
 | Session management (timeout) | session-timeout.spec.ts | ✅ Covered |
 | Data export (CSV) | csv-export.spec.ts | ✅ Covered |
 | Cohort management (data erasure) | cohort-management.spec.ts | ✅ Covered |
-| Storage monitor (debug) | storage-monitor.spec.ts | ✅ Covered |
 | Build info display | build-info.spec.ts | ✅ Covered |
 | PIN authentication | build-info.spec.ts | ✅ Covered |
 
@@ -43,21 +42,20 @@ Generated: 2025-11-26
 | pin-authentication.spec.ts | 8 | 13 | 7 | 6 | 15 |
 | progress-tracking.spec.ts | 7 | 9 | 22 | 0 | 16 |
 | session-timeout.spec.ts | 7 | 14 | 22 | 0 | 20 |
-| storage-monitor.spec.ts | 6 | 3 | 6 | 0 | 10 |
 
 ## Tested Selectors
 
 Top selectors by frequency:
 
-- `qd-login` (13 specs)
-- `input[name=` (13 specs)
-- `button[type=` (13 specs)
+- `qd-login` (12 specs)
+- `input[name=` (12 specs)
+- `button[type=` (12 specs)
 - `qd-status` (12 specs)
-- `qd-login[data-ready]` (10 specs)
+- `qd-login[data-ready]` (9 specs)
 - `button` (9 specs)
-- `#qd-pin-confirmation-ok` (9 specs)
 - `table.qd-quiz` (9 specs)
 - `.qd-quiz-input` (9 specs)
+- `#qd-pin-confirmation-ok` (8 specs)
 - `.qd-modal-backdrop input[type=` (7 specs)
 - `.qd-modal-backdrop button[type=` (7 specs)
 - `View All Scores` (6 specs)
@@ -74,12 +72,12 @@ Top selectors by frequency:
 
 | Action | Count |
 |--------|-------|
-| page.click() | 187 |
-| page.fill() | 196 |
+| page.click() | 184 |
+| page.fill() | 190 |
 | page.waitForSelector() | 8 |
 | page.check() | 2 |
 | page.selectOption() | 29 |
-| page.goto() | 102 |
+| page.goto() | 101 |
 
 ## Gaps Requiring Attention
 

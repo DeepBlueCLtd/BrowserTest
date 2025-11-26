@@ -76,12 +76,6 @@ const FEATURES = [
     keywords: ['erase', 'clear', 'cohort', 'delete'],
   },
   {
-    id: 'storage-monitor',
-    name: 'Storage monitor (debug)',
-    selectors: ['qd-storage-monitor', 'debug'],
-    keywords: ['storage', 'monitor', 'debug'],
-  },
-  {
     id: 'build-info',
     name: 'Build info display',
     selectors: ['qd-build-info', 'build', 'version'],
