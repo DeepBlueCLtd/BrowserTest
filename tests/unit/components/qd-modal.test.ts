@@ -47,7 +47,8 @@ describe('qd-modal', () => {
       const el = await createModal({ open: true });
 
       expect(el.open).toBe(true);
-      const backdrop = el.shadowRoot?.querySelector('.modal-backdrop');
+      // Portal renders to document.body
+      const backdrop = document.querySelector('.qd-modal-backdrop');
       expect(backdrop).toBeTruthy();
     });
 
@@ -57,7 +58,8 @@ describe('qd-modal', () => {
       el.open = false;
       await el.updateComplete;
 
-      const backdrop = el.shadowRoot?.querySelector('.modal-backdrop');
+      // Portal removed from document.body
+      const backdrop = document.querySelector('.qd-modal-backdrop');
       expect(backdrop).toBeFalsy();
     });
 
@@ -84,8 +86,9 @@ describe('qd-modal', () => {
     it('closes on Escape key when closable=true (default)', async () => {
       const el = await createModal({ open: true });
 
+      // qd-modal listens on document for keydown
       const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
-      el.dispatchEvent(event);
+      document.dispatchEvent(event);
       await el.updateComplete;
 
       expect(el.open).toBe(false);
@@ -95,7 +98,7 @@ describe('qd-modal', () => {
       const el = await createModal({ open: true, closable: false });
 
       const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
-      el.dispatchEvent(event);
+      document.dispatchEvent(event);
       await el.updateComplete;
 
       expect(el.open).toBe(true);
@@ -108,7 +111,7 @@ describe('qd-modal', () => {
       el.addEventListener('qd:modal-close', closeHandler);
 
       const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
-      el.dispatchEvent(event);
+      document.dispatchEvent(event);
 
       expect(closeHandler).toHaveBeenCalled();
     });
@@ -118,7 +121,8 @@ describe('qd-modal', () => {
     it('closes on backdrop click when closable=true (default)', async () => {
       const el = await createModal({ open: true });
 
-      const backdrop = el.shadowRoot?.querySelector('.modal-backdrop') as HTMLElement;
+      // Portal renders to document.body
+      const backdrop = document.querySelector('.qd-modal-backdrop') as HTMLElement;
       backdrop?.click();
       await el.updateComplete;
 
@@ -128,7 +132,7 @@ describe('qd-modal', () => {
     it('does not close on backdrop click when closable=false', async () => {
       const el = await createModal({ open: true, closable: false });
 
-      const backdrop = el.shadowRoot?.querySelector('.modal-backdrop') as HTMLElement;
+      const backdrop = document.querySelector('.qd-modal-backdrop') as HTMLElement;
       backdrop?.click();
       await el.updateComplete;
 
@@ -140,7 +144,8 @@ describe('qd-modal', () => {
       el.innerHTML = '<div>Content</div>';
       await el.updateComplete;
 
-      const content = el.shadowRoot?.querySelector('.modal-content') as HTMLElement;
+      // Content in portal has stopPropagation
+      const content = document.querySelector('.qd-modal-content') as HTMLElement;
       content?.click();
       await el.updateComplete;
 
@@ -153,7 +158,7 @@ describe('qd-modal', () => {
       const closeHandler = vi.fn();
       el.addEventListener('qd:modal-close', closeHandler);
 
-      const backdrop = el.shadowRoot?.querySelector('.modal-backdrop') as HTMLElement;
+      const backdrop = document.querySelector('.qd-modal-backdrop') as HTMLElement;
       backdrop?.click();
 
       expect(closeHandler).toHaveBeenCalled();
@@ -166,8 +171,8 @@ describe('qd-modal', () => {
       el.innerHTML = '<button class="first">First</button><button class="last">Last</button>';
       await el.updateComplete;
 
-      // Modal should have focus management
-      const modalContent = el.shadowRoot?.querySelector('.modal-content');
+      // Portal renders content to document.body
+      const modalContent = document.querySelector('.qd-modal-content');
       expect(modalContent).toBeTruthy();
     });
 
@@ -182,7 +187,8 @@ describe('qd-modal', () => {
       // Wait for focus to be set
       await new Promise((r) => setTimeout(r, 50));
 
-      const firstButton = el.querySelector('.first');
+      // Portal clones content, so find button in portal
+      const firstButton = document.querySelector('.qd-modal-backdrop .first');
       expect(document.activeElement).toBe(firstButton);
     });
   });
@@ -211,11 +217,10 @@ describe('qd-modal', () => {
       el.innerHTML = '<div class="test-content">Hello</div>';
       await el.updateComplete;
 
-      const slot = el.shadowRoot?.querySelector('slot');
-      expect(slot).toBeTruthy();
-
-      const slottedContent = el.querySelector('.test-content');
-      expect(slottedContent?.textContent).toBe('Hello');
+      // Portal clones content to document.body
+      const portalContent = document.querySelector('.qd-modal-backdrop .test-content');
+      expect(portalContent).toBeTruthy();
+      expect(portalContent?.textContent).toBe('Hello');
     });
 
     it('renders header slot when provided', async () => {
@@ -223,23 +228,25 @@ describe('qd-modal', () => {
       el.innerHTML = '<span slot="header">Modal Title</span><div>Body content</div>';
       await el.updateComplete;
 
-      const headerSlot = el.shadowRoot?.querySelector('slot[name="header"]');
-      expect(headerSlot).toBeTruthy();
+      // Portal places header content in .qd-modal-header
+      const headerContent = document.querySelector('.qd-modal-header');
+      expect(headerContent?.textContent).toContain('Modal Title');
     });
   });
 
   describe('accessibility', () => {
     it('has role="dialog"', async () => {
-      const el = await createModal({ open: true });
+      await createModal({ open: true });
 
-      const dialog = el.shadowRoot?.querySelector('[role="dialog"]');
+      // Portal renders to document.body
+      const dialog = document.querySelector('.qd-modal-backdrop [role="dialog"]');
       expect(dialog).toBeTruthy();
     });
 
     it('has aria-modal="true" when open', async () => {
-      const el = await createModal({ open: true });
+      await createModal({ open: true });
 
-      const dialog = el.shadowRoot?.querySelector('[aria-modal="true"]');
+      const dialog = document.querySelector('.qd-modal-backdrop [aria-modal="true"]');
       expect(dialog).toBeTruthy();
     });
 

@@ -54,18 +54,16 @@ describe('qd-confirm-dialog', () => {
     it('shows when open=true', async () => {
       const el = await createDialog({ open: true, title: 'Confirm', message: 'Are you sure?' });
       expect(el.open).toBe(true);
-      // The backdrop is inside the nested qd-modal component
-      const qdModal = el.shadowRoot?.querySelector('qd-modal');
-      const backdrop = qdModal?.shadowRoot?.querySelector('.modal-backdrop');
+      // Portal renders backdrop to document.body
+      const backdrop = document.querySelector('.qd-modal-backdrop');
       expect(backdrop).toBeTruthy();
     });
 
     it('closes on Escape key', async () => {
       const el = await createDialog({ open: true, title: 'Test', message: 'Test' });
-      // Send escape to the nested qd-modal
-      const qdModal = el.shadowRoot?.querySelector('qd-modal');
+      // qd-modal listens on document for keydown
       const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
-      qdModal?.dispatchEvent(event);
+      document.dispatchEvent(event);
       await el.updateComplete;
       expect(el.open).toBe(false);
     });
@@ -75,9 +73,8 @@ describe('qd-confirm-dialog', () => {
       const cancelHandler = vi.fn();
       el.addEventListener('qd:cancel', cancelHandler);
 
-      // Click backdrop in nested qd-modal
-      const qdModal = el.shadowRoot?.querySelector('qd-modal');
-      const backdrop = qdModal?.shadowRoot?.querySelector('.modal-backdrop') as HTMLElement;
+      // Portal renders backdrop to document.body
+      const backdrop = document.querySelector('.qd-modal-backdrop') as HTMLElement;
       backdrop?.click();
       await el.updateComplete;
 
@@ -313,25 +310,24 @@ describe('qd-confirm-dialog', () => {
 
   describe('accessibility', () => {
     it('has dialog role', async () => {
-      const el = await createDialog({ open: true, title: 'Test', message: 'Test' });
-      // Dialog role is in nested qd-modal
-      const qdModal = el.shadowRoot?.querySelector('qd-modal');
-      const dialog = qdModal?.shadowRoot?.querySelector('[role="dialog"]');
+      await createDialog({ open: true, title: 'Test', message: 'Test' });
+      // Portal renders dialog to document.body
+      const dialog = document.querySelector('.qd-modal-backdrop [role="dialog"]');
       expect(dialog).toBeTruthy();
     });
 
     it('focuses confirm button when opened', async () => {
-      const el = await createDialog({ open: true, title: 'Test', message: 'Test' });
+      await createDialog({ open: true, title: 'Test', message: 'Test' });
       await new Promise((r) => setTimeout(r, 100)); // Wait for focus
 
-      const buttons = el.shadowRoot?.querySelectorAll('button');
-      const confirmBtn = Array.from(buttons || []).find(
+      // Portal renders to document.body, so check document.activeElement
+      const portalButtons = document.querySelectorAll('.qd-modal-backdrop button');
+      const confirmBtn = Array.from(portalButtons || []).find(
         (b) => b.classList.contains('confirm-btn') || b.textContent?.trim() === 'Confirm',
       );
-      const activeElement = el.shadowRoot?.activeElement;
 
-      // Either confirm button or first focusable should be focused
-      expect(activeElement === confirmBtn || activeElement !== null).toBe(true);
+      // Either confirm button or a focusable element in modal should be focused
+      expect(document.activeElement === confirmBtn || document.activeElement !== document.body).toBe(true);
     });
   });
 });

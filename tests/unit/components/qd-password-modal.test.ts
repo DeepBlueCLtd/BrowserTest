@@ -48,18 +48,16 @@ describe('qd-password-modal', () => {
     it('shows when open=true', async () => {
       const el = await createModal({ open: true });
       expect(el.open).toBe(true);
-      // The backdrop is inside the nested qd-modal component
-      const qdModal = el.shadowRoot?.querySelector('qd-modal');
-      const backdrop = qdModal?.shadowRoot?.querySelector('.modal-backdrop');
+      // Portal renders backdrop to document.body, not shadowRoot
+      const backdrop = document.querySelector('.qd-modal-backdrop');
       expect(backdrop).toBeTruthy();
     });
 
     it('closes on Escape key', async () => {
       const el = await createModal({ open: true });
-      // Send escape to the nested qd-modal
-      const qdModal = el.shadowRoot?.querySelector('qd-modal');
+      // qd-modal listens on document for keydown
       const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
-      qdModal?.dispatchEvent(event);
+      document.dispatchEvent(event);
       await el.updateComplete;
       expect(el.open).toBe(false);
     });
@@ -69,9 +67,8 @@ describe('qd-password-modal', () => {
       const closeHandler = vi.fn();
       el.addEventListener('close', closeHandler);
 
-      // Click backdrop in nested qd-modal
-      const qdModal = el.shadowRoot?.querySelector('qd-modal');
-      const backdrop = qdModal?.shadowRoot?.querySelector('.modal-backdrop') as HTMLElement;
+      // Portal renders backdrop to document.body
+      const backdrop = document.querySelector('.qd-modal-backdrop') as HTMLElement;
       backdrop?.click();
       await el.updateComplete;
 
@@ -107,12 +104,12 @@ describe('qd-password-modal', () => {
     });
 
     it('focuses password input when modal opens', async () => {
-      const el = await createModal({ open: true });
+      await createModal({ open: true });
       await new Promise((r) => setTimeout(r, 100)); // Wait for focus
 
-      const input = el.shadowRoot?.querySelector('input[type="password"]');
-      const activeElement = el.shadowRoot?.activeElement;
-      expect(activeElement).toBe(input);
+      // Portal renders form to document.body, so check document.activeElement
+      const input = document.querySelector('.qd-modal-backdrop input[type="password"]');
+      expect(document.activeElement).toBe(input);
     });
 
     it('clears password on close', async () => {
@@ -307,10 +304,9 @@ describe('qd-password-modal', () => {
 
   describe('accessibility', () => {
     it('has dialog role', async () => {
-      const el = await createModal({ open: true });
-      // Dialog role is in nested qd-modal
-      const qdModal = el.shadowRoot?.querySelector('qd-modal');
-      const dialog = qdModal?.shadowRoot?.querySelector('[role="dialog"]');
+      await createModal({ open: true });
+      // Portal renders dialog to document.body
+      const dialog = document.querySelector('.qd-modal-backdrop [role="dialog"]');
       expect(dialog).toBeTruthy();
     });
 

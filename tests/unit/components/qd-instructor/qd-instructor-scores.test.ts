@@ -65,11 +65,9 @@ describe('qd-instructor-scores', () => {
         eventFired = true;
       });
 
-      const scoresModal = getScoresModal();
-      // Simulate escape key on nested qd-modal
-      const qdModal = scoresModal?.shadowRoot?.querySelector('qd-modal');
+      // qd-modal listens on document for keydown
       const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
-      qdModal?.dispatchEvent(event);
+      document.dispatchEvent(event);
       await element.updateComplete;
 
       expect(eventFired).toBe(true);
