@@ -46,7 +46,9 @@
       "Bash(npm run test:gaps:*)",
       "Bash(echo:*)",
       "Bash(npm run analyze:e2e-gaps:*)",
-      "Bash(npm run test:coverage:integration:*)"
+      "Bash(npm run test:coverage:integration:*)",
+      "Bash(git revert:*)",
+      "Bash(npm run test:e2e:headed:*)"
     ],
     "deny": [],
     "ask": []
