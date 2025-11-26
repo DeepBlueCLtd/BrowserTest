@@ -1,6 +1,6 @@
 # E2E Test Coverage Report
 
-Generated: 2025-11-25
+Generated: 2025-11-26
 
 ## Summary
 
@@ -36,8 +36,8 @@ Generated: 2025-11-25
 | data-coexistence.spec.ts | 5 | 11 | 20 | 0 | 14 |
 | dita-instructor-flow.spec.ts | 4 | 15 | 13 | 1 | 26 |
 | dita-student-flow.spec.ts | 12 | 28 | 42 | 1 | 50 |
-| instructor-mode-improvements.spec.ts | 8 | 18 | 5 | 0 | 21 |
-| instructor-review.spec.ts | 5 | 23 | 9 | 0 | 37 |
+| instructor-mode-improvements.spec.ts | 8 | 17 | 5 | 0 | 21 |
+| instructor-review.spec.ts | 5 | 19 | 8 | 0 | 34 |
 | pin-authentication.spec.ts | 8 | 13 | 7 | 6 | 15 |
 | progress-tracking.spec.ts | 7 | 9 | 22 | 0 | 16 |
 
@@ -53,29 +53,29 @@ Top selectors by frequency:
 - `table.qd-quiz` (7 specs)
 - `.qd-quiz-input` (7 specs)
 - `qd-login[data-ready]` (6 specs)
+- `.qd-modal-backdrop input[type=` (5 specs)
+- `.qd-modal-backdrop button[type=` (5 specs)
 - `#qd-pin-confirmation-ok` (5 specs)
 - `td.interactive` (4 specs)
 - `View All Scores` (4 specs)
 - `table.qd-analysis` (3 specs)
-- `.qd-instructor-modal-overlay input[type=` (3 specs)
-- `.qd-instructor-modal-overlay button[type=` (3 specs)
 - `qd-login button` (3 specs)
+- `.qd-modal-backdrop` (3 specs)
 - `.progress-text` (2 specs)
 - `.logout-button` (2 specs)
 - `qd-instructor` (2 specs)
 - `input[type=` (2 specs)
-- `.quizPageBtn` (2 specs)
 
 ## Action Summary
 
 | Action | Count |
 |--------|-------|
-| page.click() | 154 |
-| page.fill() | 153 |
+| page.click() | 149 |
+| page.fill() | 152 |
 | page.waitForSelector() | 8 |
 | page.check() | 2 |
 | page.selectOption() | 24 |
-| page.goto() | 90 |
+| page.goto() | 89 |
 
 ## Gaps Requiring Attention
 
