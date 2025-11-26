@@ -18,6 +18,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
 import type { SessionCache, SessionData } from '../types/contracts.js';
 import { getJSON } from '../utils/storage-helpers.js';
+import { calculateStatusIndicator } from '../utils/calculation-helpers.js';
 import { SessionService } from '../services/session.js';
 import './qd-build-info.js';
 
@@ -236,15 +237,13 @@ export class QdStatus extends LitElement {
   }
 
   /**
-   * Calculate status indicator color
+   * Calculate status indicator color using calculation helper
    * Red: No questions registered or no answers
    * Green: All questions answered correctly
    * Amber: Some answered but not all correct
    */
   private calculateStatusColor(total: number, correct: number): 'red' | 'amber' | 'green' {
-    if (total === 0 || correct === 0) return 'red';
-    if (correct === total) return 'green';
-    return 'amber';
+    return calculateStatusIndicator(total, correct);
   }
 
   /**

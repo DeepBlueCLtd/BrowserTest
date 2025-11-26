@@ -163,16 +163,12 @@ test.describe('DITA Instructor Flow', () => {
     await page.waitForTimeout(300);
 
     // Fill password in modal (modal is appended to body, not in shadow DOM)
-    const modalPassword = page.locator(
-      'body > div[style*="position: fixed"] input[type="password"]',
-    );
+    const modalPassword = page.locator('.qd-modal-backdrop input[type="password"]');
     await expect(modalPassword).toBeVisible({ timeout: 2000 });
     await modalPassword.fill(TEST_PASSWORD);
 
     // Click login in modal
-    const modalLoginButton = page.locator(
-      'body > div[style*="position: fixed"] button[type="submit"]',
-    );
+    const modalLoginButton = page.locator('.qd-modal-backdrop button[type="submit"]');
     await modalLoginButton.click();
 
     // Wait for instructor panel to appear
@@ -230,23 +226,19 @@ test.describe('DITA Instructor Flow', () => {
     await page.waitForTimeout(300);
 
     // Fill incorrect password in modal
-    const modalPassword = page.locator(
-      'body > div[style*="position: fixed"] input[type="password"]',
-    );
+    const modalPassword = page.locator('.qd-modal-backdrop input[type="password"]');
     await expect(modalPassword).toBeVisible({ timeout: 2000 });
     await modalPassword.fill('wrongpassword');
 
     // Click login in modal
-    const modalLoginButton = page.locator(
-      'body > div[style*="position: fixed"] button[type="submit"]',
-    );
+    const modalLoginButton = page.locator('.qd-modal-backdrop button[type="submit"]');
     await modalLoginButton.click();
 
     // Wait for error to appear
     await page.waitForTimeout(300);
 
-    // Verify inline error message is displayed
-    const errorMessage = page.locator('#qd-instructor-modal-error');
+    // Verify inline error message is displayed in modal
+    const errorMessage = page.locator('.qd-modal-backdrop .error-message');
     await expect(errorMessage).toBeVisible({ timeout: 2000 });
 
     // Verify password field is cleared

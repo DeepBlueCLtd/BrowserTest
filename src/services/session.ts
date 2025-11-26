@@ -17,6 +17,7 @@ import type {
 } from '../types/contracts.js';
 import { STORAGE_KEYS, SESSION_TIMEOUT_MS } from '../types/contracts.js';
 import { info, warn, error } from '../utils/logger.js';
+import { isSessionExpired } from '../utils/calculation-helpers.js';
 
 /**
  * Session Service for managing user sessions
@@ -108,10 +109,7 @@ export class SessionService {
       return true;
     }
 
-    const now = new Date();
-    const expiresAt = new Date(session.expiresAt);
-
-    return now >= expiresAt;
+    return isSessionExpired(session.expiresAt);
   }
 
   /**

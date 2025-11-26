@@ -3,18 +3,23 @@
  *
  * Modal dialog for instructors to reset student PINs.
  * Shows student list with search and reset confirmation.
+ * Uses qd-modal base for consistent modal behavior.
  *
  * @element qd-pin-reset-dialog
  * @fires {CustomEvent<{serviceId: string}>} qd:pin-reset - Emitted when PIN is reset
  * @fires {CustomEvent} close - Emitted when dialog is closed
+ *
+ * Feature: 007-lit-component-refactor
  */
 
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import type { StudentRecord, PinResetEvent } from '../types/contracts.js';
 import { getStorageAdapter } from '../services/storage/indexeddb.js';
 import { resetPin } from '../services/storage/migration.js';
 import { CONFIG_IDS } from '../config/dom-config-reader.js';
+import './qd-modal.js';
+import './qd-confirm-dialog.js';
 
 @customElement('qd-pin-reset-dialog')
 export class QdPinResetDialog extends LitElement {
@@ -27,8 +32,8 @@ export class QdPinResetDialog extends LitElement {
   /**
    * Whether dialog is visible
    */
-  @property({ type: Boolean })
-  showModal = false;
+  @property({ type: Boolean, reflect: true })
+  open = false;
 
   /**
    * Search filter text
@@ -42,50 +47,126 @@ export class QdPinResetDialog extends LitElement {
   @state()
   private confirmingStudent: StudentRecord | null = null;
 
-  private modalElement: HTMLElement | null = null;
+  /**
+   * Whether confirmation dialog is open
+   */
+  @state()
+  private confirmDialogOpen = false;
+
+  /**
+   * Error message to display
+   */
+  @state()
+  private errorMessage = '';
 
   static styles = css`
     :host {
-      display: block;
+      display: contents;
+    }
+
+    .pin-reset-content {
+      min-width: 400px;
+      max-width: 500px;
+    }
+
+    .search-input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-bottom: 12px;
+      font-size: 12px;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: #0066cc;
+      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+    }
+
+    .student-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+    }
+
+    .student-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .student-item:last-child {
+      border-bottom: none;
+    }
+
+    .student-name {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .student-id {
+      font-size: 10px;
+      color: #666;
+    }
+
+    .pin-status {
+      font-size: 10px;
+    }
+
+    .pin-status.has-pin {
+      color: #4caf50;
+    }
+
+    .pin-status.no-pin {
+      color: #ff9800;
+    }
+
+    .reset-btn {
+      background: #ff5722;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    .reset-btn:hover {
+      background: #e64a19;
+    }
+
+    .empty-message {
+      padding: 16px;
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+    }
+
+    .error-message {
+      color: #d32f2f;
+      font-size: 11px;
+      margin-top: 8px;
+      padding: 8px;
+      background: #ffebee;
+      border-radius: 4px;
     }
   `;
 
-  connectedCallback() {
-    super.connectedCallback();
-    document.addEventListener('keydown', this.handleEscape);
+  /**
+   * Backward compatibility: Support both 'open' and 'showModal' props
+   */
+  @property({ type: Boolean })
+  set showModal(value: boolean) {
+    this.open = value;
   }
-
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    document.removeEventListener('keydown', this.handleEscape);
-    this.removeModalFromBody();
+  get showModal(): boolean {
+    return this.open;
   }
-
-  updated(changedProperties: Map<string, unknown>) {
-    if (changedProperties.has('showModal')) {
-      if (this.showModal) {
-        this.renderModalToBody();
-      } else {
-        this.removeModalFromBody();
-      }
-    }
-  }
-
-  private handleEscape = (e: KeyboardEvent) => {
-    if (e.key === 'Escape' && this.showModal) {
-      if (this.confirmingStudent) {
-        this.confirmingStudent = null;
-      } else {
-        this.handleClose();
-      }
-    }
-  };
-
-  private handleClose = () => {
-    this.confirmingStudent = null;
-    this.searchText = '';
-    this.dispatchEvent(new CustomEvent('close'));
-  };
 
   private get filteredStudents(): StudentRecord[] {
     if (!this.searchText.trim()) {
@@ -97,270 +178,74 @@ export class QdPinResetDialog extends LitElement {
     );
   }
 
-  private renderModalToBody() {
-    this.removeModalFromBody();
-
-    const overlay = document.createElement('div');
-    overlay.className = 'qd-pin-reset-overlay';
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 99999;
-      font-family: system-ui, -apple-system, sans-serif;
-    `;
-
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-      background: white;
-      border-radius: 8px;
-      padding: 24px;
-      min-width: 400px;
-      max-width: 500px;
-      max-height: 80vh;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-    `;
-
-    // Header
-    const header = document.createElement('div');
-    header.style.cssText = `
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    `;
-
-    const title = document.createElement('h3');
-    title.textContent = 'Reset Student PIN';
-    title.style.cssText = `font-size: 18px; font-weight: 600; margin: 0;`;
-
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = '×';
-    closeBtn.type = 'button';
-    closeBtn.style.cssText = `
-      background: none;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      color: #666;
-    `;
-    closeBtn.onclick = () => this.handleClose();
-
-    header.appendChild(title);
-    header.appendChild(closeBtn);
-
-    // Search
-    const searchInput = document.createElement('input');
-    searchInput.type = 'text';
-    searchInput.placeholder = 'Search by name or ID...';
-    searchInput.style.cssText = `
-      width: 100%;
-      box-sizing: border-box;
-      padding: 8px 12px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      margin-bottom: 12px;
-      font-size: 12px;
-    `;
-    searchInput.oninput = (e) => {
-      this.searchText = (e.target as HTMLInputElement).value;
-      this.updateStudentList(modal);
-    };
-
-    // Student list container
-    const listContainer = document.createElement('div');
-    listContainer.className = 'student-list';
-    listContainer.style.cssText = `
-      flex: 1;
-      overflow-y: auto;
-      max-height: 300px;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-    `;
-
-    modal.appendChild(header);
-    modal.appendChild(searchInput);
-    modal.appendChild(listContainer);
-
-    // Error message placeholder
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message';
-    errorDiv.style.cssText = `
-      display: none;
-      color: #d32f2f;
-      font-size: 11px;
-      margin-top: 8px;
-      padding: 8px;
-      background: #ffebee;
-      border-radius: 4px;
-    `;
-    modal.appendChild(errorDiv);
-
-    overlay.appendChild(modal);
-    overlay.onclick = (e) => {
-      if (e.target === overlay) this.handleClose();
-    };
-
-    document.body.appendChild(overlay);
-    this.modalElement = overlay;
-
-    this.updateStudentList(modal);
-    searchInput.focus();
+  /**
+   * Close the modal
+   */
+  close(): void {
+    this.open = false;
+    this.confirmingStudent = null;
+    this.confirmDialogOpen = false;
+    this.searchText = '';
+    this.errorMessage = '';
   }
 
-  private updateStudentList(modal: HTMLElement) {
-    const listContainer = modal.querySelector('.student-list');
-    if (!listContainer) return;
+  /**
+   * Show the modal
+   */
+  show(): void {
+    this.open = true;
+  }
 
-    listContainer.innerHTML = '';
-
-    const filtered = this.filteredStudents;
-
-    if (filtered.length === 0) {
-      const empty = document.createElement('div');
-      empty.textContent = this.searchText ? 'No matching students' : 'No students found';
-      empty.style.cssText = `padding: 16px; text-align: center; color: #666; font-size: 12px;`;
-      listContainer.appendChild(empty);
+  /**
+   * Handle modal close from qd-modal
+   */
+  private handleModalClose = (): void => {
+    // Don't close main modal if confirm dialog is open
+    if (this.confirmDialogOpen) {
       return;
     }
+    this.close();
+    this.dispatchEvent(new CustomEvent('close'));
+  };
 
-    filtered.forEach((student) => {
-      const item = document.createElement('div');
-      item.style.cssText = `
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 12px;
-        border-bottom: 1px solid #f0f0f0;
-      `;
-
-      const info = document.createElement('div');
-      const nameSpan = document.createElement('div');
-      nameSpan.textContent = student.name;
-      nameSpan.style.cssText = `font-size: 12px; font-weight: 500;`;
-
-      const idSpan = document.createElement('div');
-      idSpan.textContent = `ID: ${student.serviceId}`;
-      idSpan.style.cssText = `font-size: 10px; color: #666;`;
-
-      const pinStatus = document.createElement('div');
-      const hasPinHash = student.pinHash && student.pinHash.length > 0;
-      pinStatus.textContent = hasPinHash ? 'PIN set' : 'No PIN';
-      pinStatus.style.cssText = `font-size: 10px; color: ${hasPinHash ? '#4caf50' : '#ff9800'};`;
-
-      info.appendChild(nameSpan);
-      info.appendChild(idSpan);
-      info.appendChild(pinStatus);
-
-      const resetBtn = document.createElement('button');
-      resetBtn.textContent = 'Reset PIN';
-      resetBtn.type = 'button';
-      resetBtn.style.cssText = `
-        background: #ff5722;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 4px 8px;
-        font-size: 10px;
-        cursor: pointer;
-      `;
-      resetBtn.onclick = () => this.showConfirmation(student, modal);
-
-      item.appendChild(info);
-      item.appendChild(resetBtn);
-      listContainer.appendChild(item);
+  /**
+   * Handle search input
+   */
+  private handleSearchInput = (e: Event): void => {
+    const input = e.target as HTMLInputElement;
+    this.searchText = input.value;
+    // Sync updated list to portal
+    void this.updateComplete.then(() => {
+      this.syncContentToPortal();
     });
-  }
+  };
 
-  private showConfirmation(student: StudentRecord, modal: HTMLElement) {
+  /**
+   * Show confirmation dialog for PIN reset
+   */
+  private handleResetClick = (student: StudentRecord): void => {
     this.confirmingStudent = student;
+    this.confirmDialogOpen = true;
+  };
 
-    // Create confirmation overlay
-    const confirmOverlay = document.createElement('div');
-    confirmOverlay.className = 'confirm-overlay';
-    confirmOverlay.style.cssText = `
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(255, 255, 255, 0.95);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    `;
+  /**
+   * Handle confirm button click in confirmation dialog
+   */
+  private handleConfirmReset = (): void => {
+    if (this.confirmingStudent) {
+      void this.executeReset(this.confirmingStudent);
+    }
+  };
 
-    const confirmText = document.createElement('p');
-    confirmText.innerHTML = `Reset PIN for <strong>${student.name}</strong> (${student.serviceId})?`;
-    confirmText.style.cssText = `margin: 0 0 16px; text-align: center; font-size: 14px;`;
+  /**
+   * Handle cancel button click in confirmation dialog
+   */
+  private handleCancelReset = (): void => {
+    this.confirmDialogOpen = false;
+    this.confirmingStudent = null;
+  };
 
-    const warning = document.createElement('p');
-    warning.textContent = 'They will need to create a new PIN on next login.';
-    warning.style.cssText = `margin: 0 0 16px; text-align: center; font-size: 11px; color: #666;`;
-
-    const btnContainer = document.createElement('div');
-    btnContainer.style.cssText = `display: flex; gap: 8px;`;
-
-    const cancelBtn = document.createElement('button');
-    cancelBtn.textContent = 'Cancel';
-    cancelBtn.type = 'button';
-    cancelBtn.style.cssText = `
-      background: #e0e0e0;
-      color: #333;
-      border: none;
-      border-radius: 4px;
-      padding: 8px 16px;
-      font-size: 12px;
-      cursor: pointer;
-    `;
-    cancelBtn.onclick = () => {
-      this.confirmingStudent = null;
-      confirmOverlay.remove();
-    };
-
-    const confirmBtn = document.createElement('button');
-    confirmBtn.textContent = 'Reset PIN';
-    confirmBtn.type = 'button';
-    confirmBtn.style.cssText = `
-      background: #ff5722;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 8px 16px;
-      font-size: 12px;
-      cursor: pointer;
-    `;
-    confirmBtn.onclick = () => this.executeReset(student, confirmOverlay, modal);
-
-    btnContainer.appendChild(cancelBtn);
-    btnContainer.appendChild(confirmBtn);
-
-    confirmOverlay.appendChild(confirmText);
-    confirmOverlay.appendChild(warning);
-    confirmOverlay.appendChild(btnContainer);
-
-    // Make modal position relative for absolute overlay
-    const modalDiv = modal.querySelector('div:first-child')?.parentElement || modal;
-    modalDiv.style.position = 'relative';
-    modalDiv.appendChild(confirmOverlay);
-  }
-
-  private async executeReset(
-    student: StudentRecord,
-    confirmOverlay: HTMLElement,
-    modal: HTMLElement,
-  ) {
+  private async executeReset(student: StudentRecord) {
     try {
       const dbNameElement = document.getElementById(CONFIG_IDS.dbName);
       if (!dbNameElement?.textContent?.trim()) {
@@ -406,30 +291,223 @@ export class QdPinResetDialog extends LitElement {
         }),
       );
 
-      // Clean up and refresh
+      // Close confirm dialog and refresh list
+      this.confirmDialogOpen = false;
       this.confirmingStudent = null;
-      confirmOverlay.remove();
-      this.updateStudentList(modal);
+      this.errorMessage = '';
+
+      // Sync updated list to portal
+      void this.updateComplete.then(() => {
+        this.syncContentToPortal();
+      });
     } catch (err) {
       console.error('PIN reset error:', err);
-      const errorDiv = modal.querySelector('.error-message') as HTMLElement;
-      if (errorDiv) {
-        errorDiv.textContent = 'Failed to reset PIN. Please try again.';
-        errorDiv.style.display = 'block';
+      this.errorMessage = 'Failed to reset PIN. Please try again.';
+      this.confirmDialogOpen = false;
+      this.confirmingStudent = null;
+
+      // Sync error to portal
+      void this.updateComplete.then(() => {
+        this.syncContentToPortal();
+      });
+    }
+  }
+
+  /**
+   * Sync dynamic content to portal DOM.
+   * Since qd-modal clones content and loses Lit bindings,
+   * we need to manually update the portal content.
+   */
+  private syncContentToPortal(): void {
+    const backdrop = document.querySelector('.qd-modal-backdrop');
+    if (!backdrop) return;
+
+    const listContainer = backdrop.querySelector('.student-list');
+    if (!listContainer) return;
+
+    // Clear and rebuild student list
+    listContainer.innerHTML = '';
+    const filtered = this.filteredStudents;
+
+    if (filtered.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-message';
+      empty.textContent = this.searchText ? 'No matching students' : 'No students found';
+      empty.style.cssText = 'padding: 16px; text-align: center; color: #666; font-size: 12px;';
+      listContainer.appendChild(empty);
+    } else {
+      filtered.forEach((student) => {
+        const item = document.createElement('div');
+        item.className = 'student-item';
+        item.style.cssText = `
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 12px;
+          border-bottom: 1px solid #f0f0f0;
+        `;
+
+        const info = document.createElement('div');
+
+        const nameSpan = document.createElement('div');
+        nameSpan.className = 'student-name';
+        nameSpan.textContent = student.name;
+        nameSpan.style.cssText = 'font-size: 12px; font-weight: 500;';
+
+        const idSpan = document.createElement('div');
+        idSpan.className = 'student-id';
+        idSpan.textContent = `ID: ${student.serviceId}`;
+        idSpan.style.cssText = 'font-size: 10px; color: #666;';
+
+        const pinStatus = document.createElement('div');
+        pinStatus.className = 'pin-status';
+        const hasPinHash = student.pinHash && student.pinHash.length > 0;
+        pinStatus.textContent = hasPinHash ? 'PIN set' : 'No PIN';
+        pinStatus.style.cssText = `font-size: 10px; color: ${hasPinHash ? '#4caf50' : '#ff9800'};`;
+
+        info.appendChild(nameSpan);
+        info.appendChild(idSpan);
+        info.appendChild(pinStatus);
+
+        const resetBtn = document.createElement('button');
+        resetBtn.className = 'reset-btn';
+        resetBtn.textContent = 'Reset PIN';
+        resetBtn.type = 'button';
+        resetBtn.style.cssText = `
+          background: #ff5722;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          padding: 4px 8px;
+          font-size: 10px;
+          cursor: pointer;
+        `;
+        resetBtn.onclick = () => this.handleResetClick(student);
+
+        item.appendChild(info);
+        item.appendChild(resetBtn);
+        listContainer.appendChild(item);
+      });
+    }
+
+    // Sync error message
+    let errorDiv = backdrop.querySelector('.error-message');
+    if (this.errorMessage) {
+      if (!errorDiv) {
+        errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        const content = backdrop.querySelector('.qd-modal-body');
+        content?.appendChild(errorDiv);
       }
+      errorDiv.textContent = this.errorMessage;
+      (errorDiv as HTMLElement).style.cssText = `
+        color: #d32f2f;
+        font-size: 11px;
+        margin-top: 8px;
+        padding: 8px;
+        background: #ffebee;
+        border-radius: 4px;
+      `;
+    } else {
+      errorDiv?.remove();
     }
   }
 
-  private removeModalFromBody() {
-    if (this.modalElement) {
-      this.modalElement.remove();
-      this.modalElement = null;
+  /**
+   * Setup event listeners in portal after open
+   */
+  private setupPortalListeners(): void {
+    const backdrop = document.querySelector('.qd-modal-backdrop');
+    if (!backdrop) return;
+
+    // Setup search input listener
+    const searchInput = backdrop.querySelector('.search-input') as HTMLInputElement;
+    if (searchInput) {
+      searchInput.oninput = this.handleSearchInput;
+      searchInput.focus();
+    }
+
+    // Initial list sync
+    this.syncContentToPortal();
+  }
+
+  override updated(changedProps: Map<string, unknown>): void {
+    if (changedProps.has('open') && this.open) {
+      // Wait for portal to render, then setup listeners
+      setTimeout(() => {
+        this.setupPortalListeners();
+      }, 0);
+    }
+
+    if (changedProps.has('students') && this.open) {
+      void this.updateComplete.then(() => {
+        this.syncContentToPortal();
+      });
     }
   }
 
-  render() {
-    // Renders nothing to shadow DOM - modal is in document.body
-    return html``;
+  override render() {
+    // Don't render when closed
+    if (!this.open) {
+      return nothing;
+    }
+
+    const student = this.confirmingStudent;
+    const confirmMessage = student
+      ? `Reset PIN for <strong>${student.name}</strong> (${student.serviceId})?<br><span style="font-size: 11px; color: #666;">They will need to create a new PIN on next login.</span>`
+      : '';
+
+    return html`
+      <qd-modal
+        .open=${this.open && !this.confirmDialogOpen}
+        @qd:modal-close=${this.handleModalClose}
+      >
+        <span slot="header">Reset Student PIN</span>
+
+        <div class="pin-reset-content">
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Search by name or ID..."
+            .value=${this.searchText}
+          />
+
+          <div class="student-list">
+            ${this.filteredStudents.length === 0
+              ? html`<div class="empty-message">
+                  ${this.searchText ? 'No matching students' : 'No students found'}
+                </div>`
+              : this.filteredStudents.map(
+                  (s) => html`
+                    <div class="student-item">
+                      <div>
+                        <div class="student-name">${s.name}</div>
+                        <div class="student-id">ID: ${s.serviceId}</div>
+                        <div class="pin-status ${s.pinHash ? 'has-pin' : 'no-pin'}">
+                          ${s.pinHash ? 'PIN set' : 'No PIN'}
+                        </div>
+                      </div>
+                      <button class="reset-btn" type="button">Reset PIN</button>
+                    </div>
+                  `,
+                )}
+          </div>
+
+          ${this.errorMessage ? html`<div class="error-message">${this.errorMessage}</div>` : ''}
+        </div>
+      </qd-modal>
+
+      <qd-confirm-dialog
+        .open=${this.confirmDialogOpen}
+        title="Reset PIN"
+        .message=${confirmMessage}
+        confirmText="Reset PIN"
+        cancelText="Cancel"
+        destructive
+        @qd:confirm=${this.handleConfirmReset}
+        @qd:cancel=${this.handleCancelReset}
+      ></qd-confirm-dialog>
+    `;
   }
 }
 

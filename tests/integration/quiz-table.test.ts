@@ -282,7 +282,7 @@ describe('Quiz Table Enhancement', () => {
       expect(cache.pages['test-page-2']?.answers?.[0]?.success).toBe(false);
     });
 
-    it.skip('should update state to complete when all answers are correct', async () => {
+    it('should update state to complete when all answers are correct', async () => {
       const table = createMCQTable();
       container.appendChild(table);
 

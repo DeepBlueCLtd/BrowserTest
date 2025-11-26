@@ -52,12 +52,12 @@ async function loginAsInstructor(page: Page): Promise<void> {
   await instructorButton.click();
 
   // Find password input in modal
-  const passwordInput = page.locator('#qd-instructor-password');
+  const passwordInput = page.locator('.qd-modal-backdrop input[type="password"]');
   await expect(passwordInput).toBeVisible({ timeout: 2000 });
   await passwordInput.fill(TEST_PASSWORD);
 
   // Submit
-  const unlockButton = page.locator('#qd-instructor-submit');
+  const unlockButton = page.locator('.qd-modal-backdrop button[type="submit"]');
   await unlockButton.click();
 
   // Wait for modal to close and instructor panel to appear
@@ -120,7 +120,7 @@ test.describe('Instructor Mode Improvements', () => {
       await viewScoresButton.click();
 
       // Modal should be visible in document.body
-      const scoresModal = page.locator('.qd-scores-modal-overlay');
+      const scoresModal = page.locator('.qd-modal-backdrop');
       await expect(scoresModal).toBeVisible({ timeout: 2000 });
 
       // Should show student name
@@ -140,11 +140,11 @@ test.describe('Instructor Mode Improvements', () => {
         .locator('button')
         .filter({ hasText: /view.*scores/i })
         .click();
-      const scoresModal = page.locator('.qd-scores-modal-overlay');
+      const scoresModal = page.locator('.qd-modal-backdrop');
       await expect(scoresModal).toBeVisible({ timeout: 2000 });
 
-      // Close via button
-      await scoresModal.locator('button').filter({ hasText: '✕' }).click();
+      // Close via Escape key (qd-modal has no visible close button)
+      await page.keyboard.press('Escape');
       await expect(scoresModal).not.toBeVisible();
     });
 
@@ -158,7 +158,7 @@ test.describe('Instructor Mode Improvements', () => {
         .locator('button')
         .filter({ hasText: /view.*scores/i })
         .click();
-      const scoresModal = page.locator('.qd-scores-modal-overlay');
+      const scoresModal = page.locator('.qd-modal-backdrop');
       await expect(scoresModal).toBeVisible({ timeout: 2000 });
 
       // Press escape
@@ -176,7 +176,7 @@ test.describe('Instructor Mode Improvements', () => {
         .locator('button')
         .filter({ hasText: /view.*scores/i })
         .click();
-      const scoresModal = page.locator('.qd-scores-modal-overlay');
+      const scoresModal = page.locator('.qd-modal-backdrop');
       await expect(scoresModal).toBeVisible({ timeout: 2000 });
 
       // Click on overlay (outside modal content)
@@ -314,7 +314,7 @@ test.describe('Instructor Mode Improvements', () => {
         .locator('button')
         .filter({ hasText: /view.*scores/i })
         .click();
-      const scoresModal = page.locator('.qd-scores-modal-overlay');
+      const scoresModal = page.locator('.qd-modal-backdrop');
       await expect(scoresModal).toBeVisible({ timeout: 2000 });
 
       // Expand student if not already expanded

@@ -22,6 +22,7 @@ import { customElement, state, property } from 'lit/decorators.js';
 import { STORAGE_KEYS, SCHEMA_VERSION } from '../types/contracts.js';
 import type { SessionData, StudentRecord } from '../types/contracts.js';
 import { getJSON } from '../utils/storage-helpers.js';
+import { validateStudentForm, sanitizePinInput } from '../utils/validation-helpers.js';
 import { SessionService } from '../services/session.js';
 import { CONFIG_IDS } from '../config/dom-config-reader.js';
 import { getStorageAdapter } from '../services/storage/indexeddb.js';
@@ -34,6 +35,8 @@ import {
   getRemainingAttempts,
 } from '../services/auth/rate-limiter.js';
 import './qd-build-info.js';
+import './qd-password-modal.js';
+import './qd-confirm-dialog.js';
 
 /**
  * Login event data
@@ -69,31 +72,16 @@ export class QdLogin extends LitElement {
   private serviceId = '';
 
   /**
-   * Instructor modal: Password field
-   */
-  @state()
-  private instructorPassword = '';
-
-  /**
    * Whether instructor modal is open
    */
   @state()
   private showInstructorModal = false;
 
   /**
-   * Reference to modal overlay element in document.body
+   * Instructor modal error message
    */
-  private modalOverlay: HTMLDivElement | null = null;
-
-  /**
-   * Reference to modal error div for updating
-   */
-  private modalErrorDiv: HTMLDivElement | null = null;
-
-  /**
-   * Reference to modal password input for updating
-   */
-  private modalPasswordInput: HTMLInputElement | null = null;
+  @state()
+  private instructorError = '';
 
   /**
    * Error message to display
@@ -118,6 +106,12 @@ export class QdLogin extends LitElement {
    */
   @state()
   private lockoutSeconds = 0;
+
+  /**
+   * Whether PIN stored confirmation is shown
+   */
+  @state()
+  private showPinConfirmation = false;
 
   /**
    * Lockout countdown interval
@@ -244,83 +238,6 @@ export class QdLogin extends LitElement {
       border-left: 3px solid #f57c00;
     }
 
-    /* Modal Overlay */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10001; /* Above storage monitor (10000) */
-    }
-
-    .modal {
-      background: white;
-      border-radius: 8px;
-      padding: 24px;
-      min-width: 320px;
-      max-width: 400px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-
-    .modal-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: #333;
-      margin: 0;
-    }
-
-    .close-btn {
-      background: none;
-      border: none;
-      font-size: 24px;
-      color: #666;
-      cursor: pointer;
-      padding: 0;
-      width: 28px;
-      height: 28px;
-      line-height: 1;
-    }
-
-    .close-btn:hover {
-      color: #333;
-    }
-
-    .modal-body {
-      margin-bottom: 20px;
-    }
-
-    .modal-body input {
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    .modal-footer {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-    }
-
-    .cancel-btn {
-      background: #e0e0e0;
-      color: #333;
-    }
-
-    .cancel-btn:hover {
-      background: #d0d0d0;
-    }
-
     /* Responsive */
     @media (max-width: 600px) {
       .login-form {
@@ -337,32 +254,16 @@ export class QdLogin extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this.updateVisibility();
-    // Listen for Escape key to close modal
-    document.addEventListener('keydown', this.handleEscape);
     document.addEventListener('qd:logout', this.handleLogoutEvent);
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    document.removeEventListener('keydown', this.handleEscape);
     document.removeEventListener('qd:logout', this.handleLogoutEvent);
-    this.cleanupModal();
     if (this.lockoutInterval) {
       clearInterval(this.lockoutInterval);
       this.lockoutInterval = null;
     }
-  }
-
-  /**
-   * Remove modal from document.body if present
-   */
-  private cleanupModal(): void {
-    if (this.modalOverlay) {
-      this.modalOverlay.remove();
-      this.modalOverlay = null;
-    }
-    this.modalErrorDiv = null;
-    this.modalPasswordInput = null;
   }
 
   /**
@@ -391,21 +292,19 @@ export class QdLogin extends LitElement {
     // Reset component state
     this.name = '';
     this.serviceId = '';
-    this.instructorPassword = '';
     this.errorMessage = '';
     this.isSubmitting = false;
     this.showInstructorModal = false;
+    this.instructorError = '';
     this.pin = '';
     this.lockoutSeconds = 0;
+    this.showPinConfirmation = false;
 
     // Clean up lockout interval
     if (this.lockoutInterval) {
       clearInterval(this.lockoutInterval);
       this.lockoutInterval = null;
     }
-
-    // Clean up any lingering modal
-    this.cleanupModal();
 
     // Show login form
     this.updateVisibility();
@@ -480,195 +379,41 @@ export class QdLogin extends LitElement {
             : ''}
         </form>
       </div>
+
+      <qd-password-modal
+        .open=${this.showInstructorModal}
+        title="Instructor Login"
+        .error=${this.instructorError}
+        @qd:password-submit=${this.handleInstructorPasswordSubmit}
+        @close=${this.handleInstructorModalClose}
+      ></qd-password-modal>
+
+      <qd-confirm-dialog
+        .open=${this.showPinConfirmation}
+        title="PIN Stored"
+        message="Your PIN has been saved. Use it with your name and service ID on future logins."
+        confirmText="OK"
+        cancelText=""
+        @qd:confirm=${this.handlePinConfirmationDismiss}
+        @qd:cancel=${this.handlePinConfirmationDismiss}
+      ></qd-confirm-dialog>
     `;
   }
 
   /**
-   * Render instructor modal to document.body (outside shadow DOM)
+   * Handle password submission from modal
    */
-  private renderInstructorModalToBody(): void {
-    // Create overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'qd-instructor-modal-overlay';
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 99999;
-      font-family: system-ui, -apple-system, sans-serif;
-    `;
+  private handleInstructorPasswordSubmit = (e: CustomEvent<{ password: string }>): void => {
+    void this.handleInstructorLogin(e.detail.password);
+  };
 
-    // Create modal
-    const modal = document.createElement('div');
-    modal.className = 'qd-instructor-modal';
-    modal.style.cssText = `
-      background: white;
-      border-radius: 8px;
-      padding: 24px;
-      min-width: 320px;
-      max-width: 400px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-      pointer-events: auto;
-      position: relative;
-      z-index: 100000;
-    `;
-
-    // Header
-    const header = document.createElement('div');
-    header.style.cssText = `
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    `;
-    const title = document.createElement('h3');
-    title.textContent = 'Instructor Login';
-    title.style.cssText = `font-size: 18px; font-weight: 600; color: #333; margin: 0;`;
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = '×';
-    closeBtn.type = 'button';
-    closeBtn.style.cssText = `
-      background: none;
-      border: none;
-      font-size: 24px;
-      color: #666;
-      cursor: pointer;
-      padding: 0;
-      width: 28px;
-      height: 28px;
-      line-height: 1;
-      pointer-events: auto;
-      position: relative;
-      z-index: 1;
-    `;
-    closeBtn.onclick = () => this.closeInstructorModal();
-    header.appendChild(title);
-    header.appendChild(closeBtn);
-
-    // Form
-    const form = document.createElement('form');
-    const bodyDiv = document.createElement('div');
-    bodyDiv.style.marginBottom = '20px';
-
-    const input = document.createElement('input');
-    input.id = 'qd-instructor-password';
-    input.type = 'password';
-    input.placeholder = 'Password';
-    input.required = true;
-    input.style.cssText = `
-      width: 100%;
-      box-sizing: border-box;
-      padding: 6px 10px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 11px;
-      pointer-events: auto;
-      position: relative;
-      z-index: 1;
-    `;
-    input.oninput = (e) => {
-      this.instructorPassword = (e.target as HTMLInputElement).value;
-      // Hide error when user types
-      if (this.modalErrorDiv) {
-        this.modalErrorDiv.style.display = 'none';
-        this.modalErrorDiv.textContent = '';
-      }
-    };
-    bodyDiv.appendChild(input);
-
-    // Store reference to password input
-    this.modalPasswordInput = input;
-
-    // Always create error div (hidden by default)
-    const errorDiv = document.createElement('div');
-    // give the new div an id for easier testing
-    errorDiv.id = 'qd-instructor-modal-error';
-    errorDiv.style.cssText = `
-      color: #d32f2f;
-      font-size: 11px;
-      margin-top: 8px;
-      padding: 4px 8px;
-      background: #ffebee;
-      border-radius: 3px;
-      border-left: 3px solid #d32f2f;
-      display: none;
-    `;
-    bodyDiv.appendChild(errorDiv);
-    this.modalErrorDiv = errorDiv;
-
-    // Footer
-    const footer = document.createElement('div');
-    footer.style.cssText = `display: flex; gap: 8px; justify-content: flex-end;`;
-
-    const cancelBtn = document.createElement('button');
-    cancelBtn.textContent = 'Cancel';
-    cancelBtn.type = 'button';
-    cancelBtn.style.cssText = `
-      background: #e0e0e0;
-      color: #333;
-      border: none;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 500;
-      cursor: pointer;
-      padding: 6px 12px;
-      pointer-events: auto;
-      position: relative;
-      z-index: 1;
-    `;
-    cancelBtn.onclick = () => this.closeInstructorModal();
-
-    const loginBtn = document.createElement('button');
-    loginBtn.id = 'qd-instructor-submit';
-    loginBtn.textContent = 'Login';
-    loginBtn.type = 'submit';
-    loginBtn.style.cssText = `
-      background: #0066cc;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 500;
-      cursor: pointer;
-      padding: 6px 12px;
-      pointer-events: auto;
-      position: relative;
-      z-index: 1;
-    `;
-
-    footer.appendChild(cancelBtn);
-    footer.appendChild(loginBtn);
-
-    form.appendChild(bodyDiv);
-    form.appendChild(footer);
-    form.onsubmit = (e) => {
-      e.preventDefault();
-      void this.handleInstructorLogin(e);
-    };
-
-    // Assemble
-    modal.appendChild(header);
-    modal.appendChild(form);
-    overlay.appendChild(modal);
-
-    // Click outside to close
-    overlay.onclick = (e) => {
-      if (e.target === overlay) this.closeInstructorModal();
-    };
-
-    // Append to body
-    document.body.appendChild(overlay);
-    this.modalOverlay = overlay;
-
-    // Focus input
-    setTimeout(() => input.focus(), 50);
-  }
+  /**
+   * Handle modal close
+   */
+  private handleInstructorModalClose = (): void => {
+    this.showInstructorModal = false;
+    this.instructorError = '';
+  };
 
   /**
    * Handle name input
@@ -693,29 +438,17 @@ export class QdLogin extends LitElement {
    */
   private handlePinInput(e: Event) {
     const input = e.target as HTMLInputElement;
-    // Filter to digits only
-    this.pin = input.value.replace(/\D/g, '');
+    // Filter to digits only using validation helper
+    this.pin = sanitizePinInput(input.value);
     this.errorMessage = '';
   }
 
   /**
-   * Check if student form is valid
+   * Check if student form is valid using validation helper
    */
   private isValid(): boolean {
-    const name = this.name.trim();
-    const serviceId = this.serviceId.trim();
-
-    // Name: non-empty
-    if (!name) return false;
-
-    // Service ID: 2-10 alphanumeric
-    const serviceIdPattern = /^[A-Za-z0-9]{2,10}$/;
-    if (!serviceIdPattern.test(serviceId)) return false;
-
-    // PIN: must be 4 digits
-    if (this.pin.length !== 4) return false;
-
-    return true;
+    const errors = validateStudentForm(this.name, this.serviceId, this.pin);
+    return errors.length === 0;
   }
 
   /**
@@ -874,72 +607,15 @@ export class QdLogin extends LitElement {
    * Show confirmation popup that PIN has been stored
    */
   private showPinStoredConfirmation(): void {
-    // Create overlay
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 99999;
-    `;
-
-    // Create modal
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-      background: white;
-      border-radius: 8px;
-      padding: 24px;
-      max-width: 320px;
-      text-align: center;
-      font-family: system-ui, -apple-system, sans-serif;
-    `;
-
-    modal.innerHTML = `
-      <div style="font-size: 32px; margin-bottom: 12px;">✓</div>
-      <h3 style="margin: 0 0 8px 0; font-size: 16px;">PIN Stored</h3>
-      <p style="margin: 0 0 16px 0; font-size: 13px; color: #666;">
-        Your PIN has been saved. Use it with your name and service ID on future logins.
-      </p>
-      <button id="qd-pin-confirmation-ok" style="
-        background: #0066cc;
-        color: white;
-        border: none;
-        padding: 8px 24px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 13px;
-      ">OK</button>
-    `;
-
-    // Close on button click
-    const button = modal.querySelector('button');
-    button?.addEventListener('click', () => {
-      document.body.removeChild(overlay);
-    });
-
-    // Close on overlay click
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) {
-        document.body.removeChild(overlay);
-      }
-    });
-
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-
-    // Auto-close after 3 seconds
-    setTimeout(() => {
-      if (document.body.contains(overlay)) {
-        document.body.removeChild(overlay);
-      }
-    }, 30000);
+    this.showPinConfirmation = true;
   }
+
+  /**
+   * Handle PIN confirmation dialog dismiss
+   */
+  private handlePinConfirmationDismiss = (): void => {
+    this.showPinConfirmation = false;
+  };
 
   /**
    * Start lockout countdown timer
@@ -989,9 +665,6 @@ export class QdLogin extends LitElement {
     this.pin = '';
     this.isSubmitting = false;
 
-    // Clean up any modal overlays before hiding component
-    this.cleanupModal();
-
     // Hide component on successful login
     this.updateVisibility();
   }
@@ -1001,27 +674,8 @@ export class QdLogin extends LitElement {
    */
   private openInstructorModal() {
     this.showInstructorModal = true;
-    this.instructorPassword = '';
-    this.renderInstructorModalToBody();
+    this.instructorError = '';
   }
-
-  /**
-   * Close instructor modal
-   */
-  private closeInstructorModal() {
-    this.showInstructorModal = false;
-    this.instructorPassword = '';
-    this.cleanupModal();
-  }
-
-  /**
-   * Handle Escape key
-   */
-  private handleEscape = (e: KeyboardEvent) => {
-    if (e.key === 'Escape' && this.showInstructorModal) {
-      this.closeInstructorModal();
-    }
-  };
 
   /**
    * Hash password using SHA-256
@@ -1047,43 +701,20 @@ export class QdLogin extends LitElement {
   }
 
   /**
-   * Show error in modal
+   * Handle instructor login with password
    */
-  private showModalError(message: string): void {
-    if (this.modalErrorDiv) {
-      this.modalErrorDiv.textContent = message;
-      this.modalErrorDiv.style.display = 'block';
-    }
-  }
-
-  /**
-   * Handle instructor login
-   */
-  private async handleInstructorLogin(e: Event) {
-    e.preventDefault();
-
-    if (!this.instructorPassword) {
-      this.showModalError('Password is required');
-      return;
-    }
-
+  private async handleInstructorLogin(password: string) {
     try {
-      const passwordHash = await this.hashPassword(this.instructorPassword);
+      const passwordHash = await this.hashPassword(password);
       const expectedHash = this.getExpectedHash();
 
       if (!expectedHash) {
-        this.showModalError('Instructor password not configured');
+        this.instructorError = 'Instructor password not configured';
         return;
       }
 
       if (passwordHash !== expectedHash) {
-        this.showModalError('Incorrect password');
-        this.instructorPassword = '';
-        // Clear the password input field
-        if (this.modalPasswordInput) {
-          this.modalPasswordInput.value = '';
-          this.modalPasswordInput.focus();
-        }
+        this.instructorError = 'Incorrect password';
         // TODO: Implement rate limiting (5 attempts per 60 seconds)
         return;
       }
@@ -1112,11 +743,12 @@ export class QdLogin extends LitElement {
       });
       this.dispatchEvent(event);
 
-      // Close modal and hide component (don't remove - need to show again on logout)
-      this.closeInstructorModal();
+      // Close modal and hide component
+      this.showInstructorModal = false;
+      this.instructorError = '';
       this.updateVisibility();
     } catch (err) {
-      this.showModalError('Login failed. Please try again.');
+      this.instructorError = 'Login failed. Please try again.';
       console.error('Instructor login error:', err);
     }
   }
