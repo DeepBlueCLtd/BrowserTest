@@ -102,7 +102,7 @@ export const Interactive: Story = {
 
     const handleSubmit = (e: Event) => {
       const detail = (e as CustomEvent<{ password: string }>).detail;
-      // eslint-disable-next-line no-alert
+
       alert(`Password submitted: ${detail.password.substring(0, 3)}***`);
       const modal = document.querySelector('qd-password-modal');
       modal?.close();
