@@ -36,6 +36,7 @@ import {
 } from '../services/auth/rate-limiter.js';
 import './qd-build-info.js';
 import './qd-password-modal.js';
+import './qd-confirm-dialog.js';
 
 /**
  * Login event data
@@ -105,6 +106,12 @@ export class QdLogin extends LitElement {
    */
   @state()
   private lockoutSeconds = 0;
+
+  /**
+   * Whether PIN stored confirmation is shown
+   */
+  @state()
+  private showPinConfirmation = false;
 
   /**
    * Lockout countdown interval
@@ -291,6 +298,7 @@ export class QdLogin extends LitElement {
     this.instructorError = '';
     this.pin = '';
     this.lockoutSeconds = 0;
+    this.showPinConfirmation = false;
 
     // Clean up lockout interval
     if (this.lockoutInterval) {
@@ -379,6 +387,16 @@ export class QdLogin extends LitElement {
         @qd:password-submit=${this.handleInstructorPasswordSubmit}
         @close=${this.handleInstructorModalClose}
       ></qd-password-modal>
+
+      <qd-confirm-dialog
+        .open=${this.showPinConfirmation}
+        title="PIN Stored"
+        message="Your PIN has been saved. Use it with your name and service ID on future logins."
+        confirmText="OK"
+        cancelText=""
+        @qd:confirm=${this.handlePinConfirmationDismiss}
+        @qd:cancel=${this.handlePinConfirmationDismiss}
+      ></qd-confirm-dialog>
     `;
   }
 
@@ -589,72 +607,15 @@ export class QdLogin extends LitElement {
    * Show confirmation popup that PIN has been stored
    */
   private showPinStoredConfirmation(): void {
-    // Create overlay
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 99999;
-    `;
-
-    // Create modal
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-      background: white;
-      border-radius: 8px;
-      padding: 24px;
-      max-width: 320px;
-      text-align: center;
-      font-family: system-ui, -apple-system, sans-serif;
-    `;
-
-    modal.innerHTML = `
-      <div style="font-size: 32px; margin-bottom: 12px;">✓</div>
-      <h3 style="margin: 0 0 8px 0; font-size: 16px;">PIN Stored</h3>
-      <p style="margin: 0 0 16px 0; font-size: 13px; color: #666;">
-        Your PIN has been saved. Use it with your name and service ID on future logins.
-      </p>
-      <button id="qd-pin-confirmation-ok" style="
-        background: #0066cc;
-        color: white;
-        border: none;
-        padding: 8px 24px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 13px;
-      ">OK</button>
-    `;
-
-    // Close on button click
-    const button = modal.querySelector('button');
-    button?.addEventListener('click', () => {
-      document.body.removeChild(overlay);
-    });
-
-    // Close on overlay click
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) {
-        document.body.removeChild(overlay);
-      }
-    });
-
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-
-    // Auto-close after 3 seconds
-    setTimeout(() => {
-      if (document.body.contains(overlay)) {
-        document.body.removeChild(overlay);
-      }
-    }, 30000);
+    this.showPinConfirmation = true;
   }
+
+  /**
+   * Handle PIN confirmation dialog dismiss
+   */
+  private handlePinConfirmationDismiss = (): void => {
+    this.showPinConfirmation = false;
+  };
 
   /**
    * Start lockout countdown timer
