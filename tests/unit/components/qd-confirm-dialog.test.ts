@@ -327,7 +327,9 @@ describe('qd-confirm-dialog', () => {
       );
 
       // Either confirm button or a focusable element in modal should be focused
-      expect(document.activeElement === confirmBtn || document.activeElement !== document.body).toBe(true);
+      expect(
+        document.activeElement === confirmBtn || document.activeElement !== document.body,
+      ).toBe(true);
     });
   });
 });
