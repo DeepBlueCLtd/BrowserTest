@@ -208,11 +208,11 @@ test.describe('Analysis Capture Workflow', () => {
       .first();
     await instructorButton.click();
 
-    const passwordInput = page.locator('.qd-instructor-modal-overlay input[type="password"]');
+    const passwordInput = page.locator('.qd-modal-backdrop input[type="password"]');
     await expect(passwordInput).toBeVisible();
     await passwordInput.fill(TEST_PASSWORD);
 
-    const unlockButton = page.locator('.qd-instructor-modal-overlay button[type="submit"]');
+    const unlockButton = page.locator('.qd-modal-backdrop button[type="submit"]');
     await unlockButton.click();
     await expect(passwordInput).not.toBeVisible();
 

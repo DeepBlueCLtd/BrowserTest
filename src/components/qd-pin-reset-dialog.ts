@@ -9,13 +9,12 @@
  * @fires {CustomEvent} close - Emitted when dialog is closed
  */
 
-import { LitElement, html, css, nothing } from 'lit';
+import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import type { StudentRecord, PinResetEvent } from '../types/contracts.js';
 import { getStorageAdapter } from '../services/storage/indexeddb.js';
 import { resetPin } from '../services/storage/migration.js';
 import { CONFIG_IDS } from '../config/dom-config-reader.js';
-import './qd-modal.js';
 import './qd-confirm-dialog.js';
 
 @customElement('qd-pin-reset-dialog')
@@ -50,144 +49,50 @@ export class QdPinResetDialog extends LitElement {
   @state()
   private confirmDialogOpen = false;
 
-  /**
-   * Error message to display
-   */
-  @state()
-  private errorMessage = '';
+  private modalElement: HTMLElement | null = null;
 
   static styles = css`
     :host {
       display: block;
     }
-
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-
-    .header h3 {
-      font-size: 18px;
-      font-weight: 600;
-      margin: 0;
-    }
-
-    .close-btn {
-      background: none;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      color: #666;
-      padding: 0;
-      line-height: 1;
-    }
-
-    .close-btn:hover {
-      color: #333;
-    }
-
-    .search-input {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 8px 12px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      margin-bottom: 12px;
-      font-size: 12px;
-    }
-
-    .student-list {
-      flex: 1;
-      overflow-y: auto;
-      max-height: 300px;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-    }
-
-    .student-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 12px;
-      border-bottom: 1px solid #f0f0f0;
-    }
-
-    .student-item:last-child {
-      border-bottom: none;
-    }
-
-    .student-name {
-      font-size: 12px;
-      font-weight: 500;
-    }
-
-    .student-id {
-      font-size: 10px;
-      color: #666;
-    }
-
-    .pin-status {
-      font-size: 10px;
-    }
-
-    .pin-status.has-pin {
-      color: #4caf50;
-    }
-
-    .pin-status.no-pin {
-      color: #ff9800;
-    }
-
-    .reset-btn {
-      background: #ff5722;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 4px 8px;
-      font-size: 10px;
-      cursor: pointer;
-    }
-
-    .reset-btn:hover {
-      background: #e64a19;
-    }
-
-    .empty-message {
-      padding: 16px;
-      text-align: center;
-      color: #666;
-      font-size: 12px;
-    }
-
-    .error-message {
-      color: #d32f2f;
-      font-size: 11px;
-      margin-top: 8px;
-      padding: 8px;
-      background: #ffebee;
-      border-radius: 4px;
-    }
   `;
+
+  connectedCallback() {
+    super.connectedCallback();
+    document.addEventListener('keydown', this.handleEscape);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    document.removeEventListener('keydown', this.handleEscape);
+    this.removeModalFromBody();
+  }
+
+  updated(changedProperties: Map<string, unknown>) {
+    if (changedProperties.has('showModal')) {
+      if (this.showModal) {
+        this.renderModalToBody();
+      } else {
+        this.removeModalFromBody();
+      }
+    }
+  }
+
+  private handleEscape = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && this.showModal) {
+      if (this.confirmDialogOpen) {
+        // Let qd-confirm-dialog handle its own Escape
+        return;
+      }
+      this.handleClose();
+    }
+  };
 
   private handleClose = () => {
     this.confirmingStudent = null;
     this.confirmDialogOpen = false;
     this.searchText = '';
-    this.errorMessage = '';
     this.dispatchEvent(new CustomEvent('close'));
-  };
-
-  private handleModalClose = () => {
-    // Only close main modal if confirm dialog is not open
-    if (!this.confirmDialogOpen) {
-      this.handleClose();
-    }
-  };
-
-  private handleSearchInput = (e: Event) => {
-    this.searchText = (e.target as HTMLInputElement).value;
   };
 
   private get filteredStudents(): StudentRecord[] {
@@ -200,10 +105,194 @@ export class QdPinResetDialog extends LitElement {
     );
   }
 
+  private renderModalToBody() {
+    this.removeModalFromBody();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'qd-pin-reset-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      font-family: system-ui, -apple-system, sans-serif;
+    `;
+
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      min-width: 400px;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    `;
+
+    // Header
+    const header = document.createElement('div');
+    header.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    `;
+
+    const title = document.createElement('h3');
+    title.textContent = 'Reset Student PIN';
+    title.style.cssText = `font-size: 18px; font-weight: 600; margin: 0;`;
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '×';
+    closeBtn.type = 'button';
+    closeBtn.style.cssText = `
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #666;
+    `;
+    closeBtn.onclick = () => this.handleClose();
+
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+
+    // Search
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Search by name or ID...';
+    searchInput.style.cssText = `
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-bottom: 12px;
+      font-size: 12px;
+    `;
+    searchInput.oninput = (e) => {
+      this.searchText = (e.target as HTMLInputElement).value;
+      this.updateStudentList(modal);
+    };
+
+    // Student list container
+    const listContainer = document.createElement('div');
+    listContainer.className = 'student-list';
+    listContainer.style.cssText = `
+      flex: 1;
+      overflow-y: auto;
+      max-height: 300px;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+    `;
+
+    modal.appendChild(header);
+    modal.appendChild(searchInput);
+    modal.appendChild(listContainer);
+
+    // Error message placeholder
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.style.cssText = `
+      display: none;
+      color: #d32f2f;
+      font-size: 11px;
+      margin-top: 8px;
+      padding: 8px;
+      background: #ffebee;
+      border-radius: 4px;
+    `;
+    modal.appendChild(errorDiv);
+
+    overlay.appendChild(modal);
+    overlay.onclick = (e) => {
+      if (e.target === overlay) this.handleClose();
+    };
+
+    document.body.appendChild(overlay);
+    this.modalElement = overlay;
+
+    this.updateStudentList(modal);
+    searchInput.focus();
+  }
+
+  private updateStudentList(modal: HTMLElement) {
+    const listContainer = modal.querySelector('.student-list');
+    if (!listContainer) return;
+
+    listContainer.innerHTML = '';
+
+    const filtered = this.filteredStudents;
+
+    if (filtered.length === 0) {
+      const empty = document.createElement('div');
+      empty.textContent = this.searchText ? 'No matching students' : 'No students found';
+      empty.style.cssText = `padding: 16px; text-align: center; color: #666; font-size: 12px;`;
+      listContainer.appendChild(empty);
+      return;
+    }
+
+    filtered.forEach((student) => {
+      const item = document.createElement('div');
+      item.style.cssText = `
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        border-bottom: 1px solid #f0f0f0;
+      `;
+
+      const info = document.createElement('div');
+      const nameSpan = document.createElement('div');
+      nameSpan.textContent = student.name;
+      nameSpan.style.cssText = `font-size: 12px; font-weight: 500;`;
+
+      const idSpan = document.createElement('div');
+      idSpan.textContent = `ID: ${student.serviceId}`;
+      idSpan.style.cssText = `font-size: 10px; color: #666;`;
+
+      const pinStatus = document.createElement('div');
+      const hasPinHash = student.pinHash && student.pinHash.length > 0;
+      pinStatus.textContent = hasPinHash ? 'PIN set' : 'No PIN';
+      pinStatus.style.cssText = `font-size: 10px; color: ${hasPinHash ? '#4caf50' : '#ff9800'};`;
+
+      info.appendChild(nameSpan);
+      info.appendChild(idSpan);
+      info.appendChild(pinStatus);
+
+      const resetBtn = document.createElement('button');
+      resetBtn.textContent = 'Reset PIN';
+      resetBtn.type = 'button';
+      resetBtn.style.cssText = `
+        background: #ff5722;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 10px;
+        cursor: pointer;
+      `;
+      resetBtn.onclick = () => this.showConfirmation(student, modal);
+
+      item.appendChild(info);
+      item.appendChild(resetBtn);
+      listContainer.appendChild(item);
+    });
+  }
+
   /**
    * Show confirmation dialog for PIN reset
    */
-  private showConfirmation(student: StudentRecord) {
+  private showConfirmation(student: StudentRecord, _modal: HTMLElement) {
     this.confirmingStudent = student;
     this.confirmDialogOpen = true;
   }
@@ -251,11 +340,11 @@ export class QdPinResetDialog extends LitElement {
       };
       await storage.saveAuditEvent(auditEvent);
 
-      // Update local data - trigger Lit reactivity
+      // Update local data
       const index = this.students.findIndex((s) => s.serviceId === student.serviceId);
       if (index >= 0) {
         this.students[index] = updatedStudent;
-        this.students = [...this.students];
+        this.students = [...this.students]; // Trigger reactivity
       }
 
       // Emit event
@@ -271,81 +360,50 @@ export class QdPinResetDialog extends LitElement {
         }),
       );
 
-      // Close confirm dialog, clear error
+      // Close dialog and refresh list
       this.confirmDialogOpen = false;
       this.confirmingStudent = null;
-      this.errorMessage = '';
+      if (this.modalElement) {
+        const modal = this.modalElement.querySelector('div') as HTMLElement;
+        if (modal) {
+          this.updateStudentList(modal);
+        }
+      }
     } catch (err) {
       console.error('PIN reset error:', err);
-      this.errorMessage = 'Failed to reset PIN. Please try again.';
+      // Show error in main modal
+      if (this.modalElement) {
+        const modal = this.modalElement.querySelector('div') as HTMLElement;
+        const errorDiv = modal?.querySelector('.error-message') as HTMLElement;
+        if (errorDiv) {
+          errorDiv.textContent = 'Failed to reset PIN. Please try again.';
+          errorDiv.style.display = 'block';
+        }
+      }
       // Close the confirm dialog even on error
       this.confirmDialogOpen = false;
       this.confirmingStudent = null;
     }
   }
 
-  private renderStudentItem(student: StudentRecord) {
-    const hasPinHash = student.pinHash && student.pinHash.length > 0;
-    return html`
-      <div class="student-item">
-        <div>
-          <div class="student-name">${student.name}</div>
-          <div class="student-id">ID: ${student.serviceId}</div>
-          <div class="pin-status ${hasPinHash ? 'has-pin' : 'no-pin'}">
-            ${hasPinHash ? 'PIN set' : 'No PIN'}
-          </div>
-        </div>
-        <button type="button" class="reset-btn" @click=${() => this.showConfirmation(student)}>
-          Reset PIN
-        </button>
-      </div>
-    `;
-  }
-
-  private renderStudentList() {
-    const filtered = this.filteredStudents;
-
-    if (filtered.length === 0) {
-      return html`
-        <div class="empty-message">
-          ${this.searchText ? 'No matching students' : 'No students found'}
-        </div>
-      `;
+  private removeModalFromBody() {
+    if (this.modalElement) {
+      this.modalElement.remove();
+      this.modalElement = null;
     }
-
-    return filtered.map((student) => this.renderStudentItem(student));
   }
 
   render() {
     const student = this.confirmingStudent;
-    const confirmMessage = student
+    const message = student
       ? `Reset PIN for <strong>${student.name}</strong> (${student.serviceId})?<br><span style="font-size: 11px; color: #666;">They will need to create a new PIN on next login.</span>`
       : '';
 
     return html`
-      <qd-modal .open=${this.showModal} @qd:modal-close=${this.handleModalClose}>
-        <div class="header">
-          <h3>Reset Student PIN</h3>
-          <button type="button" class="close-btn" @click=${this.handleClose}>×</button>
-        </div>
-
-        <input
-          type="text"
-          class="search-input"
-          placeholder="Search by name or ID..."
-          .value=${this.searchText}
-          @input=${this.handleSearchInput}
-        />
-
-        <div class="student-list">${this.renderStudentList()}</div>
-
-        ${this.errorMessage ? html`<div class="error-message">${this.errorMessage}</div>` : nothing}
-      </qd-modal>
-
       <qd-confirm-dialog
         .open=${this.confirmDialogOpen}
         title="Reset PIN"
-        .message=${confirmMessage}
+        .message=${message}
         confirmText="Reset PIN"
         cancelText="Cancel"
         destructive

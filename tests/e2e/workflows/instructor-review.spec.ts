@@ -80,53 +80,17 @@ test.describe('Instructor Review Workflow', () => {
     await page.waitForTimeout(500);
 
     // Fill password
-    const passwordInput = page.locator('.qd-instructor-modal-overlay input[type="password"]');
+    const passwordInput = page.locator('.qd-modal-backdrop input[type="password"]');
     await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
     // Submit
-    const unlockButton = page.locator('.qd-instructor-modal-overlay button[type="submit"]');
+    const unlockButton = page.locator('.qd-modal-backdrop button[type="submit"]');
     await unlockButton.click();
     await expect(passwordInput).not.toBeVisible();
 
     // Verify instructor panel appears
     await expect(page.getByText('View All Scores')).toBeVisible();
-  });
-
-  // Skip: Rate limiting for instructor password is not yet implemented (TODO in qd-login.ts:1087)
-  test.skip('should enforce rate limiting after failed attempts', async ({ page }) => {
-    await page.goto(`file://${demoPath}/page-index.html`);
-    await waitForBootstrap(page);
-
-    // Logout first to make qd-login visible
-    const statusPanel = page.locator('qd-status');
-    const logoutButton = statusPanel.locator('button').filter({ hasText: /logout/i });
-    await logoutButton.click();
-    await expect(page.locator('qd-login')).toBeVisible();
-
-    // Page already has qd-instructor-hash element with the correct hash
-
-    // Click instructor button
-    const instructorButton = page.locator('qd-login button').filter({ hasText: /instructor/i });
-    await instructorButton.click({ force: true });
-    await page.waitForTimeout(500);
-
-    const passwordInput = page.locator('.qd-instructor-modal-overlay input[type="password"]');
-    await expect(passwordInput).toBeVisible({ timeout: 3000 });
-
-    // Try wrong password 3 times
-    for (let i = 0; i < 3; i++) {
-      await passwordInput.fill('wrong-password');
-      const unlockButton = page.locator('.qd-instructor-modal-overlay button[type="submit"]');
-      await unlockButton.click();
-      await page.waitForTimeout(200);
-    }
-
-    // Verify rate limit message appears
-    const rateLimitText = page
-      .locator('.qd-instructor-modal-overlay')
-      .locator('text=/Too many attempts/i');
-    await expect(rateLimitText).toBeVisible({ timeout: 2000 });
   });
 
   test('should display student scores in modal', async ({ page }) => {
@@ -157,11 +121,11 @@ test.describe('Instructor Review Workflow', () => {
     await instructorButton.click({ force: true });
     await page.waitForTimeout(500);
 
-    const passwordInput = page.locator('.qd-instructor-modal-overlay input[type="password"]');
+    const passwordInput = page.locator('.qd-modal-backdrop input[type="password"]');
     await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
-    const unlockButton = page.locator('.qd-instructor-modal-overlay button[type="submit"]');
+    const unlockButton = page.locator('.qd-modal-backdrop button[type="submit"]');
     await unlockButton.click();
     await expect(passwordInput).not.toBeVisible();
 
@@ -171,21 +135,12 @@ test.describe('Instructor Review Workflow', () => {
     await viewScoresButton.click();
 
     // Verify modal appears
-    const scoresModal = page.locator('.qd-scores-modal-overlay');
+    const scoresModal = page.locator('.qd-modal-backdrop');
     await expect(scoresModal).toBeVisible();
 
     // Verify student data shown
     await expect(scoresModal).toContainText('John Doe');
     await expect(scoresModal).toContainText('TEST001');
-  });
-
-  // Skip: CSV export requires complex data setup - tested via display student scores modal instead
-  test.skip('should export CSV with student data', async ({ page: _page }) => {
-    // This test is skipped because:
-    // 1. The instructor mode loads student data asynchronously
-    // 2. The Export CSV button remains disabled if no data found on initial load
-    // 3. The "display student scores in modal" test verifies data visibility
-    // A manual test is recommended for CSV export functionality
   });
 
   test('should show student answers when instructor mode active', async ({ page }) => {
@@ -216,11 +171,11 @@ test.describe('Instructor Review Workflow', () => {
     await instructorButton.click({ force: true });
     await page.waitForTimeout(500);
 
-    const passwordInput = page.locator('.qd-instructor-modal-overlay input[type="password"]');
+    const passwordInput = page.locator('.qd-modal-backdrop input[type="password"]');
     await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
-    const unlockButton = page.locator('.qd-instructor-modal-overlay button[type="submit"]');
+    const unlockButton = page.locator('.qd-modal-backdrop button[type="submit"]');
     await unlockButton.click();
     await expect(passwordInput).not.toBeVisible();
 
@@ -248,11 +203,11 @@ test.describe('Instructor Review Workflow', () => {
     await instructorButton.click({ force: true });
     await page.waitForTimeout(500);
 
-    const passwordInput = page.locator('.qd-instructor-modal-overlay input[type="password"]');
+    const passwordInput = page.locator('.qd-modal-backdrop input[type="password"]');
     await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
-    const unlockButton = page.locator('.qd-instructor-modal-overlay button[type="submit"]');
+    const unlockButton = page.locator('.qd-modal-backdrop button[type="submit"]');
     await unlockButton.click();
     await expect(passwordInput).not.toBeVisible();
 
@@ -261,12 +216,11 @@ test.describe('Instructor Review Workflow', () => {
     await expect(viewScoresButton).toBeVisible();
     await viewScoresButton.click();
 
-    const scoresModal = page.locator('.qd-scores-modal-overlay');
+    const scoresModal = page.locator('.qd-modal-backdrop');
     await expect(scoresModal).toBeVisible();
 
-    // Close modal - look for close button with ✕ text
-    const closeButton = scoresModal.locator('button').filter({ hasText: '✕' });
-    await closeButton.click();
+    // Close modal - qd-modal closes via Escape key
+    await page.keyboard.press('Escape');
 
     // Verify modal closed
     await expect(scoresModal).not.toBeVisible();
@@ -316,11 +270,11 @@ test.describe('Instructor Review Workflow', () => {
     await instructorButton.click({ force: true });
     await page.waitForTimeout(500);
 
-    const passwordInput = page.locator('.qd-instructor-modal-overlay input[type="password"]');
+    const passwordInput = page.locator('.qd-modal-backdrop input[type="password"]');
     await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
-    const unlockButton = page.locator('.qd-instructor-modal-overlay button[type="submit"]');
+    const unlockButton = page.locator('.qd-modal-backdrop button[type="submit"]');
     await unlockButton.click();
     await expect(passwordInput).not.toBeVisible();
 
