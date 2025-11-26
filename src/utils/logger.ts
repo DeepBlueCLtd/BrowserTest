@@ -123,18 +123,20 @@ export function debug(message: string, data?: unknown): void {
 }
 
 /**
- * Log info message
+ * Log info message (only in debug mode)
  *
  * @param message - Info message
  * @param data - Optional data to log (will be sanitized)
  */
 export function info(message: string, data?: unknown): void {
-  if (data !== undefined) {
-    // eslint-disable-next-line no-console
-    console.log(`[INFO] ${message}`, sanitize(data));
-  } else {
-    // eslint-disable-next-line no-console
-    console.log(`[INFO] ${message}`);
+  if (debugEnabled) {
+    if (data !== undefined) {
+      // eslint-disable-next-line no-console
+      console.log(`[INFO] ${message}`, sanitize(data));
+    } else {
+      // eslint-disable-next-line no-console
+      console.log(`[INFO] ${message}`);
+    }
   }
 }
 
