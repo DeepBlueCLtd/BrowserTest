@@ -62,8 +62,9 @@ describe('qd-scores-modal', () => {
     it('shows when open=true', async () => {
       const el = await createModal({ open: true });
       expect(el.open).toBe(true);
-      // Portal renders backdrop to document.body, not shadowRoot
-      const backdrop = document.querySelector('.qd-modal-backdrop');
+      // qd-modal inside qd-scores-modal renders backdrop in shadow DOM
+      const modal = el.shadowRoot?.querySelector('qd-modal');
+      const backdrop = modal?.shadowRoot?.querySelector('.backdrop');
       expect(backdrop).toBeTruthy();
     });
 
@@ -81,8 +82,9 @@ describe('qd-scores-modal', () => {
       const closeHandler = vi.fn();
       el.addEventListener('close', closeHandler);
 
-      // Portal renders backdrop to document.body
-      const backdrop = document.querySelector('.qd-modal-backdrop') as HTMLElement;
+      // Backdrop is in qd-modal's shadow DOM
+      const modal = el.shadowRoot?.querySelector('qd-modal');
+      const backdrop = modal?.shadowRoot?.querySelector('.backdrop') as HTMLElement;
       backdrop?.click();
       await el.updateComplete;
 
@@ -344,9 +346,10 @@ describe('qd-scores-modal', () => {
 
   describe('accessibility', () => {
     it('has dialog role', async () => {
-      await createModal({ open: true });
-      // Portal renders dialog to document.body
-      const dialog = document.querySelector('.qd-modal-backdrop [role="dialog"]');
+      const el = await createModal({ open: true });
+      // Dialog role is in qd-modal's shadow DOM
+      const modal = el.shadowRoot?.querySelector('qd-modal');
+      const dialog = modal?.shadowRoot?.querySelector('[role="dialog"]');
       expect(dialog).toBeTruthy();
     });
 

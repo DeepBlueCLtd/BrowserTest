@@ -214,10 +214,6 @@ export class QdPinResetDialog extends LitElement {
   private handleSearchInput = (e: Event): void => {
     const input = e.target as HTMLInputElement;
     this.searchText = input.value;
-    // Sync updated list to portal
-    void this.updateComplete.then(() => {
-      this.syncContentToPortal();
-    });
   };
 
   /**
@@ -291,158 +287,15 @@ export class QdPinResetDialog extends LitElement {
         }),
       );
 
-      // Close confirm dialog and refresh list
+      // Close confirm dialog
       this.confirmDialogOpen = false;
       this.confirmingStudent = null;
       this.errorMessage = '';
-
-      // Sync updated list to portal
-      void this.updateComplete.then(() => {
-        this.syncContentToPortal();
-      });
     } catch (err) {
       console.error('PIN reset error:', err);
       this.errorMessage = 'Failed to reset PIN. Please try again.';
       this.confirmDialogOpen = false;
       this.confirmingStudent = null;
-
-      // Sync error to portal
-      void this.updateComplete.then(() => {
-        this.syncContentToPortal();
-      });
-    }
-  }
-
-  /**
-   * Sync dynamic content to portal DOM.
-   * Since qd-modal clones content and loses Lit bindings,
-   * we need to manually update the portal content.
-   */
-  private syncContentToPortal(): void {
-    const backdrop = document.querySelector('.qd-modal-backdrop');
-    if (!backdrop) return;
-
-    const listContainer = backdrop.querySelector('.student-list');
-    if (!listContainer) return;
-
-    // Clear and rebuild student list
-    listContainer.innerHTML = '';
-    const filtered = this.filteredStudents;
-
-    if (filtered.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'empty-message';
-      empty.textContent = this.searchText ? 'No matching students' : 'No students found';
-      empty.style.cssText = 'padding: 16px; text-align: center; color: #666; font-size: 12px;';
-      listContainer.appendChild(empty);
-    } else {
-      filtered.forEach((student) => {
-        const item = document.createElement('div');
-        item.className = 'student-item';
-        item.style.cssText = `
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 8px 12px;
-          border-bottom: 1px solid #f0f0f0;
-        `;
-
-        const info = document.createElement('div');
-
-        const nameSpan = document.createElement('div');
-        nameSpan.className = 'student-name';
-        nameSpan.textContent = student.name;
-        nameSpan.style.cssText = 'font-size: 12px; font-weight: 500;';
-
-        const idSpan = document.createElement('div');
-        idSpan.className = 'student-id';
-        idSpan.textContent = `ID: ${student.serviceId}`;
-        idSpan.style.cssText = 'font-size: 10px; color: #666;';
-
-        const pinStatus = document.createElement('div');
-        pinStatus.className = 'pin-status';
-        const hasPinHash = student.pinHash && student.pinHash.length > 0;
-        pinStatus.textContent = hasPinHash ? 'PIN set' : 'No PIN';
-        pinStatus.style.cssText = `font-size: 10px; color: ${hasPinHash ? '#4caf50' : '#ff9800'};`;
-
-        info.appendChild(nameSpan);
-        info.appendChild(idSpan);
-        info.appendChild(pinStatus);
-
-        const resetBtn = document.createElement('button');
-        resetBtn.className = 'reset-btn';
-        resetBtn.textContent = 'Reset PIN';
-        resetBtn.type = 'button';
-        resetBtn.style.cssText = `
-          background: #ff5722;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          padding: 4px 8px;
-          font-size: 10px;
-          cursor: pointer;
-        `;
-        resetBtn.onclick = () => this.handleResetClick(student);
-
-        item.appendChild(info);
-        item.appendChild(resetBtn);
-        listContainer.appendChild(item);
-      });
-    }
-
-    // Sync error message
-    let errorDiv = backdrop.querySelector('.error-message');
-    if (this.errorMessage) {
-      if (!errorDiv) {
-        errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        const content = backdrop.querySelector('.qd-modal-body');
-        content?.appendChild(errorDiv);
-      }
-      errorDiv.textContent = this.errorMessage;
-      (errorDiv as HTMLElement).style.cssText = `
-        color: #d32f2f;
-        font-size: 11px;
-        margin-top: 8px;
-        padding: 8px;
-        background: #ffebee;
-        border-radius: 4px;
-      `;
-    } else {
-      errorDiv?.remove();
-    }
-  }
-
-  /**
-   * Setup event listeners in portal after open
-   */
-  private setupPortalListeners(): void {
-    const backdrop = document.querySelector('.qd-modal-backdrop');
-    if (!backdrop) return;
-
-    // Setup search input listener
-    const searchInput = backdrop.querySelector('.search-input') as HTMLInputElement;
-    if (searchInput) {
-      searchInput.oninput = this.handleSearchInput;
-      searchInput.focus();
-    }
-
-    // Initial list sync
-    this.syncContentToPortal();
-  }
-
-  override updated(changedProps: Map<string, unknown>): void {
-    if (changedProps.has('open') && this.open) {
-      // Wait for portal to render, then setup listeners
-      setTimeout(() => {
-        this.setupPortalListeners();
-      }, 0);
-    }
-
-    if (changedProps.has('students') && this.open) {
-      void this.updateComplete.then(() => {
-        this.syncContentToPortal();
-      });
     }
   }
 
@@ -470,6 +323,7 @@ export class QdPinResetDialog extends LitElement {
             class="search-input"
             placeholder="Search by name or ID..."
             .value=${this.searchText}
+            @input=${this.handleSearchInput}
           />
 
           <div class="student-list">
@@ -487,7 +341,13 @@ export class QdPinResetDialog extends LitElement {
                           ${s.pinHash ? 'PIN set' : 'No PIN'}
                         </div>
                       </div>
-                      <button class="reset-btn" type="button">Reset PIN</button>
+                      <button
+                        class="reset-btn"
+                        type="button"
+                        @click=${() => this.handleResetClick(s)}
+                      >
+                        Reset PIN
+                      </button>
                     </div>
                   `,
                 )}

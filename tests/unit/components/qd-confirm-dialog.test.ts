@@ -54,8 +54,9 @@ describe('qd-confirm-dialog', () => {
     it('shows when open=true', async () => {
       const el = await createDialog({ open: true, title: 'Confirm', message: 'Are you sure?' });
       expect(el.open).toBe(true);
-      // Portal renders backdrop to document.body
-      const backdrop = document.querySelector('.qd-modal-backdrop');
+      // qd-modal inside qd-confirm-dialog renders backdrop in shadow DOM
+      const modal = el.shadowRoot?.querySelector('qd-modal');
+      const backdrop = modal?.shadowRoot?.querySelector('.backdrop');
       expect(backdrop).toBeTruthy();
     });
 
@@ -73,8 +74,9 @@ describe('qd-confirm-dialog', () => {
       const cancelHandler = vi.fn();
       el.addEventListener('qd:cancel', cancelHandler);
 
-      // Portal renders backdrop to document.body
-      const backdrop = document.querySelector('.qd-modal-backdrop') as HTMLElement;
+      // Backdrop is in qd-modal's shadow DOM
+      const modal = el.shadowRoot?.querySelector('qd-modal');
+      const backdrop = modal?.shadowRoot?.querySelector('.backdrop') as HTMLElement;
       backdrop?.click();
       await el.updateComplete;
 
@@ -310,26 +312,20 @@ describe('qd-confirm-dialog', () => {
 
   describe('accessibility', () => {
     it('has dialog role', async () => {
-      await createDialog({ open: true, title: 'Test', message: 'Test' });
-      // Portal renders dialog to document.body
-      const dialog = document.querySelector('.qd-modal-backdrop [role="dialog"]');
+      const el = await createDialog({ open: true, title: 'Test', message: 'Test' });
+      // Dialog role is in qd-modal's shadow DOM
+      const modal = el.shadowRoot?.querySelector('qd-modal');
+      const dialog = modal?.shadowRoot?.querySelector('[role="dialog"]');
       expect(dialog).toBeTruthy();
     });
 
-    it('focuses confirm button when opened', async () => {
+    it('focuses a button when opened', async () => {
       await createDialog({ open: true, title: 'Test', message: 'Test' });
       await new Promise((r) => setTimeout(r, 100)); // Wait for focus
 
-      // Portal renders to document.body, so check document.activeElement
-      const portalButtons = document.querySelectorAll('.qd-modal-backdrop button');
-      const confirmBtn = Array.from(portalButtons || []).find(
-        (b) => b.classList.contains('confirm-btn') || b.textContent?.trim() === 'Confirm',
-      );
-
-      // Either confirm button or a focusable element in modal should be focused
-      expect(
-        document.activeElement === confirmBtn || document.activeElement !== document.body,
-      ).toBe(true);
+      // Modal should focus some interactive element (button)
+      // Due to shadow DOM boundaries, we just verify focus moved from body
+      expect(document.activeElement !== document.body).toBe(true);
     });
   });
 });

@@ -170,7 +170,7 @@ export class QdPasswordModal extends LitElement {
   };
 
   /**
-   * Handle form submission (from Lit binding - only works without portal)
+   * Handle form submission
    */
   private handleSubmit = (e: Event): void => {
     e.preventDefault();
@@ -189,29 +189,6 @@ export class QdPasswordModal extends LitElement {
   };
 
   /**
-   * Handle forwarded submit from qd-modal portal
-   * When form is cloned to portal, qd-modal dispatches this event
-   */
-  private handleForwardedSubmit = (e: CustomEvent<{ password?: string }>): void => {
-    // Stop propagation so event doesn't bubble further
-    e.stopPropagation();
-
-    const password = e.detail?.password || '';
-    if (!password.trim()) {
-      return;
-    }
-
-    // Re-dispatch from this component
-    this.dispatchEvent(
-      new CustomEvent('qd:password-submit', {
-        detail: { password },
-        bubbles: true,
-        composed: true,
-      }),
-    );
-  };
-
-  /**
    * Handle cancel button
    */
   private handleCancel = (): void => {
@@ -219,51 +196,7 @@ export class QdPasswordModal extends LitElement {
   };
 
   /**
-   * Sync error message directly to portal DOM
-   * Since portal clones content once, we need to inject/update the error div directly
-   */
-  private syncErrorToPortal(): void {
-    // Find the portal backdrop in document.body
-    const backdrop = document.querySelector('.qd-modal-backdrop');
-    if (!backdrop) return;
-
-    const form = backdrop.querySelector('form.password-form');
-    if (!form) return;
-
-    // Find existing error message in portal
-    let errorDiv = form.querySelector('.error-message');
-
-    if (this.error) {
-      // Create or update error message
-      if (!errorDiv) {
-        errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        // Apply inline styles (portal is outside shadow DOM, so CSS rules don't apply)
-        (errorDiv as HTMLElement).style.cssText = `
-          color: #d32f2f;
-          font-size: 12px;
-          padding: 8px;
-          background: #ffebee;
-          border-radius: 4px;
-          border-left: 3px solid #d32f2f;
-        `;
-        // Insert before button row
-        const buttonRow = form.querySelector('.button-row');
-        if (buttonRow) {
-          form.insertBefore(errorDiv, buttonRow);
-        } else {
-          form.appendChild(errorDiv);
-        }
-      }
-      errorDiv.textContent = this.error;
-    } else {
-      // Remove error message if no error
-      errorDiv?.remove();
-    }
-  }
-
-  /**
-   * Focus password input when modal opens, refresh portal when error changes
+   * Focus password input when modal opens
    */
   override updated(changedProps: Map<string, unknown>): void {
     if (changedProps.has('open') && this.open) {
@@ -272,16 +205,6 @@ export class QdPasswordModal extends LitElement {
       // Focus input after render
       void this.updateComplete.then(() => {
         this.passwordInput?.focus();
-      });
-    }
-
-    // When error changes, directly inject error into portal DOM
-    // The portal pattern clones content once, so we need to inject the error directly
-    if (changedProps.has('error') && this.open) {
-      void this.updateComplete.then(() => {
-        setTimeout(() => {
-          this.syncErrorToPortal();
-        }, 0);
       });
     }
   }
@@ -293,11 +216,7 @@ export class QdPasswordModal extends LitElement {
     }
 
     return html`
-      <qd-modal
-        .open=${this.open}
-        @qd:modal-close=${this.handleModalClose}
-        @qd:password-submit=${this.handleForwardedSubmit}
-      >
+      <qd-modal .open=${this.open} @qd:modal-close=${this.handleModalClose}>
         <span slot="header">${this.title}</span>
 
         <form class="password-form" @submit=${this.handleSubmit}>
