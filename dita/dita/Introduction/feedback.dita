@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<topic id="Welcome" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="urn:oasis:names:tc:dita:xsd:topic.xsd">
+	<title>Feedback</title>
+	<shortdesc>Contact details for feedback and support</shortdesc>
+	<body>
+		<table>
+			<tgroup cols="2">
+				<colspec colname="c1"/>
+				<colspec colname="c2"/>
+				<tbody>
+					<row>
+						<entry nameend="c2" namest="c1">
+							<p outputclass="h1">Name, email, tel, etc.</p>
+						</entry>
+					</row>
+					<row>
+						<entry>
+						</entry>
+						<entry>
+							<p outputclass="h1">Security details 2</p>
+						</entry>
+					</row>
+					<row>
+						<entry>
+							<p>Version: 3.2</p>
+							<p>Date: Nov 2019</p>
+							<p>
+								<xref format="dita" href="../page-index.dita" outputclass="enterBtn">Next Page</xref>
+							</p>
+						</entry>
+						<entry> </entry>
+					</row>
+				</tbody>
+			</tgroup>
+		</table>
+	</body>
+	<!-- note: we're linking to these supporting documents here, to ensure they are build/converted -->
+	<related-links>        
+		<link href="../welcome.dita" format="dita"></link>
+		<link href="./security.dita" format="dita"></link>
+		<link href="./background.dita" format="dita"></link>
+	</related-links>
+</topic>
