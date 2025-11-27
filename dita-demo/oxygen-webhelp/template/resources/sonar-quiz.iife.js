@@ -1069,7 +1069,7 @@ const He=2;class i{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,s,n){
             font-size: 12px;
           }
           .scores-content .student-row:nth-child(even) {
-            background: #a8f8f8;
+            background: #e8e8e8;
           }
           .scores-content .student-row:hover {
             background: #f0f0f0;
