@@ -210,36 +210,37 @@ export class QdPasswordModal extends LitElement {
   }
 
   override render() {
-    // Don't render form when closed - prevents duplicate submit buttons in parent
-    if (!this.open) {
-      return nothing;
-    }
-
+    // Always render qd-modal so it can properly restore position when closing
+    // Only render form content when open
     return html`
       <qd-modal .open=${this.open} @qd:modal-close=${this.handleModalClose}>
         <span slot="header">${this.title}</span>
 
-        <form class="password-form" @submit=${this.handleSubmit}>
-          <div class="form-field">
-            <label for="password-input">Password</label>
-            <input
-              id="password-input"
-              type="password"
-              placeholder="Password"
-              .value=${this.password}
-              @input=${this.handleInput}
-              required
-              aria-label="Enter your password"
-            />
-          </div>
+        ${this.open
+          ? html`
+              <form class="password-form" @submit=${this.handleSubmit}>
+                <div class="form-field">
+                  <label for="password-input">Password</label>
+                  <input
+                    id="password-input"
+                    type="password"
+                    placeholder="Password"
+                    .value=${this.password}
+                    @input=${this.handleInput}
+                    required
+                    aria-label="Enter your password"
+                  />
+                </div>
 
-          ${this.error ? html`<div class="error-message">${this.error}</div>` : ''}
+                ${this.error ? html`<div class="error-message">${this.error}</div>` : ''}
 
-          <div class="button-row">
-            <button type="button" @click=${this.handleCancel}>Cancel</button>
-            <button type="submit">Login</button>
-          </div>
-        </form>
+                <div class="button-row">
+                  <button type="button" @click=${this.handleCancel}>Cancel</button>
+                  <button type="submit">Login</button>
+                </div>
+              </form>
+            `
+          : nothing}
       </qd-modal>
     `;
   }

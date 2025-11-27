@@ -27,6 +27,8 @@ describe('qd-instructor-scores', () => {
 
   afterEach(() => {
     container.remove();
+    // Clean up any qd-modal elements that moved to body
+    document.querySelectorAll('body > qd-modal').forEach((el) => el.remove());
   });
 
   // Helper to get nested qd-scores-modal
@@ -34,12 +36,32 @@ describe('qd-instructor-scores', () => {
     return element.shadowRoot?.querySelector('qd-scores-modal') || null;
   };
 
-  // Helper to get modal content text through nested shadow DOMs
+  // Helper to find the active qd-modal (moved to body when open)
+  const findActiveModal = () => {
+    return document.querySelector('qd-modal[open]');
+  };
+
+  // Helper to get modal content text (from qd-modal that moved to body)
   const getModalText = async (): Promise<string> => {
     const scoresModal = getScoresModal();
     if (!scoresModal) return '';
     await scoresModal.updateComplete;
-    return scoresModal.shadowRoot?.textContent || '';
+    // Wait for nested qd-modal to move to body
+    await new Promise((r) => requestAnimationFrame(r));
+    const modal = findActiveModal();
+    return modal?.textContent || '';
+  };
+
+  // Helper to query elements in the active modal's light DOM
+  const queryModalContent = <T extends Element>(selector: string): T | null => {
+    const modal = findActiveModal();
+    return modal?.querySelector<T>(selector) || null;
+  };
+
+  // Helper to query all elements in the active modal's light DOM
+  const queryAllModalContent = <T extends Element>(selector: string): NodeListOf<T> | null => {
+    const modal = findActiveModal();
+    return modal?.querySelectorAll<T>(selector) || null;
   };
 
   describe('modal rendering', () => {
@@ -201,10 +223,9 @@ describe('qd-instructor-scores', () => {
       element.students = unsortedStudents;
       element.showModal = true;
       await element.updateComplete;
+      await new Promise((r) => requestAnimationFrame(r));
 
-      const scoresModal = getScoresModal();
-      await scoresModal?.updateComplete;
-      const rows = scoresModal?.shadowRoot?.querySelectorAll('.student-row');
+      const rows = queryAllModalContent('.student-row');
 
       if (rows && rows.length >= 2) {
         expect(rows[0]?.textContent).toContain('Alice');
@@ -213,7 +234,7 @@ describe('qd-instructor-scores', () => {
     });
   });
 
-  describe('expanded details', () => {
+  describe('answers column', () => {
     const studentWithPages: StudentRecord = {
       schema: 1,
       docId: 'test',
@@ -234,31 +255,15 @@ describe('qd-instructor-scores', () => {
       },
     };
 
-    it('should show page names in expanded view', async () => {
+    it('should show page name with answers', async () => {
       element.students = [studentWithPages];
       element.showModal = true;
       await element.updateComplete;
 
       const text = await getModalText();
       expect(text).toContain('quiz-page-1');
-    });
-
-    it('should show question numbers', async () => {
-      element.students = [studentWithPages];
-      element.showModal = true;
-      await element.updateComplete;
-
-      const text = await getModalText();
       expect(text).toContain('Q1');
       expect(text).toContain('Q2');
-    });
-
-    it('should show answers', async () => {
-      element.students = [studentWithPages];
-      element.showModal = true;
-      await element.updateComplete;
-
-      const text = await getModalText();
       expect(text).toContain('A');
       expect(text).toContain('B');
     });
@@ -267,12 +272,10 @@ describe('qd-instructor-scores', () => {
       element.students = [studentWithPages];
       element.showModal = true;
       await element.updateComplete;
+      await new Promise((r) => requestAnimationFrame(r));
 
-      const scoresModal = getScoresModal();
-      await scoresModal?.updateComplete;
-
-      const correctBadge = scoresModal?.shadowRoot?.querySelector('.answer-badge.correct');
-      const incorrectBadge = scoresModal?.shadowRoot?.querySelector('.answer-badge.incorrect');
+      const correctBadge = queryModalContent('.answer-badge.correct');
+      const incorrectBadge = queryModalContent('.answer-badge.incorrect');
 
       expect(correctBadge).toBeTruthy();
       expect(incorrectBadge).toBeTruthy();

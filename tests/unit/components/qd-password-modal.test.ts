@@ -21,6 +21,9 @@ describe('qd-password-modal', () => {
 
   afterEach(() => {
     container.remove();
+    // Clean up any modal containers and qd-modal elements rendered to body
+    document.querySelectorAll('.qd-modal-container').forEach((el) => el.remove());
+    document.querySelectorAll('body > qd-modal').forEach((el) => el.remove());
   });
 
   async function createModal(
@@ -31,12 +34,49 @@ describe('qd-password-modal', () => {
     } = {},
   ): Promise<QdPasswordModal> {
     element = document.createElement('qd-password-modal');
-    if (options.open) element.open = true;
     if (options.title) element.title = options.title;
     if (options.error) element.error = options.error;
     container.appendChild(element);
     await element.updateComplete;
+    // Set open after initial render
+    if (options.open) {
+      element.open = true;
+      await element.updateComplete;
+      // Wait for nested qd-modal to move to body
+      await new Promise((r) => requestAnimationFrame(r));
+    }
     return element;
+  }
+
+  /**
+   * Helper to find the active qd-modal (moved to body when open)
+   */
+  function findActiveModal() {
+    return document.querySelector('qd-modal[open]');
+  }
+
+  /**
+   * Get text content from the active modal
+   */
+  function getModalContent(): string {
+    const modal = findActiveModal();
+    return modal?.textContent || '';
+  }
+
+  /**
+   * Query elements inside the active modal's light DOM
+   */
+  function queryModalContent<T extends Element>(selector: string): T | null {
+    const modal = findActiveModal();
+    return modal?.querySelector<T>(selector) || null;
+  }
+
+  /**
+   * Query all elements inside the active modal's light DOM
+   */
+  function queryAllModalContent<T extends Element>(selector: string): NodeListOf<T> | null {
+    const modal = findActiveModal();
+    return modal?.querySelectorAll<T>(selector) || null;
   }
 
   describe('modal behavior (inherited from qd-modal)', () => {
@@ -48,10 +88,9 @@ describe('qd-password-modal', () => {
     it('shows when open=true', async () => {
       const el = await createModal({ open: true });
       expect(el.open).toBe(true);
-      // qd-modal inside qd-password-modal renders backdrop in shadow DOM
-      const modal = el.shadowRoot?.querySelector('qd-modal');
-      const backdrop = modal?.shadowRoot?.querySelector('.backdrop');
-      expect(backdrop).toBeTruthy();
+      // qd-modal is moved to body when open
+      const modal = findActiveModal();
+      expect(modal?.parentElement).toBe(document.body);
     });
 
     it('closes on Escape key', async () => {
@@ -68,8 +107,8 @@ describe('qd-password-modal', () => {
       const closeHandler = vi.fn();
       el.addEventListener('close', closeHandler);
 
-      // Backdrop is in qd-modal's shadow DOM
-      const modal = el.shadowRoot?.querySelector('qd-modal');
+      // Backdrop is in qd-modal's shadow DOM (modal is in body when open)
+      const modal = findActiveModal();
       const backdrop = modal?.shadowRoot?.querySelector('.backdrop') as HTMLElement;
       backdrop?.click();
       await el.updateComplete;
@@ -80,28 +119,28 @@ describe('qd-password-modal', () => {
 
   describe('title display', () => {
     it('has default title "Enter Password"', async () => {
-      const el = await createModal({ open: true });
-      const content = el.shadowRoot?.textContent || '';
+      await createModal({ open: true });
+      const content = getModalContent();
       expect(content).toContain('Enter Password');
     });
 
     it('displays custom title when set', async () => {
-      const el = await createModal({ open: true, title: 'Instructor Login' });
-      const content = el.shadowRoot?.textContent || '';
+      await createModal({ open: true, title: 'Instructor Login' });
+      const content = getModalContent();
       expect(content).toContain('Instructor Login');
     });
   });
 
   describe('password input', () => {
     it('renders password input field', async () => {
-      const el = await createModal({ open: true });
-      const input = el.shadowRoot?.querySelector('input[type="password"]');
+      await createModal({ open: true });
+      const input = queryModalContent('input[type="password"]');
       expect(input).toBeTruthy();
     });
 
     it('has placeholder text', async () => {
-      const el = await createModal({ open: true });
-      const input = el.shadowRoot?.querySelector('input[type="password"]') as HTMLInputElement;
+      await createModal({ open: true });
+      const input = queryModalContent<HTMLInputElement>('input[type="password"]');
       expect(input?.placeholder).toContain('Password');
     });
 
@@ -112,18 +151,19 @@ describe('qd-password-modal', () => {
       // Modal should focus the password input
       // Due to shadow DOM boundaries, verify activeElement is an input
       expect(
-        document.activeElement?.tagName === 'INPUT' ||
-          document.activeElement !== document.body,
+        document.activeElement?.tagName === 'INPUT' || document.activeElement !== document.body,
       ).toBe(true);
     });
 
     it('clears password on close', async () => {
       const el = await createModal({ open: true });
-      const input = el.shadowRoot?.querySelector('input[type="password"]') as HTMLInputElement;
+      const input = queryModalContent<HTMLInputElement>('input[type="password"]');
 
       // Type password
-      input.value = 'secret123';
-      input.dispatchEvent(new Event('input', { bubbles: true }));
+      if (input) {
+        input.value = 'secret123';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
       await el.updateComplete;
 
       // Close modal
@@ -133,16 +173,17 @@ describe('qd-password-modal', () => {
       // Reopen
       el.show();
       await el.updateComplete;
+      await new Promise((r) => requestAnimationFrame(r));
 
-      const newInput = el.shadowRoot?.querySelector('input[type="password"]') as HTMLInputElement;
+      const newInput = queryModalContent<HTMLInputElement>('input[type="password"]');
       expect(newInput?.value).toBe('');
     });
   });
 
   describe('form submission', () => {
     it('renders submit button', async () => {
-      const el = await createModal({ open: true });
-      const button = el.shadowRoot?.querySelector('button[type="submit"]');
+      await createModal({ open: true });
+      const button = queryModalContent('button[type="submit"]');
       expect(button).toBeTruthy();
     });
 
@@ -152,13 +193,15 @@ describe('qd-password-modal', () => {
       el.addEventListener('qd:password-submit', submitHandler);
 
       // Type password
-      const input = el.shadowRoot?.querySelector('input[type="password"]') as HTMLInputElement;
-      input.value = 'testpassword';
-      input.dispatchEvent(new Event('input', { bubbles: true }));
+      const input = queryModalContent<HTMLInputElement>('input[type="password"]');
+      if (input) {
+        input.value = 'testpassword';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
       await el.updateComplete;
 
       // Submit form
-      const form = el.shadowRoot?.querySelector('form');
+      const form = queryModalContent('form');
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
       await el.updateComplete;
 
@@ -173,7 +216,7 @@ describe('qd-password-modal', () => {
       el.addEventListener('qd:password-submit', submitHandler);
 
       // Submit without typing
-      const form = el.shadowRoot?.querySelector('form');
+      const form = queryModalContent('form');
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
       await el.updateComplete;
 
@@ -184,26 +227,26 @@ describe('qd-password-modal', () => {
       const el = await createModal({ open: true });
 
       // Submit without typing
-      const form = el.shadowRoot?.querySelector('form');
+      const form = queryModalContent('form');
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
       await el.updateComplete;
 
       // Should show error or input should have :invalid state
-      const input = el.shadowRoot?.querySelector('input[type="password"]') as HTMLInputElement;
+      const input = queryModalContent<HTMLInputElement>('input[type="password"]');
       expect(input?.required).toBe(true);
     });
   });
 
   describe('error display', () => {
     it('shows error message when error prop is set', async () => {
-      const el = await createModal({ open: true, error: 'Incorrect password' });
-      const content = el.shadowRoot?.textContent || '';
+      await createModal({ open: true, error: 'Incorrect password' });
+      const content = getModalContent();
       expect(content).toContain('Incorrect password');
     });
 
     it('hides error when error prop is empty', async () => {
-      const el = await createModal({ open: true });
-      const errorElement = el.shadowRoot?.querySelector('.error-message');
+      await createModal({ open: true });
+      const errorElement = queryModalContent('.error-message');
       expect(errorElement).toBeFalsy();
     });
 
@@ -211,18 +254,20 @@ describe('qd-password-modal', () => {
       const el = await createModal({ open: true, error: 'Incorrect password' });
 
       // Type in input to clear error
-      const input = el.shadowRoot?.querySelector('input[type="password"]') as HTMLInputElement;
-      input.value = 'newpassword';
-      input.dispatchEvent(new Event('input', { bubbles: true }));
+      const input = queryModalContent<HTMLInputElement>('input[type="password"]');
+      if (input) {
+        input.value = 'newpassword';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
       await el.updateComplete;
 
-      const errorElement = el.shadowRoot?.querySelector('.error-message');
+      const errorElement = queryModalContent('.error-message');
       expect(errorElement).toBeFalsy();
     });
 
     it('has proper error styling', async () => {
-      const el = await createModal({ open: true, error: 'Test error' });
-      const errorElement = el.shadowRoot?.querySelector('.error-message');
+      await createModal({ open: true, error: 'Test error' });
+      const errorElement = queryModalContent('.error-message');
       expect(errorElement).toBeTruthy();
       // Error should have red styling (class-based)
       expect(errorElement?.classList.contains('error-message')).toBe(true);
@@ -231,8 +276,8 @@ describe('qd-password-modal', () => {
 
   describe('cancel behavior', () => {
     it('renders cancel button', async () => {
-      const el = await createModal({ open: true });
-      const buttons = el.shadowRoot?.querySelectorAll('button');
+      await createModal({ open: true });
+      const buttons = queryAllModalContent('button');
       const cancelButton = Array.from(buttons || []).find(
         (b) => b.textContent?.trim().toLowerCase() === 'cancel',
       );
@@ -244,7 +289,7 @@ describe('qd-password-modal', () => {
       const closeHandler = vi.fn();
       el.addEventListener('close', closeHandler);
 
-      const buttons = el.shadowRoot?.querySelectorAll('button');
+      const buttons = queryAllModalContent<HTMLButtonElement>('button');
       const cancelButton = Array.from(buttons || []).find(
         (b) => b.textContent?.trim().toLowerCase() === 'cancel',
       );
@@ -258,13 +303,15 @@ describe('qd-password-modal', () => {
       const el = await createModal({ open: true });
 
       // Type password
-      const input = el.shadowRoot?.querySelector('input[type="password"]') as HTMLInputElement;
-      input.value = 'secret';
-      input.dispatchEvent(new Event('input', { bubbles: true }));
+      const input = queryModalContent<HTMLInputElement>('input[type="password"]');
+      if (input) {
+        input.value = 'secret';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
       await el.updateComplete;
 
       // Cancel
-      const buttons = el.shadowRoot?.querySelectorAll('button');
+      const buttons = queryAllModalContent<HTMLButtonElement>('button');
       const cancelButton = Array.from(buttons || []).find(
         (b) => b.textContent?.trim().toLowerCase() === 'cancel',
       );
@@ -274,8 +321,9 @@ describe('qd-password-modal', () => {
       // Reopen and check
       el.show();
       await el.updateComplete;
+      await new Promise((r) => requestAnimationFrame(r));
 
-      const newInput = el.shadowRoot?.querySelector('input[type="password"]') as HTMLInputElement;
+      const newInput = queryModalContent<HTMLInputElement>('input[type="password"]');
       expect(newInput?.value).toBe('');
     });
   });
@@ -309,20 +357,20 @@ describe('qd-password-modal', () => {
 
   describe('accessibility', () => {
     it('has dialog role', async () => {
-      const el = await createModal({ open: true });
-      // Dialog role is in qd-modal's shadow DOM
-      const modal = el.shadowRoot?.querySelector('qd-modal');
+      await createModal({ open: true });
+      // Dialog role is in qd-modal's shadow DOM (modal is in body when open)
+      const modal = findActiveModal();
       const dialog = modal?.shadowRoot?.querySelector('[role="dialog"]');
       expect(dialog).toBeTruthy();
     });
 
     it('has input label or aria-label', async () => {
-      const el = await createModal({ open: true });
-      const input = el.shadowRoot?.querySelector('input[type="password"]') as HTMLInputElement;
+      await createModal({ open: true });
+      const input = queryModalContent<HTMLInputElement>('input[type="password"]');
 
       // Check for either label, aria-label, or aria-labelledby
       const hasLabel =
-        input?.id && el.shadowRoot?.querySelector(`label[for="${input.id}"]`) !== null;
+        input?.id && queryModalContent(`label[for="${input.id}"]`) !== null;
       const hasAriaLabel = !!input?.getAttribute('aria-label');
       const hasAriaLabelledBy = !!input?.getAttribute('aria-labelledby');
 
@@ -330,9 +378,9 @@ describe('qd-password-modal', () => {
     });
 
     it('has form with submit button', async () => {
-      const el = await createModal({ open: true });
-      const form = el.shadowRoot?.querySelector('form');
-      const submitBtn = el.shadowRoot?.querySelector('button[type="submit"]');
+      await createModal({ open: true });
+      const form = queryModalContent('form');
+      const submitBtn = queryModalContent('button[type="submit"]');
       expect(form).toBeTruthy();
       expect(submitBtn).toBeTruthy();
     });

@@ -66,6 +66,8 @@ export class QdInstructor extends LitElement {
     const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
     if (isInstructor) {
       this.unlock();
+      // Load students data for export button
+      void this.loadStudents();
     }
 
     // Restore toggle state from sessionStorage
@@ -118,6 +120,8 @@ export class QdInstructor extends LitElement {
     // Auto-unlock if instructor logged in
     if (role === 'instructor') {
       this.unlock();
+      // Load students data for export button
+      void this.loadStudents();
     }
   };
 
@@ -131,6 +135,23 @@ export class QdInstructor extends LitElement {
    */
   setStudents(students: StudentRecord[]): void {
     this.students = students;
+  }
+
+  /**
+   * Load students from storage for current release
+   */
+  private async loadStudents(): Promise<void> {
+    const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
+    if (!session) return;
+
+    try {
+      const storageService = getStorageService();
+      const students = await storageService.getStudentsByRelease(session.release);
+      this.students = students;
+    } catch (err) {
+      console.error('Failed to load students:', err);
+      this.students = [];
+    }
   }
 
   /**

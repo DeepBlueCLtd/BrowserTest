@@ -21,6 +21,9 @@ describe('qd-confirm-dialog', () => {
 
   afterEach(() => {
     container.remove();
+    // Clean up any modal containers and qd-modal elements rendered to body
+    document.querySelectorAll('.qd-modal-container').forEach((el) => el.remove());
+    document.querySelectorAll('body > qd-modal').forEach((el) => el.remove());
   });
 
   async function createDialog(
@@ -34,7 +37,6 @@ describe('qd-confirm-dialog', () => {
     } = {},
   ): Promise<QdConfirmDialog> {
     element = document.createElement('qd-confirm-dialog');
-    if (options.open) element.open = true;
     if (options.title) element.title = options.title;
     if (options.message) element.message = options.message;
     if (options.confirmText) element.confirmText = options.confirmText;
@@ -42,7 +44,45 @@ describe('qd-confirm-dialog', () => {
     if (options.destructive !== undefined) element.destructive = options.destructive;
     container.appendChild(element);
     await element.updateComplete;
+    // Set open after initial render
+    if (options.open) {
+      element.open = true;
+      await element.updateComplete;
+      // Wait for nested qd-modal to move to body
+      await new Promise((r) => requestAnimationFrame(r));
+    }
     return element;
+  }
+
+  /**
+   * Helper to find the active qd-modal (moved to body when open)
+   */
+  function findActiveModal() {
+    return document.querySelector('qd-modal[open]');
+  }
+
+  /**
+   * Get text content from the active modal
+   */
+  function getModalContent(): string {
+    const modal = findActiveModal();
+    return modal?.textContent || '';
+  }
+
+  /**
+   * Query elements inside the active modal's light DOM
+   */
+  function queryModalContent<T extends Element>(selector: string): T | null {
+    const modal = findActiveModal();
+    return modal?.querySelector<T>(selector) || null;
+  }
+
+  /**
+   * Query all elements inside the active modal's light DOM
+   */
+  function queryAllModalContent<T extends Element>(selector: string): NodeListOf<T> | null {
+    const modal = findActiveModal();
+    return modal?.querySelectorAll<T>(selector) || null;
   }
 
   describe('modal behavior (inherited from qd-modal)', () => {
@@ -54,10 +94,9 @@ describe('qd-confirm-dialog', () => {
     it('shows when open=true', async () => {
       const el = await createDialog({ open: true, title: 'Confirm', message: 'Are you sure?' });
       expect(el.open).toBe(true);
-      // qd-modal inside qd-confirm-dialog renders backdrop in shadow DOM
-      const modal = el.shadowRoot?.querySelector('qd-modal');
-      const backdrop = modal?.shadowRoot?.querySelector('.backdrop');
-      expect(backdrop).toBeTruthy();
+      // qd-modal is moved to body when open
+      const modal = findActiveModal();
+      expect(modal?.parentElement).toBe(document.body);
     });
 
     it('closes on Escape key', async () => {
@@ -74,8 +113,8 @@ describe('qd-confirm-dialog', () => {
       const cancelHandler = vi.fn();
       el.addEventListener('qd:cancel', cancelHandler);
 
-      // Backdrop is in qd-modal's shadow DOM
-      const modal = el.shadowRoot?.querySelector('qd-modal');
+      // Backdrop is in qd-modal's shadow DOM (modal is in body when open)
+      const modal = findActiveModal();
       const backdrop = modal?.shadowRoot?.querySelector('.backdrop') as HTMLElement;
       backdrop?.click();
       await el.updateComplete;
@@ -86,40 +125,40 @@ describe('qd-confirm-dialog', () => {
 
   describe('title display', () => {
     it('displays title text', async () => {
-      const el = await createDialog({
+      await createDialog({
         open: true,
         title: 'Confirm Delete',
         message: 'Are you sure?',
       });
-      const content = el.shadowRoot?.textContent || '';
+      const content = getModalContent();
       expect(content).toContain('Confirm Delete');
     });
 
     it('has default title "Confirm"', async () => {
-      const el = await createDialog({ open: true, message: 'Are you sure?' });
-      const content = el.shadowRoot?.textContent || '';
+      await createDialog({ open: true, message: 'Are you sure?' });
+      const content = getModalContent();
       expect(content).toContain('Confirm');
     });
   });
 
   describe('message display', () => {
     it('displays message text', async () => {
-      const el = await createDialog({
+      await createDialog({
         open: true,
         title: 'Test',
         message: 'This action cannot be undone.',
       });
-      const content = el.shadowRoot?.textContent || '';
+      const content = getModalContent();
       expect(content).toContain('This action cannot be undone.');
     });
 
     it('renders HTML in message', async () => {
-      const el = await createDialog({
+      await createDialog({
         open: true,
         title: 'Test',
         message: 'Delete <strong>important</strong> file?',
       });
-      const content = el.shadowRoot?.textContent || '';
+      const content = getModalContent();
       expect(content).toContain('Delete');
       expect(content).toContain('important');
     });
@@ -127,14 +166,14 @@ describe('qd-confirm-dialog', () => {
 
   describe('confirm button', () => {
     it('renders confirm button', async () => {
-      const el = await createDialog({ open: true, title: 'Test', message: 'Test' });
-      const confirmBtn = el.shadowRoot?.querySelector('.confirm-btn, button[type="submit"]');
+      await createDialog({ open: true, title: 'Test', message: 'Test' });
+      const confirmBtn = queryModalContent('.confirm-btn, button[type="submit"]');
       expect(confirmBtn).toBeTruthy();
     });
 
     it('has default text "Confirm"', async () => {
-      const el = await createDialog({ open: true, title: 'Test', message: 'Test' });
-      const buttons = el.shadowRoot?.querySelectorAll('button');
+      await createDialog({ open: true, title: 'Test', message: 'Test' });
+      const buttons = queryAllModalContent('button');
       const confirmBtn = Array.from(buttons || []).find(
         (b) => b.classList.contains('confirm-btn') || b.textContent?.trim() === 'Confirm',
       );
@@ -142,13 +181,13 @@ describe('qd-confirm-dialog', () => {
     });
 
     it('uses custom confirmText', async () => {
-      const el = await createDialog({
+      await createDialog({
         open: true,
         title: 'Test',
         message: 'Test',
         confirmText: 'Yes, Delete',
       });
-      const buttons = el.shadowRoot?.querySelectorAll('button');
+      const buttons = queryAllModalContent('button');
       const hasCustomText = Array.from(buttons || []).some(
         (b) => b.textContent?.trim() === 'Yes, Delete',
       );
@@ -160,7 +199,7 @@ describe('qd-confirm-dialog', () => {
       const confirmHandler = vi.fn();
       el.addEventListener('qd:confirm', confirmHandler);
 
-      const buttons = el.shadowRoot?.querySelectorAll('button');
+      const buttons = queryAllModalContent<HTMLButtonElement>('button');
       const confirmBtn = Array.from(buttons || []).find(
         (b) => b.classList.contains('confirm-btn') || b.textContent?.trim() === 'Confirm',
       );
@@ -173,7 +212,7 @@ describe('qd-confirm-dialog', () => {
     it('closes dialog on confirm', async () => {
       const el = await createDialog({ open: true, title: 'Test', message: 'Test' });
 
-      const buttons = el.shadowRoot?.querySelectorAll('button');
+      const buttons = queryAllModalContent<HTMLButtonElement>('button');
       const confirmBtn = Array.from(buttons || []).find(
         (b) => b.classList.contains('confirm-btn') || b.textContent?.trim() === 'Confirm',
       );
@@ -186,8 +225,8 @@ describe('qd-confirm-dialog', () => {
 
   describe('cancel button', () => {
     it('renders cancel button', async () => {
-      const el = await createDialog({ open: true, title: 'Test', message: 'Test' });
-      const buttons = el.shadowRoot?.querySelectorAll('button');
+      await createDialog({ open: true, title: 'Test', message: 'Test' });
+      const buttons = queryAllModalContent('button');
       const cancelBtn = Array.from(buttons || []).find(
         (b) =>
           b.classList.contains('cancel-btn') || b.textContent?.trim().toLowerCase() === 'cancel',
@@ -196,8 +235,8 @@ describe('qd-confirm-dialog', () => {
     });
 
     it('has default text "Cancel"', async () => {
-      const el = await createDialog({ open: true, title: 'Test', message: 'Test' });
-      const buttons = el.shadowRoot?.querySelectorAll('button');
+      await createDialog({ open: true, title: 'Test', message: 'Test' });
+      const buttons = queryAllModalContent('button');
       const cancelBtn = Array.from(buttons || []).find(
         (b) => b.textContent?.trim().toLowerCase() === 'cancel',
       );
@@ -205,13 +244,13 @@ describe('qd-confirm-dialog', () => {
     });
 
     it('uses custom cancelText', async () => {
-      const el = await createDialog({
+      await createDialog({
         open: true,
         title: 'Test',
         message: 'Test',
         cancelText: 'No, Keep',
       });
-      const buttons = el.shadowRoot?.querySelectorAll('button');
+      const buttons = queryAllModalContent('button');
       const hasCustomText = Array.from(buttons || []).some(
         (b) => b.textContent?.trim() === 'No, Keep',
       );
@@ -223,7 +262,7 @@ describe('qd-confirm-dialog', () => {
       const cancelHandler = vi.fn();
       el.addEventListener('qd:cancel', cancelHandler);
 
-      const buttons = el.shadowRoot?.querySelectorAll('button');
+      const buttons = queryAllModalContent<HTMLButtonElement>('button');
       const cancelBtn = Array.from(buttons || []).find(
         (b) => b.textContent?.trim().toLowerCase() === 'cancel',
       );
@@ -236,7 +275,7 @@ describe('qd-confirm-dialog', () => {
     it('closes dialog on cancel', async () => {
       const el = await createDialog({ open: true, title: 'Test', message: 'Test' });
 
-      const buttons = el.shadowRoot?.querySelectorAll('button');
+      const buttons = queryAllModalContent<HTMLButtonElement>('button');
       const cancelBtn = Array.from(buttons || []).find(
         (b) => b.textContent?.trim().toLowerCase() === 'cancel',
       );
@@ -254,14 +293,14 @@ describe('qd-confirm-dialog', () => {
     });
 
     it('applies destructive styling to confirm button when destructive=true', async () => {
-      const el = await createDialog({
+      await createDialog({
         open: true,
         title: 'Delete',
         message: 'Are you sure?',
         destructive: true,
       });
 
-      const buttons = el.shadowRoot?.querySelectorAll('button');
+      const buttons = queryAllModalContent('button');
       const confirmBtn = Array.from(buttons || []).find(
         (b) => b.classList.contains('confirm-btn') || b.textContent?.trim() === 'Confirm',
       );
@@ -274,14 +313,14 @@ describe('qd-confirm-dialog', () => {
     });
 
     it('uses normal styling when destructive=false', async () => {
-      const el = await createDialog({
+      await createDialog({
         open: true,
         title: 'Save',
         message: 'Save changes?',
         destructive: false,
       });
 
-      const buttons = el.shadowRoot?.querySelectorAll('button');
+      const buttons = queryAllModalContent('button');
       const confirmBtn = Array.from(buttons || []).find(
         (b) => b.classList.contains('confirm-btn') || b.textContent?.trim() === 'Confirm',
       );
@@ -312,9 +351,9 @@ describe('qd-confirm-dialog', () => {
 
   describe('accessibility', () => {
     it('has dialog role', async () => {
-      const el = await createDialog({ open: true, title: 'Test', message: 'Test' });
-      // Dialog role is in qd-modal's shadow DOM
-      const modal = el.shadowRoot?.querySelector('qd-modal');
+      await createDialog({ open: true, title: 'Test', message: 'Test' });
+      // Dialog role is in qd-modal's shadow DOM (modal is in body when open)
+      const modal = findActiveModal();
       const dialog = modal?.shadowRoot?.querySelector('[role="dialog"]');
       expect(dialog).toBeTruthy();
     });

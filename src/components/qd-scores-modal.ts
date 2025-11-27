@@ -11,8 +11,8 @@
  * Feature: 007-lit-component-refactor
  */
 
-import { LitElement, html, css, nothing } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import { LitElement, html, css } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
 import type { StudentRecord } from '../types/contracts.js';
 import './qd-modal.js';
 
@@ -41,145 +41,100 @@ export class QdScoresModal extends LitElement {
   @property({ type: Array })
   students: StudentRecord[] = [];
 
-  /**
-   * Set of expanded student service IDs
-   */
-  @state()
-  private expandedStudents = new Set<string>();
-
+  // Styles are in light DOM (render method) since content is slotted into qd-modal which moves to body
   static styles = css`
     :host {
       display: contents;
     }
-
-    .scores-content {
-      min-width: 600px;
-      max-width: 800px;
-    }
-
-    .empty-message {
-      color: #666;
-      padding: 20px;
-      text-align: center;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    thead th {
-      padding: 8px;
-      text-align: left;
-      border-bottom: 1px solid #ddd;
-      background: #f5f5f5;
-      font-weight: 600;
-    }
-
-    .student-row {
-      cursor: pointer;
-    }
-
-    .student-row:hover {
-      background: #f9f9f9;
-    }
-
-    .student-row td {
-      padding: 8px;
-      border-bottom: 1px solid #eee;
-    }
-
-    .expand-icon {
-      display: inline-block;
-      width: 16px;
-      margin-right: 4px;
-      text-align: center;
-    }
-
-    .correct-highlight {
-      color: #28a745;
-    }
-
-    .incorrect-highlight {
-      color: #dc3545;
-    }
-
-    .detail-row {
-      background: #f9f9f9;
-    }
-
-    .detail-row td {
-      padding: 8px 8px 8px 40px;
-      border-bottom: 1px solid #eee;
-    }
-
-    .page-breakdown {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .page-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .page-name {
-      font-weight: 600;
-      min-width: 120px;
-      flex-shrink: 0;
-    }
-
-    .answers-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      flex: 1;
-    }
-
-    .answer-badge {
-      display: inline-block;
-      padding: 2px 6px;
-      border-radius: 3px;
-      font-size: 11px;
-      font-weight: 500;
-    }
-
-    .answer-badge.correct {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-
-    .answer-badge.incorrect {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-
-    .answer-badge.unanswered {
-      background: #e0e0e0;
-      color: #666;
-    }
-
-    .no-pages {
-      color: #666;
-      font-style: italic;
-    }
   `;
 
-  updated(changedProperties: Map<string, unknown>) {
-    if (changedProperties.has('open') && this.open) {
-      // Expand all students by default when modal opens
-      this.expandedStudents = new Set(this.students.map((s) => s.serviceId));
-    }
-  }
-
   render() {
+    // Styles must be in light DOM since content is slotted into qd-modal which moves to body
     return html`
       <qd-modal .open=${this.open} @qd:modal-close=${this.handleModalClose}>
         <span slot="header">Student Scores</span>
+        <style>
+          .scores-content {
+            min-width: 500px;
+            max-width: 800px;
+          }
+          .scores-content .empty-message {
+            color: #666;
+            padding: 20px;
+            text-align: center;
+          }
+          .scores-content table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          .scores-content thead th {
+            padding: 6px 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            background: #f5f5f5;
+            font-weight: 600;
+            font-size: 12px;
+          }
+          .scores-content .student-row td {
+            padding: 4px 8px;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+            font-size: 12px;
+          }
+          .scores-content .student-row:hover {
+            background: #f9f9f9;
+          }
+          .scores-content .score-perfect {
+            color: #28a745;
+            font-weight: 500;
+          }
+          .scores-content .score-zero {
+            color: #dc3545;
+          }
+          .scores-content .answers-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+          }
+          .scores-content .page-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+          }
+          .scores-content .page-name {
+            font-weight: 500;
+            font-size: 10px;
+            color: #555;
+            min-width: 80px;
+          }
+          .scores-content .page-answers {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+          }
+          .scores-content .answer-badge {
+            display: inline-block;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 500;
+          }
+          .scores-content .answer-badge.correct {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+          }
+          .scores-content .answer-badge.incorrect {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+          }
+          .scores-content .no-answers {
+            color: #999;
+            font-style: italic;
+            font-size: 11px;
+          }
+        </style>
         <div class="scores-content">
           ${this.students.length === 0
             ? html`<p class="empty-message">No student data available.</p>`
@@ -198,9 +153,8 @@ export class QdScoresModal extends LitElement {
           <tr>
             <th>Student</th>
             <th>Service ID</th>
-            <th>Attempted</th>
-            <th>Correct</th>
-            <th>Percentage</th>
+            <th>Score</th>
+            <th>Answers</th>
           </tr>
         </thead>
         <tbody>
@@ -212,48 +166,31 @@ export class QdScoresModal extends LitElement {
 
   private renderStudentRow(student: StudentRecord) {
     const summary = this.calculateSummary(student);
-    const isExpanded = this.expandedStudents.has(student.serviceId);
-
-    return html`
-      <tr class="student-row" @click=${() => this.toggleStudent(student.serviceId)}>
-        <td>
-          <span class="expand-icon">${isExpanded ? '▼' : '▶'}</span>
-          ${summary.name}
-        </td>
-        <td>${summary.serviceId}</td>
-        <td>${summary.attempted}</td>
-        <td
-          class=${summary.correct === summary.attempted && summary.attempted > 0
-            ? 'correct-highlight'
-            : ''}
-        >
-          ${summary.correct}
-        </td>
-        <td class=${this.getPercentageClass(summary.percentage)}>${summary.percentage}%</td>
-      </tr>
-      ${isExpanded ? this.renderDetailRow(student) : nothing}
-    `;
-  }
-
-  private renderDetailRow(student: StudentRecord) {
     const pages = Object.entries(student.pages);
 
     return html`
-      <tr class="detail-row">
-        <td colspan="5">
+      <tr class="student-row">
+        <td>${summary.name}</td>
+        <td>${summary.serviceId}</td>
+        <td class=${this.getScoreClass(summary)}>
+          ${summary.correct}/${summary.attempted} (${summary.percentage}%)
+        </td>
+        <td>
           ${pages.length === 0
-            ? html`<span class="no-pages">No quiz pages attempted</span>`
+            ? html`<span class="no-answers">—</span>`
             : html`
-                <div class="page-breakdown">
+                <div class="answers-cell">
                   ${pages.map(
                     ([pageId, pageData]) => html`
                       <div class="page-row">
                         <span class="page-name">${pageId}</span>
-                        <div class="answers-list">
+                        <div class="page-answers">
                           ${pageData.answers.map(
-                            (answer, index) => html`
-                              <span class="answer-badge ${this.getAnswerClass(answer)}">
-                                Q${index + 1}: ${answer ? answer.answer : '—'}
+                            (answer, idx) => html`
+                              <span
+                                class="answer-badge ${answer?.success ? 'correct' : 'incorrect'}"
+                              >
+                                Q${idx + 1}: ${answer?.answer ?? '—'}
                               </span>
                             `,
                           )}
@@ -268,6 +205,13 @@ export class QdScoresModal extends LitElement {
     `;
   }
 
+  private getScoreClass(summary: StudentSummary): string {
+    if (summary.attempted === 0) return '';
+    if (summary.percentage === 100) return 'score-perfect';
+    if (summary.percentage === 0) return 'score-zero';
+    return '';
+  }
+
   private calculateSummary(student: StudentRecord): StudentSummary {
     const percentage =
       student.attempted > 0 ? Math.round((student.correct / student.attempted) * 100) : 0;
@@ -279,27 +223,6 @@ export class QdScoresModal extends LitElement {
       correct: student.correct,
       percentage,
     };
-  }
-
-  private getPercentageClass(percentage: number): string {
-    if (percentage === 100) return 'correct-highlight';
-    if (percentage === 0) return 'incorrect-highlight';
-    return '';
-  }
-
-  private getAnswerClass(answer: { success: boolean } | null): string {
-    if (!answer) return 'unanswered';
-    return answer.success ? 'correct' : 'incorrect';
-  }
-
-  private toggleStudent(serviceId: string) {
-    const newSet = new Set(this.expandedStudents);
-    if (newSet.has(serviceId)) {
-      newSet.delete(serviceId);
-    } else {
-      newSet.add(serviceId);
-    }
-    this.expandedStudents = newSet;
   }
 
   private handleModalClose = () => {

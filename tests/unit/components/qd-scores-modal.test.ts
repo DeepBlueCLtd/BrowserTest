@@ -22,6 +22,9 @@ describe('qd-scores-modal', () => {
 
   afterEach(() => {
     container.remove();
+    // Clean up any modal containers and qd-modal elements rendered to body
+    document.querySelectorAll('.qd-modal-container').forEach((el) => el.remove());
+    document.querySelectorAll('body > qd-modal').forEach((el) => el.remove());
   });
 
   function createStudent(overrides: Partial<StudentRecord> = {}): StudentRecord {
@@ -46,11 +49,48 @@ describe('qd-scores-modal', () => {
     } = {},
   ): Promise<QdScoresModal> {
     element = document.createElement('qd-scores-modal');
-    if (options.open) element.open = true;
     if (options.students) element.students = options.students;
     container.appendChild(element);
     await element.updateComplete;
+    // Set open after initial render to ensure students are applied
+    if (options.open) {
+      element.open = true;
+      await element.updateComplete;
+      // Wait for nested qd-modal to move to body
+      await new Promise((r) => requestAnimationFrame(r));
+    }
     return element;
+  }
+
+  /**
+   * Helper to find the active qd-modal (moved to body when open)
+   */
+  function findActiveModal() {
+    return document.querySelector('qd-modal[open]');
+  }
+
+  /**
+   * Get text content from the active modal's content area
+   */
+  function getModalContent(): string {
+    const modal = findActiveModal();
+    return modal?.textContent || '';
+  }
+
+  /**
+   * Query elements inside the active modal's light DOM
+   */
+  function queryModalContent<T extends Element>(selector: string): T | null {
+    const modal = findActiveModal();
+    return modal?.querySelector<T>(selector) || null;
+  }
+
+  /**
+   * Query all elements inside the active modal's light DOM
+   */
+  function queryAllModalContent<T extends Element>(selector: string): NodeListOf<T> | null {
+    const modal = findActiveModal();
+    return modal?.querySelectorAll<T>(selector) || null;
   }
 
   describe('modal behavior (inherited from qd-modal)', () => {
@@ -62,10 +102,9 @@ describe('qd-scores-modal', () => {
     it('shows when open=true', async () => {
       const el = await createModal({ open: true });
       expect(el.open).toBe(true);
-      // qd-modal inside qd-scores-modal renders backdrop in shadow DOM
-      const modal = el.shadowRoot?.querySelector('qd-modal');
-      const backdrop = modal?.shadowRoot?.querySelector('.backdrop');
-      expect(backdrop).toBeTruthy();
+      // qd-modal is moved to body when open
+      const modal = findActiveModal();
+      expect(modal?.parentElement).toBe(document.body);
     });
 
     it('closes on Escape key', async () => {
@@ -82,8 +121,8 @@ describe('qd-scores-modal', () => {
       const closeHandler = vi.fn();
       el.addEventListener('close', closeHandler);
 
-      // Backdrop is in qd-modal's shadow DOM
-      const modal = el.shadowRoot?.querySelector('qd-modal');
+      // Backdrop is in qd-modal's shadow DOM (modal is in body when open)
+      const modal = findActiveModal();
       const backdrop = modal?.shadowRoot?.querySelector('.backdrop') as HTMLElement;
       backdrop?.click();
       await el.updateComplete;
@@ -94,8 +133,8 @@ describe('qd-scores-modal', () => {
 
   describe('student list rendering', () => {
     it('shows "No students" message when empty', async () => {
-      const el = await createModal({ open: true, students: [] });
-      const content = el.shadowRoot?.textContent || '';
+      await createModal({ open: true, students: [] });
+      const content = getModalContent();
       expect(content).toContain('No student data');
     });
 
@@ -104,46 +143,46 @@ describe('qd-scores-modal', () => {
         createStudent({ name: 'Alice' }),
         createStudent({ name: 'Bob', serviceId: 'BOB12345' }),
       ];
-      const el = await createModal({ open: true, students });
+      await createModal({ open: true, students });
 
-      const rows = el.shadowRoot?.querySelectorAll('tbody tr');
+      const rows = queryAllModalContent('tbody tr');
       expect(rows?.length).toBeGreaterThanOrEqual(2);
 
-      const content = el.shadowRoot?.textContent || '';
+      const content = getModalContent();
       expect(content).toContain('Alice');
       expect(content).toContain('Bob');
     });
 
     it('renders service IDs', async () => {
       const students = [createStudent({ serviceId: 'ABC12345' })];
-      const el = await createModal({ open: true, students });
+      await createModal({ open: true, students });
 
-      const content = el.shadowRoot?.textContent || '';
+      const content = getModalContent();
       expect(content).toContain('ABC12345');
     });
 
     it('renders attempted and correct counts', async () => {
       const students = [createStudent({ attempted: 10, correct: 7 })];
-      const el = await createModal({ open: true, students });
+      await createModal({ open: true, students });
 
-      const content = el.shadowRoot?.textContent || '';
+      const content = getModalContent();
       expect(content).toContain('10');
       expect(content).toContain('7');
     });
 
     it('calculates and displays percentage', async () => {
       const students = [createStudent({ attempted: 10, correct: 8 })];
-      const el = await createModal({ open: true, students });
+      await createModal({ open: true, students });
 
-      const content = el.shadowRoot?.textContent || '';
+      const content = getModalContent();
       expect(content).toContain('80%');
     });
 
     it('shows 0% when no attempts', async () => {
       const students = [createStudent({ attempted: 0, correct: 0 })];
-      const el = await createModal({ open: true, students });
+      await createModal({ open: true, students });
 
-      const content = el.shadowRoot?.textContent || '';
+      const content = getModalContent();
       expect(content).toContain('0%');
     });
 
@@ -153,9 +192,9 @@ describe('qd-scores-modal', () => {
         createStudent({ name: 'Alice', serviceId: 'A123' }),
         createStudent({ name: 'Mike', serviceId: 'M123' }),
       ];
-      const el = await createModal({ open: true, students });
+      await createModal({ open: true, students });
 
-      const rows = el.shadowRoot?.querySelectorAll('tbody tr.student-row');
+      const rows = queryAllModalContent('tbody tr.student-row');
       const names = Array.from(rows || []).map((row) => row.textContent);
       const aliceIndex = names.findIndex((n) => n?.includes('Alice'));
       const mikeIndex = names.findIndex((n) => n?.includes('Mike'));
@@ -166,94 +205,31 @@ describe('qd-scores-modal', () => {
     });
   });
 
-  describe('row expansion', () => {
-    it('starts with all rows expanded by default', async () => {
-      const students = [
-        createStudent({
-          name: 'Alice',
-          serviceId: 'A123',
-          pages: {
-            'page-1': {
-              state: 'complete',
-              answers: [{ answer: '1', success: true, timestamp: '' }],
-            },
-          },
-        }),
-      ];
-      const el = await createModal({ open: true, students });
+  describe('score column', () => {
+    it('shows combined score format', async () => {
+      const students = [createStudent({ attempted: 10, correct: 8 })];
+      await createModal({ open: true, students });
 
-      // Detail rows should be visible
-      const detailRows = el.shadowRoot?.querySelectorAll('.detail-row');
-      expect(detailRows?.length).toBeGreaterThan(0);
+      const content = getModalContent();
+      expect(content).toContain('8/10 (80%)');
     });
 
-    it('toggles expansion on row click', async () => {
-      const students = [
-        createStudent({
-          name: 'Alice',
-          serviceId: 'A123',
-          pages: {
-            'page-1': {
-              state: 'complete',
-              answers: [{ answer: '1', success: true, timestamp: '' }],
-            },
-          },
-        }),
-      ];
-      const el = await createModal({ open: true, students });
+    it('highlights perfect scores', async () => {
+      const students = [createStudent({ attempted: 5, correct: 5 })];
+      await createModal({ open: true, students });
 
-      // Click to collapse
-      const row = el.shadowRoot?.querySelector('.student-row') as HTMLElement;
-      row?.click();
-      await el.updateComplete;
-
-      // Should show collapsed indicator
-      const expandIcon = row?.querySelector('.expand-icon');
-      expect(expandIcon?.textContent?.trim()).toBe('▶');
-    });
-
-    it('shows expand/collapse indicator', async () => {
-      const students = [
-        createStudent({
-          pages: {
-            'page-1': {
-              state: 'complete',
-              answers: [{ answer: '1', success: true, timestamp: '' }],
-            },
-          },
-        }),
-      ];
-      const el = await createModal({ open: true, students });
-
-      const icon = el.shadowRoot?.querySelector('.expand-icon');
-      expect(icon).toBeTruthy();
-      // Default expanded = ▼
-      expect(icon?.textContent?.trim()).toBe('▼');
+      const perfectCell = queryModalContent('.score-perfect');
+      expect(perfectCell).toBeTruthy();
+      expect(perfectCell?.textContent).toContain('100%');
     });
   });
 
-  describe('per-page breakdown', () => {
-    it('shows page names in expanded view', async () => {
+  describe('answers column', () => {
+    it('shows page names with answers', async () => {
       const students = [
         createStudent({
           pages: {
-            'quiz-page-1': { state: 'complete', answers: [] },
-            'quiz-page-2': { state: 'incomplete', answers: [] },
-          },
-        }),
-      ];
-      const el = await createModal({ open: true, students });
-
-      const content = el.shadowRoot?.textContent || '';
-      expect(content).toContain('quiz-page-1');
-      expect(content).toContain('quiz-page-2');
-    });
-
-    it('shows answers with question numbers', async () => {
-      const students = [
-        createStudent({
-          pages: {
-            'page-1': {
+            'quiz-page-1': {
               state: 'complete',
               answers: [
                 { answer: 'A', success: true, timestamp: '' },
@@ -263,9 +239,10 @@ describe('qd-scores-modal', () => {
           },
         }),
       ];
-      const el = await createModal({ open: true, students });
+      await createModal({ open: true, students });
 
-      const content = el.shadowRoot?.textContent || '';
+      const content = getModalContent();
+      expect(content).toContain('quiz-page-1');
       expect(content).toContain('Q1');
       expect(content).toContain('Q2');
       expect(content).toContain('A');
@@ -283,9 +260,9 @@ describe('qd-scores-modal', () => {
           },
         }),
       ];
-      const el = await createModal({ open: true, students });
+      await createModal({ open: true, students });
 
-      const correctBadge = el.shadowRoot?.querySelector('.answer-badge.correct');
+      const correctBadge = queryModalContent('.answer-badge.correct');
       expect(correctBadge).toBeTruthy();
     });
 
@@ -300,18 +277,18 @@ describe('qd-scores-modal', () => {
           },
         }),
       ];
-      const el = await createModal({ open: true, students });
+      await createModal({ open: true, students });
 
-      const incorrectBadge = el.shadowRoot?.querySelector('.answer-badge.incorrect');
+      const incorrectBadge = queryModalContent('.answer-badge.incorrect');
       expect(incorrectBadge).toBeTruthy();
     });
 
-    it('shows empty state for students with no pages', async () => {
+    it('shows dash for students with no answers', async () => {
       const students = [createStudent({ pages: {} })];
-      const el = await createModal({ open: true, students });
+      await createModal({ open: true, students });
 
-      const content = el.shadowRoot?.textContent || '';
-      expect(content).toContain('No quiz pages');
+      const noAnswers = queryModalContent('.no-answers');
+      expect(noAnswers).toBeTruthy();
     });
   });
 
@@ -346,17 +323,21 @@ describe('qd-scores-modal', () => {
 
   describe('accessibility', () => {
     it('has dialog role', async () => {
-      const el = await createModal({ open: true });
-      // Dialog role is in qd-modal's shadow DOM
-      const modal = el.shadowRoot?.querySelector('qd-modal');
+      await createModal({ open: true });
+      // Dialog role is in qd-modal's shadow DOM (modal is in body when open)
+      const modal = findActiveModal();
       const dialog = modal?.shadowRoot?.querySelector('[role="dialog"]');
       expect(dialog).toBeTruthy();
     });
 
     it('has modal title', async () => {
-      const el = await createModal({ open: true });
-      const content = el.shadowRoot?.textContent || '';
-      expect(content).toContain('Student Scores');
+      await createModal({ open: true });
+      // Modal title is passed via slot - find via qd-modal in body
+      const modal = findActiveModal();
+      const headerSlot = modal?.shadowRoot?.querySelector('slot[name="header"]') as HTMLSlotElement;
+      const assignedElements = headerSlot?.assignedElements() || [];
+      const headerText = assignedElements.map((el) => el.textContent).join('');
+      expect(headerText).toContain('Student Scores');
     });
   });
 });

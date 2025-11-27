@@ -18,11 +18,20 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 
 // Track currently open modal for collision handling
-let currentOpenModal: QdModal | null = null;
+// Using globalThis to ensure state persists across module re-imports in test environments
+const MODAL_STATE_KEY = '__qdModalCurrentRef__';
+
+function getCurrentModal(): QdModal | null {
+  return ((globalThis as Record<string, unknown>)[MODAL_STATE_KEY] as QdModal) ?? null;
+}
+
+function setCurrentModal(modal: QdModal | null): void {
+  (globalThis as Record<string, unknown>)[MODAL_STATE_KEY] = modal;
+}
 
 /**
  * Base modal component with common modal behavior
- * Uses fixed positioning for proper z-index stacking
+ * Moves entire element to document.body when open to escape stacking context issues
  */
 @customElement('qd-modal')
 export class QdModal extends LitElement {
@@ -33,6 +42,10 @@ export class QdModal extends LitElement {
 
     .backdrop {
       display: none;
+    }
+
+    :host([open]) .backdrop {
+      display: flex;
       position: fixed;
       top: 0;
       left: 0;
@@ -42,12 +55,11 @@ export class QdModal extends LitElement {
       align-items: center;
       justify-content: center;
       z-index: 99999;
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
       animation: qd-modal-fadeIn 0.15s ease-out;
-    }
-
-    :host([open]) .backdrop {
-      display: flex;
     }
 
     @keyframes qd-modal-fadeIn {
@@ -94,11 +106,6 @@ export class QdModal extends LitElement {
       margin: 0;
     }
 
-    /* Hide header when slot is empty and no close button needed */
-    .header:not(:has(::slotted(*))) .header-title {
-      display: none;
-    }
-
     .close-button {
       background: none;
       border: none;
@@ -108,7 +115,9 @@ export class QdModal extends LitElement {
       color: #666;
       line-height: 1;
       border-radius: 4px;
-      transition: background-color 0.2s, color 0.2s;
+      transition:
+        background-color 0.2s,
+        color 0.2s;
       margin-left: auto;
     }
 
@@ -124,15 +133,6 @@ export class QdModal extends LitElement {
 
     .body {
       padding: 20px;
-    }
-
-    .error-message {
-      color: #d32f2f;
-      font-size: 12px;
-      padding: 8px;
-      background: #ffebee;
-      border-radius: 4px;
-      border-left: 3px solid #d32f2f;
     }
   `;
 
@@ -153,6 +153,21 @@ export class QdModal extends LitElement {
    */
   private previouslyFocused: Element | null = null;
 
+  /**
+   * Original parent element (for restoration when closing)
+   */
+  private originalParent: ParentNode | null = null;
+
+  /**
+   * Original next sibling (to restore position in DOM)
+   */
+  private originalNextSibling: Node | null = null;
+
+  /**
+   * Whether we're currently in body (to prevent double-moves)
+   */
+  private isInBody = false;
+
   connectedCallback() {
     super.connectedCallback();
     document.addEventListener('keydown', this.handleKeyDown);
@@ -163,8 +178,9 @@ export class QdModal extends LitElement {
     document.removeEventListener('keydown', this.handleKeyDown);
 
     // Clean up if this was the open modal
-    if (currentOpenModal === this) {
-      currentOpenModal = null;
+    // But NOT if we're just moving to body (isInBody will be true during that move)
+    if (getCurrentModal() === this && !this.isInBody) {
+      setCurrentModal(null);
     }
   }
 
@@ -178,15 +194,45 @@ export class QdModal extends LitElement {
     }
   }
 
+  /**
+   * Move this element to document.body to escape stacking contexts
+   */
+  private moveToBody(): void {
+    if (this.isInBody) return;
+
+    // Store original location for restoration
+    this.originalParent = this.parentNode;
+    this.originalNextSibling = this.nextSibling;
+
+    // Set flag BEFORE move so disconnectedCallback knows we're just relocating
+    this.isInBody = true;
+
+    // Move to body
+    document.body.appendChild(this);
+  }
+
+  /**
+   * Restore this element to its original position in the DOM
+   */
+  private restorePosition(): void {
+    if (!this.isInBody || !this.originalParent) return;
+
+    // Restore to original position
+    if (this.originalNextSibling) {
+      this.originalParent.insertBefore(this, this.originalNextSibling);
+    } else {
+      this.originalParent.appendChild(this);
+    }
+
+    this.originalParent = null;
+    this.originalNextSibling = null;
+    this.isInBody = false;
+  }
+
   override render() {
     return html`
       <div class="backdrop" @click=${this.handleBackdropClick}>
-        <div
-          class="content"
-          role="dialog"
-          aria-modal="true"
-          @click=${this.stopPropagation}
-        >
+        <div class="content" role="dialog" aria-modal="true" @click=${this.stopPropagation}>
           <div class="header">
             <span class="header-title"><slot name="header"></slot></span>
             ${this.closable
@@ -228,16 +274,19 @@ export class QdModal extends LitElement {
    */
   private handleOpen() {
     // Modal collision: close any existing open modal
-    if (currentOpenModal && currentOpenModal !== this) {
-      currentOpenModal.close();
+    const currentModal = getCurrentModal();
+    if (currentModal && currentModal !== this) {
+      currentModal.close();
     }
-    // eslint-disable-next-line @typescript-eslint/no-this-alias -- needed for modal collision tracking
-    currentOpenModal = this;
+    setCurrentModal(this);
 
     // Store currently focused element for restoration
     this.previouslyFocused = document.activeElement;
 
-    // Focus first focusable element after render
+    // Move element to body to escape stacking contexts
+    this.moveToBody();
+
+    // Focus first element after render
     requestAnimationFrame(() => {
       this.focusFirstElement();
     });
@@ -247,9 +296,12 @@ export class QdModal extends LitElement {
    * Handle modal closing
    */
   private handleClose() {
-    if (currentOpenModal === this) {
-      currentOpenModal = null;
+    if (getCurrentModal() === this) {
+      setCurrentModal(null);
     }
+
+    // Restore element to original position
+    this.restorePosition();
 
     // Restore focus
     if (this.previouslyFocused instanceof HTMLElement) {
@@ -277,11 +329,20 @@ export class QdModal extends LitElement {
           return;
         }
         // Check if element itself is focusable
-        if (el instanceof HTMLElement && el.matches('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')) {
+        if (
+          el instanceof HTMLElement &&
+          el.matches('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+        ) {
           el.focus();
           return;
         }
       }
+    }
+
+    // Fall back to close button
+    const closeBtn = this.shadowRoot?.querySelector<HTMLElement>('.close-button');
+    if (closeBtn) {
+      closeBtn.focus();
     }
   }
 

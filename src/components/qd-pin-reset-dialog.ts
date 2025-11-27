@@ -85,45 +85,36 @@ export class QdPinResetDialog extends LitElement {
       box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
     }
 
-    .student-list {
+    .student-table-container {
       max-height: 300px;
       overflow-y: auto;
       border: 1px solid #e0e0e0;
       border-radius: 4px;
     }
 
-    .student-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .student-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .student-table th {
+      text-align: left;
       padding: 8px 12px;
+      background: #f5f5f5;
+      border-bottom: 1px solid #e0e0e0;
+      font-weight: 500;
+      position: sticky;
+      top: 0;
+    }
+
+    .student-table td {
+      padding: 6px 12px;
       border-bottom: 1px solid #f0f0f0;
     }
 
-    .student-item:last-child {
+    .student-table tr:last-child td {
       border-bottom: none;
-    }
-
-    .student-name {
-      font-size: 12px;
-      font-weight: 500;
-    }
-
-    .student-id {
-      font-size: 10px;
-      color: #666;
-    }
-
-    .pin-status {
-      font-size: 10px;
-    }
-
-    .pin-status.has-pin {
-      color: #4caf50;
-    }
-
-    .pin-status.no-pin {
-      color: #ff9800;
     }
 
     .reset-btn {
@@ -300,16 +291,12 @@ export class QdPinResetDialog extends LitElement {
   }
 
   override render() {
-    // Don't render when closed
-    if (!this.open) {
-      return nothing;
-    }
-
     const student = this.confirmingStudent;
     const confirmMessage = student
       ? `Reset PIN for <strong>${student.name}</strong> (${student.serviceId})?<br><span style="font-size: 11px; color: #666;">They will need to create a new PIN on next login.</span>`
       : '';
 
+    // Always render qd-modal so it can properly restore position when closing
     return html`
       <qd-modal
         .open=${this.open && !this.confirmDialogOpen}
@@ -317,44 +304,60 @@ export class QdPinResetDialog extends LitElement {
       >
         <span slot="header">Reset Student PIN</span>
 
-        <div class="pin-reset-content">
-          <input
-            type="text"
-            class="search-input"
-            placeholder="Search by name or ID..."
-            .value=${this.searchText}
-            @input=${this.handleSearchInput}
-          />
+        ${this.open
+          ? html`
+              <div class="pin-reset-content">
+                <input
+                  type="text"
+                  class="search-input"
+                  placeholder="Search by name or ID..."
+                  .value=${this.searchText}
+                  @input=${this.handleSearchInput}
+                />
 
-          <div class="student-list">
-            ${this.filteredStudents.length === 0
-              ? html`<div class="empty-message">
-                  ${this.searchText ? 'No matching students' : 'No students found'}
-                </div>`
-              : this.filteredStudents.map(
-                  (s) => html`
-                    <div class="student-item">
-                      <div>
-                        <div class="student-name">${s.name}</div>
-                        <div class="student-id">ID: ${s.serviceId}</div>
-                        <div class="pin-status ${s.pinHash ? 'has-pin' : 'no-pin'}">
-                          ${s.pinHash ? 'PIN set' : 'No PIN'}
-                        </div>
-                      </div>
-                      <button
-                        class="reset-btn"
-                        type="button"
-                        @click=${() => this.handleResetClick(s)}
-                      >
-                        Reset PIN
-                      </button>
-                    </div>
-                  `,
-                )}
-          </div>
+                <div class="student-table-container">
+                  ${this.filteredStudents.length === 0
+                    ? html`<div class="empty-message">
+                        ${this.searchText ? 'No matching students' : 'No students found'}
+                      </div>`
+                    : html`
+                        <table class="student-table">
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Service ID</th>
+                              <th>Reset PIN</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${this.filteredStudents.map(
+                              (s) => html`
+                                <tr>
+                                  <td>${s.name}</td>
+                                  <td>${s.serviceId}</td>
+                                  <td>
+                                    <button
+                                      class="reset-btn"
+                                      type="button"
+                                      @click=${() => this.handleResetClick(s)}
+                                    >
+                                      Reset
+                                    </button>
+                                  </td>
+                                </tr>
+                              `,
+                            )}
+                          </tbody>
+                        </table>
+                      `}
+                </div>
 
-          ${this.errorMessage ? html`<div class="error-message">${this.errorMessage}</div>` : ''}
-        </div>
+                ${this.errorMessage
+                  ? html`<div class="error-message">${this.errorMessage}</div>`
+                  : ''}
+              </div>
+            `
+          : nothing}
       </qd-modal>
 
       <qd-confirm-dialog
