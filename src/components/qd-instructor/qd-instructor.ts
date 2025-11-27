@@ -333,7 +333,7 @@ export class QdInstructor extends LitElement {
             .checked=${this.showStudentAnswers}
             @change=${this.handleToggleStudentAnswers}
           />
-          Show student answers on page
+          Show current answers
         </label>
 
         <button @click=${this.handleViewScores} class="primary compact">View All Scores</button>
