@@ -45,12 +45,12 @@ async function loginAsInstructor(page: Page): Promise<void> {
   await instructorButton.click({ force: true });
 
   // Fill password in modal
-  const passwordInput = page.locator('.qd-modal-backdrop input[type="password"]');
+  const passwordInput = page.locator('qd-modal[open] input[type="password"]');
   await expect(passwordInput).toBeVisible({ timeout: 2000 });
   await passwordInput.fill(TEST_PASSWORD);
 
   // Submit
-  const unlockButton = page.locator('.qd-modal-backdrop button[type="submit"]');
+  const unlockButton = page.locator('qd-modal[open] button[type="submit"]');
   await unlockButton.click();
   await expect(passwordInput).not.toBeVisible();
 
@@ -113,7 +113,7 @@ test.describe('CSV Data Export', () => {
     await viewScoresButton.click();
 
     // Verify scores modal appears with student data
-    const scoresModal = page.locator('.qd-modal-backdrop');
+    const scoresModal = page.locator('qd-modal[open]');
     await expect(scoresModal).toBeVisible();
     await expect(scoresModal).toContainText('John Doe');
 
@@ -169,7 +169,7 @@ test.describe('CSV Data Export', () => {
     await viewScoresButton.click();
 
     // Verify scores modal appears with student data
-    const scoresModal = page.locator('.qd-modal-backdrop');
+    const scoresModal = page.locator('qd-modal[open]');
     await expect(scoresModal).toBeVisible();
     await expect(scoresModal).toContainText('John Doe');
 
@@ -236,7 +236,7 @@ test.describe('CSV Data Export', () => {
     await viewScoresButton.click();
 
     // Verify scores modal appears with student data
-    const scoresModal = page.locator('.qd-modal-backdrop');
+    const scoresModal = page.locator('qd-modal[open]');
     await expect(scoresModal).toBeVisible();
     await expect(scoresModal).toContainText('Export Test User');
 
@@ -315,7 +315,7 @@ test.describe('CSV Data Export', () => {
     await viewScoresButton.click();
 
     // Verify scores modal appears with student data
-    const scoresModal = page.locator('.qd-modal-backdrop');
+    const scoresModal = page.locator('qd-modal[open]');
     await expect(scoresModal).toBeVisible();
     await expect(scoresModal).toContainText('Filename Test');
 

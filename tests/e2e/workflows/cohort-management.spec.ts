@@ -104,11 +104,11 @@ test.describe('Cohort Management Workflow', () => {
     await instructorButton.click({ force: true });
     await page.waitForTimeout(500); // Wait for instructor modal to open
 
-    const passwordInput = page.locator('.qd-modal-backdrop input[type="password"]');
+    const passwordInput = page.locator('qd-modal[open] input[type="password"]');
     await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
-    const unlockButton = page.locator('.qd-modal-backdrop button[type="submit"]');
+    const unlockButton = page.locator('qd-modal[open] button[type="submit"]');
     await unlockButton.click();
     await expect(passwordInput).not.toBeVisible();
     await expect(page.getByText('View All Scores')).toBeVisible();
@@ -202,11 +202,11 @@ test.describe('Cohort Management Workflow', () => {
     await instructorButton.click({ force: true });
     await page.waitForTimeout(500); // Wait for instructor modal to open
 
-    const passwordInput = page.locator('.qd-modal-backdrop input[type="password"]');
+    const passwordInput = page.locator('qd-modal[open] input[type="password"]');
     await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
-    const unlockButton = page.locator('.qd-modal-backdrop button[type="submit"]');
+    const unlockButton = page.locator('qd-modal[open] button[type="submit"]');
     await unlockButton.click();
     await expect(passwordInput).not.toBeVisible();
     await expect(page.getByText('View All Scores')).toBeVisible();
@@ -337,11 +337,11 @@ test.describe('Cohort Management Workflow', () => {
     await instructorButton.click({ force: true });
     await page.waitForTimeout(500); // Wait for instructor modal to open
 
-    const passwordInput = page.locator('.qd-modal-backdrop input[type="password"]');
+    const passwordInput = page.locator('qd-modal[open] input[type="password"]');
     await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
-    const unlockButton = page.locator('.qd-modal-backdrop button[type="submit"]');
+    const unlockButton = page.locator('qd-modal[open] button[type="submit"]');
     await unlockButton.click();
     await expect(passwordInput).not.toBeVisible();
     await expect(page.getByText('View All Scores')).toBeVisible();
@@ -406,11 +406,11 @@ test.describe('Cohort Management Workflow', () => {
     await instructorButton.click({ force: true });
     await page.waitForTimeout(500); // Wait for instructor modal to open
 
-    const passwordInput = page.locator('.qd-modal-backdrop input[type="password"]');
+    const passwordInput = page.locator('qd-modal[open] input[type="password"]');
     await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
-    const unlockButton = page.locator('.qd-modal-backdrop button[type="submit"]');
+    const unlockButton = page.locator('qd-modal[open] button[type="submit"]');
     await unlockButton.click();
     await expect(passwordInput).not.toBeVisible();
     await expect(page.getByText('View All Scores')).toBeVisible();

@@ -255,11 +255,11 @@ test.describe('Session Timeout Management', () => {
     const instructorButton = page.locator('qd-login button').filter({ hasText: /instructor/i });
     await instructorButton.click({ force: true });
 
-    const passwordInput = page.locator('.qd-modal-backdrop input[type="password"]');
+    const passwordInput = page.locator('qd-modal[open] input[type="password"]');
     await expect(passwordInput).toBeVisible({ timeout: 2000 });
     await passwordInput.fill(TEST_PASSWORD);
 
-    const unlockButton = page.locator('.qd-modal-backdrop button[type="submit"]');
+    const unlockButton = page.locator('qd-modal[open] button[type="submit"]');
     await unlockButton.click();
     await expect(passwordInput).not.toBeVisible();
 

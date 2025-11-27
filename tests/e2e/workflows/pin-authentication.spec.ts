@@ -60,7 +60,7 @@ async function loginInstructor(page: Page, password: string): Promise<void> {
   await page.locator('qd-login >> button:has-text("Instructor")').click();
 
   // Wait for modal and fill password (modal is in document.body, not shadow DOM)
-  const modal = page.locator('.qd-modal-backdrop');
+  const modal = page.locator('qd-modal[open]');
   await expect(modal).toBeVisible({ timeout: 2000 });
   await modal.locator('input[type="password"]').fill(password);
   await modal.locator('button:has-text("Login")').click();
@@ -190,7 +190,7 @@ test.describe('PIN Authentication', () => {
       await loginInstructor(page, 'pwd');
 
       // Wait for modal to close
-      await expect(page.locator('.qd-modal-backdrop')).not.toBeVisible({ timeout: 2000 });
+      await expect(page.locator('qd-modal[open]')).not.toBeVisible({ timeout: 2000 });
 
       // Verify instructor panel visible
       await expect(page.locator('qd-instructor')).toBeVisible({ timeout: 2000 });
