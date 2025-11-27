@@ -168,6 +168,8 @@ export class QdStatus extends LitElement {
     document.addEventListener('qd:state-changed', this.handleStateChanged);
     document.addEventListener('qd:login', this.handleLogin);
     document.addEventListener('qd:logout', this.handleLogoutEvent);
+    // Listen for cache rebuild (fires after async IndexedDB load completes)
+    document.addEventListener('qd:cache-rebuild', this.handleCacheRebuild);
   }
 
   disconnectedCallback() {
@@ -175,6 +177,7 @@ export class QdStatus extends LitElement {
     document.removeEventListener('qd:state-changed', this.handleStateChanged);
     document.removeEventListener('qd:login', this.handleLogin);
     document.removeEventListener('qd:logout', this.handleLogoutEvent);
+    document.removeEventListener('qd:cache-rebuild', this.handleCacheRebuild);
   }
 
   render() {
@@ -273,6 +276,13 @@ export class QdStatus extends LitElement {
    */
   private handleLogin = () => {
     this.updateVisibility();
+    this.loadCache();
+  };
+
+  /**
+   * Handle cache rebuild event (fired after async IndexedDB load completes)
+   */
+  private handleCacheRebuild = () => {
     this.loadCache();
   };
 

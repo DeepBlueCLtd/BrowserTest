@@ -85,45 +85,44 @@ export class QdPinResetDialog extends LitElement {
       box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
     }
 
-    .student-list {
+    .student-table-container {
       max-height: 300px;
       overflow-y: auto;
       border: 1px solid #e0e0e0;
       border-radius: 4px;
     }
 
-    .student-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .student-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .student-table th {
+      text-align: left;
       padding: 8px 12px;
+      background: #f5f5f5;
+      border-bottom: 1px solid #e0e0e0;
+      font-weight: 500;
+      position: sticky;
+      top: 0;
+    }
+
+    .student-table td {
+      padding: 6px 12px;
       border-bottom: 1px solid #f0f0f0;
     }
 
-    .student-item:last-child {
+    .student-table tbody tr:nth-child(even) {
+      background: #f8f8f8;
+    }
+
+    .student-table tbody tr:hover {
+      background: #f0f0f0;
+    }
+
+    .student-table tr:last-child td {
       border-bottom: none;
-    }
-
-    .student-name {
-      font-size: 12px;
-      font-weight: 500;
-    }
-
-    .student-id {
-      font-size: 10px;
-      color: #666;
-    }
-
-    .pin-status {
-      font-size: 10px;
-    }
-
-    .pin-status.has-pin {
-      color: #4caf50;
-    }
-
-    .pin-status.no-pin {
-      color: #ff9800;
     }
 
     .reset-btn {
@@ -214,10 +213,6 @@ export class QdPinResetDialog extends LitElement {
   private handleSearchInput = (e: Event): void => {
     const input = e.target as HTMLInputElement;
     this.searchText = input.value;
-    // Sync updated list to portal
-    void this.updateComplete.then(() => {
-      this.syncContentToPortal();
-    });
   };
 
   /**
@@ -291,172 +286,25 @@ export class QdPinResetDialog extends LitElement {
         }),
       );
 
-      // Close confirm dialog and refresh list
+      // Close confirm dialog
       this.confirmDialogOpen = false;
       this.confirmingStudent = null;
       this.errorMessage = '';
-
-      // Sync updated list to portal
-      void this.updateComplete.then(() => {
-        this.syncContentToPortal();
-      });
     } catch (err) {
       console.error('PIN reset error:', err);
       this.errorMessage = 'Failed to reset PIN. Please try again.';
       this.confirmDialogOpen = false;
       this.confirmingStudent = null;
-
-      // Sync error to portal
-      void this.updateComplete.then(() => {
-        this.syncContentToPortal();
-      });
-    }
-  }
-
-  /**
-   * Sync dynamic content to portal DOM.
-   * Since qd-modal clones content and loses Lit bindings,
-   * we need to manually update the portal content.
-   */
-  private syncContentToPortal(): void {
-    const backdrop = document.querySelector('.qd-modal-backdrop');
-    if (!backdrop) return;
-
-    const listContainer = backdrop.querySelector('.student-list');
-    if (!listContainer) return;
-
-    // Clear and rebuild student list
-    listContainer.innerHTML = '';
-    const filtered = this.filteredStudents;
-
-    if (filtered.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'empty-message';
-      empty.textContent = this.searchText ? 'No matching students' : 'No students found';
-      empty.style.cssText = 'padding: 16px; text-align: center; color: #666; font-size: 12px;';
-      listContainer.appendChild(empty);
-    } else {
-      filtered.forEach((student) => {
-        const item = document.createElement('div');
-        item.className = 'student-item';
-        item.style.cssText = `
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 8px 12px;
-          border-bottom: 1px solid #f0f0f0;
-        `;
-
-        const info = document.createElement('div');
-
-        const nameSpan = document.createElement('div');
-        nameSpan.className = 'student-name';
-        nameSpan.textContent = student.name;
-        nameSpan.style.cssText = 'font-size: 12px; font-weight: 500;';
-
-        const idSpan = document.createElement('div');
-        idSpan.className = 'student-id';
-        idSpan.textContent = `ID: ${student.serviceId}`;
-        idSpan.style.cssText = 'font-size: 10px; color: #666;';
-
-        const pinStatus = document.createElement('div');
-        pinStatus.className = 'pin-status';
-        const hasPinHash = student.pinHash && student.pinHash.length > 0;
-        pinStatus.textContent = hasPinHash ? 'PIN set' : 'No PIN';
-        pinStatus.style.cssText = `font-size: 10px; color: ${hasPinHash ? '#4caf50' : '#ff9800'};`;
-
-        info.appendChild(nameSpan);
-        info.appendChild(idSpan);
-        info.appendChild(pinStatus);
-
-        const resetBtn = document.createElement('button');
-        resetBtn.className = 'reset-btn';
-        resetBtn.textContent = 'Reset PIN';
-        resetBtn.type = 'button';
-        resetBtn.style.cssText = `
-          background: #ff5722;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          padding: 4px 8px;
-          font-size: 10px;
-          cursor: pointer;
-        `;
-        resetBtn.onclick = () => this.handleResetClick(student);
-
-        item.appendChild(info);
-        item.appendChild(resetBtn);
-        listContainer.appendChild(item);
-      });
-    }
-
-    // Sync error message
-    let errorDiv = backdrop.querySelector('.error-message');
-    if (this.errorMessage) {
-      if (!errorDiv) {
-        errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        const content = backdrop.querySelector('.qd-modal-body');
-        content?.appendChild(errorDiv);
-      }
-      errorDiv.textContent = this.errorMessage;
-      (errorDiv as HTMLElement).style.cssText = `
-        color: #d32f2f;
-        font-size: 11px;
-        margin-top: 8px;
-        padding: 8px;
-        background: #ffebee;
-        border-radius: 4px;
-      `;
-    } else {
-      errorDiv?.remove();
-    }
-  }
-
-  /**
-   * Setup event listeners in portal after open
-   */
-  private setupPortalListeners(): void {
-    const backdrop = document.querySelector('.qd-modal-backdrop');
-    if (!backdrop) return;
-
-    // Setup search input listener
-    const searchInput = backdrop.querySelector('.search-input') as HTMLInputElement;
-    if (searchInput) {
-      searchInput.oninput = this.handleSearchInput;
-      searchInput.focus();
-    }
-
-    // Initial list sync
-    this.syncContentToPortal();
-  }
-
-  override updated(changedProps: Map<string, unknown>): void {
-    if (changedProps.has('open') && this.open) {
-      // Wait for portal to render, then setup listeners
-      setTimeout(() => {
-        this.setupPortalListeners();
-      }, 0);
-    }
-
-    if (changedProps.has('students') && this.open) {
-      void this.updateComplete.then(() => {
-        this.syncContentToPortal();
-      });
     }
   }
 
   override render() {
-    // Don't render when closed
-    if (!this.open) {
-      return nothing;
-    }
-
     const student = this.confirmingStudent;
     const confirmMessage = student
       ? `Reset PIN for <strong>${student.name}</strong> (${student.serviceId})?<br><span style="font-size: 11px; color: #666;">They will need to create a new PIN on next login.</span>`
       : '';
 
+    // Always render qd-modal so it can properly restore position when closing
     return html`
       <qd-modal
         .open=${this.open && !this.confirmDialogOpen}
@@ -464,37 +312,60 @@ export class QdPinResetDialog extends LitElement {
       >
         <span slot="header">Reset Student PIN</span>
 
-        <div class="pin-reset-content">
-          <input
-            type="text"
-            class="search-input"
-            placeholder="Search by name or ID..."
-            .value=${this.searchText}
-          />
+        ${this.open
+          ? html`
+              <div class="pin-reset-content">
+                <input
+                  type="text"
+                  class="search-input"
+                  placeholder="Search by name or ID..."
+                  .value=${this.searchText}
+                  @input=${this.handleSearchInput}
+                />
 
-          <div class="student-list">
-            ${this.filteredStudents.length === 0
-              ? html`<div class="empty-message">
-                  ${this.searchText ? 'No matching students' : 'No students found'}
-                </div>`
-              : this.filteredStudents.map(
-                  (s) => html`
-                    <div class="student-item">
-                      <div>
-                        <div class="student-name">${s.name}</div>
-                        <div class="student-id">ID: ${s.serviceId}</div>
-                        <div class="pin-status ${s.pinHash ? 'has-pin' : 'no-pin'}">
-                          ${s.pinHash ? 'PIN set' : 'No PIN'}
-                        </div>
-                      </div>
-                      <button class="reset-btn" type="button">Reset PIN</button>
-                    </div>
-                  `,
-                )}
-          </div>
+                <div class="student-table-container">
+                  ${this.filteredStudents.length === 0
+                    ? html`<div class="empty-message">
+                        ${this.searchText ? 'No matching students' : 'No students found'}
+                      </div>`
+                    : html`
+                        <table class="student-table">
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Service ID</th>
+                              <th>Reset PIN</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${this.filteredStudents.map(
+                              (s) => html`
+                                <tr>
+                                  <td>${s.name}</td>
+                                  <td>${s.serviceId}</td>
+                                  <td>
+                                    <button
+                                      class="reset-btn"
+                                      type="button"
+                                      @click=${() => this.handleResetClick(s)}
+                                    >
+                                      Reset
+                                    </button>
+                                  </td>
+                                </tr>
+                              `,
+                            )}
+                          </tbody>
+                        </table>
+                      `}
+                </div>
 
-          ${this.errorMessage ? html`<div class="error-message">${this.errorMessage}</div>` : ''}
-        </div>
+                ${this.errorMessage
+                  ? html`<div class="error-message">${this.errorMessage}</div>`
+                  : ''}
+              </div>
+            `
+          : nothing}
       </qd-modal>
 
       <qd-confirm-dialog

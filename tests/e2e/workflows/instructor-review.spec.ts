@@ -80,12 +80,12 @@ test.describe('Instructor Review Workflow', () => {
     await page.waitForTimeout(500);
 
     // Fill password
-    const passwordInput = page.locator('.qd-modal-backdrop input[type="password"]');
+    const passwordInput = page.locator('qd-modal[open] input[type="password"]');
     await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
     // Submit
-    const unlockButton = page.locator('.qd-modal-backdrop button[type="submit"]');
+    const unlockButton = page.locator('qd-modal[open] button[type="submit"]');
     await unlockButton.click();
     await expect(passwordInput).not.toBeVisible();
 
@@ -121,11 +121,11 @@ test.describe('Instructor Review Workflow', () => {
     await instructorButton.click({ force: true });
     await page.waitForTimeout(500);
 
-    const passwordInput = page.locator('.qd-modal-backdrop input[type="password"]');
+    const passwordInput = page.locator('qd-modal[open] input[type="password"]');
     await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
-    const unlockButton = page.locator('.qd-modal-backdrop button[type="submit"]');
+    const unlockButton = page.locator('qd-modal[open] button[type="submit"]');
     await unlockButton.click();
     await expect(passwordInput).not.toBeVisible();
 
@@ -135,7 +135,7 @@ test.describe('Instructor Review Workflow', () => {
     await viewScoresButton.click();
 
     // Verify modal appears
-    const scoresModal = page.locator('.qd-modal-backdrop');
+    const scoresModal = page.locator('qd-modal[open]');
     await expect(scoresModal).toBeVisible();
 
     // Verify student data shown
@@ -171,11 +171,11 @@ test.describe('Instructor Review Workflow', () => {
     await instructorButton.click({ force: true });
     await page.waitForTimeout(500);
 
-    const passwordInput = page.locator('.qd-modal-backdrop input[type="password"]');
+    const passwordInput = page.locator('qd-modal[open] input[type="password"]');
     await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
-    const unlockButton = page.locator('.qd-modal-backdrop button[type="submit"]');
+    const unlockButton = page.locator('qd-modal[open] button[type="submit"]');
     await unlockButton.click();
     await expect(passwordInput).not.toBeVisible();
 
@@ -203,11 +203,11 @@ test.describe('Instructor Review Workflow', () => {
     await instructorButton.click({ force: true });
     await page.waitForTimeout(500);
 
-    const passwordInput = page.locator('.qd-modal-backdrop input[type="password"]');
+    const passwordInput = page.locator('qd-modal[open] input[type="password"]');
     await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
-    const unlockButton = page.locator('.qd-modal-backdrop button[type="submit"]');
+    const unlockButton = page.locator('qd-modal[open] button[type="submit"]');
     await unlockButton.click();
     await expect(passwordInput).not.toBeVisible();
 
@@ -216,7 +216,7 @@ test.describe('Instructor Review Workflow', () => {
     await expect(viewScoresButton).toBeVisible();
     await viewScoresButton.click();
 
-    const scoresModal = page.locator('.qd-modal-backdrop');
+    const scoresModal = page.locator('qd-modal[open]');
     await expect(scoresModal).toBeVisible();
 
     // Close modal - qd-modal closes via Escape key
@@ -270,11 +270,11 @@ test.describe('Instructor Review Workflow', () => {
     await instructorButton.click({ force: true });
     await page.waitForTimeout(500);
 
-    const passwordInput = page.locator('.qd-modal-backdrop input[type="password"]');
+    const passwordInput = page.locator('qd-modal[open] input[type="password"]');
     await expect(passwordInput).toBeVisible({ timeout: 3000 });
     await passwordInput.fill(TEST_PASSWORD);
 
-    const unlockButton = page.locator('.qd-modal-backdrop button[type="submit"]');
+    const unlockButton = page.locator('qd-modal[open] button[type="submit"]');
     await unlockButton.click();
     await expect(passwordInput).not.toBeVisible();
 

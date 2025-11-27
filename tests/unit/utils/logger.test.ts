@@ -183,13 +183,18 @@ describe('Logger - Output', () => {
   });
 
   describe('info()', () => {
-    it('should always log info messages', () => {
+    it('should only log info messages when debug mode enabled', () => {
       setDebugMode(false);
+      info('Info message');
+      expect(consoleLogSpy).not.toHaveBeenCalled();
+
+      setDebugMode(true);
       info('Info message');
       expect(consoleLogSpy).toHaveBeenCalledWith('[INFO] Info message');
     });
 
     it('should sanitize data', () => {
+      setDebugMode(true);
       const data = { serviceId: 'RN2344', passwordHash: 'secret' };
       info('Data', data);
 

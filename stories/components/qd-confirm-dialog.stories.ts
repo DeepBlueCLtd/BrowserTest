@@ -126,12 +126,10 @@ export const Interactive: Story = {
     };
 
     const handleConfirm = () => {
-      // eslint-disable-next-line no-alert
       alert('Confirmed!');
     };
 
     const handleCancel = () => {
-      // eslint-disable-next-line no-alert
       alert('Cancelled');
     };
 
