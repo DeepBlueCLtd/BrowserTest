@@ -176,3 +176,38 @@ export const UnlockedNoData: Story = {
     return container;
   },
 };
+
+/**
+ * With Help
+ *
+ * Shows instructor panel with help trigger button for E2E testing.
+ */
+export const WithHelp: Story = {
+  render: () => {
+    const container = html`
+      <div style="padding: 20px; max-width: 600px; margin: 0 auto;">
+        <qd-instructor data-show></qd-instructor>
+
+        <div
+          style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 4px; font-size: 14px;"
+        >
+          <p style="margin: 0;">
+            Click the <strong>?</strong> button to open the help popup explaining instructor
+            features.
+          </p>
+        </div>
+      </div>
+    `;
+
+    setTimeout(() => {
+      const element = document.querySelector('qd-instructor') as QdInstructor;
+      if (element) {
+        element.setAttribute('data-show', '');
+        element.unlock();
+        element.setStudents(mockStudents);
+      }
+    }, 50);
+
+    return container;
+  },
+};
