@@ -568,6 +568,8 @@ function getStorageKey(release: ReleaseId, serviceId: ServiceId): string {
 - N/A (development tooling - outputs to coverage/ directory and markdown reports) (006-test-coverage-gaps)
 - TypeScript 5.x / ES2020+ + Lit 3.x (existing), Vitest 2.x (existing) (007-lit-component-refactor)
 - N/A (no data model changes—internal refactor only) (007-lit-component-refactor)
+- TypeScript 5.x / ES2020+ with Lit 3.x + Lit 3.0 (Web Components), existing qd-modal base componen (008-user-guidance-popups)
+- N/A (no data persistence - content from DITA config only) (008-user-guidance-popups)
 
 ## Recent Changes
 - 001-security-refactor: Added TypeScript 5.x / JavaScript ES2020+ + Lit 3.0 (Web Components), Vite 5.x (build), Vitest (testing)
