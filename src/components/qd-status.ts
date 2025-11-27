@@ -198,7 +198,10 @@ export class QdStatus extends LitElement {
             <span class="user-label">Test progress:</span>
             ${this.name} **${last4}
           </span>
-          <qd-help-trigger panelType="status" @qd:help-open=${this.handleHelpOpen}></qd-help-trigger>
+          <qd-help-trigger
+            panelType="status"
+            @qd:help-open=${this.handleHelpOpen}
+          ></qd-help-trigger>
           <button class="logout-button" @click=${() => this.handleLogout()}>Logout</button>
           <qd-build-info></qd-build-info>
         </div>

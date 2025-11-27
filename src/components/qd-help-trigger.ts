@@ -39,7 +39,10 @@ export class QdHelpTrigger extends LitElement {
       color: white;
       font-size: 12px;
       font-weight: bold;
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
       cursor: pointer;
       border: none;
       padding: 0;
@@ -81,14 +84,7 @@ export class QdHelpTrigger extends LitElement {
 
   render() {
     return html`
-      <button
-        class="help-icon"
-        @click=${this.handleClick}
-        aria-label="Help"
-        title="Help"
-      >
-        ?
-      </button>
+      <button class="help-icon" @click=${this.handleClick} aria-label="Help" title="Help">?</button>
     `;
   }
 }
