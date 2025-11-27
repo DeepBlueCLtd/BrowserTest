@@ -27,16 +27,19 @@ async function clearStorage(page: Page): Promise<void> {
 }
 
 async function closePinConfirmationDialog(page: Page): Promise<void> {
-  try {
-    // Check if modal is open and press Escape to close it
-    const modal = page.locator('qd-modal[open]');
-    if (await modal.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await page.keyboard.press('Escape');
-      await modal.waitFor({ state: 'hidden', timeout: 2000 });
+  // Wait for modal to appear
+  await page.waitForTimeout(300);
+
+  // Force close any open modal by removing its open attribute
+  await page.evaluate(() => {
+    const modal = document.querySelector('qd-modal[open]');
+    if (modal) {
+      modal.removeAttribute('open');
     }
-  } catch {
-    // Dialog not visible or already closed
-  }
+  });
+
+  // Wait for modal to close
+  await page.waitForTimeout(200);
 }
 
 async function loginStudent(
@@ -68,7 +71,7 @@ test.describe('Re-login Progress Display', () => {
     await waitForBootstrap(page);
   });
 
-  test('BUG: Progress should display immediately after re-login without page refresh', async ({
+  test('Progress should display immediately after re-login without page refresh', async ({
     page,
   }) => {
     // Step 1: Login as student

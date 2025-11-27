@@ -113,6 +113,14 @@ export class QdPinResetDialog extends LitElement {
       border-bottom: 1px solid #f0f0f0;
     }
 
+    .student-table tbody tr:nth-child(even) {
+      background: #f8f8f8;
+    }
+
+    .student-table tbody tr:hover {
+      background: #f0f0f0;
+    }
+
     .student-table tr:last-child td {
       border-bottom: none;
     }

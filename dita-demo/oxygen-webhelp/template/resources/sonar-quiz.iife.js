@@ -1068,8 +1068,11 @@ const He=2;class i{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,s,n){
             vertical-align: middle;
             font-size: 12px;
           }
+          .scores-content .student-row:nth-child(even) {
+            background: #a8f8f8;
+          }
           .scores-content .student-row:hover {
-            background: #f9f9f9;
+            background: #f0f0f0;
           }
           .scores-content .score-perfect {
             color: #28a745;
@@ -1384,6 +1387,14 @@ const He=2;class i{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,s,n){
     .student-table td {
       padding: 6px 12px;
       border-bottom: 1px solid #f0f0f0;
+    }
+
+    .student-table tbody tr:nth-child(even) {
+      background: #f8f8f8;
+    }
+
+    .student-table tbody tr:hover {
+      background: #f0f0f0;
     }
 
     .student-table tr:last-child td {

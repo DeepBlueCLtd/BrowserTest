@@ -81,8 +81,11 @@ export class QdScoresModal extends LitElement {
             vertical-align: middle;
             font-size: 12px;
           }
+          .scores-content .student-row:nth-child(even) {
+            background: #e8e8e8;
+          }
           .scores-content .student-row:hover {
-            background: #f9f9f9;
+            background: #f0f0f0;
           }
           .scores-content .score-perfect {
             color: #28a745;
