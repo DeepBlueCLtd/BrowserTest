@@ -38,7 +38,7 @@ test.describe('Help Popups', () => {
       await expect(title).toBeVisible();
 
       const body = page.locator('.qd-help-body');
-      await expect(body).toContainText('BrowserTest');
+      await expect(body).toContainText('Service ID');
     });
 
     test('closes popup on Escape key', async ({ page }) => {
@@ -106,7 +106,7 @@ test.describe('Help Popups', () => {
       await expect(title).toBeVisible();
 
       const body = page.locator('.qd-help-body');
-      await expect(body).toContainText('Score');
+      await expect(body).toContainText('Green');
     });
 
     test('closes popup on Escape key', async ({ page }) => {
@@ -162,7 +162,7 @@ test.describe('Help Popups', () => {
       await expect(title).toBeVisible();
 
       const body = page.locator('.qd-help-body');
-      await expect(body).toContainText('Instructor');
+      await expect(body).toContainText('Show Answers');
     });
 
     test('closes popup on Escape key', async ({ page }) => {

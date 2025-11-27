@@ -18,36 +18,17 @@ export interface HelpContent {
 export const HELP_CONTENT: Record<HelpPanelType, HelpContent> = {
   login: {
     title: 'Login Help',
-    body: `
-      <h3>Welcome to BrowserTest</h3>
-      <p>Enter your Service ID and name to log in as a student and track your quiz progress.</p>
-      <p><strong>Instructors:</strong> Click the "Instructor" button to access admin features.</p>
-    `,
+    body: '<p>Enter Service ID and name to log in. <strong>Instructors:</strong> click "Instructor" for admin.</p>',
   },
 
   status: {
-    title: 'Understanding Your Score',
-    body: `
-      <h3>Score Indicators</h3>
-      <p>Your score reflects your progress on quiz pages you have visited.</p>
-      <p>
-        <strong style="color:#4caf50">Green</strong> = All questions answered correctly<br>
-        <strong style="color:#ff9800">Amber</strong> = Some questions answered<br>
-        <strong style="color:#d32f2f">Red</strong> = No questions answered yet
-      </p>
-    `,
+    title: 'Your Score',
+    body: '<p><strong style="color:#4caf50">Green</strong>=All correct <strong style="color:#ff9800">Amber</strong>=Some answered <strong style="color:#d32f2f">Red</strong>=None yet</p>',
   },
 
   instructor: {
     title: 'Instructor Tools',
-    body: `
-      <h3>Available Features</h3>
-      <p><strong>Show Student Answers:</strong> Toggle to display student responses on the current page.</p>
-      <p><strong>View All Scores:</strong> See summary of all student results.</p>
-      <p><strong>Reset PINs:</strong> Clear student PIN codes if they need to re-authenticate.</p>
-      <p><strong>Export CSV:</strong> Download detailed answer data for analysis.</p>
-      <p><strong>Erase All Data:</strong> Clear the database for a new student cohort.</p>
-    `,
+    body: '<p><strong>Show Answers</strong>: See responses. <strong>View Scores</strong>: Student results. <strong>Export</strong>: CSV download. <strong>Erase</strong>: Clear data.</p>',
   },
 };
 

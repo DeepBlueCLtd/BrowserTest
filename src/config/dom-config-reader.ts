@@ -64,44 +64,6 @@ export const CONFIG_IDS = {
 } as const;
 
 /**
- * Help content configuration element IDs
- */
-export const HELP_CONFIG_IDS = {
-  login: 'qd-help-login',
-  status: 'qd-help-status',
-  instructor: 'qd-help-instructor',
-} as const;
-
-/**
- * Default help content for each panel type
- */
-const HELP_DEFAULTS: Record<'login' | 'status' | 'instructor', string> = {
-  login: '<h3>Welcome</h3><p>Enter Service ID and name to log in. Instructors: click "Instructor" for admin.</p>',
-  status: '<h3>Your Score</h3><p><strong>Green</strong>=All correct, <strong>Amber</strong>=Some answered, <strong>Red</strong>=None answered</p>',
-  instructor: '<h3>Instructor Tools</h3><p><strong>View Scores</strong>: See results. <strong>Export</strong>: Download CSV. <strong>Erase</strong>: Clear data.</p>',
-};
-
-/**
- * Read help content for a specific panel type
- *
- * @param panelType - Which panel's help content to read ('login', 'status', 'instructor')
- * @returns HTML content string from config span or default content
- */
-export function readHelpContent(panelType: 'login' | 'status' | 'instructor'): string {
-  const elementId = HELP_CONFIG_IDS[panelType];
-  const element = document.getElementById(elementId);
-  const content = element?.innerHTML?.trim();
-
-  if (content) {
-    info(`Help content read from #${elementId}`);
-    return content;
-  }
-
-  info(`Using default help content for ${panelType}`);
-  return HELP_DEFAULTS[panelType];
-}
-
-/**
  * Read a configuration value from a hidden DOM element
  *
  * @param elementId - ID of the hidden element
