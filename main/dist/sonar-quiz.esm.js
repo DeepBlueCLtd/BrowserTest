@@ -31,11 +31,6 @@ function sanitize(obj) {
   return sanitized;
 }
 function info(message, data) {
-  if (data !== void 0) {
-    console.log(`[INFO] ${message}`, sanitize(data));
-  } else {
-    console.log(`[INFO] ${message}`);
-  }
 }
 function error(message, error2) {
   if (error2 instanceof Error) {
@@ -216,7 +211,6 @@ class SessionService {
       instructorUnlocked: false
     };
     this.saveSession(session);
-    info(`Session created for ${serviceId} (${name})`);
     this.emitEvent("qd:login", { serviceId, name, release, loginTime });
     return session;
   }
@@ -295,7 +289,6 @@ class SessionService {
     session.instructorUnlocked = true;
     session.unlockTime = (/* @__PURE__ */ new Date()).toISOString();
     this.saveSession(session);
-    info("Instructor mode unlocked");
     this.emitEvent("qd:instructor-unlock", { timestamp: session.unlockTime });
   }
   /**
@@ -309,7 +302,6 @@ class SessionService {
     session.instructorUnlocked = false;
     delete session.unlockTime;
     this.saveSession(session);
-    info("Instructor mode locked");
     this.emitEvent("qd:instructor-lock", { timestamp: (/* @__PURE__ */ new Date()).toISOString() });
   }
   /**
@@ -1375,21 +1367,14 @@ function getStorageService(dbName) {
   }
   return storageServiceInstance;
 }
-const storageService = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
-  __proto__: null,
-  StorageService,
-  getStorageService
-}, Symbol.toStringTag, { value: "Module" }));
 const tableMetadata$1 = /* @__PURE__ */ new WeakMap();
 function enhanceQuizTable(table, options) {
   const existing = tableMetadata$1.get(table);
   let parsed;
   if (existing) {
     if (!existing.interactive && options.interactive) {
-      info("Upgrading quiz table from non-interactive to interactive mode");
       parsed = existing.parsed;
     } else {
-      info("Quiz table already enhanced, skipping");
       return true;
     }
   } else {
@@ -1430,7 +1415,6 @@ function enhanceNonInteractive$1(table) {
   hideAnswerColumn(table);
   hideDetailColumn(table);
   addClass(table, "qd-quiz-non-interactive");
-  info("Quiz table enhanced in non-interactive mode");
   return true;
 }
 function enhanceInteractive$1(table, metadata) {
@@ -1448,7 +1432,6 @@ function enhanceInteractive$1(table, metadata) {
   }
   let cache = getJSON(STORAGE_KEYS.CACHE);
   if (!cache) {
-    info("No cache found, creating empty cache");
     cache = {
       totals: { total: 0, answered: 0, correct: 0 },
       pages: {}
@@ -1519,7 +1502,6 @@ function enhanceInteractive$1(table, metadata) {
       removeClass(cell, "qd-answer-correct", "qd-answer-incorrect");
     });
     hideStudentAnswersForTable(table);
-    info("Cleared student UI state from quiz table on logout");
   };
   document.addEventListener("qd:logout", logoutHandler);
   metadata.cleanupInstructorListeners = () => {
@@ -1528,7 +1510,6 @@ function enhanceInteractive$1(table, metadata) {
     document.removeEventListener("qd:logout", logoutHandler);
   };
   addClass(table, "qd-quiz-interactive");
-  info(`Quiz table enhanced in interactive mode for page ${pageId}`);
   return true;
 }
 function createQuestionInput(question, existingAnswer) {
@@ -1597,16 +1578,16 @@ async function saveAnswer(table, metadata, questionIndex, answer) {
     success,
     timestamp: (/* @__PURE__ */ new Date()).toISOString()
   };
-  const storageService2 = getStorageService();
+  const storageService = getStorageService();
   let studentRecord;
   try {
-    studentRecord = await storageService2.loadStudentRecord(session);
+    studentRecord = await storageService.loadStudentRecord(session);
   } catch (err) {
     warn("Failed to load student record, answer not saved", err);
     return;
   }
   const totalQuestions = parsed.questions.length;
-  const updatedRecord = storageService2.updateRecordWithAnswer(
+  const updatedRecord = storageService.updateRecordWithAnswer(
     studentRecord,
     pageId,
     questionIndex,
@@ -1614,11 +1595,11 @@ async function saveAnswer(table, metadata, questionIndex, answer) {
     totalQuestions
   );
   try {
-    await storageService2.saveStudentRecord(updatedRecord);
+    await storageService.saveStudentRecord(updatedRecord);
   } catch (err) {
     warn("Failed to save student record to IndexedDB", err);
   }
-  const cache = storageService2.buildCache(updatedRecord);
+  const cache = storageService.buildCache(updatedRecord);
   setJSON(STORAGE_KEYS.CACHE, cache);
   const row = table.querySelector(`tbody tr:nth-child(${questionIndex + 1})`);
   if (row) {
@@ -1638,9 +1619,6 @@ async function saveAnswer(table, metadata, questionIndex, answer) {
       state: pageData.state
     });
   }
-  info(
-    `Answer saved for question ${questionIndex + 1} on page ${pageId}: ${success ? "correct" : "incorrect"}`
-  );
 }
 function applyValidationStyling(cell, success) {
   removeClass(cell, "qd-answer-correct", "qd-answer-incorrect");
@@ -1709,17 +1687,15 @@ function resetQuizTableToNonInteractive(table) {
   hideAnswerColumn(table);
   hideDetailColumn(table);
   removeClass(table, "qd-quiz-interactive");
-  info("Quiz table reset to non-interactive mode");
 }
 async function showStudentAnswersForTable(table, metadata) {
   const { pageId, parsed } = metadata;
   if (!pageId) return;
   const session = getJSON(STORAGE_KEYS.SESSION);
   if (!session) return;
-  const { getStorageService: getStorageService2 } = await Promise.resolve().then(() => storageService);
-  const storageService$1 = getStorageService2();
+  const storageService = getStorageService();
   try {
-    const students = await storageService$1.getStudentsByRelease(session.release);
+    const students = await storageService.getStudentsByRelease(session.release);
     if (students.length === 0) {
       info("No student data available for this release");
       alert(
@@ -1765,7 +1741,6 @@ async function showStudentAnswersForTable(table, metadata) {
 function hideStudentAnswersForTable(table) {
   const displays = table.querySelectorAll(".qd-student-answers");
   displays.forEach((display) => display.remove());
-  info("Hid student answers from quiz table");
 }
 function hashString(input, length = 16) {
   let hash = 5381;
@@ -1862,7 +1837,6 @@ function enhanceNonInteractive(table) {
   };
   document.addEventListener("qd:instructor-show-answers", showHandler);
   document.addEventListener("qd:instructor-hide-answers", hideHandler);
-  info("Analysis table enhanced in non-interactive mode with instructor view support");
   return true;
 }
 function enhanceInteractive(table, metadata) {
@@ -1902,7 +1876,6 @@ function enhanceInteractive(table, metadata) {
     });
   });
   addClass(table, "qd-analysis-interactive");
-  info(`Analysis table enhanced in interactive mode for page ${pageId}`);
   return true;
 }
 function handleCellEdit(metadata, cell, cellKey) {
@@ -1929,10 +1902,10 @@ async function saveCellData(metadata, cellKey, content) {
     error("No active session found");
     return;
   }
-  const storageService2 = getStorageService();
+  const storageService = getStorageService();
   let studentRecord;
   try {
-    studentRecord = await storageService2.loadStudentRecord(session);
+    studentRecord = await storageService.loadStudentRecord(session);
   } catch (err) {
     warn("Failed to load student record, analysis not saved", err);
     return;
@@ -1955,11 +1928,11 @@ async function saveCellData(metadata, cellKey, content) {
   studentRecord.pages[pageId] = pageData;
   studentRecord.updated = now;
   try {
-    await storageService2.saveStudentRecord(studentRecord);
+    await storageService.saveStudentRecord(studentRecord);
   } catch (err) {
     warn("Failed to save student record to IndexedDB", err);
   }
-  const cache = storageService2.buildCache(studentRecord);
+  const cache = storageService.buildCache(studentRecord);
   setJSON(STORAGE_KEYS.CACHE, cache);
   emitCustomEvent("qd:analysis-saved", {
     pageId,
@@ -1967,7 +1940,6 @@ async function saveCellData(metadata, cellKey, content) {
     cellKey,
     content
   });
-  info(`Analysis cell saved for ${cellKey} on page ${pageId}`);
 }
 function getAnalysisTableMetadata(table) {
   return tableMetadata.get(table);
@@ -2050,10 +2022,10 @@ async function showStudentEntriesForTable(table) {
     warn("Cannot show student entries: no active session");
     return;
   }
-  const storageService2 = getStorageService();
+  const storageService = getStorageService();
   let students;
   try {
-    students = await storageService2.getStudentsByRelease(session.release);
+    students = await storageService.getStudentsByRelease(session.release);
   } catch (err) {
     error("Failed to load students for instructor view:", err);
     return;
@@ -2081,7 +2053,6 @@ async function showStudentEntriesForTable(table) {
 function hideStudentEntriesForTable(table) {
   const displays = table.querySelectorAll("[data-qd-student-entries]");
   displays.forEach((display) => display.remove());
-  info("Hidden student entries from analysis table");
 }
 function resetAnalysisTableToNonInteractive(table) {
   const metadata = tableMetadata.get(table);
@@ -2103,7 +2074,6 @@ function resetAnalysisTableToNonInteractive(table) {
   metadata.pageId = void 0;
   metadata.debouncer = void 0;
   metadata.cellKeyMap = void 0;
-  info("Reset analysis table to non-interactive mode");
 }
 function getCurrentPageId() {
   const bodyPageId = document.body.dataset.pageId;
@@ -2129,7 +2099,6 @@ class EventCoordinator {
     this.registerStateHandlers();
     this.registerInstructorHandlers();
     this.registerDataHandlers();
-    info("Event coordinator initialized");
   }
   /**
    * Register handlers for login events
@@ -2140,25 +2109,22 @@ class EventCoordinator {
         const detail = event.detail;
         info(`Login event: ${detail.serviceId} (${detail.name})`);
         if (detail.serviceId === "INSTRUCTOR") {
-          info("Instructor login - skipping student record handling");
           return;
         }
         const session = getJSON(STORAGE_KEYS.SESSION);
         if (!session) {
-          info("No session found in storage, skipping cache rebuild");
           return;
         }
-        const storageService2 = getStorageService();
+        const storageService = getStorageService();
         let studentRecord;
         let cache;
         try {
-          studentRecord = await storageService2.loadStudentRecord(session);
-          await storageService2.saveStudentRecord(studentRecord);
-          cache = storageService2.buildCache(studentRecord);
+          studentRecord = await storageService.loadStudentRecord(session);
+          await storageService.saveStudentRecord(studentRecord);
+          cache = storageService.buildCache(studentRecord);
           setJSON(STORAGE_KEYS.CACHE, cache);
           info(`Cache built from IndexedDB: ${cache.totals.total} total questions`);
         } catch {
-          info("Failed to load from IndexedDB, initializing empty cache");
           const emptyCache = {
             totals: { total: 0, answered: 0, correct: 0 },
             pages: {}
@@ -2178,14 +2144,10 @@ class EventCoordinator {
     const filename = pathname.substring(pathname.lastIndexOf("/") + 1);
     const pageId = filename.replace(/\.html?$/i, "");
     if (!pageId) {
-      info("No pageId found, skipping table upgrade to interactive mode");
       return;
     }
     const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
     if (isInstructor) {
-      info(
-        "Instructor session detected, tables remain in non-interactive mode with answers visible"
-      );
       const quizTables2 = document.querySelectorAll("table.qd-quiz");
       quizTables2.forEach((table) => {
         const metadata = getQuizTableMetadata(table);
@@ -2283,7 +2245,6 @@ class EventCoordinator {
       info(`Instructor mode unlocked at ${detail.unlockTime}`);
     });
     this.addEventListener("qd:instructor-lock", () => {
-      info("Instructor mode locked");
     });
   }
   /**
@@ -2326,7 +2287,6 @@ class EventCoordinator {
       }
     }
     this.listeners.clear();
-    info("Event coordinator cleaned up");
   }
 }
 class SessionCoordinator {
@@ -2350,8 +2310,6 @@ class SessionCoordinator {
       }
       this.scheduleExpiryCheck(session);
       this.setupActivityTracking();
-    } else {
-      info("No existing session found");
     }
   }
   /**
@@ -2369,7 +2327,6 @@ class SessionCoordinator {
       return;
     }
     this.expiryTimeoutId = window.setTimeout(() => {
-      info("Session expired (timeout)");
       this.sessionService.clearSession();
     }, timeUntilExpiry);
   }
@@ -3053,7 +3010,6 @@ function readConfigElement(elementId, defaultValue) {
     warn(`Config element #${elementId} found but empty, using default: "${defaultValue}"`);
     return defaultValue;
   }
-  info(`Config read from #${elementId}: "${value}"`);
   return value;
 }
 function readRequiredConfigElement(elementId) {
@@ -3069,11 +3025,9 @@ function readRequiredConfigElement(elementId) {
     console.error(msg);
     throw new Error(msg);
   }
-  info(`Required config read from #${elementId}: "${value}"`);
   return value;
 }
 function readDOMConfig() {
-  info("Reading configuration from DOM...");
   const dbName = readRequiredConfigElement(CONFIG_IDS.dbName);
   const config = {
     statusPanelContainer: readConfigElement(
@@ -3084,7 +3038,6 @@ function readDOMConfig() {
     instructorHash: readConfigElement(CONFIG_IDS.instructorHash, DEFAULT_CONFIG.instructorHash),
     dbName
   };
-  info("Configuration loaded:", config);
   return config;
 }
 function needsMigration(record) {
@@ -3216,7 +3169,7 @@ var __decorateClass$c = (decorators, target, key, kind) => {
 };
 let QdBuildInfo = class extends i$1 {
   render() {
-    const buildDate = "26/Nov/2025";
+    const buildDate = "27/Nov/2025";
     return x`
       <span class="info-icon" tabindex="0" role="button" aria-label="Build information">i</span>
       <div class="tooltip" role="tooltip">
@@ -3313,76 +3266,22 @@ var __decorateClass$b = (decorators, target, key, kind) => {
   if (kind && result) __defProp$b(target, key, result);
   return result;
 };
-let currentOpenModal = null;
-const MODAL_STYLES = `
-  .qd-modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 99999;
-    font-family: system-ui, -apple-system, sans-serif;
-    animation: qd-modal-fadeIn 0.15s ease-out;
-  }
-
-  @keyframes qd-modal-fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  .qd-modal-content {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    max-width: 90vw;
-    max-height: 90vh;
-    overflow: auto;
-    animation: qd-modal-slideIn 0.15s ease-out;
-  }
-
-  @keyframes qd-modal-slideIn {
-    from { transform: translateY(-20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-
-  .qd-modal-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid #eee;
-    font-weight: 600;
-    font-size: 18px;
-  }
-
-  .qd-modal-header:empty {
-    display: none;
-  }
-
-  .qd-modal-body {
-    padding: 20px;
-  }
-
-  .error-message {
-    color: #d32f2f;
-    font-size: 12px;
-    padding: 8px;
-    background: #ffebee;
-    border-radius: 4px;
-    border-left: 3px solid #d32f2f;
-  }
-`;
+const MODAL_STATE_KEY = "__qdModalCurrentRef__";
+function getCurrentModal() {
+  return globalThis[MODAL_STATE_KEY] ?? null;
+}
+function setCurrentModal(modal) {
+  globalThis[MODAL_STATE_KEY] = modal;
+}
 let QdModal = class extends i$1 {
   constructor() {
     super(...arguments);
     this.open = false;
     this.closable = true;
     this.previouslyFocused = null;
-    this.portalElement = null;
-    this.cloneMap = /* @__PURE__ */ new Map();
-    this.childObserver = null;
+    this.originalParent = null;
+    this.originalNextSibling = null;
+    this.isInBody = false;
     this.handleKeyDown = (event) => {
       if (event.key === "Escape" && this.open && this.closable) {
         this.emitCloseEvent();
@@ -3395,6 +3294,10 @@ let QdModal = class extends i$1 {
         this.close();
       }
     };
+    this.handleCloseClick = () => {
+      this.emitCloseEvent();
+      this.close();
+    };
     this.stopPropagation = (event) => {
       event.stopPropagation();
     };
@@ -3402,26 +3305,12 @@ let QdModal = class extends i$1 {
   connectedCallback() {
     super.connectedCallback();
     document.addEventListener("keydown", this.handleKeyDown);
-    this.ensureStyles();
-    this.childObserver = new MutationObserver(() => {
-      if (this.open && this.portalElement) {
-        this.createPortal();
-      }
-    });
-    this.childObserver.observe(this, {
-      childList: true,
-      subtree: true,
-      characterData: true
-    });
   }
   disconnectedCallback() {
     super.disconnectedCallback();
     document.removeEventListener("keydown", this.handleKeyDown);
-    this.removePortal();
-    this.childObserver?.disconnect();
-    this.childObserver = null;
-    if (currentOpenModal === this) {
-      currentOpenModal = null;
+    if (getCurrentModal() === this && !this.isInBody) {
+      setCurrentModal(null);
     }
   }
   updated(changedProperties) {
@@ -3434,91 +3323,51 @@ let QdModal = class extends i$1 {
     }
   }
   /**
-   * Ensure modal styles are added to document head (once)
+   * Move this element to document.body to escape stacking contexts
    */
-  ensureStyles() {
-    if (!QdModal.styleElement) {
-      QdModal.styleElement = document.createElement("style");
-      QdModal.styleElement.textContent = MODAL_STYLES;
-      document.head.appendChild(QdModal.styleElement);
-    }
+  moveToBody() {
+    if (this.isInBody) return;
+    this.originalParent = this.parentNode;
+    this.originalNextSibling = this.nextSibling;
+    this.isInBody = true;
+    document.body.appendChild(this);
   }
   /**
-   * Create and append portal to body
+   * Restore this element to its original position in the DOM
    */
-  createPortal() {
-    this.removePortal();
-    this.cloneMap.clear();
-    this.portalElement = document.createElement("div");
-    this.portalElement.className = "qd-modal-backdrop";
-    this.portalElement.addEventListener("click", this.handleBackdropClick);
-    const content = document.createElement("div");
-    content.className = "qd-modal-content";
-    content.setAttribute("role", "dialog");
-    content.setAttribute("aria-modal", "true");
-    content.addEventListener("click", this.stopPropagation);
-    const header = document.createElement("div");
-    header.className = "qd-modal-header";
-    const body = document.createElement("div");
-    body.className = "qd-modal-body";
-    const headerSlot = this.querySelector('[slot="header"]');
-    if (headerSlot) {
-      header.appendChild(headerSlot.cloneNode(true));
+  restorePosition() {
+    if (!this.isInBody || !this.originalParent) return;
+    if (this.originalNextSibling) {
+      this.originalParent.insertBefore(this, this.originalNextSibling);
+    } else {
+      this.originalParent.appendChild(this);
     }
-    Array.from(this.children).forEach((child) => {
-      if (!child.hasAttribute("slot") || child.getAttribute("slot") !== "header") {
-        const clone = child.cloneNode(true);
-        this.cloneMap.set(child, clone);
-        body.appendChild(clone);
-      }
-    });
-    content.appendChild(header);
-    content.appendChild(body);
-    this.portalElement.appendChild(content);
-    document.body.appendChild(this.portalElement);
-    this.setupFormEventForwarding(body);
-  }
-  /**
-   * Setup event forwarding for forms in cloned content
-   * Since cloneNode() loses Lit event bindings, we add native listeners
-   * that dispatch events to the original elements
-   */
-  setupFormEventForwarding(container) {
-    const forms = container.querySelectorAll("form");
-    forms.forEach((form) => {
-      form.addEventListener("submit", (event) => {
-        event.preventDefault();
-        const formData = new FormData(form);
-        const data = {};
-        formData.forEach((value, key) => {
-          if (typeof value === "string") {
-            data[key] = value;
-          }
-        });
-        const passwordInput = form.querySelector('input[type="password"]');
-        if (passwordInput) {
-          data["password"] = passwordInput.value;
-        }
-        const submitEvent = new CustomEvent("qd:password-submit", {
-          detail: data,
-          bubbles: true,
-          composed: true
-        });
-        this.dispatchEvent(submitEvent);
-      });
-    });
-  }
-  /**
-   * Remove portal from body
-   */
-  removePortal() {
-    if (this.portalElement) {
-      this.portalElement.remove();
-      this.portalElement = null;
-    }
+    this.originalParent = null;
+    this.originalNextSibling = null;
+    this.isInBody = false;
   }
   render() {
-    return E;
+    return x`
+      <div class="backdrop" @click=${this.handleBackdropClick}>
+        <div class="content" role="dialog" aria-modal="true" @click=${this.stopPropagation}>
+          <div class="header">
+            <span class="header-title"><slot name="header"></slot></span>
+            ${this.closable ? x`<button
+                  type="button"
+                  class="close-button"
+                  @click=${this.handleCloseClick}
+                  aria-label="Close"
+                  title="Close"
+                >
+                  ×
+                </button>` : ""}
+          </div>
+          <div class="body">
+            <slot></slot>
+          </div>
+        </div>
+      </div>
+    `;
   }
   /**
    * Open the modal
@@ -3533,24 +3382,16 @@ let QdModal = class extends i$1 {
     this.open = false;
   }
   /**
-   * Refresh portal content by re-cloning from source
-   * Call this when slotted content changes and needs to sync to portal
-   */
-  refreshPortal() {
-    if (this.open && this.portalElement) {
-      this.createPortal();
-    }
-  }
-  /**
    * Handle modal opening
    */
   handleOpen() {
-    if (currentOpenModal && currentOpenModal !== this) {
-      currentOpenModal.close();
+    const currentModal = getCurrentModal();
+    if (currentModal && currentModal !== this) {
+      currentModal.close();
     }
-    currentOpenModal = this;
+    setCurrentModal(this);
     this.previouslyFocused = document.activeElement;
-    this.createPortal();
+    this.moveToBody();
     requestAnimationFrame(() => {
       this.focusFirstElement();
     });
@@ -3559,10 +3400,10 @@ let QdModal = class extends i$1 {
    * Handle modal closing
    */
   handleClose() {
-    if (currentOpenModal === this) {
-      currentOpenModal = null;
+    if (getCurrentModal() === this) {
+      setCurrentModal(null);
     }
-    this.removePortal();
+    this.restorePosition();
     if (this.previouslyFocused instanceof HTMLElement) {
       this.previouslyFocused.focus();
     }
@@ -3571,12 +3412,28 @@ let QdModal = class extends i$1 {
    * Focus the first focusable element in the modal
    */
   focusFirstElement() {
-    if (!this.portalElement) return;
-    const focusable = this.portalElement.querySelector(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    if (focusable) {
-      focusable.focus();
+    const content = this.shadowRoot?.querySelector(".content");
+    if (!content) return;
+    const slot = this.shadowRoot?.querySelector("slot:not([name])");
+    if (slot) {
+      const assignedElements = slot.assignedElements({ flatten: true });
+      for (const el of assignedElements) {
+        const focusable = el.querySelector(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable) {
+          focusable.focus();
+          return;
+        }
+        if (el instanceof HTMLElement && el.matches('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')) {
+          el.focus();
+          return;
+        }
+      }
+    }
+    const closeBtn = this.shadowRoot?.querySelector(".close-button");
+    if (closeBtn) {
+      closeBtn.focus();
     }
   }
   /**
@@ -3590,7 +3447,106 @@ let QdModal = class extends i$1 {
     this.dispatchEvent(event);
   }
 };
-QdModal.styleElement = null;
+QdModal.styles = i$4`
+    :host {
+      display: contents;
+    }
+
+    .backdrop {
+      display: none;
+    }
+
+    :host([open]) .backdrop {
+      display: flex;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
+      animation: qd-modal-fadeIn 0.15s ease-out;
+    }
+
+    @keyframes qd-modal-fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    .content {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      max-width: 90vw;
+      max-height: 90vh;
+      overflow: auto;
+      animation: qd-modal-slideIn 0.15s ease-out;
+    }
+
+    @keyframes qd-modal-slideIn {
+      from {
+        transform: translateY(-20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid #eee;
+      font-weight: 600;
+      font-size: 18px;
+    }
+
+    .header ::slotted(*) {
+      margin: 0;
+    }
+
+    .close-button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 8px;
+      font-size: 20px;
+      color: #666;
+      line-height: 1;
+      border-radius: 4px;
+      transition:
+        background-color 0.2s,
+        color 0.2s;
+      margin-left: auto;
+    }
+
+    .close-button:hover {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .close-button:focus {
+      outline: 2px solid #0066cc;
+      outline-offset: 2px;
+    }
+
+    .body {
+      padding: 20px;
+    }
+  `;
 __decorateClass$b([
   n2({ type: Boolean, reflect: true })
 ], QdModal.prototype, "open", 2);
@@ -3640,20 +3596,6 @@ let QdPasswordModal = class extends i$1 {
         })
       );
     };
-    this.handleForwardedSubmit = (e2) => {
-      e2.stopPropagation();
-      const password = e2.detail?.password || "";
-      if (!password.trim()) {
-        return;
-      }
-      this.dispatchEvent(
-        new CustomEvent("qd:password-submit", {
-          detail: { password },
-          bubbles: true,
-          composed: true
-        })
-      );
-    };
     this.handleCancel = () => {
       this.close();
     };
@@ -3676,41 +3618,7 @@ let QdPasswordModal = class extends i$1 {
     this.dispatchEvent(new CustomEvent("close", { bubbles: true, composed: true }));
   }
   /**
-   * Sync error message directly to portal DOM
-   * Since portal clones content once, we need to inject/update the error div directly
-   */
-  syncErrorToPortal() {
-    const backdrop = document.querySelector(".qd-modal-backdrop");
-    if (!backdrop) return;
-    const form = backdrop.querySelector("form.password-form");
-    if (!form) return;
-    let errorDiv = form.querySelector(".error-message");
-    if (this.error) {
-      if (!errorDiv) {
-        errorDiv = document.createElement("div");
-        errorDiv.className = "error-message";
-        errorDiv.style.cssText = `
-          color: #d32f2f;
-          font-size: 12px;
-          padding: 8px;
-          background: #ffebee;
-          border-radius: 4px;
-          border-left: 3px solid #d32f2f;
-        `;
-        const buttonRow = form.querySelector(".button-row");
-        if (buttonRow) {
-          form.insertBefore(errorDiv, buttonRow);
-        } else {
-          form.appendChild(errorDiv);
-        }
-      }
-      errorDiv.textContent = this.error;
-    } else {
-      errorDiv?.remove();
-    }
-  }
-  /**
-   * Focus password input when modal opens, refresh portal when error changes
+   * Focus password input when modal opens
    */
   updated(changedProps) {
     if (changedProps.has("open") && this.open) {
@@ -3719,47 +3627,35 @@ let QdPasswordModal = class extends i$1 {
         this.passwordInput?.focus();
       });
     }
-    if (changedProps.has("error") && this.open) {
-      void this.updateComplete.then(() => {
-        setTimeout(() => {
-          this.syncErrorToPortal();
-        }, 0);
-      });
-    }
   }
   render() {
-    if (!this.open) {
-      return E;
-    }
     return x`
-      <qd-modal
-        .open=${this.open}
-        @qd:modal-close=${this.handleModalClose}
-        @qd:password-submit=${this.handleForwardedSubmit}
-      >
+      <qd-modal .open=${this.open} @qd:modal-close=${this.handleModalClose}>
         <span slot="header">${this.title}</span>
 
-        <form class="password-form" @submit=${this.handleSubmit}>
-          <div class="form-field">
-            <label for="password-input">Password</label>
-            <input
-              id="password-input"
-              type="password"
-              placeholder="Password"
-              .value=${this.password}
-              @input=${this.handleInput}
-              required
-              aria-label="Enter your password"
-            />
-          </div>
+        ${this.open ? x`
+              <form class="password-form" @submit=${this.handleSubmit}>
+                <div class="form-field">
+                  <label for="password-input">Password</label>
+                  <input
+                    id="password-input"
+                    type="password"
+                    placeholder="Password"
+                    .value=${this.password}
+                    @input=${this.handleInput}
+                    required
+                    aria-label="Enter your password"
+                  />
+                </div>
 
-          ${this.error ? x`<div class="error-message">${this.error}</div>` : ""}
+                ${this.error ? x`<div class="error-message">${this.error}</div>` : ""}
 
-          <div class="button-row">
-            <button type="button" @click=${this.handleCancel}>Cancel</button>
-            <button type="submit">Login</button>
-          </div>
-        </form>
+                <div class="button-row">
+                  <button type="button" @click=${this.handleCancel}>Cancel</button>
+                  <button type="submit">Login</button>
+                </div>
+              </form>
+            ` : E}
       </qd-modal>
     `;
   }
@@ -4690,6 +4586,9 @@ let QdStatus = class extends i$1 {
       this.updateVisibility();
       this.loadCache();
     };
+    this.handleCacheRebuild = () => {
+      this.loadCache();
+    };
     this.handleLogoutEvent = () => {
       this.updateVisibility();
     };
@@ -4701,12 +4600,14 @@ let QdStatus = class extends i$1 {
     document.addEventListener("qd:state-changed", this.handleStateChanged);
     document.addEventListener("qd:login", this.handleLogin);
     document.addEventListener("qd:logout", this.handleLogoutEvent);
+    document.addEventListener("qd:cache-rebuild", this.handleCacheRebuild);
   }
   disconnectedCallback() {
     super.disconnectedCallback();
     document.removeEventListener("qd:state-changed", this.handleStateChanged);
     document.removeEventListener("qd:login", this.handleLogin);
     document.removeEventListener("qd:logout", this.handleLogoutEvent);
+    document.removeEventListener("qd:cache-rebuild", this.handleCacheRebuild);
   }
   render() {
     const last4 = this.serviceId.slice(-4);
@@ -5415,21 +5316,100 @@ let QdScoresModal = class extends i$1 {
     super(...arguments);
     this.open = false;
     this.students = [];
-    this.expandedStudents = /* @__PURE__ */ new Set();
     this.handleModalClose = () => {
       this.open = false;
       this.dispatchEvent(new CustomEvent("close"));
     };
   }
-  updated(changedProperties) {
-    if (changedProperties.has("open") && this.open) {
-      this.expandedStudents = new Set(this.students.map((s2) => s2.serviceId));
-    }
-  }
   render() {
     return x`
       <qd-modal .open=${this.open} @qd:modal-close=${this.handleModalClose}>
         <span slot="header">Student Scores</span>
+        <style>
+          .scores-content {
+            min-width: 500px;
+            max-width: 800px;
+          }
+          .scores-content .empty-message {
+            color: #666;
+            padding: 20px;
+            text-align: center;
+          }
+          .scores-content table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          .scores-content thead th {
+            padding: 6px 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            background: #f5f5f5;
+            font-weight: 600;
+            font-size: 12px;
+          }
+          .scores-content .student-row td {
+            padding: 4px 8px;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+            font-size: 12px;
+          }
+          .scores-content .student-row:nth-child(even) {
+            background: #e8e8e8;
+          }
+          .scores-content .student-row:hover {
+            background: #f0f0f0;
+          }
+          .scores-content .score-perfect {
+            color: #28a745;
+            font-weight: 500;
+          }
+          .scores-content .score-zero {
+            color: #dc3545;
+          }
+          .scores-content .answers-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+          }
+          .scores-content .page-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+          }
+          .scores-content .page-name {
+            font-weight: 500;
+            font-size: 10px;
+            color: #555;
+            min-width: 80px;
+          }
+          .scores-content .page-answers {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+          }
+          .scores-content .answer-badge {
+            display: inline-block;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 500;
+          }
+          .scores-content .answer-badge.correct {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+          }
+          .scores-content .answer-badge.incorrect {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+          }
+          .scores-content .no-answers {
+            color: #999;
+            font-style: italic;
+            font-size: 11px;
+          }
+        </style>
         <div class="scores-content">
           ${this.students.length === 0 ? x`<p class="empty-message">No student data available.</p>` : this.renderScoresTable()}
         </div>
@@ -5444,9 +5424,8 @@ let QdScoresModal = class extends i$1 {
           <tr>
             <th>Student</th>
             <th>Service ID</th>
-            <th>Attempted</th>
-            <th>Correct</th>
-            <th>Percentage</th>
+            <th>Score</th>
+            <th>Answers</th>
           </tr>
         </thead>
         <tbody>
@@ -5457,41 +5436,28 @@ let QdScoresModal = class extends i$1 {
   }
   renderStudentRow(student) {
     const summary = this.calculateSummary(student);
-    const isExpanded = this.expandedStudents.has(student.serviceId);
-    return x`
-      <tr class="student-row" @click=${() => this.toggleStudent(student.serviceId)}>
-        <td>
-          <span class="expand-icon">${isExpanded ? "▼" : "▶"}</span>
-          ${summary.name}
-        </td>
-        <td>${summary.serviceId}</td>
-        <td>${summary.attempted}</td>
-        <td
-          class=${summary.correct === summary.attempted && summary.attempted > 0 ? "correct-highlight" : ""}
-        >
-          ${summary.correct}
-        </td>
-        <td class=${this.getPercentageClass(summary.percentage)}>${summary.percentage}%</td>
-      </tr>
-      ${isExpanded ? this.renderDetailRow(student) : E}
-    `;
-  }
-  renderDetailRow(student) {
     const pages = Object.entries(student.pages);
     return x`
-      <tr class="detail-row">
-        <td colspan="5">
-          ${pages.length === 0 ? x`<span class="no-pages">No quiz pages attempted</span>` : x`
-                <div class="page-breakdown">
+      <tr class="student-row">
+        <td>${summary.name}</td>
+        <td>${summary.serviceId}</td>
+        <td class=${this.getScoreClass(summary)}>
+          ${summary.correct}/${summary.attempted} (${summary.percentage}%)
+        </td>
+        <td>
+          ${pages.length === 0 ? x`<span class="no-answers">—</span>` : x`
+                <div class="answers-cell">
                   ${pages.map(
       ([pageId, pageData]) => x`
                       <div class="page-row">
                         <span class="page-name">${pageId}</span>
-                        <div class="answers-list">
+                        <div class="page-answers">
                           ${pageData.answers.map(
-        (answer, index) => x`
-                              <span class="answer-badge ${this.getAnswerClass(answer)}">
-                                Q${index + 1}: ${answer ? answer.answer : "—"}
+        (answer, idx) => x`
+                              <span
+                                class="answer-badge ${answer?.success ? "correct" : "incorrect"}"
+                              >
+                                Q${idx + 1}: ${answer?.answer ?? "—"}
                               </span>
                             `
       )}
@@ -5505,6 +5471,12 @@ let QdScoresModal = class extends i$1 {
       </tr>
     `;
   }
+  getScoreClass(summary) {
+    if (summary.attempted === 0) return "";
+    if (summary.percentage === 100) return "score-perfect";
+    if (summary.percentage === 0) return "score-zero";
+    return "";
+  }
   calculateSummary(student) {
     const percentage = student.attempted > 0 ? Math.round(student.correct / student.attempted * 100) : 0;
     return {
@@ -5514,24 +5486,6 @@ let QdScoresModal = class extends i$1 {
       correct: student.correct,
       percentage
     };
-  }
-  getPercentageClass(percentage) {
-    if (percentage === 100) return "correct-highlight";
-    if (percentage === 0) return "incorrect-highlight";
-    return "";
-  }
-  getAnswerClass(answer) {
-    if (!answer) return "unanswered";
-    return answer.success ? "correct" : "incorrect";
-  }
-  toggleStudent(serviceId) {
-    const newSet = new Set(this.expandedStudents);
-    if (newSet.has(serviceId)) {
-      newSet.delete(serviceId);
-    } else {
-      newSet.add(serviceId);
-    }
-    this.expandedStudents = newSet;
   }
   /**
    * Open the modal
@@ -5550,122 +5504,6 @@ QdScoresModal.styles = i$4`
     :host {
       display: contents;
     }
-
-    .scores-content {
-      min-width: 600px;
-      max-width: 800px;
-    }
-
-    .empty-message {
-      color: #666;
-      padding: 20px;
-      text-align: center;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    thead th {
-      padding: 8px;
-      text-align: left;
-      border-bottom: 1px solid #ddd;
-      background: #f5f5f5;
-      font-weight: 600;
-    }
-
-    .student-row {
-      cursor: pointer;
-    }
-
-    .student-row:hover {
-      background: #f9f9f9;
-    }
-
-    .student-row td {
-      padding: 8px;
-      border-bottom: 1px solid #eee;
-    }
-
-    .expand-icon {
-      display: inline-block;
-      width: 16px;
-      margin-right: 4px;
-      text-align: center;
-    }
-
-    .correct-highlight {
-      color: #28a745;
-    }
-
-    .incorrect-highlight {
-      color: #dc3545;
-    }
-
-    .detail-row {
-      background: #f9f9f9;
-    }
-
-    .detail-row td {
-      padding: 8px 8px 8px 40px;
-      border-bottom: 1px solid #eee;
-    }
-
-    .page-breakdown {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .page-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .page-name {
-      font-weight: 600;
-      min-width: 120px;
-      flex-shrink: 0;
-    }
-
-    .answers-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      flex: 1;
-    }
-
-    .answer-badge {
-      display: inline-block;
-      padding: 2px 6px;
-      border-radius: 3px;
-      font-size: 11px;
-      font-weight: 500;
-    }
-
-    .answer-badge.correct {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-
-    .answer-badge.incorrect {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-
-    .answer-badge.unanswered {
-      background: #e0e0e0;
-      color: #666;
-    }
-
-    .no-pages {
-      color: #666;
-      font-style: italic;
-    }
   `;
 __decorateClass$5([
   n2({ type: Boolean, reflect: true })
@@ -5673,9 +5511,6 @@ __decorateClass$5([
 __decorateClass$5([
   n2({ type: Array })
 ], QdScoresModal.prototype, "students", 2);
-__decorateClass$5([
-  r()
-], QdScoresModal.prototype, "expandedStudents", 2);
 QdScoresModal = __decorateClass$5([
   t$1("qd-scores-modal")
 ], QdScoresModal);
@@ -6021,9 +5856,6 @@ let QdPinResetDialog = class extends i$1 {
     this.handleSearchInput = (e2) => {
       const input = e2.target;
       this.searchText = input.value;
-      void this.updateComplete.then(() => {
-        this.syncContentToPortal();
-      });
     };
     this.handleResetClick = (student) => {
       this.confirmingStudent = student;
@@ -6110,134 +5942,14 @@ let QdPinResetDialog = class extends i$1 {
       this.confirmDialogOpen = false;
       this.confirmingStudent = null;
       this.errorMessage = "";
-      void this.updateComplete.then(() => {
-        this.syncContentToPortal();
-      });
     } catch (err) {
       console.error("PIN reset error:", err);
       this.errorMessage = "Failed to reset PIN. Please try again.";
       this.confirmDialogOpen = false;
       this.confirmingStudent = null;
-      void this.updateComplete.then(() => {
-        this.syncContentToPortal();
-      });
-    }
-  }
-  /**
-   * Sync dynamic content to portal DOM.
-   * Since qd-modal clones content and loses Lit bindings,
-   * we need to manually update the portal content.
-   */
-  syncContentToPortal() {
-    const backdrop = document.querySelector(".qd-modal-backdrop");
-    if (!backdrop) return;
-    const listContainer = backdrop.querySelector(".student-list");
-    if (!listContainer) return;
-    listContainer.innerHTML = "";
-    const filtered = this.filteredStudents;
-    if (filtered.length === 0) {
-      const empty = document.createElement("div");
-      empty.className = "empty-message";
-      empty.textContent = this.searchText ? "No matching students" : "No students found";
-      empty.style.cssText = "padding: 16px; text-align: center; color: #666; font-size: 12px;";
-      listContainer.appendChild(empty);
-    } else {
-      filtered.forEach((student) => {
-        const item = document.createElement("div");
-        item.className = "student-item";
-        item.style.cssText = `
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 8px 12px;
-          border-bottom: 1px solid #f0f0f0;
-        `;
-        const info2 = document.createElement("div");
-        const nameSpan = document.createElement("div");
-        nameSpan.className = "student-name";
-        nameSpan.textContent = student.name;
-        nameSpan.style.cssText = "font-size: 12px; font-weight: 500;";
-        const idSpan = document.createElement("div");
-        idSpan.className = "student-id";
-        idSpan.textContent = `ID: ${student.serviceId}`;
-        idSpan.style.cssText = "font-size: 10px; color: #666;";
-        const pinStatus = document.createElement("div");
-        pinStatus.className = "pin-status";
-        const hasPinHash = student.pinHash && student.pinHash.length > 0;
-        pinStatus.textContent = hasPinHash ? "PIN set" : "No PIN";
-        pinStatus.style.cssText = `font-size: 10px; color: ${hasPinHash ? "#4caf50" : "#ff9800"};`;
-        info2.appendChild(nameSpan);
-        info2.appendChild(idSpan);
-        info2.appendChild(pinStatus);
-        const resetBtn = document.createElement("button");
-        resetBtn.className = "reset-btn";
-        resetBtn.textContent = "Reset PIN";
-        resetBtn.type = "button";
-        resetBtn.style.cssText = `
-          background: #ff5722;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          padding: 4px 8px;
-          font-size: 10px;
-          cursor: pointer;
-        `;
-        resetBtn.onclick = () => this.handleResetClick(student);
-        item.appendChild(info2);
-        item.appendChild(resetBtn);
-        listContainer.appendChild(item);
-      });
-    }
-    let errorDiv = backdrop.querySelector(".error-message");
-    if (this.errorMessage) {
-      if (!errorDiv) {
-        errorDiv = document.createElement("div");
-        errorDiv.className = "error-message";
-        const content = backdrop.querySelector(".qd-modal-body");
-        content?.appendChild(errorDiv);
-      }
-      errorDiv.textContent = this.errorMessage;
-      errorDiv.style.cssText = `
-        color: #d32f2f;
-        font-size: 11px;
-        margin-top: 8px;
-        padding: 8px;
-        background: #ffebee;
-        border-radius: 4px;
-      `;
-    } else {
-      errorDiv?.remove();
-    }
-  }
-  /**
-   * Setup event listeners in portal after open
-   */
-  setupPortalListeners() {
-    const backdrop = document.querySelector(".qd-modal-backdrop");
-    if (!backdrop) return;
-    const searchInput = backdrop.querySelector(".search-input");
-    if (searchInput) {
-      searchInput.oninput = this.handleSearchInput;
-      searchInput.focus();
-    }
-    this.syncContentToPortal();
-  }
-  updated(changedProps) {
-    if (changedProps.has("open") && this.open) {
-      setTimeout(() => {
-        this.setupPortalListeners();
-      }, 0);
-    }
-    if (changedProps.has("students") && this.open) {
-      void this.updateComplete.then(() => {
-        this.syncContentToPortal();
-      });
     }
   }
   render() {
-    if (!this.open) {
-      return E;
-    }
     const student = this.confirmingStudent;
     const confirmMessage = student ? `Reset PIN for <strong>${student.name}</strong> (${student.serviceId})?<br><span style="font-size: 11px; color: #666;">They will need to create a new PIN on next login.</span>` : "";
     return x`
@@ -6247,35 +5959,54 @@ let QdPinResetDialog = class extends i$1 {
       >
         <span slot="header">Reset Student PIN</span>
 
-        <div class="pin-reset-content">
-          <input
-            type="text"
-            class="search-input"
-            placeholder="Search by name or ID..."
-            .value=${this.searchText}
-          />
+        ${this.open ? x`
+              <div class="pin-reset-content">
+                <input
+                  type="text"
+                  class="search-input"
+                  placeholder="Search by name or ID..."
+                  .value=${this.searchText}
+                  @input=${this.handleSearchInput}
+                />
 
-          <div class="student-list">
-            ${this.filteredStudents.length === 0 ? x`<div class="empty-message">
-                  ${this.searchText ? "No matching students" : "No students found"}
-                </div>` : this.filteredStudents.map(
+                <div class="student-table-container">
+                  ${this.filteredStudents.length === 0 ? x`<div class="empty-message">
+                        ${this.searchText ? "No matching students" : "No students found"}
+                      </div>` : x`
+                        <table class="student-table">
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Service ID</th>
+                              <th>Reset PIN</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${this.filteredStudents.map(
       (s2) => x`
-                    <div class="student-item">
-                      <div>
-                        <div class="student-name">${s2.name}</div>
-                        <div class="student-id">ID: ${s2.serviceId}</div>
-                        <div class="pin-status ${s2.pinHash ? "has-pin" : "no-pin"}">
-                          ${s2.pinHash ? "PIN set" : "No PIN"}
-                        </div>
-                      </div>
-                      <button class="reset-btn" type="button">Reset PIN</button>
-                    </div>
-                  `
+                                <tr>
+                                  <td>${s2.name}</td>
+                                  <td>${s2.serviceId}</td>
+                                  <td>
+                                    <button
+                                      class="reset-btn"
+                                      type="button"
+                                      @click=${() => this.handleResetClick(s2)}
+                                    >
+                                      Reset
+                                    </button>
+                                  </td>
+                                </tr>
+                              `
     )}
-          </div>
+                          </tbody>
+                        </table>
+                      `}
+                </div>
 
-          ${this.errorMessage ? x`<div class="error-message">${this.errorMessage}</div>` : ""}
-        </div>
+                ${this.errorMessage ? x`<div class="error-message">${this.errorMessage}</div>` : ""}
+              </div>
+            ` : E}
       </qd-modal>
 
       <qd-confirm-dialog
@@ -6317,45 +6048,44 @@ QdPinResetDialog.styles = i$4`
       box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
     }
 
-    .student-list {
+    .student-table-container {
       max-height: 300px;
       overflow-y: auto;
       border: 1px solid #e0e0e0;
       border-radius: 4px;
     }
 
-    .student-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .student-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .student-table th {
+      text-align: left;
       padding: 8px 12px;
+      background: #f5f5f5;
+      border-bottom: 1px solid #e0e0e0;
+      font-weight: 500;
+      position: sticky;
+      top: 0;
+    }
+
+    .student-table td {
+      padding: 6px 12px;
       border-bottom: 1px solid #f0f0f0;
     }
 
-    .student-item:last-child {
+    .student-table tbody tr:nth-child(even) {
+      background: #f8f8f8;
+    }
+
+    .student-table tbody tr:hover {
+      background: #f0f0f0;
+    }
+
+    .student-table tr:last-child td {
       border-bottom: none;
-    }
-
-    .student-name {
-      font-size: 12px;
-      font-weight: 500;
-    }
-
-    .student-id {
-      font-size: 10px;
-      color: #666;
-    }
-
-    .pin-status {
-      font-size: 10px;
-    }
-
-    .pin-status.has-pin {
-      color: #4caf50;
-    }
-
-    .pin-status.no-pin {
-      color: #ff9800;
     }
 
     .reset-btn {
@@ -6436,6 +6166,7 @@ let QdInstructor = class extends i$1 {
       this.updateVisibility();
       if (role === "instructor") {
         this.unlock();
+        void this.loadStudents();
       }
     };
     this.handleLogoutEvent = () => {
@@ -6446,9 +6177,8 @@ let QdInstructor = class extends i$1 {
       const session = getJSON(STORAGE_KEYS.SESSION);
       if (!session) return;
       try {
-        const { getStorageService: getStorageService2 } = await Promise.resolve().then(() => storageService);
-        const storageService$1 = getStorageService2();
-        const students = await storageService$1.getStudentsByRelease(session.release);
+        const storageService = getStorageService();
+        const students = await storageService.getStudentsByRelease(session.release);
         this.students = students;
       } catch (err) {
         console.error("Failed to load students:", err);
@@ -6480,9 +6210,8 @@ let QdInstructor = class extends i$1 {
       const session = getJSON(STORAGE_KEYS.SESSION);
       if (!session) return;
       try {
-        const { getStorageService: getStorageService2 } = await Promise.resolve().then(() => storageService);
-        const storageService$1 = getStorageService2();
-        const students = await storageService$1.getStudentsByRelease(session.release);
+        const storageService = getStorageService();
+        const students = await storageService.getStudentsByRelease(session.release);
         this.students = students;
       } catch (err) {
         console.error("Failed to load students:", err);
@@ -6523,9 +6252,8 @@ let QdInstructor = class extends i$1 {
         const session = getJSON(STORAGE_KEYS.SESSION);
         if (session) {
           try {
-            const { getStorageService: getStorageService2 } = await Promise.resolve().then(() => storageService);
-            const storageService$1 = getStorageService2();
-            const students = await storageService$1.getStudentsByRelease(session.release);
+            const storageService = getStorageService();
+            const students = await storageService.getStudentsByRelease(session.release);
             this.students = students;
           } catch (err) {
             console.error("Failed to load students for toggle:", err);
@@ -6548,6 +6276,7 @@ let QdInstructor = class extends i$1 {
     const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
     if (isInstructor) {
       this.unlock();
+      void this.loadStudents();
     }
     const savedState = sessionStorage.getItem("qd/instructor/showAnswers");
     if (savedState !== null) {
@@ -6587,6 +6316,21 @@ let QdInstructor = class extends i$1 {
    */
   setStudents(students) {
     this.students = students;
+  }
+  /**
+   * Load students from storage for current release
+   */
+  async loadStudents() {
+    const session = getJSON(STORAGE_KEYS.SESSION);
+    if (!session) return;
+    try {
+      const storageService = getStorageService();
+      const students = await storageService.getStudentsByRelease(session.release);
+      this.students = students;
+    } catch (err) {
+      console.error("Failed to load students:", err);
+      this.students = [];
+    }
   }
   /**
    * Unlock instructor panel (call after successful auth)
@@ -6684,34 +6428,28 @@ const DEFAULT_CONTAINERS = {
 function injectLoginComponent(containerSelector) {
   const container = document.querySelector(containerSelector);
   if (!container) {
-    info(`Login component not injected: container '${containerSelector}' not found`);
     return null;
   }
   const login = document.createElement("qd-login");
   container.appendChild(login);
-  info("Login component injected");
   return login;
 }
 function injectStatusComponent(containerSelector) {
   const container = document.querySelector(containerSelector);
   if (!container) {
-    info(`Status component not injected: container '${containerSelector}' not found`);
     return null;
   }
   const status = document.createElement("qd-status");
   container.appendChild(status);
-  info("Status component injected");
   return status;
 }
 function injectInstructorComponent(containerSelector) {
   const container = document.querySelector(containerSelector);
   if (!container) {
-    info(`Instructor component not injected: container '${containerSelector}' not found`);
     return null;
   }
   const instructor = document.createElement("qd-instructor");
   container.appendChild(instructor);
-  info("Instructor component injected");
   return instructor;
 }
 function injectComponents(config = {}) {
@@ -6779,15 +6517,12 @@ function handleStateChanged(event) {
   const link = document.querySelector(`[data-page-id="${pageId}"]`);
   if (link && link.classList.contains("quizPageBtn")) {
     updateLinkBadge(link);
-    info(`Updated badge for page ${pageId}`);
   }
 }
 function handleCacheRebuild() {
-  info("Cache rebuilt, refreshing all badges");
   updateAllBadges();
 }
 function handleLogout() {
-  info("Logout detected, removing all badge styling");
   const links = document.querySelectorAll(".quizPageBtn");
   links.forEach((link) => {
     Object.values(BADGE_CLASSES).forEach((className) => {
@@ -6820,7 +6555,6 @@ function enhanceHomeBadges() {
   document.addEventListener("qd:state-changed", handleStateChanged);
   document.addEventListener("qd:cache-rebuild", handleCacheRebuild);
   document.addEventListener("qd:logout", handleLogout);
-  info("Home page badges enhanced with event listeners");
 }
 function injectGlobalStyles() {
   if (document.getElementById("qd-global-styles")) {
@@ -6838,9 +6572,15 @@ function injectGlobalStyles() {
     .qd-quiz-interactive .qd-quiz-input {
       width: 100%;
       padding: 0.5rem;
-      font-size: 1rem;
+      font-size: inherit;
       border: 1px solid #ccc;
       border-radius: 4px;
+    }
+
+    /* Ensure select elements inherit font properly */
+    .qd-quiz-interactive select.qd-quiz-input {
+      font-family: inherit;
+      font-size: inherit;
     }
 
     /* Validation styling for answer cells */
@@ -6906,9 +6646,18 @@ function injectGlobalStyles() {
       font-size: 11px;
       margin-left: 8px;
     }
+
+    /* Modal error message styles (needed because qd-modal moves to body) */
+    .error-message {
+      color: #d32f2f;
+      font-size: 12px;
+      padding: 8px;
+      background: #ffebee;
+      border-radius: 4px;
+      border-left: 3px solid #d32f2f;
+    }
   `;
   document.head.appendChild(style);
-  info("Global styles injected");
 }
 const state = {
   initialized: false
@@ -6918,15 +6667,14 @@ async function bootstrap(config = {}) {
     warn("Bootstrap already initialized, skipping");
     return;
   }
-  info("Bootstrapping Sonar Quiz System...");
   injectGlobalStyles();
   if (!config.dbName) {
     const msg = "FATAL: dbName not provided in bootstrap config. Processing stopped.";
     console.error(msg);
     throw new Error(msg);
   }
-  const storageService2 = getStorageService(config.dbName);
-  await storageService2.init();
+  const storageService = getStorageService(config.dbName);
+  await storageService.init();
   const eventCoordinator = new EventCoordinator();
   eventCoordinator.initialize();
   state.eventCoordinator = eventCoordinator;
@@ -6947,13 +6695,17 @@ async function bootstrap(config = {}) {
     enhanceHomeBadgesIfPresent();
   }
   await checkExistingSessionAndUpgradeTables();
+  document.addEventListener("qd:login", (event) => {
+    const detail = event.detail;
+    if (detail?.role === "instructor") {
+      revealQuizAnswersForInstructor();
+    }
+  });
   state.initialized = true;
-  info("Bootstrap complete");
 }
 function enhanceAllQuizTables() {
   const tables = document.querySelectorAll("table.qd-quiz");
   if (tables.length === 0) {
-    info("No quiz tables found to enhance");
     return;
   }
   info(`Enhancing ${tables.length} quiz table(s) in non-interactive mode...`);
@@ -6971,7 +6723,6 @@ function enhanceAllQuizTables() {
 function enhanceAllAnalysisTables() {
   const tables = document.querySelectorAll("table.qd-analysis");
   if (tables.length === 0) {
-    info("No analysis tables found to enhance");
     return;
   }
   info(`Enhancing ${tables.length} analysis table(s) in non-interactive mode...`);
@@ -6989,7 +6740,6 @@ function enhanceAllAnalysisTables() {
 function enhanceHomeBadgesIfPresent() {
   const links = document.querySelectorAll(".quizPageBtn");
   if (links.length === 0) {
-    info("No .quizPageBtn links found, skipping badge enhancement");
     return;
   }
   info(`Enhancing home page badges for ${links.length} link(s)...`);
@@ -7000,59 +6750,63 @@ function enhanceHomeBadgesIfPresent() {
     warn(`Failed to enhance home badges: ${err.message}`);
   }
 }
+function revealQuizAnswersForInstructor() {
+  const pathname = window.location.pathname;
+  const filename = pathname.substring(pathname.lastIndexOf("/") + 1);
+  const pageId = filename.replace(/\.html?$/i, "");
+  const quizTables = document.querySelectorAll("table.qd-quiz");
+  if (quizTables.length === 0) {
+    return;
+  }
+  quizTables.forEach((table) => {
+    const metadata = getQuizTableMetadata(table);
+    if (!metadata) return;
+    metadata.pageId = pageId;
+    const answerCells = table.querySelectorAll("td:nth-child(2), th:nth-child(2)");
+    answerCells.forEach((cell) => {
+      cell.classList.remove("qd-hidden");
+    });
+    const answerDataCells = table.querySelectorAll("tbody td:nth-child(2)");
+    answerDataCells.forEach((cell, index) => {
+      const question = metadata.parsed.questions[index];
+      if (question && cell instanceof HTMLTableCellElement) {
+        cell.textContent = question.correctAnswer;
+      }
+    });
+    const detailCells = table.querySelectorAll("td:nth-child(3), th:nth-child(3)");
+    detailCells.forEach((cell) => cell.classList.remove("qd-hidden"));
+    const showAnswersHandler = () => {
+      void showStudentAnswersForTable(table, metadata);
+    };
+    const hideAnswersHandler = () => {
+      hideStudentAnswersForTable(table);
+    };
+    document.addEventListener("qd:instructor-show-answers", showAnswersHandler);
+    document.addEventListener("qd:instructor-hide-answers", hideAnswersHandler);
+    const showAnswers = sessionStorage.getItem("qd/instructor/showAnswers") === "true";
+    if (showAnswers) {
+      void showAnswersHandler();
+    }
+  });
+  info(`Revealed answers for instructor on ${quizTables.length} quiz table(s)`);
+}
 async function checkExistingSessionAndUpgradeTables() {
   const session = getJSON(STORAGE_KEYS.SESSION);
   if (!session) {
-    info("No existing session, tables remain in non-interactive mode");
     return;
   }
   const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
   if (isInstructor) {
-    info("Instructor session detected, revealing answers in non-interactive tables");
-    const pathname2 = window.location.pathname;
-    const filename2 = pathname2.substring(pathname2.lastIndexOf("/") + 1);
-    const pageId2 = filename2.replace(/\.html?$/i, "");
-    const quizTables2 = document.querySelectorAll("table.qd-quiz");
-    quizTables2.forEach((table) => {
-      const metadata = getQuizTableMetadata(table);
-      if (!metadata) return;
-      metadata.pageId = pageId2;
-      const answerCells = table.querySelectorAll("td:nth-child(2), th:nth-child(2)");
-      answerCells.forEach((cell) => {
-        cell.classList.remove("qd-hidden");
-      });
-      const answerDataCells = table.querySelectorAll("tbody td:nth-child(2)");
-      answerDataCells.forEach((cell, index) => {
-        const question = metadata.parsed.questions[index];
-        if (question && cell instanceof HTMLTableCellElement) {
-          cell.textContent = question.correctAnswer;
-        }
-      });
-      const detailCells = table.querySelectorAll("td:nth-child(3), th:nth-child(3)");
-      detailCells.forEach((cell) => cell.classList.remove("qd-hidden"));
-      const showAnswersHandler = () => {
-        void showStudentAnswersForTable(table, metadata);
-      };
-      const hideAnswersHandler = () => {
-        hideStudentAnswersForTable(table);
-      };
-      document.addEventListener("qd:instructor-show-answers", showAnswersHandler);
-      document.addEventListener("qd:instructor-hide-answers", hideAnswersHandler);
-      const showAnswers = sessionStorage.getItem("qd/instructor/showAnswers") === "true";
-      if (showAnswers) {
-        void showAnswersHandler();
-      }
-    });
+    revealQuizAnswersForInstructor();
     return;
   }
   info(`Existing session detected for ${session.serviceId}, upgrading tables to interactive mode`);
-  const storageService2 = getStorageService();
+  const storageService = getStorageService();
   let cache = getJSON(STORAGE_KEYS.CACHE);
   if (!cache) {
-    info("Cache not found, rebuilding from IndexedDB...");
     try {
-      const studentRecord = await storageService2.loadStudentRecord(session);
-      cache = storageService2.buildCache(studentRecord);
+      const studentRecord = await storageService.loadStudentRecord(session);
+      cache = storageService.buildCache(studentRecord);
       setJSON(STORAGE_KEYS.CACHE, cache);
       info(`Cache rebuilt from IndexedDB: ${cache.totals.total} total questions`);
     } catch {
@@ -7068,7 +6822,6 @@ async function checkExistingSessionAndUpgradeTables() {
   const filename = pathname.substring(pathname.lastIndexOf("/") + 1);
   const pageId = filename.replace(/\.html?$/i, "");
   if (!pageId) {
-    info("No pageId found, skipping table upgrade");
     return;
   }
   const quizTables = document.querySelectorAll("table.qd-quiz");
@@ -7091,22 +6844,19 @@ function cleanup() {
     warn("Bootstrap not initialized, nothing to cleanup");
     return;
   }
-  info("Cleaning up bootstrap resources...");
   state.eventCoordinator?.cleanup();
   state.sessionCoordinator?.cleanup();
   state.initialized = false;
   state.eventCoordinator = void 0;
   state.sessionCoordinator = void 0;
-  info("Bootstrap cleanup complete");
 }
 function isInitialized() {
   return state.initialized;
 }
 const VERSION = "0.1.0-phase3.1";
-const BUILD_DATE = "26/Nov/2025";
+const BUILD_DATE = "27/Nov/2025";
 if (typeof window !== "undefined") {
   const init = () => {
-    info("Auto-initializing Sonar Quiz System");
     const domConfig = readDOMConfig();
     bootstrap({
       dbName: domConfig.dbName,
