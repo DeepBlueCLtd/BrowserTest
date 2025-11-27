@@ -3159,9 +3159,9 @@ function getRemainingAttempts(serviceId) {
   }
   return Math.max(0, PIN_CONSTANTS.MAX_ATTEMPTS - state2.attempts);
 }
-var __getOwnPropDesc$c = Object.getOwnPropertyDescriptor;
-var __decorateClass$c = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$c(target, key) : target;
+var __getOwnPropDesc$e = Object.getOwnPropertyDescriptor;
+var __decorateClass$e = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$e(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = decorator(result) || result;
@@ -3253,17 +3253,17 @@ QdBuildInfo.styles = i$4`
       line-height: 1.4;
     }
   `;
-QdBuildInfo = __decorateClass$c([
+QdBuildInfo = __decorateClass$e([
   t$1("qd-build-info")
 ], QdBuildInfo);
-var __defProp$b = Object.defineProperty;
-var __getOwnPropDesc$b = Object.getOwnPropertyDescriptor;
-var __decorateClass$b = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$b(target, key) : target;
+var __defProp$d = Object.defineProperty;
+var __getOwnPropDesc$d = Object.getOwnPropertyDescriptor;
+var __decorateClass$d = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$d(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$b(target, key, result);
+  if (kind && result) __defProp$d(target, key, result);
   return result;
 };
 const MODAL_STATE_KEY = "__qdModalCurrentRef__";
@@ -3547,23 +3547,23 @@ QdModal.styles = i$4`
       padding: 20px;
     }
   `;
-__decorateClass$b([
+__decorateClass$d([
   n2({ type: Boolean, reflect: true })
 ], QdModal.prototype, "open", 2);
-__decorateClass$b([
+__decorateClass$d([
   n2({ type: Boolean })
 ], QdModal.prototype, "closable", 2);
-QdModal = __decorateClass$b([
+QdModal = __decorateClass$d([
   t$1("qd-modal")
 ], QdModal);
-var __defProp$a = Object.defineProperty;
-var __getOwnPropDesc$a = Object.getOwnPropertyDescriptor;
-var __decorateClass$a = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$a(target, key) : target;
+var __defProp$c = Object.defineProperty;
+var __getOwnPropDesc$c = Object.getOwnPropertyDescriptor;
+var __decorateClass$c = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$c(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$a(target, key, result);
+  if (kind && result) __defProp$c(target, key, result);
   return result;
 };
 let QdPasswordModal = class extends i$1 {
@@ -3743,22 +3743,22 @@ QdPasswordModal.styles = i$4`
       background: #d0d0d0;
     }
   `;
-__decorateClass$a([
+__decorateClass$c([
   n2({ type: Boolean, reflect: true })
 ], QdPasswordModal.prototype, "open", 2);
-__decorateClass$a([
+__decorateClass$c([
   n2({ type: String })
 ], QdPasswordModal.prototype, "title", 2);
-__decorateClass$a([
+__decorateClass$c([
   n2({ type: String })
 ], QdPasswordModal.prototype, "error", 2);
-__decorateClass$a([
+__decorateClass$c([
   r()
 ], QdPasswordModal.prototype, "password", 2);
-__decorateClass$a([
+__decorateClass$c([
   e$2('input[type="password"]')
 ], QdPasswordModal.prototype, "passwordInput", 2);
-QdPasswordModal = __decorateClass$a([
+QdPasswordModal = __decorateClass$c([
   t$1("qd-password-modal")
 ], QdPasswordModal);
 /**
@@ -3804,14 +3804,14 @@ class e extends i2 {
 }
 e.directiveName = "unsafeHTML", e.resultType = 1;
 const o = e$1(e);
-var __defProp$9 = Object.defineProperty;
-var __getOwnPropDesc$9 = Object.getOwnPropertyDescriptor;
-var __decorateClass$9 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$9(target, key) : target;
+var __defProp$b = Object.defineProperty;
+var __getOwnPropDesc$b = Object.getOwnPropertyDescriptor;
+var __decorateClass$b = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$b(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$9(target, key, result);
+  if (kind && result) __defProp$b(target, key, result);
   return result;
 };
 let QdConfirmDialog = class extends i$1 {
@@ -3946,27 +3946,292 @@ QdConfirmDialog.styles = i$4`
       background: #b71c1c;
     }
   `;
-__decorateClass$9([
+__decorateClass$b([
   n2({ type: Boolean, reflect: true })
 ], QdConfirmDialog.prototype, "open", 2);
-__decorateClass$9([
+__decorateClass$b([
   n2({ type: String })
 ], QdConfirmDialog.prototype, "title", 2);
-__decorateClass$9([
+__decorateClass$b([
   n2({ type: String })
 ], QdConfirmDialog.prototype, "message", 2);
-__decorateClass$9([
+__decorateClass$b([
   n2({ type: String })
 ], QdConfirmDialog.prototype, "confirmText", 2);
-__decorateClass$9([
+__decorateClass$b([
   n2({ type: String })
 ], QdConfirmDialog.prototype, "cancelText", 2);
-__decorateClass$9([
+__decorateClass$b([
   n2({ type: Boolean })
 ], QdConfirmDialog.prototype, "destructive", 2);
-QdConfirmDialog = __decorateClass$9([
+QdConfirmDialog = __decorateClass$b([
   t$1("qd-confirm-dialog")
 ], QdConfirmDialog);
+var __defProp$a = Object.defineProperty;
+var __getOwnPropDesc$a = Object.getOwnPropertyDescriptor;
+var __decorateClass$a = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$a(target, key) : target;
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result) __defProp$a(target, key, result);
+  return result;
+};
+let QdHelpTrigger = class extends i$1 {
+  constructor() {
+    super(...arguments);
+    this.panelType = "login";
+    this.handleClick = () => {
+      this.dispatchEvent(
+        new CustomEvent("qd:help-open", {
+          detail: { panelType: this.panelType },
+          bubbles: true,
+          composed: true
+        })
+      );
+    };
+  }
+  render() {
+    return x`
+      <button class="help-icon" @click=${this.handleClick} aria-label="Help" title="Help">?</button>
+    `;
+  }
+};
+QdHelpTrigger.styles = i$4`
+    :host {
+      display: inline-block;
+    }
+
+    .help-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #0066cc;
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+      font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
+      cursor: pointer;
+      border: none;
+      padding: 0;
+      transition: background 0.15s ease;
+    }
+
+    .help-icon:hover {
+      background: #0052a3;
+    }
+
+    .help-icon:focus {
+      outline: 2px solid #0066cc;
+      outline-offset: 2px;
+    }
+
+    .help-icon:active {
+      background: #004080;
+    }
+  `;
+__decorateClass$a([
+  n2({ type: String })
+], QdHelpTrigger.prototype, "panelType", 2);
+QdHelpTrigger = __decorateClass$a([
+  t$1("qd-help-trigger")
+], QdHelpTrigger);
+var __defProp$9 = Object.defineProperty;
+var __getOwnPropDesc$9 = Object.getOwnPropertyDescriptor;
+var __decorateClass$9 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$9(target, key) : target;
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result) __defProp$9(target, key, result);
+  return result;
+};
+const HELP_POPUP_STYLES = `
+.qd-help-backdrop{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:99999;font-family:system-ui,-apple-system,sans-serif}
+.qd-help-content{background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.3);max-width:450px;max-height:80vh;overflow:auto}
+.qd-help-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #eee}
+.qd-help-title{font-weight:600;font-size:18px;color:#333;margin:0}
+.qd-help-close{background:none;border:none;font-size:24px;color:#666;cursor:pointer;padding:0;line-height:1;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:4px}
+.qd-help-close:hover{background:#f0f0f0;color:#333}
+.qd-help-close:focus{outline:2px solid #0066cc;outline-offset:2px}
+.qd-help-body{padding:20px;line-height:1.6;color:#444}
+.qd-help-body h3{margin-top:0;margin-bottom:12px;color:#333;font-size:16px}
+.qd-help-body p{margin:0 0 12px 0}
+.qd-help-body p:last-child{margin-bottom:0}
+.qd-help-body strong{color:#333}`;
+let QdHelpPopup = class extends i$1 {
+  constructor() {
+    super(...arguments);
+    this.portalElement = null;
+    this.previouslyFocused = null;
+    this.open = false;
+    this.title = "Help";
+    this.content = "";
+    this._isOpen = false;
+    this.handleKeyDown = (event) => {
+      if (event.key === "Escape" && this._isOpen) {
+        this.close();
+      }
+    };
+    this.handleBackdropClick = () => {
+      this.close();
+    };
+    this.handleCloseClick = () => {
+      this.close();
+    };
+    this.stopPropagation = (event) => {
+      event.stopPropagation();
+    };
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    document.addEventListener("keydown", this.handleKeyDown);
+    this.ensureStyles();
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    document.removeEventListener("keydown", this.handleKeyDown);
+    this.removePortal();
+  }
+  updated(changedProperties) {
+    if (changedProperties.has("open")) {
+      if (this.open && !this._isOpen) {
+        this.handleOpen();
+      } else if (!this.open && this._isOpen) {
+        this.handleClose();
+      }
+    }
+  }
+  /**
+   * Ensure help popup styles are added to document head (once)
+   */
+  ensureStyles() {
+    if (!QdHelpPopup.styleElement) {
+      QdHelpPopup.styleElement = document.createElement("style");
+      QdHelpPopup.styleElement.textContent = HELP_POPUP_STYLES;
+      document.head.appendChild(QdHelpPopup.styleElement);
+    }
+  }
+  /**
+   * Create and show the portal
+   */
+  createPortal() {
+    this.removePortal();
+    this.portalElement = document.createElement("div");
+    this.portalElement.className = "qd-help-backdrop";
+    this.portalElement.addEventListener("click", this.handleBackdropClick);
+    const contentEl = document.createElement("div");
+    contentEl.className = "qd-help-content";
+    contentEl.setAttribute("role", "dialog");
+    contentEl.setAttribute("aria-modal", "true");
+    contentEl.setAttribute("aria-labelledby", "qd-help-title");
+    contentEl.addEventListener("click", this.stopPropagation);
+    const headerEl = document.createElement("div");
+    headerEl.className = "qd-help-header";
+    const titleEl = document.createElement("h2");
+    titleEl.className = "qd-help-title";
+    titleEl.id = "qd-help-title";
+    titleEl.textContent = this.title;
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "qd-help-close";
+    closeBtn.setAttribute("aria-label", "Close");
+    closeBtn.innerHTML = "×";
+    closeBtn.addEventListener("click", this.handleCloseClick);
+    headerEl.appendChild(titleEl);
+    headerEl.appendChild(closeBtn);
+    const bodyEl = document.createElement("div");
+    bodyEl.className = "qd-help-body";
+    bodyEl.innerHTML = this.content;
+    contentEl.appendChild(headerEl);
+    contentEl.appendChild(bodyEl);
+    this.portalElement.appendChild(contentEl);
+    document.body.appendChild(this.portalElement);
+    requestAnimationFrame(() => {
+      closeBtn.focus();
+    });
+  }
+  /**
+   * Remove portal from DOM
+   */
+  removePortal() {
+    if (this.portalElement) {
+      this.portalElement.remove();
+      this.portalElement = null;
+    }
+  }
+  /**
+   * Handle opening
+   */
+  handleOpen() {
+    this._isOpen = true;
+    this.previouslyFocused = document.activeElement;
+    this.createPortal();
+  }
+  /**
+   * Handle closing
+   */
+  handleClose() {
+    this._isOpen = false;
+    this.removePortal();
+    if (this.previouslyFocused instanceof HTMLElement) {
+      this.previouslyFocused.focus();
+    }
+  }
+  /**
+   * Close the popup and emit event
+   */
+  close() {
+    this.open = false;
+    this.dispatchEvent(
+      new CustomEvent("qd:modal-close", {
+        bubbles: true,
+        composed: true
+      })
+    );
+  }
+  render() {
+    return E;
+  }
+};
+QdHelpPopup.styleElement = null;
+__decorateClass$9([
+  n2({ type: Boolean, reflect: true })
+], QdHelpPopup.prototype, "open", 2);
+__decorateClass$9([
+  n2({ type: String })
+], QdHelpPopup.prototype, "title", 2);
+__decorateClass$9([
+  n2({ type: String })
+], QdHelpPopup.prototype, "content", 2);
+__decorateClass$9([
+  r()
+], QdHelpPopup.prototype, "_isOpen", 2);
+QdHelpPopup = __decorateClass$9([
+  t$1("qd-help-popup")
+], QdHelpPopup);
+const HELP_CONTENT = {
+  login: {
+    title: "Login Help",
+    body: '<p>Enter <strong>Name</strong> and <strong>Service ID</strong> to log in.  Provide a new <strong>PIN</strong> if this is your first visit to this release of this document, otherwise use the PIN you previously created. Your instructor is able to reset PINs.  See the <b>Feedback</b> page for more support.</p><p> <strong>Instructors:</strong> click "Instructor" for instructor login page (password accompanies distribution).</p>'
+  },
+  status: {
+    title: "Student View",
+    body: '<p>Page color coding:<ul><li><strong style="color:#4caf50">Green</strong>=All correct </li><li><strong style="color:#ff9800">Amber</strong>=Some answered </li><li><strong style="color:#d32f2f">Red</strong>=None yet</li></ul></p><p>You can view your overall progress at attempted questions in the <b>Test Progress</b> panel.</p>'
+  },
+  instructor: {
+    title: "Instructor Tools",
+    body: "<p><ul><li><strong>Show current answers</strong>: Toggle for display of student answers for the current page.</li><li><strong>View All Scores</strong>: View table scores for all students.</li><li><strong>Reset PIN</strong>: Reset student PINs.</li><li><strong>Export CSV</strong>: CSV download of all scores/answers.</li><li><strong>Erase All Data</strong>: Clear all stored student data.</li></ul></p>"
+  }
+};
+function getHelpContent(panelType) {
+  return HELP_CONTENT[panelType];
+}
 var __defProp$8 = Object.defineProperty;
 var __getOwnPropDesc$8 = Object.getOwnPropertyDescriptor;
 var __decorateClass$8 = (decorators, target, key, kind) => {
@@ -3990,6 +4255,7 @@ let QdLogin = class extends i$1 {
     this.pin = "";
     this.lockoutSeconds = 0;
     this.showPinConfirmation = false;
+    this.helpOpen = false;
     this.lockoutInterval = null;
     this.handleLogoutEvent = () => {
       this.name = "";
@@ -4001,11 +4267,18 @@ let QdLogin = class extends i$1 {
       this.pin = "";
       this.lockoutSeconds = 0;
       this.showPinConfirmation = false;
+      this.helpOpen = false;
       if (this.lockoutInterval) {
         clearInterval(this.lockoutInterval);
         this.lockoutInterval = null;
       }
       this.updateVisibility();
+    };
+    this.handleHelpOpen = () => {
+      this.helpOpen = true;
+    };
+    this.handleHelpClose = () => {
+      this.helpOpen = false;
     };
     this.handleInstructorPasswordSubmit = (e2) => {
       void this.handleInstructorLogin(e2.detail.password);
@@ -4051,7 +4324,11 @@ let QdLogin = class extends i$1 {
   render() {
     return x`
       <div class="login-container">
-        <div class="title">${this.title} <qd-build-info></qd-build-info></div>
+        <div class="title">
+          ${this.title}
+          <qd-build-info></qd-build-info>
+          <qd-help-trigger panelType="login" @qd:help-open=${this.handleHelpOpen}></qd-help-trigger>
+        </div>
 
         <form class="login-form" @submit=${(e2) => this.handleStudentLogin(e2)}>
           <input
@@ -4133,6 +4410,13 @@ let QdLogin = class extends i$1 {
         @qd:confirm=${this.handlePinConfirmationDismiss}
         @qd:cancel=${this.handlePinConfirmationDismiss}
       ></qd-confirm-dialog>
+
+      <qd-help-popup
+        .open=${this.helpOpen}
+        .title=${getHelpContent("login").title}
+        .content=${getHelpContent("login").body}
+        @qd:modal-close=${this.handleHelpClose}
+      ></qd-help-popup>
     `;
   }
   /**
@@ -4557,6 +4841,9 @@ __decorateClass$8([
 __decorateClass$8([
   r()
 ], QdLogin.prototype, "showPinConfirmation", 2);
+__decorateClass$8([
+  r()
+], QdLogin.prototype, "helpOpen", 2);
 QdLogin = __decorateClass$8([
   t$1("qd-login")
 ], QdLogin);
@@ -4579,6 +4866,7 @@ let QdStatus = class extends i$1 {
     this.statusColor = "red";
     this.name = "";
     this.serviceId = "";
+    this.helpOpen = false;
     this.handleStateChanged = () => {
       this.loadCache();
     };
@@ -4591,6 +4879,12 @@ let QdStatus = class extends i$1 {
     };
     this.handleLogoutEvent = () => {
       this.updateVisibility();
+    };
+    this.handleHelpOpen = () => {
+      this.helpOpen = true;
+    };
+    this.handleHelpClose = () => {
+      this.helpOpen = false;
     };
   }
   connectedCallback() {
@@ -4618,6 +4912,10 @@ let QdStatus = class extends i$1 {
             <span class="user-label">Test progress:</span>
             ${this.name} **${last4}
           </span>
+          <qd-help-trigger
+            panelType="status"
+            @qd:help-open=${this.handleHelpOpen}
+          ></qd-help-trigger>
           <button class="logout-button" @click=${() => this.handleLogout()}>Logout</button>
           <qd-build-info></qd-build-info>
         </div>
@@ -4628,6 +4926,12 @@ let QdStatus = class extends i$1 {
           </div>
         </div>
       </div>
+      <qd-help-popup
+        .open=${this.helpOpen}
+        .title=${getHelpContent("status").title}
+        .content=${getHelpContent("status").body}
+        @qd:modal-close=${this.handleHelpClose}
+      ></qd-help-popup>
     `;
   }
   /**
@@ -4814,6 +5118,9 @@ __decorateClass$7([
 __decorateClass$7([
   r()
 ], QdStatus.prototype, "serviceId", 2);
+__decorateClass$7([
+  r()
+], QdStatus.prototype, "helpOpen", 2);
 QdStatus = __decorateClass$7([
   t$1("qd-status")
 ], QdStatus);
@@ -6160,6 +6467,7 @@ let QdInstructor = class extends i$1 {
     this.students = [];
     this.showStudentAnswers = false;
     this.showPinReset = false;
+    this.helpOpen = false;
     this.handleLoginEvent = (event) => {
       const customEvent = event;
       const role = customEvent.detail?.role;
@@ -6269,6 +6577,12 @@ let QdInstructor = class extends i$1 {
       );
       sessionStorage.setItem("qd/instructor/showAnswers", String(this.showStudentAnswers));
     };
+    this.handleHelpOpen = () => {
+      this.helpOpen = true;
+    };
+    this.handleHelpClose = () => {
+      this.helpOpen = false;
+    };
   }
   connectedCallback() {
     super.connectedCallback();
@@ -6354,7 +6668,14 @@ let QdInstructor = class extends i$1 {
     }
     return x`
       <div class="instructor-panel">
-        <div class="instructor-title">Instructor Mode <qd-build-info></qd-build-info></div>
+        <div class="instructor-title">
+          Instructor Mode
+          <qd-help-trigger
+            panelType="instructor"
+            @qd:help-open=${this.handleHelpOpen}
+          ></qd-help-trigger>
+          <qd-build-info></qd-build-info>
+        </div>
 
         <label class="toggle-label">
           <input
@@ -6362,7 +6683,7 @@ let QdInstructor = class extends i$1 {
             .checked=${this.showStudentAnswers}
             @change=${this.handleToggleStudentAnswers}
           />
-          Show student answers on page
+          Show current answers
         </label>
 
         <button @click=${this.handleViewScores} class="primary compact">View All Scores</button>
@@ -6387,6 +6708,13 @@ let QdInstructor = class extends i$1 {
           @close=${this.handleClosePinReset}
           @qd:pin-reset=${this.handlePinReset}
         ></qd-pin-reset-dialog>
+
+        <qd-help-popup
+          .open=${this.helpOpen}
+          .title=${getHelpContent("instructor").title}
+          .content=${getHelpContent("instructor").body}
+          @qd:modal-close=${this.handleHelpClose}
+        ></qd-help-popup>
       </div>
     `;
   }
@@ -6418,6 +6746,9 @@ __decorateClass([
 __decorateClass([
   r()
 ], QdInstructor.prototype, "showPinReset", 2);
+__decorateClass([
+  r()
+], QdInstructor.prototype, "helpOpen", 2);
 QdInstructor = __decorateClass([
   t$1("qd-instructor")
 ], QdInstructor);
