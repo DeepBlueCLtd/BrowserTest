@@ -444,14 +444,7 @@ const Ue=2;class i{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,s,n){
       background: #b71c1c;
     }
   `,Ve([ue({type:Boolean,reflect:!0})],Qe.prototype,"open",2),Ve([ue({type:String})],Qe.prototype,"title",2),Ve([ue({type:String})],Qe.prototype,"message",2),Ve([ue({type:String})],Qe.prototype,"confirmText",2),Ve([ue({type:String})],Qe.prototype,"cancelText",2),Ve([ue({type:Boolean})],Qe.prototype,"destructive",2),Qe=Ve([ce("qd-confirm-dialog")],Qe);var Ke=Object.defineProperty,We=Object.getOwnPropertyDescriptor,Je=(t,s,n,o)=>{for(var r,a=o>1?void 0:o?We(s,n):s,c=t.length-1;c>=0;c--)(r=t[c])&&(a=(o?r(s,n,a):r(a))||a);return o&&a&&Ke(s,n,a),a};let Ye=class extends ie{constructor(){super(...arguments),this.panelType="login",this.handleClick=()=>{this.dispatchEvent(new CustomEvent("qd:help-open",{detail:{panelType:this.panelType},bubbles:!0,composed:!0}))}}render(){return Jt`
-      <button
-        class="help-icon"
-        @click=${this.handleClick}
-        aria-label="Help"
-        title="Help"
-      >
-        ?
-      </button>
+      <button class="help-icon" @click=${this.handleClick} aria-label="Help" title="Help">?</button>
     `}};Ye.styles=pt`
     :host {
       display: inline-block;
@@ -468,7 +461,10 @@ const Ue=2;class i{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,s,n){
       color: white;
       font-size: 12px;
       font-weight: bold;
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
       cursor: pointer;
       border: none;
       padding: 0;
@@ -492,10 +488,7 @@ const Ue=2;class i{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,s,n){
         <div class="title">
           ${this.title}
           <qd-build-info></qd-build-info>
-          <qd-help-trigger
-            panelType="login"
-            @qd:help-open=${this.handleHelpOpen}
-          ></qd-help-trigger>
+          <qd-help-trigger panelType="login" @qd:help-open=${this.handleHelpOpen}></qd-help-trigger>
         </div>
 
         <form class="login-form" @submit=${t=>this.handleStudentLogin(t)}>
@@ -723,7 +716,10 @@ const Ue=2;class i{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,s,n){
             <span class="user-label">Test progress:</span>
             ${this.name} **${t}
           </span>
-          <qd-help-trigger panelType="status" @qd:help-open=${this.handleHelpOpen}></qd-help-trigger>
+          <qd-help-trigger
+            panelType="status"
+            @qd:help-open=${this.handleHelpOpen}
+          ></qd-help-trigger>
           <button class="logout-button" @click=${()=>this.handleLogout()}>Logout</button>
           <qd-build-info></qd-build-info>
         </div>
@@ -1499,7 +1495,10 @@ const Ue=2;class i{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,s,n){
       <div class="instructor-panel">
         <div class="instructor-title">
           Instructor Mode
-          <qd-help-trigger panelType="instructor" @qd:help-open=${this.handleHelpOpen}></qd-help-trigger>
+          <qd-help-trigger
+            panelType="instructor"
+            @qd:help-open=${this.handleHelpOpen}
+          ></qd-help-trigger>
           <qd-build-info></qd-build-info>
         </div>
 
