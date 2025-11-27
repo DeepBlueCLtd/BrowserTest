@@ -19,7 +19,7 @@ import '../qd-build-info.js';
 import '../qd-pin-reset-dialog.js';
 import '../qd-help-trigger.js';
 import '../qd-help-popup.js';
-import { readHelpContent } from '../../config/dom-config-reader.js';
+import { getHelpContent } from '../../config/help-content.js';
 
 /**
  * Main instructor panel orchestrating all sub-components
@@ -361,8 +361,8 @@ export class QdInstructor extends LitElement {
 
         <qd-help-popup
           .open=${this.helpOpen}
-          title="Instructor Tools"
-          .content=${readHelpContent('instructor')}
+          .title=${getHelpContent('instructor').title}
+          .content=${getHelpContent('instructor').body}
           @qd:modal-close=${this.handleHelpClose}
         ></qd-help-popup>
       </div>
