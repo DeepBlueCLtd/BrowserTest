@@ -2,5 +2,5 @@
 <map>
    <appContext helpID="Abbreviations" path="page-index.html"/>
    <appContext helpID="Untitled" path="Introduction/seven-questions.html"/>
-   <appContext helpID="Untitled" path="Introduction/background.html"/>
+   <appContext helpID="Feedback" path="Introduction/feedback.html"/>
 </map>
