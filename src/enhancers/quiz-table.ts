@@ -699,7 +699,6 @@ export async function showStudentAnswersForTable(
   if (!session) return;
 
   // Get storage service to load all student records
-  const { getStorageService } = await import('../services/storage-service.js');
   const storageService = getStorageService();
 
   try {

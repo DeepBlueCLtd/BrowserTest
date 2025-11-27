@@ -10,6 +10,7 @@ import type { StudentRecord, SessionData } from '../../types/contracts.js';
 import { STORAGE_KEYS } from '../../types/contracts.js';
 import { getJSON } from '../../utils/storage-helpers.js';
 import { SessionService } from '../../services/session.js';
+import { getStorageService } from '../../services/storage-service.js';
 import './qd-instructor-unlock.js';
 import './qd-instructor-scores.js';
 import './qd-instructor-export.js';
@@ -154,7 +155,6 @@ export class QdInstructor extends LitElement {
     if (!session) return;
 
     try {
-      const { getStorageService } = await import('../../services/storage-service.js');
       const storageService = getStorageService();
       const students = await storageService.getStudentsByRelease(session.release);
       this.students = students;
@@ -197,7 +197,6 @@ export class QdInstructor extends LitElement {
     if (!session) return;
 
     try {
-      const { getStorageService } = await import('../../services/storage-service.js');
       const storageService = getStorageService();
       const students = await storageService.getStudentsByRelease(session.release);
       this.students = students;
@@ -253,7 +252,6 @@ export class QdInstructor extends LitElement {
       const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
       if (session) {
         try {
-          const { getStorageService } = await import('../../services/storage-service.js');
           const storageService = getStorageService();
           const students = await storageService.getStudentsByRelease(session.release);
           this.students = students;
