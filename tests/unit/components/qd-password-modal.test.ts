@@ -369,8 +369,7 @@ describe('qd-password-modal', () => {
       const input = queryModalContent<HTMLInputElement>('input[type="password"]');
 
       // Check for either label, aria-label, or aria-labelledby
-      const hasLabel =
-        input?.id && queryModalContent(`label[for="${input.id}"]`) !== null;
+      const hasLabel = input?.id && queryModalContent(`label[for="${input.id}"]`) !== null;
       const hasAriaLabel = !!input?.getAttribute('aria-label');
       const hasAriaLabelledBy = !!input?.getAttribute('aria-labelledby');
 
