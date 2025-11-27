@@ -41,9 +41,15 @@ function injectGlobalStyles(): void {
     .qd-quiz-interactive .qd-quiz-input {
       width: 100%;
       padding: 0.5rem;
-      font-size: 1rem;
+      font-size: inherit;
       border: 1px solid #ccc;
       border-radius: 4px;
+    }
+
+    /* Ensure select elements inherit font properly */
+    .qd-quiz-interactive select.qd-quiz-input {
+      font-family: inherit;
+      font-size: inherit;
     }
 
     /* Validation styling for answer cells */
