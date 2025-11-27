@@ -17,6 +17,9 @@ import './qd-instructor-export.js';
 import './qd-instructor-manage.js';
 import '../qd-build-info.js';
 import '../qd-pin-reset-dialog.js';
+import '../qd-help-trigger.js';
+import '../qd-help-popup.js';
+import { getHelpContent } from '../../config/help-content.js';
 
 /**
  * Main instructor panel orchestrating all sub-components
@@ -57,6 +60,9 @@ export class QdInstructor extends LitElement {
 
   @state()
   private showPinReset = false;
+
+  @state()
+  private helpOpen = false;
 
   connectedCallback() {
     super.connectedCallback();
@@ -298,6 +304,14 @@ export class QdInstructor extends LitElement {
     sessionStorage.setItem('qd/instructor/showAnswers', String(this.showStudentAnswers));
   };
 
+  private handleHelpOpen = (): void => {
+    this.helpOpen = true;
+  };
+
+  private handleHelpClose = (): void => {
+    this.helpOpen = false;
+  };
+
   override render() {
     if (!this.unlocked) {
       return html`
@@ -307,7 +321,14 @@ export class QdInstructor extends LitElement {
 
     return html`
       <div class="instructor-panel">
-        <div class="instructor-title">Instructor Mode <qd-build-info></qd-build-info></div>
+        <div class="instructor-title">
+          Instructor Mode
+          <qd-help-trigger
+            panelType="instructor"
+            @qd:help-open=${this.handleHelpOpen}
+          ></qd-help-trigger>
+          <qd-build-info></qd-build-info>
+        </div>
 
         <label class="toggle-label">
           <input
@@ -315,7 +336,7 @@ export class QdInstructor extends LitElement {
             .checked=${this.showStudentAnswers}
             @change=${this.handleToggleStudentAnswers}
           />
-          Show student answers on page
+          Show current answers
         </label>
 
         <button @click=${this.handleViewScores} class="primary compact">View All Scores</button>
@@ -340,6 +361,13 @@ export class QdInstructor extends LitElement {
           @close=${this.handleClosePinReset}
           @qd:pin-reset=${this.handlePinReset}
         ></qd-pin-reset-dialog>
+
+        <qd-help-popup
+          .open=${this.helpOpen}
+          .title=${getHelpContent('instructor').title}
+          .content=${getHelpContent('instructor').body}
+          @qd:modal-close=${this.handleHelpClose}
+        ></qd-help-popup>
       </div>
     `;
   }
