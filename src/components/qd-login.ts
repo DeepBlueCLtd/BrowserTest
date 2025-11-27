@@ -326,10 +326,7 @@ export class QdLogin extends LitElement {
         <div class="title">
           ${this.title}
           <qd-build-info></qd-build-info>
-          <qd-help-trigger
-            panelType="login"
-            @qd:help-open=${this.handleHelpOpen}
-          ></qd-help-trigger>
+          <qd-help-trigger panelType="login" @qd:help-open=${this.handleHelpOpen}></qd-help-trigger>
         </div>
 
         <form class="login-form" @submit=${(e: Event) => this.handleStudentLogin(e)}>

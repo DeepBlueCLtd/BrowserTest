@@ -323,7 +323,10 @@ export class QdInstructor extends LitElement {
       <div class="instructor-panel">
         <div class="instructor-title">
           Instructor Mode
-          <qd-help-trigger panelType="instructor" @qd:help-open=${this.handleHelpOpen}></qd-help-trigger>
+          <qd-help-trigger
+            panelType="instructor"
+            @qd:help-open=${this.handleHelpOpen}
+          ></qd-help-trigger>
           <qd-build-info></qd-build-info>
         </div>
 
