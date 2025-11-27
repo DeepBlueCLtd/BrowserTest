@@ -17,6 +17,9 @@ import './qd-instructor-export.js';
 import './qd-instructor-manage.js';
 import '../qd-build-info.js';
 import '../qd-pin-reset-dialog.js';
+import '../qd-help-trigger.js';
+import '../qd-help-popup.js';
+import { readHelpContent } from '../../config/dom-config-reader.js';
 
 /**
  * Main instructor panel orchestrating all sub-components
@@ -57,6 +60,9 @@ export class QdInstructor extends LitElement {
 
   @state()
   private showPinReset = false;
+
+  @state()
+  private helpOpen = false;
 
   connectedCallback() {
     super.connectedCallback();
@@ -298,6 +304,14 @@ export class QdInstructor extends LitElement {
     sessionStorage.setItem('qd/instructor/showAnswers', String(this.showStudentAnswers));
   };
 
+  private handleHelpOpen = (): void => {
+    this.helpOpen = true;
+  };
+
+  private handleHelpClose = (): void => {
+    this.helpOpen = false;
+  };
+
   override render() {
     if (!this.unlocked) {
       return html`
@@ -307,7 +321,11 @@ export class QdInstructor extends LitElement {
 
     return html`
       <div class="instructor-panel">
-        <div class="instructor-title">Instructor Mode <qd-build-info></qd-build-info></div>
+        <div class="instructor-title">
+          Instructor Mode
+          <qd-help-trigger panelType="instructor" @qd:help-open=${this.handleHelpOpen}></qd-help-trigger>
+          <qd-build-info></qd-build-info>
+        </div>
 
         <label class="toggle-label">
           <input
@@ -340,6 +358,13 @@ export class QdInstructor extends LitElement {
           @close=${this.handleClosePinReset}
           @qd:pin-reset=${this.handlePinReset}
         ></qd-pin-reset-dialog>
+
+        <qd-help-popup
+          .open=${this.helpOpen}
+          title="Instructor Tools"
+          .content=${readHelpContent('instructor')}
+          @qd:modal-close=${this.handleHelpClose}
+        ></qd-help-popup>
       </div>
     `;
   }

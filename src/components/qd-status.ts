@@ -21,6 +21,9 @@ import { getJSON } from '../utils/storage-helpers.js';
 import { calculateStatusIndicator } from '../utils/calculation-helpers.js';
 import { SessionService } from '../services/session.js';
 import './qd-build-info.js';
+import './qd-help-trigger.js';
+import './qd-help-popup.js';
+import { getHelpContent } from '../config/help-content.js';
 
 /**
  * Status panel component for student progress tracking
@@ -62,6 +65,12 @@ export class QdStatus extends LitElement {
    */
   @state()
   private serviceId = '';
+
+  /**
+   * Whether help popup is open
+   */
+  @state()
+  private helpOpen = false;
 
   static styles = css`
     :host {
@@ -189,6 +198,7 @@ export class QdStatus extends LitElement {
             <span class="user-label">Test progress:</span>
             ${this.name} **${last4}
           </span>
+          <qd-help-trigger panelType="status" @qd:help-open=${this.handleHelpOpen}></qd-help-trigger>
           <button class="logout-button" @click=${() => this.handleLogout()}>Logout</button>
           <qd-build-info></qd-build-info>
         </div>
@@ -199,6 +209,12 @@ export class QdStatus extends LitElement {
           </div>
         </div>
       </div>
+      <qd-help-popup
+        .open=${this.helpOpen}
+        .title=${getHelpContent('status').title}
+        .content=${getHelpContent('status').body}
+        @qd:modal-close=${this.handleHelpClose}
+      ></qd-help-popup>
     `;
   }
 
@@ -291,6 +307,20 @@ export class QdStatus extends LitElement {
    */
   private handleLogoutEvent = () => {
     this.updateVisibility();
+  };
+
+  /**
+   * Handle help open event
+   */
+  private handleHelpOpen = (): void => {
+    this.helpOpen = true;
+  };
+
+  /**
+   * Handle help close event
+   */
+  private handleHelpClose = (): void => {
+    this.helpOpen = false;
   };
 
   /**

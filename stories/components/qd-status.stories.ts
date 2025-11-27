@@ -315,3 +315,58 @@ export const MinimalExample: Story = {
     return html`<qd-status></qd-status>`;
   },
 };
+
+/**
+ * With Help
+ *
+ * Shows status panel with help trigger button for E2E testing.
+ */
+export const WithHelp: Story = {
+  render: () => {
+    // Set up session data to make component visible
+    const sessionData = {
+      serviceId: 'RN2344',
+      name: 'John Smith',
+      release: 'TRV Connectors Autumn 2025',
+      role: 'student',
+    };
+    sessionStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(sessionData));
+
+    // Set up session cache with sample data
+    const cache: SessionCache = {
+      totals: { total: 15, answered: 15, correct: 12 },
+      pages: {
+        'page-1': { state: 'complete', total: 5, answered: 5, correct: 5, answers: [] },
+        'page-2': { state: 'incomplete', total: 5, answered: 5, correct: 4, answers: [] },
+        'page-3': { state: 'incomplete', total: 5, answered: 5, correct: 3, answers: [] },
+      },
+    };
+    sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
+
+    setTimeout(() => {
+      // Force component to show by setting data-show attribute
+      const statusComponent = document.querySelector('qd-status');
+      if (statusComponent) {
+        statusComponent.setAttribute('data-show', '');
+        // Trigger refresh
+        const event = new CustomEvent('qd:state-changed');
+        document.dispatchEvent(event);
+      }
+    }, 50);
+
+    return html`
+      <div style="padding: 20px; max-width: 500px; margin: 0 auto;">
+        <qd-status data-show></qd-status>
+
+        <div
+          style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 4px; font-size: 14px;"
+        >
+          <p style="margin: 0;">
+            Click the <strong>?</strong> button to open the help popup explaining the scoring
+            system.
+          </p>
+        </div>
+      </div>
+    `;
+  },
+};

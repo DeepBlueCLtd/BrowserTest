@@ -37,6 +37,9 @@ import {
 import './qd-build-info.js';
 import './qd-password-modal.js';
 import './qd-confirm-dialog.js';
+import './qd-help-trigger.js';
+import './qd-help-popup.js';
+import { getHelpContent } from '../config/help-content.js';
 
 /**
  * Login event data
@@ -112,6 +115,12 @@ export class QdLogin extends LitElement {
    */
   @state()
   private showPinConfirmation = false;
+
+  /**
+   * Whether help popup is open
+   */
+  @state()
+  private helpOpen = false;
 
   /**
    * Lockout countdown interval
@@ -299,6 +308,7 @@ export class QdLogin extends LitElement {
     this.pin = '';
     this.lockoutSeconds = 0;
     this.showPinConfirmation = false;
+    this.helpOpen = false;
 
     // Clean up lockout interval
     if (this.lockoutInterval) {
@@ -313,7 +323,14 @@ export class QdLogin extends LitElement {
   render() {
     return html`
       <div class="login-container">
-        <div class="title">${this.title} <qd-build-info></qd-build-info></div>
+        <div class="title">
+          ${this.title}
+          <qd-build-info></qd-build-info>
+          <qd-help-trigger
+            panelType="login"
+            @qd:help-open=${this.handleHelpOpen}
+          ></qd-help-trigger>
+        </div>
 
         <form class="login-form" @submit=${(e: Event) => this.handleStudentLogin(e)}>
           <input
@@ -397,8 +414,29 @@ export class QdLogin extends LitElement {
         @qd:confirm=${this.handlePinConfirmationDismiss}
         @qd:cancel=${this.handlePinConfirmationDismiss}
       ></qd-confirm-dialog>
+
+      <qd-help-popup
+        .open=${this.helpOpen}
+        .title=${getHelpContent('login').title}
+        .content=${getHelpContent('login').body}
+        @qd:modal-close=${this.handleHelpClose}
+      ></qd-help-popup>
     `;
   }
+
+  /**
+   * Handle help trigger click - open help popup
+   */
+  private handleHelpOpen = (): void => {
+    this.helpOpen = true;
+  };
+
+  /**
+   * Handle help popup close
+   */
+  private handleHelpClose = (): void => {
+    this.helpOpen = false;
+  };
 
   /**
    * Handle password submission from modal
