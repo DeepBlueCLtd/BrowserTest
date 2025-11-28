@@ -7965,6 +7965,7 @@ function revealQuizAnswersForInstructor() {
     const metadata = getQuizTableMetadata(table);
     if (!metadata) return;
     metadata.pageId = pageId;
+    table.classList.add("qd-quiz-instructor");
     const answerCells = table.querySelectorAll("td:nth-child(2), th:nth-child(2)");
     answerCells.forEach((cell) => {
       cell.classList.remove("qd-hidden");
@@ -7994,13 +7995,13 @@ function revealQuizAnswersForInstructor() {
   info(`Revealed answers for instructor on ${quizTables.length} quiz table(s)`);
 }
 async function checkExistingSessionAndUpgradeTables() {
-  const session = getJSON(STORAGE_KEYS.SESSION);
-  if (!session) {
-    return;
-  }
   const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
   if (isInstructor) {
     revealQuizAnswersForInstructor();
+    return;
+  }
+  const session = getJSON(STORAGE_KEYS.SESSION);
+  if (!session) {
     return;
   }
   info(`Existing session detected for ${session.serviceId}, upgrading tables to interactive mode`);
