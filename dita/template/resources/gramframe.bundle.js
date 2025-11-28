@@ -2410,7 +2410,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       freq: (fPlus.freq + fMinus.freq) / 2
     };
   }
-  function calculateDopplerSpeed(fPlus, fMinus, fZero = null, speedOfSound = 1500) {
+  function calculateDopplerSpeed(fPlus, fMinus, fZero = null, speedOfSound = 1481) {
     const f0 = fZero ? fZero.freq : calculateMidpoint(fPlus, fMinus).freq;
     const deltaF = (fPlus.freq - fMinus.freq) / 2;
     const speed = speedOfSound / f0 * deltaF;
@@ -3119,7 +3119,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.renderDopplerFeatures();
     }
   }
-  const VERSION = "0.1.8";
+  const VERSION = "0.1.9";
   function getVersion() {
     return VERSION;
   }
@@ -4056,7 +4056,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     unregisterInstance(instance);
   }
   function handleGlobalKeyboardEvent(event) {
+    const focusedInstance = getFocusedInstance();
     if (event.key === "Tab") {
+      if (!focusedInstance) return;
       if (event.shiftKey) {
         focusPreviousInstance();
       } else {
@@ -4065,7 +4067,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       event.preventDefault();
       return;
     }
-    const focusedInstance = getFocusedInstance();
     if (!focusedInstance) {
       return;
     }
