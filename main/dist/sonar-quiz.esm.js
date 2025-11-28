@@ -692,8 +692,99 @@ class StorageQuotaError extends StorageError {
     this.name = "StorageQuotaError";
   }
 }
+class StorageFormatError extends StorageError {
+  constructor(message, expected, found, storageKey) {
+    super(message, "formatCheck");
+    this.name = "StorageFormatError";
+    this.expected = expected;
+    this.found = found;
+    this.storageKey = storageKey;
+  }
+}
+const ENCRYPT_STORAGE = false;
+const OBFUSCATION_PREFIX = "OBF:";
+function deriveKey(releaseId) {
+  if (!releaseId) {
+    return "";
+  }
+  return releaseId.split("").map((c2) => c2.charCodeAt(0).toString()).join("");
+}
+function stringToUtf8Bytes(str) {
+  return new TextEncoder().encode(str);
+}
+function utf8BytesToString(bytes) {
+  return new TextDecoder().decode(bytes);
+}
+function xorBytes(data, key) {
+  if (key.length === 0) {
+    return data;
+  }
+  const result = new Uint8Array(data.length);
+  for (let i3 = 0; i3 < data.length; i3++) {
+    const dataByte = data[i3];
+    const keyByte = key[i3 % key.length];
+    if (dataByte !== void 0 && keyByte !== void 0) {
+      result[i3] = dataByte ^ keyByte;
+    }
+  }
+  return result;
+}
+function bytesToBase64(bytes) {
+  let binary = "";
+  for (let i3 = 0; i3 < bytes.length; i3++) {
+    const byte = bytes[i3];
+    if (byte !== void 0) {
+      binary += String.fromCharCode(byte);
+    }
+  }
+  return btoa(binary);
+}
+function base64ToBytes(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i3 = 0; i3 < binary.length; i3++) {
+    bytes[i3] = binary.charCodeAt(i3);
+  }
+  return bytes;
+}
+function encode(data, key) {
+  const json = JSON.stringify(data);
+  const jsonBytes = stringToUtf8Bytes(json);
+  const keyBytes = stringToUtf8Bytes(key || "default");
+  const xoredBytes = xorBytes(jsonBytes, keyBytes);
+  const base64 = bytesToBase64(xoredBytes);
+  return `${OBFUSCATION_PREFIX}${base64}`;
+}
+function decode(encoded, key) {
+  const base64 = encoded.slice(OBFUSCATION_PREFIX.length);
+  if (!base64) {
+    throw new Error("Empty obfuscated payload");
+  }
+  let xoredBytes;
+  try {
+    xoredBytes = base64ToBytes(base64);
+  } catch {
+    throw new Error("Invalid base64 in obfuscated data");
+  }
+  const keyBytes = stringToUtf8Bytes(key || "default");
+  const jsonBytes = xorBytes(xoredBytes, keyBytes);
+  let json;
+  try {
+    json = utf8BytesToString(jsonBytes);
+  } catch {
+    throw new Error("Failed to decode UTF-8 data - possibly corrupted");
+  }
+  try {
+    return JSON.parse(json);
+  } catch {
+    throw new Error("Failed to parse JSON - data may be corrupted or tampered");
+  }
+}
+function isObfuscated(value) {
+  return typeof value === "string" && value.startsWith(OBFUSCATION_PREFIX);
+}
 const DB_VERSION = 3;
-const STORE_STUDENTS = "students";
+const STORE_STUDENTS$1 = "students";
 const STORE_BACKUPS = "backups";
 const STORE_AUDIT_LOG = "auditLog";
 class IndexedDBStorageAdapter {
@@ -778,7 +869,7 @@ class IndexedDBStorageAdapter {
         resolved = true;
         cleanup2();
         this.db = request.result;
-        if (!this.db.objectStoreNames.contains(STORE_STUDENTS) || !this.db.objectStoreNames.contains(STORE_BACKUPS) || !this.db.objectStoreNames.contains(STORE_AUDIT_LOG)) {
+        if (!this.db.objectStoreNames.contains(STORE_STUDENTS$1) || !this.db.objectStoreNames.contains(STORE_BACKUPS) || !this.db.objectStoreNames.contains(STORE_AUDIT_LOG)) {
           warn(
             `Database corrupted (missing stores). Found: [${Array.from(this.db.objectStoreNames).join(", ")}]`
           );
@@ -816,8 +907,8 @@ class IndexedDBStorageAdapter {
           };
         }
         try {
-          if (!db.objectStoreNames.contains(STORE_STUDENTS)) {
-            const studentsStore = db.createObjectStore(STORE_STUDENTS, { keyPath: null });
+          if (!db.objectStoreNames.contains(STORE_STUDENTS$1)) {
+            const studentsStore = db.createObjectStore(STORE_STUDENTS$1, { keyPath: null });
             studentsStore.createIndex("by-release", "release", { unique: false });
             studentsStore.createIndex("by-service-id", "serviceId", { unique: false });
           }
@@ -856,20 +947,34 @@ class IndexedDBStorageAdapter {
   /**
    * Get a student record by release and service ID
    *
+   * Handles obfuscation based on ENCRYPT_STORAGE flag.
+   * Throws StorageFormatError if data format doesn't match flag setting.
+   *
    * @param release - Release identifier
    * @param serviceId - Service identifier
    * @returns Student record or null if not found
+   * @throws StorageFormatError if format mismatch detected
    */
   async getStudent(release, serviceId) {
     const db = this.ensureInitialized();
     const key = getStorageKey(release, serviceId);
     return new Promise((resolve, reject) => {
       try {
-        const transaction = db.transaction(STORE_STUDENTS, "readonly");
-        const store = transaction.objectStore(STORE_STUDENTS);
+        const transaction = db.transaction(STORE_STUDENTS$1, "readonly");
+        const store = transaction.objectStore(STORE_STUDENTS$1);
         const request = store.get(key);
         request.onsuccess = () => {
-          resolve(request.result || null);
+          const rawValue = request.result;
+          if (rawValue === void 0 || rawValue === null) {
+            resolve(null);
+            return;
+          }
+          try {
+            const record = this.decodeStoredValue(rawValue, release, key);
+            resolve(record);
+          } catch (error2) {
+            reject(error2 instanceof Error ? error2 : new Error(String(error2)));
+          }
         };
         request.onerror = () => {
           reject(
@@ -882,7 +987,30 @@ class IndexedDBStorageAdapter {
     });
   }
   /**
+   * Decode stored value, checking format matches ENCRYPT_STORAGE setting
+   *
+   * @param rawValue - Value from IndexedDB (may be obfuscated string or plain object)
+   * @param release - Release ID for key derivation
+   * @param storageKey - Storage key for error reporting
+   * @returns Decoded StudentRecord
+   * @throws StorageFormatError if format doesn't match setting
+   */
+  decodeStoredValue(rawValue, release, storageKey) {
+    const storedIsObfuscated = isObfuscated(rawValue);
+    if (storedIsObfuscated) {
+      throw new StorageFormatError(
+        "Obfuscated data found with ENCRYPT_STORAGE disabled. Run migration to decrypt or re-enable encryption.",
+        "plain",
+        "obfuscated",
+        storageKey
+      );
+    }
+    return rawValue;
+  }
+  /**
    * Save a student record
+   *
+   * Encodes data if ENCRYPT_STORAGE is enabled.
    *
    * @param record - Student record to save
    * @throws StorageQuotaError if storage quota exceeded
@@ -890,11 +1018,12 @@ class IndexedDBStorageAdapter {
   async saveStudent(record) {
     const db = this.ensureInitialized();
     const key = getStorageKey(record.release, record.serviceId);
+    const valueToStore = record;
     return new Promise((resolve, reject) => {
       try {
-        const transaction = db.transaction(STORE_STUDENTS, "readwrite");
-        const store = transaction.objectStore(STORE_STUDENTS);
-        const request = store.put(record, key);
+        const transaction = db.transaction(STORE_STUDENTS$1, "readwrite");
+        const store = transaction.objectStore(STORE_STUDENTS$1);
+        const request = store.put(valueToStore, key);
         request.onsuccess = () => {
           resolve();
         };
@@ -928,7 +1057,8 @@ class IndexedDBStorageAdapter {
   /**
    * Get all students for a specific release
    *
-   * Uses the by-release index for efficient queries.
+   * When ENCRYPT_STORAGE is disabled, uses the by-release index for efficient queries.
+   * When ENCRYPT_STORAGE is enabled, performs full scan and decodes all records.
    *
    * @param release - Release identifier
    * @returns Array of student records (empty if none found)
@@ -937,12 +1067,66 @@ class IndexedDBStorageAdapter {
     const db = this.ensureInitialized();
     return new Promise((resolve, reject) => {
       try {
-        const transaction = db.transaction(STORE_STUDENTS, "readonly");
-        const store = transaction.objectStore(STORE_STUDENTS);
+        const transaction = db.transaction(STORE_STUDENTS$1, "readonly");
+        const store = transaction.objectStore(STORE_STUDENTS$1);
         const index = store.index("by-release");
         const request = index.getAll(release);
         request.onsuccess = () => {
           resolve(request.result || []);
+        };
+        request.onerror = () => {
+          reject(
+            new StorageError(
+              "Failed to get students by release",
+              "getStudentsByRelease",
+              request.error
+            )
+          );
+        };
+      } catch (error2) {
+        reject(
+          new StorageError(
+            "Failed to get students by release",
+            "getStudentsByRelease",
+            error2
+          )
+        );
+      }
+    });
+  }
+  /**
+   * Get all students for a release when encryption is enabled
+   *
+   * Performs full scan, decodes each record, and filters by release.
+   */
+  async getStudentsByReleaseEncrypted(release) {
+    const db = this.ensureInitialized();
+    const obfKey = deriveKey(release);
+    return new Promise((resolve, reject) => {
+      try {
+        const transaction = db.transaction(STORE_STUDENTS$1, "readonly");
+        const store = transaction.objectStore(STORE_STUDENTS$1);
+        const request = store.openCursor();
+        const results = [];
+        request.onsuccess = () => {
+          const cursor = request.result;
+          if (cursor) {
+            const rawValue = cursor.value;
+            if (isObfuscated(rawValue)) {
+              try {
+                const record = decode(rawValue, obfKey);
+                if (record.release === release) {
+                  results.push(record);
+                }
+              } catch {
+                const keyStr = typeof cursor.key === "string" ? cursor.key : JSON.stringify(cursor.key);
+                warn(`Skipping corrupted record at key: ${keyStr}`);
+              }
+            }
+            cursor.continue();
+          } else {
+            resolve(results);
+          }
         };
         request.onerror = () => {
           reject(
@@ -974,10 +1158,10 @@ class IndexedDBStorageAdapter {
     return new Promise((resolve, reject) => {
       try {
         const transaction = db.transaction(
-          [STORE_STUDENTS, STORE_BACKUPS, STORE_AUDIT_LOG],
+          [STORE_STUDENTS$1, STORE_BACKUPS, STORE_AUDIT_LOG],
           "readwrite"
         );
-        const studentsStore = transaction.objectStore(STORE_STUDENTS);
+        const studentsStore = transaction.objectStore(STORE_STUDENTS$1);
         const backupsStore = transaction.objectStore(STORE_BACKUPS);
         const auditStore = transaction.objectStore(STORE_AUDIT_LOG);
         const clearStudentsRequest = studentsStore.clear();
@@ -1472,6 +1656,7 @@ function enhanceInteractive$1(table, metadata) {
     }
     const input = createQuestionInput(question, existingAnswer);
     inputs.push(input);
+    removeClass(answerCell, "qd-answer-correct", "qd-answer-incorrect");
     answerCell.textContent = "";
     answerCell.appendChild(input);
     if (existingAnswer) {
@@ -1496,18 +1681,35 @@ function enhanceInteractive$1(table, metadata) {
   if (isInstructor && showAnswers) {
     void showStudentAnswersForTable(table, metadata);
   }
-  const logoutHandler = () => {
+  const resetUIState = () => {
     const answerCells = table.querySelectorAll("td.qd-answer-correct, td.qd-answer-incorrect");
     answerCells.forEach((cell) => {
       removeClass(cell, "qd-answer-correct", "qd-answer-incorrect");
     });
+    if (metadata.inputs) {
+      for (const input of metadata.inputs) {
+        if (input instanceof HTMLSelectElement) {
+          input.selectedIndex = 0;
+        } else if (input instanceof HTMLInputElement) {
+          input.value = "";
+        }
+      }
+    }
     hideStudentAnswersForTable(table);
   };
+  const logoutHandler = () => {
+    resetUIState();
+  };
+  const loginHandler = () => {
+    resetUIState();
+  };
   document.addEventListener("qd:logout", logoutHandler);
+  document.addEventListener("qd:login", loginHandler);
   metadata.cleanupInstructorListeners = () => {
     document.removeEventListener("qd:instructor-show-answers", showAnswersHandler);
     document.removeEventListener("qd:instructor-hide-answers", hideAnswersHandler);
     document.removeEventListener("qd:logout", logoutHandler);
+    document.removeEventListener("qd:login", loginHandler);
   };
   addClass(table, "qd-quiz-interactive");
   return true;
@@ -3159,9 +3361,9 @@ function getRemainingAttempts(serviceId) {
   }
   return Math.max(0, PIN_CONSTANTS.MAX_ATTEMPTS - state2.attempts);
 }
-var __getOwnPropDesc$e = Object.getOwnPropertyDescriptor;
-var __decorateClass$e = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$e(target, key) : target;
+var __getOwnPropDesc$f = Object.getOwnPropertyDescriptor;
+var __decorateClass$f = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$f(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = decorator(result) || result;
@@ -3169,7 +3371,7 @@ var __decorateClass$e = (decorators, target, key, kind) => {
 };
 let QdBuildInfo = class extends i$1 {
   render() {
-    const buildDate = "27/Nov/2025";
+    const buildDate = "28/Nov/2025";
     return x`
       <span class="info-icon" tabindex="0" role="button" aria-label="Build information">i</span>
       <div class="tooltip" role="tooltip">
@@ -3253,17 +3455,17 @@ QdBuildInfo.styles = i$4`
       line-height: 1.4;
     }
   `;
-QdBuildInfo = __decorateClass$e([
+QdBuildInfo = __decorateClass$f([
   t$1("qd-build-info")
 ], QdBuildInfo);
-var __defProp$d = Object.defineProperty;
-var __getOwnPropDesc$d = Object.getOwnPropertyDescriptor;
-var __decorateClass$d = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$d(target, key) : target;
+var __defProp$e = Object.defineProperty;
+var __getOwnPropDesc$e = Object.getOwnPropertyDescriptor;
+var __decorateClass$e = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$e(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$d(target, key, result);
+  if (kind && result) __defProp$e(target, key, result);
   return result;
 };
 const MODAL_STATE_KEY = "__qdModalCurrentRef__";
@@ -3547,23 +3749,23 @@ QdModal.styles = i$4`
       padding: 20px;
     }
   `;
-__decorateClass$d([
+__decorateClass$e([
   n2({ type: Boolean, reflect: true })
 ], QdModal.prototype, "open", 2);
-__decorateClass$d([
+__decorateClass$e([
   n2({ type: Boolean })
 ], QdModal.prototype, "closable", 2);
-QdModal = __decorateClass$d([
+QdModal = __decorateClass$e([
   t$1("qd-modal")
 ], QdModal);
-var __defProp$c = Object.defineProperty;
-var __getOwnPropDesc$c = Object.getOwnPropertyDescriptor;
-var __decorateClass$c = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$c(target, key) : target;
+var __defProp$d = Object.defineProperty;
+var __getOwnPropDesc$d = Object.getOwnPropertyDescriptor;
+var __decorateClass$d = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$d(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$c(target, key, result);
+  if (kind && result) __defProp$d(target, key, result);
   return result;
 };
 let QdPasswordModal = class extends i$1 {
@@ -3743,22 +3945,22 @@ QdPasswordModal.styles = i$4`
       background: #d0d0d0;
     }
   `;
-__decorateClass$c([
+__decorateClass$d([
   n2({ type: Boolean, reflect: true })
 ], QdPasswordModal.prototype, "open", 2);
-__decorateClass$c([
+__decorateClass$d([
   n2({ type: String })
 ], QdPasswordModal.prototype, "title", 2);
-__decorateClass$c([
+__decorateClass$d([
   n2({ type: String })
 ], QdPasswordModal.prototype, "error", 2);
-__decorateClass$c([
+__decorateClass$d([
   r()
 ], QdPasswordModal.prototype, "password", 2);
-__decorateClass$c([
+__decorateClass$d([
   e$2('input[type="password"]')
 ], QdPasswordModal.prototype, "passwordInput", 2);
-QdPasswordModal = __decorateClass$c([
+QdPasswordModal = __decorateClass$d([
   t$1("qd-password-modal")
 ], QdPasswordModal);
 /**
@@ -3804,14 +4006,14 @@ class e extends i2 {
 }
 e.directiveName = "unsafeHTML", e.resultType = 1;
 const o = e$1(e);
-var __defProp$b = Object.defineProperty;
-var __getOwnPropDesc$b = Object.getOwnPropertyDescriptor;
-var __decorateClass$b = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$b(target, key) : target;
+var __defProp$c = Object.defineProperty;
+var __getOwnPropDesc$c = Object.getOwnPropertyDescriptor;
+var __decorateClass$c = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$c(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$b(target, key, result);
+  if (kind && result) __defProp$c(target, key, result);
   return result;
 };
 let QdConfirmDialog = class extends i$1 {
@@ -3946,35 +4148,35 @@ QdConfirmDialog.styles = i$4`
       background: #b71c1c;
     }
   `;
-__decorateClass$b([
+__decorateClass$c([
   n2({ type: Boolean, reflect: true })
 ], QdConfirmDialog.prototype, "open", 2);
-__decorateClass$b([
+__decorateClass$c([
   n2({ type: String })
 ], QdConfirmDialog.prototype, "title", 2);
-__decorateClass$b([
+__decorateClass$c([
   n2({ type: String })
 ], QdConfirmDialog.prototype, "message", 2);
-__decorateClass$b([
+__decorateClass$c([
   n2({ type: String })
 ], QdConfirmDialog.prototype, "confirmText", 2);
-__decorateClass$b([
+__decorateClass$c([
   n2({ type: String })
 ], QdConfirmDialog.prototype, "cancelText", 2);
-__decorateClass$b([
+__decorateClass$c([
   n2({ type: Boolean })
 ], QdConfirmDialog.prototype, "destructive", 2);
-QdConfirmDialog = __decorateClass$b([
+QdConfirmDialog = __decorateClass$c([
   t$1("qd-confirm-dialog")
 ], QdConfirmDialog);
-var __defProp$a = Object.defineProperty;
-var __getOwnPropDesc$a = Object.getOwnPropertyDescriptor;
-var __decorateClass$a = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$a(target, key) : target;
+var __defProp$b = Object.defineProperty;
+var __getOwnPropDesc$b = Object.getOwnPropertyDescriptor;
+var __decorateClass$b = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$b(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$a(target, key, result);
+  if (kind && result) __defProp$b(target, key, result);
   return result;
 };
 let QdHelpTrigger = class extends i$1 {
@@ -4036,20 +4238,20 @@ QdHelpTrigger.styles = i$4`
       background: #004080;
     }
   `;
-__decorateClass$a([
+__decorateClass$b([
   n2({ type: String })
 ], QdHelpTrigger.prototype, "panelType", 2);
-QdHelpTrigger = __decorateClass$a([
+QdHelpTrigger = __decorateClass$b([
   t$1("qd-help-trigger")
 ], QdHelpTrigger);
-var __defProp$9 = Object.defineProperty;
-var __getOwnPropDesc$9 = Object.getOwnPropertyDescriptor;
-var __decorateClass$9 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$9(target, key) : target;
+var __defProp$a = Object.defineProperty;
+var __getOwnPropDesc$a = Object.getOwnPropertyDescriptor;
+var __decorateClass$a = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$a(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$9(target, key, result);
+  if (kind && result) __defProp$a(target, key, result);
   return result;
 };
 const HELP_POPUP_STYLES = `
@@ -4200,21 +4402,554 @@ let QdHelpPopup = class extends i$1 {
   }
 };
 QdHelpPopup.styleElement = null;
-__decorateClass$9([
+__decorateClass$a([
   n2({ type: Boolean, reflect: true })
 ], QdHelpPopup.prototype, "open", 2);
-__decorateClass$9([
+__decorateClass$a([
   n2({ type: String })
 ], QdHelpPopup.prototype, "title", 2);
-__decorateClass$9([
+__decorateClass$a([
   n2({ type: String })
 ], QdHelpPopup.prototype, "content", 2);
-__decorateClass$9([
+__decorateClass$a([
   r()
 ], QdHelpPopup.prototype, "_isOpen", 2);
-QdHelpPopup = __decorateClass$9([
+QdHelpPopup = __decorateClass$a([
   t$1("qd-help-popup")
 ], QdHelpPopup);
+const STORE_STUDENTS = "students";
+async function migrateObfuscation(dbName, direction, options) {
+  const startTime = performance.now();
+  const result = {
+    migrated: 0,
+    skipped: 0,
+    errors: [],
+    durationMs: 0
+  };
+  const { releaseId, dryRun = false } = options;
+  const obfKey = deriveKey(releaseId);
+  const db = await openDatabase(dbName);
+  try {
+    const allRecords = await getAllRawRecords(db);
+    for (const { key, value } of allRecords) {
+      try {
+        const currentlyObfuscated = isObfuscated(value);
+        if (direction === "encrypt") {
+          if (currentlyObfuscated) {
+            result.skipped++;
+            continue;
+          }
+          const plainRecord = value;
+          const obfuscatedValue = encode(plainRecord, obfKey);
+          if (!dryRun) {
+            await putRawRecord(db, key, obfuscatedValue);
+          }
+          result.migrated++;
+        } else {
+          if (!currentlyObfuscated) {
+            result.skipped++;
+            continue;
+          }
+          const plainRecord = decode(value, obfKey);
+          if (!dryRun) {
+            await putRawRecord(db, key, plainRecord);
+          }
+          result.migrated++;
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        result.errors.push({ key, error: errorMessage });
+        warn(`Migration error for key ${key}: ${errorMessage}`);
+      }
+    }
+  } finally {
+    db.close();
+  }
+  result.durationMs = performance.now() - startTime;
+  info(
+    `Migration complete: migrated=${result.migrated}, skipped=${result.skipped}, errors=${result.errors.length}, duration=${result.durationMs.toFixed(2)}ms`
+  );
+  return result;
+}
+async function openDatabase(dbName) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(dbName);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => {
+      error(`Failed to open database: ${request.error?.message}`);
+      reject(new Error(`Failed to open database: ${request.error?.message}`));
+    };
+  });
+}
+async function getAllRawRecords(db) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_STUDENTS, "readonly");
+    const store = transaction.objectStore(STORE_STUDENTS);
+    const request = store.openCursor();
+    const records = [];
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (cursor) {
+        const keyStr = typeof cursor.key === "string" ? cursor.key : JSON.stringify(cursor.key);
+        records.push({ key: keyStr, value: cursor.value });
+        cursor.continue();
+      } else {
+        resolve(records);
+      }
+    };
+    request.onerror = () => {
+      reject(new Error(`Failed to read records: ${request.error?.message}`));
+    };
+  });
+}
+async function putRawRecord(db, key, value) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_STUDENTS, "readwrite");
+    const store = transaction.objectStore(STORE_STUDENTS);
+    const request = store.put(value, key);
+    request.onsuccess = () => resolve();
+    request.onerror = () => {
+      reject(new Error(`Failed to save record: ${request.error?.message}`));
+    };
+  });
+}
+var __defProp$9 = Object.defineProperty;
+var __getOwnPropDesc$9 = Object.getOwnPropertyDescriptor;
+var __decorateClass$9 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$9(target, key) : target;
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result) __defProp$9(target, key, result);
+  return result;
+};
+let QdMigrationDialog = class extends i$1 {
+  constructor() {
+    super(...arguments);
+    this.open = false;
+    this.expected = "plain";
+    this.found = "plain";
+    this.dbName = "";
+    this.releaseId = "";
+    this.dialogState = "password";
+    this.password = "";
+    this.error = "";
+    this.migrationResult = null;
+    this.handleModalClose = () => {
+      this.dispatchEvent(
+        new CustomEvent("qd:migration-cancel", {
+          bubbles: true,
+          composed: true
+        })
+      );
+    };
+    this.handleInput = (e2) => {
+      const input = e2.target;
+      this.password = input.value;
+      if (this.error) {
+        this.error = "";
+      }
+    };
+    this.handleSubmit = async (e2) => {
+      e2.preventDefault();
+      if (!this.password.trim()) {
+        return;
+      }
+      const isValid = await this.validatePassword(this.password);
+      if (!isValid) {
+        if (!this.error) {
+          this.error = "Incorrect instructor password";
+        }
+        return;
+      }
+      await this.runMigration();
+    };
+    this.handleContinue = () => {
+      this.dispatchEvent(
+        new CustomEvent("qd:migration-complete", {
+          detail: this.migrationResult,
+          bubbles: true,
+          composed: true
+        })
+      );
+    };
+    this.handleCancel = () => {
+      this.dispatchEvent(
+        new CustomEvent("qd:migration-cancel", {
+          bubbles: true,
+          composed: true
+        })
+      );
+    };
+  }
+  /**
+   * Reset state when dialog opens
+   */
+  updated(changedProps) {
+    if (changedProps.has("open") && this.open) {
+      this.dialogState = "password";
+      this.password = "";
+      this.error = "";
+      this.migrationResult = null;
+      void this.updateComplete.then(() => {
+        this.passwordInput?.focus();
+      });
+    }
+  }
+  /**
+   * Validate instructor password against configured hash
+   */
+  async validatePassword(password) {
+    const hashElement = document.getElementById(CONFIG_IDS.instructorHash);
+    const expectedHash = hashElement?.textContent?.trim();
+    if (!expectedHash) {
+      this.error = "Instructor password not configured";
+      return false;
+    }
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const actualHash = hashArray.map((b2) => b2.toString(16).padStart(2, "0")).join("").substring(0, 12);
+    return actualHash === expectedHash;
+  }
+  /**
+   * Run the migration
+   */
+  async runMigration() {
+    this.dialogState = "migrating";
+    this.error = "";
+    try {
+      const direction = ENCRYPT_STORAGE ? "encrypt" : "decrypt";
+      const result = await migrateObfuscation(this.dbName, direction, {
+        releaseId: this.releaseId,
+        dryRun: false
+      });
+      if (result.errors.length > 0) {
+        this.dialogState = "error";
+        this.error = `Migration completed with ${result.errors.length} error(s). Some records may not have been migrated.`;
+        return;
+      }
+      this.migrationResult = {
+        migrated: result.migrated,
+        skipped: result.skipped
+      };
+      this.dialogState = "success";
+    } catch (err) {
+      this.dialogState = "error";
+      this.error = `Migration failed: ${err instanceof Error ? err.message : "Unknown error"}`;
+    }
+  }
+  render() {
+    return x`
+      <qd-modal .open=${this.open} @qd:modal-close=${this.handleModalClose}>
+        <span slot="header">Database Migration Required</span>
+
+        ${this.open ? this.renderContent() : E}
+      </qd-modal>
+    `;
+  }
+  renderContent() {
+    switch (this.dialogState) {
+      case "password":
+        return this.renderPasswordForm();
+      case "migrating":
+        return this.renderMigrating();
+      case "error":
+        return this.renderError();
+      case "success":
+        return this.renderSuccess();
+    }
+  }
+  renderPasswordForm() {
+    return x`
+      <div class="migration-content">
+        <div class="warning-banner">
+          <span class="warning-icon">&#9888;</span>
+          <div class="warning-text">
+            <strong>Storage format mismatch detected</strong>
+            <div class="format-info">
+              <div class="format-row">
+                <span class="format-label">Current data:</span>
+                <span class="format-value">${this.found}</span>
+              </div>
+              <div class="format-row">
+                <span class="format-label">Build expects:</span>
+                <span class="format-value">${this.expected}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p>Enter the instructor password to migrate all stored records to the new format.</p>
+
+        <form @submit=${this.handleSubmit}>
+          <div class="form-field">
+            <label for="migration-password">Instructor Password</label>
+            <input
+              id="migration-password"
+              type="password"
+              placeholder="Password"
+              .value=${this.password}
+              @input=${this.handleInput}
+              required
+              aria-label="Enter instructor password to authorize migration"
+            />
+          </div>
+
+          ${this.error ? x`<div class="error-message">${this.error}</div>` : E}
+
+          <div class="button-row">
+            <button type="button" class="secondary" @click=${this.handleCancel}>Cancel</button>
+            <button type="submit" class="primary">Migrate Database</button>
+          </div>
+        </form>
+      </div>
+    `;
+  }
+  renderMigrating() {
+    return x`
+      <div class="migration-content">
+        <div class="migrating-state">
+          <div class="spinner"></div>
+          <p>Migrating database records...</p>
+          <p class="format-info">Please wait, do not close this window.</p>
+        </div>
+      </div>
+    `;
+  }
+  renderError() {
+    return x`
+      <div class="migration-content">
+        <div class="error-message">${this.error}</div>
+
+        <div class="button-row">
+          <button type="button" class="secondary" @click=${this.handleCancel}>Cancel</button>
+          <button type="button" class="primary" @click=${() => this.dialogState = "password"}>
+            Try Again
+          </button>
+        </div>
+      </div>
+    `;
+  }
+  renderSuccess() {
+    return x`
+      <div class="migration-content">
+        <div class="success-message">
+          Migration completed successfully!<br />
+          <span class="format-info">
+            ${this.migrationResult?.migrated ?? 0} record(s) migrated,
+            ${this.migrationResult?.skipped ?? 0} already in correct format.
+          </span>
+        </div>
+
+        <div class="button-row">
+          <button type="button" class="primary" @click=${this.handleContinue}>Continue</button>
+        </div>
+      </div>
+    `;
+  }
+};
+QdMigrationDialog.styles = i$4`
+    :host {
+      display: contents;
+    }
+
+    .migration-content {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 8px 0;
+    }
+
+    .warning-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px;
+      background: #fff3cd;
+      border-radius: 4px;
+      border-left: 4px solid #ffc107;
+    }
+
+    .warning-icon {
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .warning-text {
+      flex: 1;
+    }
+
+    .warning-text strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #856404;
+    }
+
+    .format-info {
+      font-size: 13px;
+      color: #666;
+    }
+
+    .format-row {
+      display: flex;
+      gap: 8px;
+      margin: 4px 0;
+    }
+
+    .format-label {
+      font-weight: 500;
+      min-width: 100px;
+    }
+
+    .format-value {
+      font-family: monospace;
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    input[type='password'] {
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    input[type='password']:focus {
+      outline: none;
+      border-color: #0066cc;
+      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+    }
+
+    .error-message {
+      color: #d32f2f;
+      font-size: 12px;
+      padding: 8px;
+      background: #ffebee;
+      border-radius: 4px;
+      border-left: 3px solid #d32f2f;
+    }
+
+    .success-message {
+      color: #2e7d32;
+      font-size: 13px;
+      padding: 12px;
+      background: #e8f5e9;
+      border-radius: 4px;
+      border-left: 3px solid #4caf50;
+    }
+
+    .migrating-state {
+      text-align: center;
+      padding: 20px;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 3px solid #e0e0e0;
+      border-top-color: #0066cc;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 12px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .button-row {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    button.primary {
+      background: #0066cc;
+      color: white;
+    }
+
+    button.primary:hover:not(:disabled) {
+      background: #0052a3;
+    }
+
+    button.secondary {
+      background: #e0e0e0;
+      color: #333;
+    }
+
+    button.secondary:hover:not(:disabled) {
+      background: #d0d0d0;
+    }
+  `;
+__decorateClass$9([
+  n2({ type: Boolean, reflect: true })
+], QdMigrationDialog.prototype, "open", 2);
+__decorateClass$9([
+  n2({ type: String })
+], QdMigrationDialog.prototype, "expected", 2);
+__decorateClass$9([
+  n2({ type: String })
+], QdMigrationDialog.prototype, "found", 2);
+__decorateClass$9([
+  n2({ type: String })
+], QdMigrationDialog.prototype, "dbName", 2);
+__decorateClass$9([
+  n2({ type: String })
+], QdMigrationDialog.prototype, "releaseId", 2);
+__decorateClass$9([
+  r()
+], QdMigrationDialog.prototype, "dialogState", 2);
+__decorateClass$9([
+  r()
+], QdMigrationDialog.prototype, "password", 2);
+__decorateClass$9([
+  r()
+], QdMigrationDialog.prototype, "error", 2);
+__decorateClass$9([
+  r()
+], QdMigrationDialog.prototype, "migrationResult", 2);
+__decorateClass$9([
+  e$2('input[type="password"]')
+], QdMigrationDialog.prototype, "passwordInput", 2);
+QdMigrationDialog = __decorateClass$9([
+  t$1("qd-migration-dialog")
+], QdMigrationDialog);
 const HELP_CONTENT = {
   login: {
     title: "Login Help",
@@ -4256,6 +4991,9 @@ let QdLogin = class extends i$1 {
     this.lockoutSeconds = 0;
     this.showPinConfirmation = false;
     this.helpOpen = false;
+    this.showMigrationDialog = false;
+    this.migrationError = null;
+    this.pendingLoginData = null;
     this.lockoutInterval = null;
     this.handleLogoutEvent = () => {
       this.name = "";
@@ -4289,6 +5027,22 @@ let QdLogin = class extends i$1 {
     };
     this.handlePinConfirmationDismiss = () => {
       this.showPinConfirmation = false;
+    };
+    this.handleMigrationComplete = () => {
+      this.showMigrationDialog = false;
+      this.migrationError = null;
+      if (this.pendingLoginData) {
+        const { serviceId, name, release } = this.pendingLoginData;
+        this.pendingLoginData = null;
+        void this.retryLoginAfterMigration(serviceId, name, release);
+      }
+    };
+    this.handleMigrationCancel = () => {
+      this.showMigrationDialog = false;
+      this.migrationError = null;
+      this.pendingLoginData = null;
+      this.errorMessage = "Data migration cancelled. Please contact your instructor for assistance.";
+      this.isSubmitting = false;
     };
   }
   connectedCallback() {
@@ -4417,6 +5171,16 @@ let QdLogin = class extends i$1 {
         .content=${getHelpContent("login").body}
         @qd:modal-close=${this.handleHelpClose}
       ></qd-help-popup>
+
+      <qd-migration-dialog
+        .open=${this.showMigrationDialog}
+        .expected=${this.migrationError?.expected ?? "plain"}
+        .found=${this.migrationError?.found ?? "plain"}
+        .dbName=${this.pendingLoginData?.dbName ?? ""}
+        .releaseId=${this.pendingLoginData?.release ?? ""}
+        @qd:migration-complete=${this.handleMigrationComplete}
+        @qd:migration-cancel=${this.handleMigrationCancel}
+      ></qd-migration-dialog>
     `;
   }
   /**
@@ -4563,6 +5327,21 @@ let QdLogin = class extends i$1 {
       }
       this.completeLogin(serviceId, name, release);
     } catch (err) {
+      if (err instanceof StorageFormatError) {
+        const dbNameElement = document.getElementById(CONFIG_IDS.dbName);
+        const dbName = dbNameElement?.textContent?.trim() || "";
+        this.migrationError = err;
+        this.pendingLoginData = {
+          serviceId: this.serviceId.trim(),
+          name: this.name.trim(),
+          release: this.getRelease(),
+          pin: this.pin,
+          dbName
+        };
+        this.showMigrationDialog = true;
+        this.isSubmitting = false;
+        return;
+      }
       this.errorMessage = "Login failed. Please try again.";
       console.error("Student login error:", err);
       this.isSubmitting = false;
@@ -4573,6 +5352,90 @@ let QdLogin = class extends i$1 {
    */
   showPinStoredConfirmation() {
     this.showPinConfirmation = true;
+  }
+  /**
+   * Retry login after successful migration
+   */
+  async retryLoginAfterMigration(serviceId, name, release) {
+    this.isSubmitting = true;
+    this.errorMessage = "";
+    try {
+      const dbNameElement = document.getElementById(CONFIG_IDS.dbName);
+      const dbName = dbNameElement?.textContent?.trim() || "";
+      const storage = getStorageAdapter(dbName);
+      await storage.init();
+      const existingStudent = await storage.getStudent(release, serviceId);
+      if (existingStudent) {
+        if (needsMigration(existingStudent) || !hasPinSet(existingStudent)) {
+          const pinHash = await hashPin(this.pin);
+          const updatedStudent = completePinSetup(existingStudent, pinHash);
+          await storage.saveStudent(updatedStudent);
+          this.dispatchEvent(
+            new CustomEvent("qd:pin-created", {
+              detail: { serviceId, timestamp: (/* @__PURE__ */ new Date()).toISOString() },
+              bubbles: true,
+              composed: true
+            })
+          );
+          this.showPinStoredConfirmation();
+          this.completeLogin(serviceId, name, release);
+          return;
+        }
+        const isValid = await verifyPin(this.pin, existingStudent.pinHash || "");
+        if (!isValid) {
+          const state2 = recordFailedAttempt(serviceId);
+          const remaining = getRemainingAttempts(serviceId);
+          if (state2.lockoutUntil) {
+            const lockoutMs = new Date(state2.lockoutUntil).getTime() - Date.now();
+            this.startLockoutCountdown(lockoutMs);
+          } else {
+            this.errorMessage = `Incorrect PIN. ${remaining} attempt${remaining !== 1 ? "s" : ""} remaining`;
+          }
+          this.pin = "";
+          this.isSubmitting = false;
+          return;
+        }
+        clearAttemptState(serviceId);
+        this.dispatchEvent(
+          new CustomEvent("qd:pin-verified", {
+            detail: { serviceId, timestamp: (/* @__PURE__ */ new Date()).toISOString() },
+            bubbles: true,
+            composed: true
+          })
+        );
+      } else {
+        const pinHash = await hashPin(this.pin);
+        const newStudent = {
+          schema: SCHEMA_VERSION,
+          docId: "",
+          release,
+          serviceId,
+          name,
+          attempted: 0,
+          correct: 0,
+          updated: (/* @__PURE__ */ new Date()).toISOString(),
+          pages: {},
+          pinHash,
+          pinCreatedAt: (/* @__PURE__ */ new Date()).toISOString()
+        };
+        await storage.saveStudent(newStudent);
+        this.dispatchEvent(
+          new CustomEvent("qd:pin-created", {
+            detail: { serviceId, timestamp: (/* @__PURE__ */ new Date()).toISOString() },
+            bubbles: true,
+            composed: true
+          })
+        );
+        this.showPinStoredConfirmation();
+        this.completeLogin(serviceId, name, release);
+        return;
+      }
+      this.completeLogin(serviceId, name, release);
+    } catch (err) {
+      this.errorMessage = "Login failed after migration. Please try again.";
+      console.error("Post-migration login error:", err);
+      this.isSubmitting = false;
+    }
   }
   /**
    * Start lockout countdown timer
@@ -4844,6 +5707,15 @@ __decorateClass$8([
 __decorateClass$8([
   r()
 ], QdLogin.prototype, "helpOpen", 2);
+__decorateClass$8([
+  r()
+], QdLogin.prototype, "showMigrationDialog", 2);
+__decorateClass$8([
+  r()
+], QdLogin.prototype, "migrationError", 2);
+__decorateClass$8([
+  r()
+], QdLogin.prototype, "pendingLoginData", 2);
 QdLogin = __decorateClass$8([
   t$1("qd-login")
 ], QdLogin);
@@ -7185,7 +8057,7 @@ function isInitialized() {
   return state.initialized;
 }
 const VERSION = "0.1.0-phase3.1";
-const BUILD_DATE = "27/Nov/2025";
+const BUILD_DATE = "28/Nov/2025";
 if (typeof window !== "undefined") {
   const init = () => {
     const domConfig = readDOMConfig();
@@ -7209,6 +8081,7 @@ export {
   BUILD_DATE,
   DEFAULT_CONTAINERS,
   Debouncer,
+  OBFUSCATION_PREFIX,
   SCHEMA_VERSION,
   SESSION_TIMEOUT_MS,
   STORAGE_KEYS,
@@ -7217,6 +8090,9 @@ export {
   calculateCompletionState,
   cleanup,
   clearQuizData,
+  decode,
+  deriveKey,
+  encode,
   enhanceAnalysisTable,
   enhanceQuizTable,
   error,
@@ -7230,7 +8106,9 @@ export {
   isAnalysisTableEnhanced,
   isCellEditable,
   isInitialized,
+  isObfuscated,
   isQuizTableEnhanced,
+  migrateObfuscation,
   parseAnalysisTable,
   parseQuizTable,
   setJSON,

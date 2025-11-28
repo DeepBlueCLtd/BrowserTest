@@ -53,9 +53,15 @@ export declare class Debouncer {
     getPendingCount(): number;
 }
 
+export declare function decode<T extends object>(encoded: ObfuscatedString, key: string): T;
+
 export declare const DEFAULT_CONTAINERS: {
     readonly statusPanel: ".wh_top_menu_and_indexterms_link";
 };
+
+export declare function deriveKey(releaseId: string): string;
+
+export declare function encode<T extends object>(data: T, key: string): ObfuscatedString;
 
 export declare function enhanceAnalysisTable(table: HTMLTableElement, options: EnhanceAnalysisTableOptions): boolean;
 
@@ -93,7 +99,32 @@ export declare function isCellEditable(cell: HTMLTableCellElement): boolean;
 
 export declare function isInitialized(): boolean;
 
+export declare function isObfuscated(value: unknown): value is ObfuscatedString;
+
 export declare function isQuizTableEnhanced(table: HTMLTableElement): boolean;
+
+export declare function migrateObfuscation(dbName: string, direction: ObfuscationMigrationDirection, options: ObfuscationMigrationOptions): Promise<ObfuscationMigrationResult>;
+
+export declare type ObfuscatedString = `${typeof OBFUSCATION_PREFIX}${string}`;
+
+export declare const OBFUSCATION_PREFIX: "OBF:";
+
+export declare type ObfuscationMigrationDirection = 'encrypt' | 'decrypt';
+
+export declare interface ObfuscationMigrationOptions {
+    releaseId: string;
+    dryRun?: boolean;
+}
+
+export declare interface ObfuscationMigrationResult {
+    migrated: number;
+    skipped: number;
+    errors: Array<{
+        key: string;
+        error: string;
+    }>;
+    durationMs: number;
+}
 
 declare interface PageCache {
     state: CompletionState;
