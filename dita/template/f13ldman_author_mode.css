@@ -55,5 +55,25 @@
 }
 
 [outputclass='bkGreen'] {
-  background-color: #00ff00;    
+  background-color: #00ff00;
+}
+
+/*
+ * BrowserTest Quiz System - Author mode visual indicators
+ * These help content authors see which cells have special behavior
+ */
+
+/* Visual indicators for hidden quiz cells (answer + detail columns - hidden in production) */
+/* Using simpletable structure: simpletable > sthead/strow > stentry */
+/* NOTE: :nth-child may not work in Oxygen Author due to table structural selector limitations */
+simpletable[outputclass~='qd-quiz'] sthead stentry:nth-child(2),
+simpletable[outputclass~='qd-quiz'] strow stentry:nth-child(2),
+simpletable[outputclass~='qd-quiz'] sthead stentry:nth-child(3),
+simpletable[outputclass~='qd-quiz'] strow stentry:nth-child(3) {
+  background-color: rgba(255, 200, 200, 0.5);  /* Light red - hidden in prod */
+}
+
+/* Visual indicators for interactive analysis cells */
+[outputclass='interactive'] {
+  background-color: rgba(200, 255, 200, 0.5);  /* Light green - interactive */
 }
