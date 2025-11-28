@@ -555,6 +555,8 @@ function getStorageKey(release: ReleaseId, serviceId: ServiceId): string {
 - N/A (no data persistence - content from DITA config only) (008-user-guidance-popups)
 - TypeScript 5.x / ES2020+ with Lit 3.0 (Web Components) + Existing IndexedDBStorageAdapter (`src/services/storage/indexeddb.ts`) (009-encrypt-stored-data)
 - IndexedDB (primary) - obfuscation at adapter layer; sessionStorage unchanged (009-encrypt-stored-data)
+- CSS3 + TypeScript 5.x (for JS integration) + Existing DITA template CSS (`f13ldman.css`), Lit 3.x components (010-css-answer-hiding)
+- N/A (CSS-only feature) (010-css-answer-hiding)
 
 ## Recent Changes
 - 001-security-refactor: Added TypeScript 5.x / JavaScript ES2020+ + Lit 3.0 (Web Components), Vite 5.x (build), Vitest (testing)

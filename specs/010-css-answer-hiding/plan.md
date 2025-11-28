@@ -1,110 +1,174 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: CSS-Based Quiz Answer Hiding
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `010-css-answer-hiding` | **Date**: 2025-11-28 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/010-css-answer-hiding/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Hide quiz answer/detail columns via CSS before JavaScript executes, preventing answer visibility when JS is disabled or during page load. CSS already partially implemented in `f13ldman.css`. Need to add override rules for student/instructor modes and author mode visual indicators.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: CSS3 + TypeScript 5.x (for JS integration)
+**Primary Dependencies**: Existing DITA template CSS (`f13ldman.css`), Lit 3.x components
+**Storage**: N/A (CSS-only feature)
+**Testing**: Vitest (unit), Playwright (E2E)
+**Target Platform**: Chrome/Edge 96+, Firefox 102+ (offline, file:// protocol)
+**Project Type**: Single project (browser extension pattern)
+**Performance Goals**: No layout shift on column reveal
+**Constraints**: Bundle size ≤40KB, works offline from file:// URLs
+**Scale/Scope**: Single page quiz tables
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- [ ] **Offline-First**: Feature works completely offline, no network dependencies
-- [ ] **Progressive Enhancement**: Enhances existing HTML without breaking functionality
-- [ ] **Test-Driven Development**: Tests written first, Red-Green-Refactor cycle planned
-- [ ] **Phase-Gated Delivery**: Clear exit criteria defined for each implementation phase
-- [ ] **Performance Constraints**: Within 25KB bundle limit, <200ms operations
-- [ ] **Data Isolation**: Local storage only, proper key namespacing
-- [ ] **Zero Configuration**: No setup required beyond script inclusion
+- [x] **Offline-First**: CSS loaded from local template file, no network required
+- [x] **Progressive Enhancement**: CSS hides by default, JS reveals when appropriate
+- [x] **Test-Driven Development**: Tests will verify CSS visibility behavior
+- [x] **Phase-Gated Delivery**: Single-phase implementation with test verification
+- [x] **Performance Constraints**: CSS-only, no bundle impact
+- [x] **Data Isolation**: N/A (no data storage)
+- [x] **Zero Configuration**: CSS in template file, no setup required
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/010-css-answer-hiding/
+├── plan.md              # This file
+├── research.md          # Phase 0 output
+├── data-model.md        # N/A - CSS-only feature
+├── quickstart.md        # Phase 1 output
+├── contracts/           # N/A - no API contracts
+└── tasks.md             # Phase 2 output (/speckit.tasks)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
+dita/template/
+├── f13ldman.css              # Production CSS (hiding + overrides)
+└── f13ldman_author_mode.css  # Author visual indicators
+
+dita-demo/oxygen-webhelp/template/
+└── f13ldman.css              # Demo copy (synced from dita/template)
+
+src/init/
+└── bootstrap.ts              # May need qd-quiz-instructor class
 
 tests/
-├── contract/
 ├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+│   └── quiz-table.test.ts    # Verify CSS visibility behavior
+└── e2e/
+    └── workflows/
+        ├── dita-student-flow.spec.ts
+        └── instructor-dynamic-reveal.spec.ts
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: CSS-only changes in DITA template, minimal JS changes in bootstrap.ts if needed for instructor class.
+
+## Current State Analysis
+
+**Already Implemented** (in `dita/template/f13ldman.css` lines 584-586):
+```css
+/* hide the answer and details cells */
+.qd-quiz td:nth-child(2), .qd-quiz td:nth-child(3) {
+  visibility: hidden;  /* avoids layout shift */
+}
+```
+
+**Missing**:
+1. Header cells not hidden (th elements)
+2. Override rules for student interactive mode
+3. Override rules for instructor mode
+4. Author mode visual indicators in `f13ldman_author_mode.css`
+5. Sync to `dita-demo/oxygen-webhelp/template/f13ldman.css`
+
+## Implementation Approach
+
+### CSS Rules to Add
+
+**1. Complete Base Hiding** (update existing in `f13ldman.css`):
+```css
+/* Hide answer and detail columns in quiz tables */
+.qd-quiz td:nth-child(2), .qd-quiz td:nth-child(3),
+.qd-quiz th:nth-child(2), .qd-quiz th:nth-child(3) {
+  visibility: hidden;
+}
+```
+
+**2. Student Interactive Mode Override** (add to `f13ldman.css`):
+```css
+/* Student mode: reveal answer column for input controls */
+.qd-quiz-interactive td:nth-child(2),
+.qd-quiz-interactive th:nth-child(2) {
+  visibility: visible;
+}
+```
+
+**3. Instructor Mode Override** (add to `f13ldman.css`):
+```css
+/* Instructor mode: reveal both answer and detail columns */
+.qd-quiz-instructor td:nth-child(2), .qd-quiz-instructor td:nth-child(3),
+.qd-quiz-instructor th:nth-child(2), .qd-quiz-instructor th:nth-child(3) {
+  visibility: visible;
+}
+```
+
+**4. Author Mode Indicators** (add to `f13ldman_author_mode.css`):
+```css
+/* Visual indicators for hidden quiz cells (answer column) */
+[outputclass~='qd-quiz'] entry:nth-child(2) {
+  background-color: rgba(255, 200, 200, 0.5);  /* Light red - hidden in prod */
+}
+
+/* Visual indicators for hidden quiz cells (detail column) */
+[outputclass~='qd-quiz'] entry:nth-child(3) {
+  background-color: rgba(255, 200, 200, 0.5);  /* Light red - hidden in prod */
+}
+
+/* Visual indicators for interactive analysis cells */
+[outputclass~='interactive'] {
+  background-color: rgba(200, 255, 200, 0.5);  /* Light green - interactive */
+}
+```
+
+### JavaScript Changes
+
+**bootstrap.ts** - Add `qd-quiz-instructor` class when instructor logs in:
+
+Check if `revealQuizAnswersForInstructor()` function already adds this class. If not, add:
+```typescript
+quizTables.forEach((table) => {
+  table.classList.add('qd-quiz-instructor');
+  // ... existing code
+});
+```
+
+### Test Verification
+
+1. Run existing tests - should pass with CSS overrides
+2. Verify student inputs visible after login
+3. Verify instructor sees all columns
+4. Visual check in demo for no layout shift
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+No constitution violations. Simple CSS-only feature with minimal JS integration.
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+## Files to Modify
+
+| File | Change |
+|------|--------|
+| `dita/template/f13ldman.css` | Add th hiding, student/instructor overrides |
+| `dita/template/f13ldman_author_mode.css` | Add author visual indicators |
+| `dita-demo/oxygen-webhelp/template/f13ldman.css` | Sync from dita/template |
+| `src/init/bootstrap.ts` | Add `qd-quiz-instructor` class (if needed) |
+
+## Risk Assessment
+
+- **Low**: CSS changes are additive, existing JS hiding continues to work
+- **Low**: `visibility: hidden` preserves layout, no shift concerns
+- **Low**: Tests check class presence, CSS is transparent to them
