@@ -332,6 +332,9 @@ function revealQuizAnswersForInstructor(): void {
     // Update metadata with pageId
     metadata.pageId = pageId;
 
+    // Add instructor class for CSS visibility override
+    table.classList.add('qd-quiz-instructor');
+
     // Remove qd-hidden class from answer column (column 1)
     const answerCells = table.querySelectorAll('td:nth-child(2), th:nth-child(2)');
     answerCells.forEach((cell) => {
@@ -377,18 +380,18 @@ function revealQuizAnswersForInstructor(): void {
  * Called during bootstrap to handle page navigation with active session
  */
 async function checkExistingSessionAndUpgradeTables(): Promise<void> {
-  // Check if session exists
-  const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
-  if (!session) {
-    info('No existing session, tables remain in non-interactive mode');
-    return;
-  }
-
-  // Check if instructor mode - instructors don't need interactive tables
+  // Check if instructor mode FIRST - instructors don't need student session
   const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
   if (isInstructor) {
     info('Instructor session detected, revealing answers in non-interactive tables');
     revealQuizAnswersForInstructor();
+    return;
+  }
+
+  // Check if student session exists
+  const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
+  if (!session) {
+    info('No existing session, tables remain in non-interactive mode');
     return;
   }
 

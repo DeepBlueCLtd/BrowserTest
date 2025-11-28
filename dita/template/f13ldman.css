@@ -579,3 +579,26 @@ td.interactive {
 * Style changes for Fi3ldMan project above this block
 * ==============================================
 */
+
+/* hide the answer and details cells in BrowserTest (td and th for complete hiding) */
+.qd-quiz td:nth-child(2), .qd-quiz td:nth-child(3),
+.qd-quiz th:nth-child(2), .qd-quiz th:nth-child(3) {
+  visibility: hidden;  /* avoids layout shift */
+}
+
+/* Student mode: reveal answer column for input controls */
+.qd-quiz-interactive td:nth-child(2),
+.qd-quiz-interactive th:nth-child(2) {
+  visibility: visible;
+}
+
+/* Instructor mode: reveal both answer and detail columns */
+.qd-quiz-instructor td:nth-child(2), .qd-quiz-instructor td:nth-child(3),
+.qd-quiz-instructor th:nth-child(2), .qd-quiz-instructor th:nth-child(3) {
+  visibility: visible;
+}
+
+/* Instructor mode: ensure student answers display is visible (child of hidden cell) */
+.qd-quiz-instructor .qd-student-answers {
+  visibility: visible;
+}
