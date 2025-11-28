@@ -52,7 +52,10 @@
       "Bash(git stash:*)",
       "Bash(git rebase:*)",
       "Bash(git -C /Users/ian/git/BrowserTest status)",
-      "Bash(npm run copy-to-dita:*)"
+      "Bash(npm run copy-to-dita:*)",
+      "Bash(gh release view:*)",
+      "Bash(gh release download:*)",
+      "Bash(unzip:*)"
     ],
     "deny": [],
     "ask": []
