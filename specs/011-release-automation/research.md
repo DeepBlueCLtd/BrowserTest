@@ -13,7 +13,7 @@
 - Most popular and well-maintained action for GitHub releases (17k+ stars)
 - Supports automatic changelog generation from git commits
 - Handles asset uploads (bundle artifacts)
-- Provides tag creation and version management
+- Works seamlessly with tag-triggered workflows
 - Alternative: manual `gh release create` commands would work but require more scripting
 
 **Alternatives Considered**:
@@ -21,40 +21,44 @@
 - Manual `gh` CLI: More flexible but requires more maintenance
 - `release-drafter/release-drafter`: Better for draft-based workflows, overkill here
 
-### 2. Version Inference from Commits
+### 2. Workflow Trigger Mechanism
 
-**Decision**: Use simple shell script to parse conventional commits
-
-**Rationale**:
-- Project already uses conventional commit format (verified: `feat:`, `fix:` prefixes in git log)
-- Shell-based parsing is lightweight and doesn't add npm dependencies
-- Logic: Any `feat:` since last tag → minor bump; only `fix:` → patch; `BREAKING CHANGE:` or `!:` → major
-- Falls back to patch for unrecognized prefixes
-
-**Alternatives Considered**:
-- `conventional-changelog/standard-version`: Full npm package, overkill for our needs
-- `semantic-release`: Too complex, adds many dependencies
-- `release-please`: Google's solution, good but heavyweight
-
-### 3. Workflow Trigger Mechanism
-
-**Decision**: Use `workflow_dispatch` with optional version input
+**Decision**: Use tag push trigger with pattern matching for `v*` tags
 
 **Rationale**:
-- Manual trigger gives control over release timing
-- Input field allows version override when automatic inference isn't desired
-- No accidental releases from push events
-- Matches existing workflow patterns in project
+- User preference: pushing a tag like `v0.1.5` triggers the release
+- Simple and intuitive - version is explicit in the tag
+- No need for version inference from commits
+- Matches common open-source project patterns
 
-**Example**:
+**Implementation**:
 ```yaml
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version (leave blank for auto-detect from commits)'
-        required: false
-        type: string
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+```
+
+This pattern matches:
+- `v0.1.5` ✓
+- `v1.0.0` ✓
+- `v10.20.30` ✓
+- `v1.0` ✗ (invalid - must have 3 parts)
+- `release-1.0.0` ✗ (must start with 'v')
+
+### 3. Version Extraction from Tag
+
+**Decision**: Extract version from `GITHUB_REF_NAME` environment variable
+
+**Rationale**:
+- GitHub Actions provides the tag name directly
+- Strip leading 'v' for package.json update: `${GITHUB_REF_NAME#v}`
+- No complex parsing needed
+
+**Example**:
+```bash
+# Tag: v0.1.5
+VERSION=${GITHUB_REF_NAME#v}  # Results in: 0.1.5
 ```
 
 ### 4. CI Check Enforcement
@@ -63,7 +67,7 @@ on:
 
 **Rationale**:
 - Ensures all tests pass before any release artifacts are created
-- Prevents partial releases if tests fail
+- Prevents invalid releases if tests fail
 - Uses same jobs as ci.yml (lint, test, build) as reusable steps
 - Only proceeds to release creation if all checks pass
 
@@ -86,22 +90,20 @@ on:
 
 ### 6. Package.json Version Update
 
-**Decision**: Update package.json version and commit during release
+**Decision**: Update package.json to match tag version and commit back to main
 
 **Rationale**:
-- Keeps package.json in sync with git tags
+- Keeps package.json in sync with git tags (tag is source of truth)
 - Standard practice for JS projects
 - Commit message: `chore(release): v{version}`
 - Pushed to main branch after successful release
 
 **Workflow sequence**:
-1. Calculate new version
-2. Update package.json
-3. Commit version bump
-4. Create git tag
-5. Build with new version
-6. Create GitHub Release with assets
-7. Push commit and tag
+1. Tag triggers workflow
+2. Run CI checks (lint, test, build)
+3. Update package.json version to match tag
+4. Commit version update to main
+5. Create GitHub Release with assets
 
 ### 7. Release Notes Generation
 
@@ -115,4 +117,4 @@ on:
 
 ## No Further Clarifications Needed
 
-All technical decisions resolved. Ready for Phase 1 artifacts.
+All technical decisions resolved. Ready for implementation.

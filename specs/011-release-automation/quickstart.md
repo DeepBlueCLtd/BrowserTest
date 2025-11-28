@@ -2,33 +2,40 @@
 
 ## Creating a Release
 
-### Via GitHub UI (Recommended)
+### Via Git Tag (Recommended)
 
-1. Go to **Actions** → **Release** workflow
-2. Click **Run workflow**
-3. Optional: Enter specific version (e.g., `1.2.0`) or leave blank for auto-detect
-4. Click **Run workflow** button
-5. Wait for workflow to complete (~3-5 minutes)
-6. New release appears at **Releases** with attached bundle
+```bash
+# 1. Ensure you're on main branch with latest changes
+git checkout main
+git pull origin main
+
+# 2. Create and push a version tag
+git tag v0.1.5
+git push origin v0.1.5
+
+# 3. Watch the release workflow
+# GitHub Actions automatically triggers on tag push
+# Release appears at Releases page in ~3-5 minutes
+```
 
 ### Via GitHub CLI
 
 ```bash
-# Auto-detect version from commits
-gh workflow run release.yml
-
-# Specify version explicitly
-gh workflow run release.yml -f version=1.2.0
+# Create and push tag in one command
+gh release create v0.1.5 --generate-notes
 ```
 
-## Version Bumping Rules
+**Note**: The workflow triggers automatically when you push a `vX.Y.Z` tag. No manual workflow dispatch needed.
 
-| Commit Type | Version Bump | Example |
-|-------------|--------------|---------|
-| `feat:` | Minor (0.X.0) | `feat: add new quiz type` |
-| `fix:` | Patch (0.0.X) | `fix: correct score calculation` |
-| `BREAKING CHANGE:` | Major (X.0.0) | `feat!: change API` |
-| Other | Patch | `docs: update readme` |
+## Version Format
+
+Tags MUST follow semantic versioning format: `vX.Y.Z`
+
+| Valid | Invalid |
+|-------|---------|
+| `v0.1.5` | `0.1.5` (missing 'v') |
+| `v1.0.0` | `v1.0` (missing patch) |
+| `v10.20.30` | `release-1.0.0` (wrong prefix) |
 
 ## What Gets Released
 
@@ -39,18 +46,42 @@ gh workflow run release.yml -f version=1.2.0
 ## Workflow Diagram
 
 ```
-trigger → lint → test → build → version-bump → tag → release
+tag push → lint → test → build → release
                            ↓
                     artifact upload
+                           ↓
+                    package.json sync
 ```
 
 ## Troubleshooting
 
-### "No commits since last release"
-Release is blocked. Make some changes first.
+### Tag pushed but no release created
+- Check tag format matches `vX.Y.Z` pattern
+- Verify tag was pushed to origin: `git ls-remote --tags origin`
+- Check Actions tab for workflow failures
 
-### Workflow fails mid-way
-No partial release created. Fix the issue and re-run.
+### CI checks failing
+Release won't be created if lint, tests, or build fail. Fix the issues on main first, delete the tag, then re-tag.
+
+```bash
+# Delete remote tag
+git push --delete origin v0.1.5
+
+# Delete local tag
+git tag -d v0.1.5
+
+# Fix issues, then re-tag
+git tag v0.1.5
+git push origin v0.1.5
+```
 
 ### Want to re-release same version
-Delete the tag first: `git push --delete origin v1.2.0`
+Delete the existing release and tag first:
+
+```bash
+# Delete release via CLI
+gh release delete v0.1.5
+
+# Delete remote tag
+git push --delete origin v0.1.5
+```
