@@ -51,7 +51,8 @@
       "Bash(npm run test:e2e:headed:*)",
       "Bash(git stash:*)",
       "Bash(git rebase:*)",
-      "Bash(git -C /Users/ian/git/BrowserTest status)"
+      "Bash(git -C /Users/ian/git/BrowserTest status)",
+      "Bash(npm run copy-to-dita:*)"
     ],
     "deny": [],
     "ask": []
