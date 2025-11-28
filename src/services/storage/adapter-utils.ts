@@ -179,3 +179,31 @@ export class StorageQuotaError extends StorageError {
     this.name = 'StorageQuotaError';
   }
 }
+
+/**
+ * Error thrown when storage format doesn't match ENCRYPT_STORAGE setting
+ *
+ * This indicates a mismatch between the stored data format and the
+ * current obfuscation configuration. Run migration to resolve.
+ */
+export class StorageFormatError extends StorageError {
+  /** What format was expected based on ENCRYPT_STORAGE */
+  public readonly expected: 'obfuscated' | 'plain';
+  /** What format was actually found in storage */
+  public readonly found: 'obfuscated' | 'plain';
+  /** Storage key where mismatch occurred */
+  public readonly storageKey: string;
+
+  constructor(
+    message: string,
+    expected: 'obfuscated' | 'plain',
+    found: 'obfuscated' | 'plain',
+    storageKey: string,
+  ) {
+    super(message, 'formatCheck');
+    this.name = 'StorageFormatError';
+    this.expected = expected;
+    this.found = found;
+    this.storageKey = storageKey;
+  }
+}

@@ -62,6 +62,22 @@ export { Debouncer } from './utils/debouncer.js';
 export { getJSON, setJSON, clearQuizData } from './utils/storage-helpers.js';
 export { info, warn, error } from './utils/logger.js';
 
+// Export obfuscation utilities for console access
+export { migrateObfuscation } from './services/storage/obfuscation-migration.js';
+export type {
+  ObfuscationMigrationResult,
+  ObfuscationMigrationDirection,
+  ObfuscationMigrationOptions,
+} from './services/storage/obfuscation-migration.js';
+export {
+  deriveKey,
+  encode,
+  decode,
+  isObfuscated,
+  OBFUSCATION_PREFIX,
+} from './services/storage/obfuscation.js';
+export type { ObfuscatedString } from './services/storage/obfuscation.js';
+
 // Export bootstrap (Phase 3)
 export { bootstrap, cleanup, isInitialized } from './init/bootstrap.js';
 export type { BootstrapConfig } from './init/bootstrap.js';

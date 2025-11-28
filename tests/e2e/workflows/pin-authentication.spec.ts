@@ -198,20 +198,31 @@ test.describe('PIN Authentication', () => {
       // Click Reset PINs button (pierce shadow DOM)
       await page.locator('qd-instructor >> button:has-text("Reset PINs")').click();
 
-      // Wait for reset dialog overlay (in document.body)
-      const resetOverlay = page.locator('.qd-pin-reset-overlay');
-      await expect(resetOverlay).toBeVisible({ timeout: 2000 });
+      // Wait for PIN reset dialog to open (qd-modal moves to body when opened,
+      // so we look for a modal with the "Reset Student PIN" header content)
+      const resetDialogModal = page.locator('qd-modal[open]').filter({ hasText: 'Reset Student PIN' });
+      await expect(resetDialogModal).toBeVisible({ timeout: 2000 });
+
+      // Verify dialog content is rendered (search input visible)
+      await expect(page.locator('.search-input')).toBeVisible();
 
       // Close dialog with Escape key
       await page.keyboard.press('Escape');
 
       // Verify dialog closed
-      await expect(resetOverlay).not.toBeVisible({ timeout: 2000 });
+      await expect(resetDialogModal).not.toBeVisible({ timeout: 2000 });
     });
   });
 
   test.describe('T049 - Migration for Existing Students', () => {
+    // This test writes plain data to IndexedDB - only works when ENCRYPT_STORAGE=false
+    // The v1→v2 schema migration is also tested in unit/integration tests
     test('should prompt for PIN creation when v1 student logs in', async ({ page }) => {
+      // Skip when encryption is enabled (plain data would cause format mismatch error)
+      test.skip(
+        process.env.ENCRYPT_STORAGE === 'true',
+        'Skipped when ENCRYPT_STORAGE=true (test writes plain data)',
+      );
       // Create a v1 student directly in IndexedDB (no PIN)
       await page.evaluate(async () => {
         return new Promise<void>((resolve, reject) => {

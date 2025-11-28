@@ -11,7 +11,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:encrypted": "ENCRYPT_STORAGE=true npm run build",
     "build:dita": "npm run build && npm run copy-to-dita",
+    "build:dita:encrypted": "npm run build:encrypted && npm run copy-to-dita",
     "copy-to-dita": "cp dist/sonar-quiz.iife.* dita/template/resources/ && cp dist/sonar-quiz.iife.* dita-demo/oxygen-webhelp/template/resources/",
     "update-dita-demo": "rm -rf dita-demo && mkdir -p dita-demo && cp -r dita/out/oxygen/* dita-demo/",
     "typecheck": "tsc --noEmit",
@@ -20,6 +22,8 @@
     "test:unit": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:e2e": "playwright test",
+    "test:e2e:encrypted": "ENCRYPT_STORAGE=true playwright test",
+    "test:e2e:all": "npm run test:e2e && npm run test:e2e:encrypted",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:ui": "playwright test --ui",

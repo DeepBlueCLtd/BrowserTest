@@ -13,9 +13,13 @@ export default defineConfig(({ command, mode }) => {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const buildDate = `${day}/${months[now.getMonth()]}/${now.getFullYear()}`;
 
+  // Read ENCRYPT_STORAGE from environment (default: false)
+  const encryptStorage = process.env.ENCRYPT_STORAGE === 'true';
+
   return {
     define: {
       __BUILD_DATE__: JSON.stringify(buildDate),
+      __ENCRYPT_STORAGE__: JSON.stringify(encryptStorage),
     },
     plugins: [
       // Only generate declaration files during library build, not Storybook

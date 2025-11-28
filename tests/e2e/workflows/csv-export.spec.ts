@@ -29,11 +29,19 @@ async function waitForBootstrap(page: Page): Promise<void> {
  * Close PIN confirmation dialog if visible
  */
 async function closePinConfirmationDialog(page: Page): Promise<void> {
-  try {
-    await page.locator('#qd-pin-confirmation-ok').click({ force: true, timeout: 500 });
-  } catch {
-    // Dialog not visible or already closed, ignore
-  }
+  // Wait for any modal animation
+  await page.waitForTimeout(200);
+
+  // Force close any open modal by removing its open attribute
+  await page.evaluate(() => {
+    const modals = document.querySelectorAll('qd-modal[open], qd-confirm-dialog[open]');
+    modals.forEach((modal) => {
+      modal.removeAttribute('open');
+    });
+  });
+
+  // Wait for modal to close
+  await page.waitForTimeout(100);
 }
 
 /**
