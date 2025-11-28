@@ -306,27 +306,52 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
     void showStudentAnswersForTable(table, metadata);
   }
 
-  // Add logout listener to clear student-specific UI state (FR-001, FR-002)
-  const logoutHandler = () => {
+  // Reset UI state - used on both logout and login (new user)
+  const resetUIState = () => {
     // Clear student-specific color-coded feedback
     const answerCells = table.querySelectorAll('td.qd-answer-correct, td.qd-answer-incorrect');
     answerCells.forEach((cell) => {
       removeClass(cell, 'qd-answer-correct', 'qd-answer-incorrect');
     });
 
+    // Reset input values to default state
+    if (metadata.inputs) {
+      for (const input of metadata.inputs) {
+        if (input instanceof HTMLSelectElement) {
+          // Reset select to first option ("Select an answer...")
+          input.selectedIndex = 0;
+        } else if (input instanceof HTMLInputElement) {
+          // Clear text input
+          input.value = '';
+        }
+      }
+    }
+
     // Clear any displayed student answers
     hideStudentAnswersForTable(table);
+  };
 
+  // Add logout listener to clear student-specific UI state (FR-001, FR-002)
+  const logoutHandler = () => {
+    resetUIState();
     info('Cleared student UI state from quiz table on logout');
   };
 
+  // Add login listener to reset UI for new user (handles migration retry case)
+  const loginHandler = () => {
+    resetUIState();
+    info('Reset quiz table UI on login');
+  };
+
   document.addEventListener('qd:logout', logoutHandler);
+  document.addEventListener('qd:login', loginHandler);
 
   // Store cleanup function in metadata
   metadata.cleanupInstructorListeners = () => {
     document.removeEventListener('qd:instructor-show-answers', showAnswersHandler);
     document.removeEventListener('qd:instructor-hide-answers', hideAnswersHandler);
     document.removeEventListener('qd:logout', logoutHandler);
+    document.removeEventListener('qd:login', loginHandler);
   };
 
   addClass(table, 'qd-quiz-interactive');
