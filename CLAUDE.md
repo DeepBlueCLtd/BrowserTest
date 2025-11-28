@@ -557,6 +557,8 @@ function getStorageKey(release: ReleaseId, serviceId: ServiceId): string {
 - IndexedDB (primary) - obfuscation at adapter layer; sessionStorage unchanged (009-encrypt-stored-data)
 - CSS3 + TypeScript 5.x (for JS integration) + Existing DITA template CSS (`f13ldman.css`), Lit 3.x components (010-css-answer-hiding)
 - N/A (CSS-only feature) (010-css-answer-hiding)
+- YAML (GitHub Actions workflows), Bash (scripts) + GitHub Actions (actions/checkout, actions/setup-node, softprops/action-gh-release) (011-release-automation)
+- N/A (CI/CD infrastructure only) (011-release-automation)
 
 ## Recent Changes
 - 001-security-refactor: Added TypeScript 5.x / JavaScript ES2020+ + Lit 3.0 (Web Components), Vite 5.x (build), Vitest (testing)
