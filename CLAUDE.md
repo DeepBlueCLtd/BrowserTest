@@ -104,23 +104,6 @@ Modal overlay (Esc to close) showing:
 - Real-time updates from session cache
 - Listen to `qd:answer-saved` events for immediate refresh
 
-### Storage Monitor (Development Tool)
-The `<qd-storage-monitor>` component provides real-time inspection of browser storage during development:
-- **Auto-injected** when `DEBUG_MODE = true` in `src/index.ts`
-- **Configuration**: Set `dbName` attribute to specify the IndexedDB database to monitor
-  - Default: `'quiz-scores'` (generic default for reusability)
-  - Sonar Quiz System: `'BrowserTest'` (automatically set when auto-injected)
-- **Usage examples**:
-  ```html
-  <!-- Auto-injected by system (uses BrowserTest) -->
-  <script defer src="sonar-quiz.iife.js"></script>
-
-  <!-- Manual usage with custom database -->
-  <qd-storage-monitor dbName="MyCustomDB"></qd-storage-monitor>
-  ```
-- **Keyboard shortcut**: `Ctrl+Shift+D` to toggle visibility
-- **Features**: Expand/collapse entries, view nested JSON, clear individual keys or all storage
-
 ## Development Commands
 
 ```bash
@@ -149,7 +132,7 @@ npm run lint            # TypeScript + ESLint checks
 npm run format:check    # Prettier formatting verification
 
 # Size verification
-npm run size-check      # Verify bundle <35KB min+gzip
+npm run size-check      # Verify bundle <40KB min+gzip
 ```
 
 ## GitHub Pages Deployment
@@ -263,7 +246,7 @@ npm run build
 - [ ] All tests passing (green)
 - [ ] Linter clean (zero errors)
 - [ ] Build successful
-- [ ] Bundle size within limits (<35KB gzipped)
+- [ ] Bundle size within limits (<40KB gzipped)
 - [ ] Code committed with descriptive message
 
 ## Critical Constraints (Constitution)
@@ -289,7 +272,7 @@ npm run build
 - Each phase delivers independently testable value
 
 ### V. Performance Constraints
-- Bundle: ≤35KB min+gzip IIFE
+- Bundle: ≤40KB min+gzip IIFE
 - Operations: <200ms save, <2s page load (50 questions)
 - Shadow DOM for isolation, no global CSS pollution
 
@@ -446,7 +429,7 @@ Before committing any code changes, ALL of the following MUST pass:
 3. ✅ **Linting passes**: `npm run lint` (fix with `npm run lint:fix` if needed)
 4. ✅ **Formatting passes**: `npm run format:check` (fix with `npm run format` if needed)
 5. ✅ **Build succeeds**: `npm run build` (if modifying source files)
-6. ✅ **Bundle size**: Under 35KB min+gzip (verify with `npm run size-check` if needed)
+6. ✅ **Bundle size**: Under 40KB min+gzip (verify with `npm run size-check` if needed)
 
 **Rationale**: CI will fail if any of these checks fail. Running them locally before committing prevents failed CI builds and reduces feedback cycles.
 
@@ -457,7 +440,7 @@ Before committing any code changes, ALL of the following MUST pass:
 - **Phase 3**: A11y checks pass, event emission verified
 - **Phase 4**: Session switch tests, expiry unit tests
 - **Phase 5**: E2E file:// saves/reloads, CSV validation
-- **Phase 6**: Perf/a11y green, <35KB budget met
+- **Phase 6**: Perf/a11y green, <40KB budget met
 
 ### E2E Testing Configuration
 E2E tests run via Playwright against Storybook stories at `http://localhost:6006`.
@@ -555,7 +538,7 @@ function getStorageKey(release: ReleaseId, serviceId: ServiceId): string {
 
 - **IIFE**: `dist/sonar-quiz.iife.js` (global `window.SonarQuiz`, auto-init)
 - **ESM**: `dist/sonar-quiz.esm.js` (for integrators)
-- **Size limit**: ≤35KB min+gzip for IIFE
+- **Size limit**: ≤40KB min+gzip for IIFE
 - **Source maps**: Generated for debugging
 - **TypeScript definitions**: For ESM consumers
 

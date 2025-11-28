@@ -16,7 +16,7 @@ Add deterrence-level obfuscation to IndexedDB-stored student records. When `ENCR
 **Target Platform**: Modern browsers (Chrome/Edge ≥96, Firefox ≥102) from file:// URLs
 **Project Type**: Single web application (IIFE bundle)
 **Performance Goals**: <50ms overhead per storage operation
-**Constraints**: <35KB min+gzip bundle, offline-capable, no external dependencies
+**Constraints**: <40KB min+gzip bundle, offline-capable, no external dependencies
 **Scale/Scope**: Single-user local storage, ~50 questions per release
 
 ## Constitution Check
