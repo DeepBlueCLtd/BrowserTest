@@ -268,6 +268,9 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
     const input = createQuestionInput(question, existingAnswer);
     inputs.push(input);
 
+    // Clear answer cell styling from any previous user session
+    removeClass(answerCell, 'qd-answer-correct', 'qd-answer-incorrect');
+
     // Clear answer cell and inject input
     answerCell.textContent = '';
     answerCell.appendChild(input);
