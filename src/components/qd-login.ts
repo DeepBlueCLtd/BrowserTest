@@ -39,7 +39,9 @@ import './qd-password-modal.js';
 import './qd-confirm-dialog.js';
 import './qd-help-trigger.js';
 import './qd-help-popup.js';
+import './qd-migration-dialog.js';
 import { getHelpContent } from '../config/help-content.js';
+import { StorageFormatError } from '../services/storage/adapter-utils.js';
 
 /**
  * Login event data
@@ -121,6 +123,30 @@ export class QdLogin extends LitElement {
    */
   @state()
   private helpOpen = false;
+
+  /**
+   * Whether migration dialog is shown
+   */
+  @state()
+  private showMigrationDialog = false;
+
+  /**
+   * Storage format error that triggered migration dialog
+   */
+  @state()
+  private migrationError: StorageFormatError | null = null;
+
+  /**
+   * Pending login data to retry after migration
+   */
+  @state()
+  private pendingLoginData: {
+    serviceId: string;
+    name: string;
+    release: string;
+    pin: string;
+    dbName: string;
+  } | null = null;
 
   /**
    * Lockout countdown interval
@@ -418,6 +444,16 @@ export class QdLogin extends LitElement {
         .content=${getHelpContent('login').body}
         @qd:modal-close=${this.handleHelpClose}
       ></qd-help-popup>
+
+      <qd-migration-dialog
+        .open=${this.showMigrationDialog}
+        .expected=${this.migrationError?.expected ?? 'plain'}
+        .found=${this.migrationError?.found ?? 'plain'}
+        .dbName=${this.pendingLoginData?.dbName ?? ''}
+        .releaseId=${this.pendingLoginData?.release ?? ''}
+        @qd:migration-complete=${this.handleMigrationComplete}
+        @qd:migration-cancel=${this.handleMigrationCancel}
+      ></qd-migration-dialog>
     `;
   }
 
@@ -632,6 +668,25 @@ export class QdLogin extends LitElement {
       // Complete the login
       this.completeLogin(serviceId, name, release);
     } catch (err) {
+      // Check for storage format mismatch
+      if (err instanceof StorageFormatError) {
+        // Get dbName for migration
+        const dbNameElement = document.getElementById(CONFIG_IDS.dbName);
+        const dbName = dbNameElement?.textContent?.trim() || '';
+
+        this.migrationError = err;
+        this.pendingLoginData = {
+          serviceId: this.serviceId.trim(),
+          name: this.name.trim(),
+          release: this.getRelease(),
+          pin: this.pin,
+          dbName,
+        };
+        this.showMigrationDialog = true;
+        this.isSubmitting = false;
+        return;
+      }
+
       this.errorMessage = 'Login failed. Please try again.';
       console.error('Student login error:', err);
       this.isSubmitting = false;
@@ -650,6 +705,138 @@ export class QdLogin extends LitElement {
    */
   private handlePinConfirmationDismiss = (): void => {
     this.showPinConfirmation = false;
+  };
+
+  /**
+   * Handle migration complete - retry login with pending data
+   */
+  private handleMigrationComplete = (): void => {
+    this.showMigrationDialog = false;
+    this.migrationError = null;
+
+    // Retry login with pending data
+    if (this.pendingLoginData) {
+      const { serviceId, name, release } = this.pendingLoginData;
+      this.pendingLoginData = null;
+
+      // Re-trigger login process by submitting form programmatically
+      // We already have validated data, so complete the login directly
+      void this.retryLoginAfterMigration(serviceId, name, release);
+    }
+  };
+
+  /**
+   * Retry login after successful migration
+   */
+  private async retryLoginAfterMigration(
+    serviceId: string,
+    name: string,
+    release: string,
+  ): Promise<void> {
+    this.isSubmitting = true;
+    this.errorMessage = '';
+
+    try {
+      const dbNameElement = document.getElementById(CONFIG_IDS.dbName);
+      const dbName = dbNameElement?.textContent?.trim() || '';
+      const storage = getStorageAdapter(dbName);
+      await storage.init();
+      const existingStudent = await storage.getStudent(release, serviceId);
+
+      if (existingStudent) {
+        // Check if student needs PIN setup (migration or no PIN)
+        if (needsMigration(existingStudent) || !hasPinSet(existingStudent)) {
+          const pinHash = await hashPin(this.pin);
+          const updatedStudent = completePinSetup(existingStudent, pinHash);
+          await storage.saveStudent(updatedStudent);
+
+          this.dispatchEvent(
+            new CustomEvent('qd:pin-created', {
+              detail: { serviceId, timestamp: new Date().toISOString() },
+              bubbles: true,
+              composed: true,
+            }),
+          );
+
+          this.showPinStoredConfirmation();
+          this.completeLogin(serviceId, name, release);
+          return;
+        }
+
+        // Verify PIN
+        const isValid = await verifyPin(this.pin, existingStudent.pinHash || '');
+        if (!isValid) {
+          const state = recordFailedAttempt(serviceId);
+          const remaining = getRemainingAttempts(serviceId);
+
+          if (state.lockoutUntil) {
+            const lockoutMs = new Date(state.lockoutUntil).getTime() - Date.now();
+            this.startLockoutCountdown(lockoutMs);
+          } else {
+            this.errorMessage = `Incorrect PIN. ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining`;
+          }
+
+          this.pin = '';
+          this.isSubmitting = false;
+          return;
+        }
+
+        clearAttemptState(serviceId);
+        this.dispatchEvent(
+          new CustomEvent('qd:pin-verified', {
+            detail: { serviceId, timestamp: new Date().toISOString() },
+            bubbles: true,
+            composed: true,
+          }),
+        );
+      } else {
+        // New student after migration
+        const pinHash = await hashPin(this.pin);
+        const newStudent: StudentRecord = {
+          schema: SCHEMA_VERSION,
+          docId: '',
+          release,
+          serviceId,
+          name,
+          attempted: 0,
+          correct: 0,
+          updated: new Date().toISOString(),
+          pages: {},
+          pinHash,
+          pinCreatedAt: new Date().toISOString(),
+        };
+        await storage.saveStudent(newStudent);
+
+        this.dispatchEvent(
+          new CustomEvent('qd:pin-created', {
+            detail: { serviceId, timestamp: new Date().toISOString() },
+            bubbles: true,
+            composed: true,
+          }),
+        );
+
+        this.showPinStoredConfirmation();
+        this.completeLogin(serviceId, name, release);
+        return;
+      }
+
+      this.completeLogin(serviceId, name, release);
+    } catch (err) {
+      this.errorMessage = 'Login failed after migration. Please try again.';
+      console.error('Post-migration login error:', err);
+      this.isSubmitting = false;
+    }
+  }
+
+  /**
+   * Handle migration cancel - show contact instructor message
+   */
+  private handleMigrationCancel = (): void => {
+    this.showMigrationDialog = false;
+    this.migrationError = null;
+    this.pendingLoginData = null;
+    this.errorMessage = 'Data migration cancelled. Please contact your instructor for assistance.';
+    this.isSubmitting = false;
   };
 
   /**

@@ -162,7 +162,7 @@ test.describe('Help Popups', () => {
       await expect(title).toBeVisible();
 
       const body = page.locator('.qd-help-body');
-      await expect(body).toContainText('Show Answers');
+      await expect(body).toContainText('Show current answers');
     });
 
     test('closes popup on Escape key', async ({ page }) => {

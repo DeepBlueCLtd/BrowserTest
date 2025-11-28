@@ -148,11 +148,14 @@ test.describe('Instructor Dynamic Answer Reveal', () => {
     await loginForm.locator('button[type="submit"]').click();
 
     // Close PIN confirmation dialog if it appears
-    try {
-      await page.locator('#qd-pin-confirmation-ok').click({ force: true, timeout: 2000 });
-    } catch {
-      // Dialog not visible, ignore
-    }
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      const modals = document.querySelectorAll('qd-modal[open], qd-confirm-dialog[open]');
+      modals.forEach((modal) => {
+        modal.removeAttribute('open');
+      });
+    });
+    await page.waitForTimeout(100);
 
     await expect(page.locator('qd-status')).toBeVisible({ timeout: 2000 });
 

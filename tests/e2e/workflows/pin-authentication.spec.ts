@@ -198,20 +198,33 @@ test.describe('PIN Authentication', () => {
       // Click Reset PINs button (pierce shadow DOM)
       await page.locator('qd-instructor >> button:has-text("Reset PINs")').click();
 
-      // Wait for reset dialog overlay (in document.body)
-      const resetOverlay = page.locator('.qd-pin-reset-overlay');
-      await expect(resetOverlay).toBeVisible({ timeout: 2000 });
+      // Wait for PIN reset dialog to open (qd-modal moves to body when opened,
+      // so we look for a modal with the "Reset Student PIN" header content)
+      const resetDialogModal = page
+        .locator('qd-modal[open]')
+        .filter({ hasText: 'Reset Student PIN' });
+      await expect(resetDialogModal).toBeVisible({ timeout: 2000 });
+
+      // Verify dialog content is rendered (search input visible)
+      await expect(page.locator('.search-input')).toBeVisible();
 
       // Close dialog with Escape key
       await page.keyboard.press('Escape');
 
       // Verify dialog closed
-      await expect(resetOverlay).not.toBeVisible({ timeout: 2000 });
+      await expect(resetDialogModal).not.toBeVisible({ timeout: 2000 });
     });
   });
 
   test.describe('T049 - Migration for Existing Students', () => {
+    // This test writes plain data to IndexedDB - only works when ENCRYPT_STORAGE=false
+    // The v1→v2 schema migration is also tested in unit/integration tests
     test('should prompt for PIN creation when v1 student logs in', async ({ page }) => {
+      // Skip when encryption is enabled (plain data would cause format mismatch error)
+      test.skip(
+        process.env.ENCRYPT_STORAGE === 'true',
+        'Skipped when ENCRYPT_STORAGE=true (test writes plain data)',
+      );
       // Create a v1 student directly in IndexedDB (no PIN)
       await page.evaluate(async () => {
         return new Promise<void>((resolve, reject) => {
@@ -293,6 +306,225 @@ test.describe('PIN Authentication', () => {
 
       // Migration complete - student is logged in with new PIN
       // Quiz data preservation is tested in integration tests
+    });
+  });
+
+  test.describe('Storage Format Migration Dialog', () => {
+    // These tests verify the migration dialog shows when storage format doesn't match build
+    // Test creates data in the "wrong" format to trigger StorageFormatError
+
+    test('should show migration dialog when format mismatch detected', async ({ page }) => {
+      // Skip when ENCRYPT_STORAGE is false - we'll create obfuscated data which won't be detected
+      // This test only makes sense when ENCRYPT_STORAGE=true (expecting obfuscated) but finds plain
+      test.skip(
+        process.env.ENCRYPT_STORAGE !== 'true',
+        'Test requires ENCRYPT_STORAGE=true to detect plain data as mismatch',
+      );
+
+      // Create plain (non-obfuscated) student data directly in IndexedDB
+      await page.evaluate(async () => {
+        return new Promise<void>((resolve, reject) => {
+          const request = indexedDB.open('BrowserTestDB', 3);
+          request.onupgradeneeded = () => {
+            const db = request.result;
+            if (!db.objectStoreNames.contains('students')) {
+              db.createObjectStore('students');
+            }
+            if (!db.objectStoreNames.contains('backups')) {
+              db.createObjectStore('backups');
+            }
+            if (!db.objectStoreNames.contains('auditLog')) {
+              db.createObjectStore('auditLog', { keyPath: 'eventId' });
+            }
+          };
+          request.onsuccess = () => {
+            const db = request.result;
+            const tx = db.transaction('students', 'readwrite');
+            const store = tx.objectStore('students');
+
+            // Create plain student data (NOT obfuscated)
+            const plainStudent = {
+              schema: 2,
+              docId: '',
+              release: 'TRV Connectors Autumn 2025',
+              serviceId: 'MISMATCH',
+              name: 'Mismatch User',
+              attempted: 0,
+              correct: 0,
+              updated: new Date().toISOString(),
+              pages: {},
+              pinHash: 'somehash',
+              pinCreatedAt: new Date().toISOString(),
+            };
+
+            const key = `qd/TRV Connectors Autumn 2025/uMISMATCH`;
+            store.put(plainStudent, key);
+
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(new Error(tx.error?.message || 'Transaction error'));
+          };
+          request.onerror = () => reject(new Error(request.error?.message || 'Request error'));
+        });
+      });
+
+      // Reload to pick up the data
+      await page.reload();
+      await waitForBootstrap(page);
+
+      // Try to login - should trigger format mismatch
+      await loginStudent(page, 'MISMATCH', 'Mismatch User', '1234');
+
+      // Should show migration dialog
+      const migrationDialog = page
+        .locator('qd-modal[open]')
+        .filter({ hasText: 'Database Migration Required' });
+      await expect(migrationDialog).toBeVisible({ timeout: 2000 });
+
+      // Verify it shows format mismatch info
+      await expect(page.locator('text=Storage format mismatch')).toBeVisible();
+      await expect(page.locator('text=plain')).toBeVisible();
+      await expect(page.locator('text=obfuscated')).toBeVisible();
+    });
+
+    test('should allow canceling migration dialog', async ({ page }) => {
+      test.skip(process.env.ENCRYPT_STORAGE !== 'true', 'Test requires ENCRYPT_STORAGE=true');
+
+      // Create plain student data
+      await page.evaluate(async () => {
+        return new Promise<void>((resolve, reject) => {
+          const request = indexedDB.open('BrowserTestDB', 3);
+          request.onupgradeneeded = () => {
+            const db = request.result;
+            if (!db.objectStoreNames.contains('students')) {
+              db.createObjectStore('students');
+            }
+            if (!db.objectStoreNames.contains('backups')) {
+              db.createObjectStore('backups');
+            }
+            if (!db.objectStoreNames.contains('auditLog')) {
+              db.createObjectStore('auditLog', { keyPath: 'eventId' });
+            }
+          };
+          request.onsuccess = () => {
+            const db = request.result;
+            const tx = db.transaction('students', 'readwrite');
+            const store = tx.objectStore('students');
+
+            const plainStudent = {
+              schema: 2,
+              docId: '',
+              release: 'TRV Connectors Autumn 2025',
+              serviceId: 'CANCEL01',
+              name: 'Cancel Test',
+              attempted: 0,
+              correct: 0,
+              updated: new Date().toISOString(),
+              pages: {},
+              pinHash: 'somehash',
+              pinCreatedAt: new Date().toISOString(),
+            };
+
+            const key = `qd/TRV Connectors Autumn 2025/uCANCEL01`;
+            store.put(plainStudent, key);
+
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(new Error(tx.error?.message || 'Transaction error'));
+          };
+          request.onerror = () => reject(new Error(request.error?.message || 'Request error'));
+        });
+      });
+
+      await page.reload();
+      await waitForBootstrap(page);
+
+      // Trigger migration dialog
+      await loginStudent(page, 'CANCEL01', 'Cancel Test', '1234');
+
+      // Wait for migration dialog
+      const migrationDialog = page
+        .locator('qd-modal[open]')
+        .filter({ hasText: 'Database Migration Required' });
+      await expect(migrationDialog).toBeVisible({ timeout: 2000 });
+
+      // Click cancel
+      await page.locator('button:has-text("Cancel")').click();
+
+      // Dialog should close
+      await expect(migrationDialog).not.toBeVisible({ timeout: 2000 });
+
+      // Should show error message about contacting instructor
+      await expect(page.locator('.error-message')).toContainText('contact');
+    });
+
+    test('should reject incorrect instructor password in migration dialog', async ({ page }) => {
+      test.skip(process.env.ENCRYPT_STORAGE !== 'true', 'Test requires ENCRYPT_STORAGE=true');
+
+      // Create plain student data
+      await page.evaluate(async () => {
+        return new Promise<void>((resolve, reject) => {
+          const request = indexedDB.open('BrowserTestDB', 3);
+          request.onupgradeneeded = () => {
+            const db = request.result;
+            if (!db.objectStoreNames.contains('students')) {
+              db.createObjectStore('students');
+            }
+            if (!db.objectStoreNames.contains('backups')) {
+              db.createObjectStore('backups');
+            }
+            if (!db.objectStoreNames.contains('auditLog')) {
+              db.createObjectStore('auditLog', { keyPath: 'eventId' });
+            }
+          };
+          request.onsuccess = () => {
+            const db = request.result;
+            const tx = db.transaction('students', 'readwrite');
+            const store = tx.objectStore('students');
+
+            const plainStudent = {
+              schema: 2,
+              docId: '',
+              release: 'TRV Connectors Autumn 2025',
+              serviceId: 'WRONGPW',
+              name: 'Wrong Password',
+              attempted: 0,
+              correct: 0,
+              updated: new Date().toISOString(),
+              pages: {},
+              pinHash: 'somehash',
+              pinCreatedAt: new Date().toISOString(),
+            };
+
+            const key = `qd/TRV Connectors Autumn 2025/uWRONGPW`;
+            store.put(plainStudent, key);
+
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(new Error(tx.error?.message || 'Transaction error'));
+          };
+          request.onerror = () => reject(new Error(request.error?.message || 'Request error'));
+        });
+      });
+
+      await page.reload();
+      await waitForBootstrap(page);
+
+      // Trigger migration dialog
+      await loginStudent(page, 'WRONGPW', 'Wrong Password', '1234');
+
+      // Wait for migration dialog
+      const migrationDialog = page
+        .locator('qd-modal[open]')
+        .filter({ hasText: 'Database Migration Required' });
+      await expect(migrationDialog).toBeVisible({ timeout: 2000 });
+
+      // Enter wrong password
+      await migrationDialog.locator('input[type="password"]').fill('wrongpassword');
+      await migrationDialog.locator('button:has-text("Migrate Database")').click();
+
+      // Should show error
+      await expect(page.locator('.error-message')).toContainText('Incorrect');
+
+      // Dialog should still be open
+      await expect(migrationDialog).toBeVisible();
     });
   });
 });

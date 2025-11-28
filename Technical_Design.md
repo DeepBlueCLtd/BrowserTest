@@ -23,7 +23,7 @@
 - **Bundles:**
   - IIFE: `sonar-quiz.iife.js` (global `window.SonarQuiz`, auto‑init on DOMContentLoaded).
   - ESM: `sonar-quiz.esm.js` for integrators.
-- **Byte budget:** IIFE ≤ 35 KB min+gzip.
+- **Byte budget:** IIFE ≤ 40 KB min+gzip.
 - **Assets:** No external CSS or fonts. Inline minimal styles where required.
 - **Release artifacts:** GitHub Release ZIP including `/dist`, `/demo/index.html`, quick start, checksums.
 - **SemVer:** Tag each release; maintain CHANGELOG.

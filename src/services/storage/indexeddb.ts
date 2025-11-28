@@ -21,8 +21,11 @@ import {
   StorageNotInitializedError,
   StorageError,
   StorageQuotaError,
+  StorageFormatError,
 } from './adapter-utils.js';
 import { warn as logWarn, error as logError } from '../../utils/logger.js';
+import { ENCRYPT_STORAGE } from '../../config/feature-flags.js';
+import { encode, decode, isObfuscated, deriveKey } from './obfuscation.js';
 
 // NOTE: No default database name - must be provided by caller
 
@@ -253,9 +256,13 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
   /**
    * Get a student record by release and service ID
    *
+   * Handles obfuscation based on ENCRYPT_STORAGE flag.
+   * Throws StorageFormatError if data format doesn't match flag setting.
+   *
    * @param release - Release identifier
    * @param serviceId - Service identifier
    * @returns Student record or null if not found
+   * @throws StorageFormatError if format mismatch detected
    */
   async getStudent(release: ReleaseId, serviceId: ServiceId): Promise<StudentRecord | null> {
     const db = this.ensureInitialized();
@@ -268,7 +275,20 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         const request = store.get(key);
 
         request.onsuccess = () => {
-          resolve((request.result as StudentRecord | undefined) || null);
+          const rawValue: unknown = request.result;
+
+          if (rawValue === undefined || rawValue === null) {
+            resolve(null);
+            return;
+          }
+
+          // Check format and decode if needed
+          try {
+            const record = this.decodeStoredValue(rawValue, release, key);
+            resolve(record);
+          } catch (error) {
+            reject(error instanceof Error ? error : new Error(String(error)));
+          }
         };
 
         request.onerror = () => {
@@ -283,7 +303,61 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
   }
 
   /**
+   * Decode stored value, checking format matches ENCRYPT_STORAGE setting
+   *
+   * @param rawValue - Value from IndexedDB (may be obfuscated string or plain object)
+   * @param release - Release ID for key derivation
+   * @param storageKey - Storage key for error reporting
+   * @returns Decoded StudentRecord
+   * @throws StorageFormatError if format doesn't match setting
+   */
+  private decodeStoredValue(
+    rawValue: unknown,
+    release: ReleaseId,
+    storageKey: string,
+  ): StudentRecord {
+    const storedIsObfuscated = isObfuscated(rawValue);
+
+    // Check for format mismatch
+    if (ENCRYPT_STORAGE && !storedIsObfuscated) {
+      throw new StorageFormatError(
+        'Unobfuscated data found with ENCRYPT_STORAGE enabled. Run migration to encrypt existing data.',
+        'obfuscated',
+        'plain',
+        storageKey,
+      );
+    }
+
+    if (!ENCRYPT_STORAGE && storedIsObfuscated) {
+      throw new StorageFormatError(
+        'Obfuscated data found with ENCRYPT_STORAGE disabled. Run migration to decrypt or re-enable encryption.',
+        'plain',
+        'obfuscated',
+        storageKey,
+      );
+    }
+
+    // Decode if encrypted, otherwise return as-is
+    if (ENCRYPT_STORAGE && storedIsObfuscated) {
+      const obfKey = deriveKey(release);
+      try {
+        return decode<StudentRecord>(rawValue, obfKey);
+      } catch (error) {
+        throw new StorageError(
+          'Failed to decode obfuscated data - data may be corrupted or tampered',
+          'getStudent',
+          error instanceof Error ? error : new Error(String(error)),
+        );
+      }
+    }
+
+    return rawValue as StudentRecord;
+  }
+
+  /**
    * Save a student record
+   *
+   * Encodes data if ENCRYPT_STORAGE is enabled.
    *
    * @param record - Student record to save
    * @throws StorageQuotaError if storage quota exceeded
@@ -292,11 +366,14 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     const db = this.ensureInitialized();
     const key = getStorageKey(record.release, record.serviceId);
 
+    // Encode if encryption enabled
+    const valueToStore = ENCRYPT_STORAGE ? encode(record, deriveKey(record.release)) : record;
+
     return new Promise<void>((resolve, reject) => {
       try {
         const transaction = db.transaction(STORE_STUDENTS, 'readwrite');
         const store = transaction.objectStore(STORE_STUDENTS);
-        const request = store.put(record, key);
+        const request = store.put(valueToStore, key);
 
         request.onsuccess = () => {
           resolve();
@@ -335,13 +412,19 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
   /**
    * Get all students for a specific release
    *
-   * Uses the by-release index for efficient queries.
+   * When ENCRYPT_STORAGE is disabled, uses the by-release index for efficient queries.
+   * When ENCRYPT_STORAGE is enabled, performs full scan and decodes all records.
    *
    * @param release - Release identifier
    * @returns Array of student records (empty if none found)
    */
   async getStudentsByRelease(release: ReleaseId): Promise<StudentRecord[]> {
     const db = this.ensureInitialized();
+
+    // When encrypted, index won't work - need full scan
+    if (ENCRYPT_STORAGE) {
+      return this.getStudentsByReleaseEncrypted(release);
+    }
 
     return new Promise<StudentRecord[]>((resolve, reject) => {
       try {
@@ -352,6 +435,66 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
 
         request.onsuccess = () => {
           resolve(request.result || []);
+        };
+
+        request.onerror = () => {
+          reject(
+            new StorageError(
+              'Failed to get students by release',
+              'getStudentsByRelease',
+              request.error as Error,
+            ),
+          );
+        };
+      } catch (error) {
+        reject(
+          new StorageError(
+            'Failed to get students by release',
+            'getStudentsByRelease',
+            error as Error,
+          ),
+        );
+      }
+    });
+  }
+
+  /**
+   * Get all students for a release when encryption is enabled
+   *
+   * Performs full scan, decodes each record, and filters by release.
+   */
+  private async getStudentsByReleaseEncrypted(release: ReleaseId): Promise<StudentRecord[]> {
+    const db = this.ensureInitialized();
+    const obfKey = deriveKey(release);
+
+    return new Promise<StudentRecord[]>((resolve, reject) => {
+      try {
+        const transaction = db.transaction(STORE_STUDENTS, 'readonly');
+        const store = transaction.objectStore(STORE_STUDENTS);
+        const request = store.openCursor();
+        const results: StudentRecord[] = [];
+
+        request.onsuccess = () => {
+          const cursor = request.result;
+          if (cursor) {
+            const rawValue: unknown = cursor.value;
+            if (isObfuscated(rawValue)) {
+              try {
+                const record = decode<StudentRecord>(rawValue, obfKey);
+                if (record.release === release) {
+                  results.push(record);
+                }
+              } catch {
+                // Skip corrupted records, log warning
+                const keyStr =
+                  typeof cursor.key === 'string' ? cursor.key : JSON.stringify(cursor.key);
+                logWarn(`Skipping corrupted record at key: ${keyStr}`);
+              }
+            }
+            cursor.continue();
+          } else {
+            resolve(results);
+          }
         };
 
         request.onerror = () => {

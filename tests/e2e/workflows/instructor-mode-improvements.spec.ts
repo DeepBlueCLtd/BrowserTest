@@ -179,8 +179,20 @@ test.describe('Instructor Mode Improvements', () => {
       const scoresModal = page.locator('qd-modal[open]');
       await expect(scoresModal).toBeVisible({ timeout: 2000 });
 
-      // Click on overlay (outside modal content)
-      await scoresModal.click({ position: { x: 10, y: 10 } });
+      // Click on backdrop (outside modal content) via shadow DOM
+      // The backdrop is inside qd-modal's shadow DOM with class .backdrop
+      await scoresModal.evaluate((modal) => {
+        const backdrop = modal.shadowRoot?.querySelector('.backdrop') as HTMLElement;
+        if (backdrop) {
+          // Create click event targeting backdrop directly (not content)
+          const clickEvent = new MouseEvent('click', {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+          });
+          backdrop.dispatchEvent(clickEvent);
+        }
+      });
       await expect(scoresModal).not.toBeVisible();
     });
   });
