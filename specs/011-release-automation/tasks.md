@@ -19,7 +19,7 @@
 
 **Purpose**: No setup required - project already has GitHub Actions infrastructure
 
-- [ ] T001 Verify existing CI workflow structure in .github/workflows/ci.yml
+- [x] T001 Verify existing CI workflow structure in .github/workflows/ci.yml
 
 **Checkpoint**: Existing infrastructure confirmed
 
@@ -43,13 +43,13 @@
 
 ### Implementation for User Story 1
 
-- [ ] T002 [US1] Create release workflow file with tag push trigger (v[0-9]+.[0-9]+.[0-9]+) in .github/workflows/release.yml
-- [ ] T003 [US1] Add CI validation jobs (lint, test, build) reusing patterns from ci.yml in .github/workflows/release.yml
-- [ ] T004 [US1] Add version extraction step from GITHUB_REF_NAME in .github/workflows/release.yml
-- [ ] T005 [US1] Add GitHub Release creation using softprops/action-gh-release in .github/workflows/release.yml
-- [ ] T006 [US1] Configure release notes auto-generation from commits in .github/workflows/release.yml
-- [ ] T007 [US1] Configure artifact upload (sonar-quiz.iife.js, source map) as release assets in .github/workflows/release.yml
-- [ ] T008 [US1] Add permissions block for contents:write in .github/workflows/release.yml
+- [x] T002 [US1] Create release workflow file with tag push trigger (v[0-9]+.[0-9]+.[0-9]+) in .github/workflows/release.yml
+- [x] T003 [US1] Add CI validation jobs (lint, test, build) reusing patterns from ci.yml in .github/workflows/release.yml
+- [x] T004 [US1] Add version extraction step from GITHUB_REF_NAME in .github/workflows/release.yml
+- [x] T005 [US1] Add GitHub Release creation using softprops/action-gh-release in .github/workflows/release.yml
+- [x] T006 [US1] Configure release notes auto-generation from commits in .github/workflows/release.yml
+- [x] T007 [US1] Configure artifact upload (sonar-quiz.iife.js, source map) as release assets in .github/workflows/release.yml
+- [x] T008 [US1] Add permissions block for contents:write in .github/workflows/release.yml
 
 **Checkpoint**: Release workflow functional - tag push creates release with artifacts
 
@@ -63,10 +63,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T009 [P] [US2] Create RELEASE.md with overview section explaining semantic versioning in docs/RELEASE.md
-- [ ] T010 [P] [US2] Add "How to Create a Release" section with git tag commands in docs/RELEASE.md
-- [ ] T011 [US2] Add version format requirements (vX.Y.Z pattern) in docs/RELEASE.md
-- [ ] T012 [US2] Add troubleshooting section for common issues in docs/RELEASE.md
+- [x] T009 [P] [US2] Create RELEASE.md with overview section explaining semantic versioning in docs/RELEASE.md
+- [x] T010 [P] [US2] Add "How to Create a Release" section with git tag commands in docs/RELEASE.md
+- [x] T011 [US2] Add version format requirements (vX.Y.Z pattern) in docs/RELEASE.md
+- [x] T012 [US2] Add troubleshooting section for common issues in docs/RELEASE.md
 
 **Checkpoint**: Documentation complete - any maintainer can self-service release process
 
@@ -80,10 +80,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Add package.json version update step extracting version from tag in .github/workflows/release.yml
-- [ ] T014 [US3] Add git commit for version update with message "chore(release): vX.Y.Z" in .github/workflows/release.yml
-- [ ] T015 [US3] Add git push to main branch for version commit in .github/workflows/release.yml
-- [ ] T016 [US3] Handle edge case: skip version commit if package.json already matches tag in .github/workflows/release.yml
+- [x] T013 [US3] Add package.json version update step extracting version from tag in .github/workflows/release.yml
+- [x] T014 [US3] Add git commit for version update with message "chore(release): vX.Y.Z" in .github/workflows/release.yml
+- [x] T015 [US3] Add git push to main branch for version commit in .github/workflows/release.yml
+- [x] T016 [US3] Handle edge case: skip version commit if package.json already matches tag in .github/workflows/release.yml
 
 **Checkpoint**: Package.json stays in sync with release tags
 
@@ -93,8 +93,8 @@
 
 **Purpose**: Edge cases and final validation
 
-- [ ] T017 Update README.md with release process reference and link to docs/RELEASE.md
-- [ ] T018 Test by pushing test tag on feature branch to validate workflow syntax before merge
+- [x] T017 Update README.md with release process reference and link to docs/RELEASE.md
+- [x] T018 Test by pushing test tag on feature branch to validate workflow syntax before merge
 
 ---
 
