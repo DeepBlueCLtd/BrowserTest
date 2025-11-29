@@ -123,10 +123,22 @@ npm run build:dita
 
 This copies `dist/sonar-quiz.iife.js` to `dita/template/resources/` for inclusion in WebHelp output. See [dita/README.md](./dita/README.md) for DITA authoring guidelines and template customization.
 
+## Releases
+
+Releases are created by pushing a version tag to the main branch:
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+See [docs/RELEASE.md](./docs/RELEASE.md) for complete release instructions.
+
 ## Project Documentation
 
 | Document | Description |
 |----------|-------------|
+| [docs/RELEASE.md](./docs/RELEASE.md) | Release process and versioning guide |
 | [System_Requirements.md](./System_Requirements.md) | Functional requirements, user roles, data model, and authoring rules |
 | [Technical_Design.md](./Technical_Design.md) | Architecture, technology decisions, packaging, integration, and acceptance criteria |
 | [ARCHITECTURE_FLOWS.md](./ARCHITECTURE_FLOWS.md) | Event flows, login processes, DOM patterns, and service interactions |
