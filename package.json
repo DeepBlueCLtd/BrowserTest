@@ -1,6 +1,6 @@
 {
   "name": "sonar-quiz-system",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Offline-first interactive quiz and analysis platform for DITA-published HTML training materials",
   "type": "module",
   "main": "./dist/sonar-quiz.esm.js",
