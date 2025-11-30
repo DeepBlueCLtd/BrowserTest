@@ -258,7 +258,7 @@ export const Interactive: Story = {
 
         <qd-scores-modal
           .students=${sampleStudents}
-          @close=${() => console.log('Modal closed')}
+          @close=${() => {}}
         ></qd-scores-modal>
 
         <div
