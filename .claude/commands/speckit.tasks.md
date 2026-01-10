@@ -125,4 +125,31 @@ Every task MUST strictly follow this format:
 - **Phase 3+**: User Stories in priority order (P1, P2, P3...)
   - Within each story: Tests (if requested) → Models → Services → Endpoints → Integration
   - Each phase should be a complete, independently testable increment
-- **Final Phase**: Polish & Cross-Cutting Concerns
+- **Phase N-1**: Polish & Cross-Cutting Concerns
+- **Phase N**: Media & Communications (documentation, blog posts, announcements)
+
+### Media & Communications Tasks
+
+The final phase should include tasks for communicating the feature:
+
+1. **Technical Documentation** (via `/media.technical`):
+   - Architecture diagrams (Mermaid) for new components
+   - README updates for new features
+   - API documentation for new endpoints
+
+2. **Content Creation** (via `/media.content`):
+   - Blog post draft (planning or completed style)
+   - LinkedIn summary for social sharing
+   - Release notes entry
+
+3. **Site Updates** (via `/media.site`) - if applicable:
+   - Documentation page updates
+   - Changelog entry
+
+**Task Examples**:
+```
+- [ ] TXXX [P] Create architecture diagram for [feature] using /media.technical
+- [ ] TXXX [P] Update README with [feature] usage examples
+- [ ] TXXX [P] Draft blog post for [feature] using /media.content
+- [ ] TXXX [P] Create LinkedIn summary for [feature] announcement
+```

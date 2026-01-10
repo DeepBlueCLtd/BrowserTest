@@ -146,7 +146,7 @@ Examples of foundational tasks (adjust based on your project):
 
 ---
 
-## Phase N: Polish & Cross-Cutting Concerns
+## Phase N-1: Polish & Cross-Cutting Concerns
 
 **Purpose**: Improvements that affect multiple user stories
 
@@ -159,6 +159,32 @@ Examples of foundational tasks (adjust based on your project):
 
 ---
 
+## Phase N: Media & Communications
+
+**Purpose**: Document and communicate the feature for users and stakeholders
+
+### Technical Documentation (via `/media.technical`)
+
+- [ ] TXXX [P] Create architecture diagram for [feature] in docs/architecture/
+- [ ] TXXX [P] Update README.md with [feature] usage and examples
+- [ ] TXXX [P] Generate API documentation for new endpoints (if applicable)
+- [ ] TXXX [P] Create or update component documentation
+
+### Content Creation (via `/media.content`)
+
+- [ ] TXXX [P] Draft blog post announcing [feature] (planning or completed style)
+- [ ] TXXX [P] Create LinkedIn summary (150-200 words) for social sharing
+- [ ] TXXX [P] Write release notes entry for CHANGELOG.md
+
+### Site Updates (via `/media.site`) - if applicable
+
+- [ ] TXXX [P] Add/update documentation page on project site
+- [ ] TXXX [P] Update site navigation if new pages added
+
+**Checkpoint**: Feature is documented, announced, and ready for users
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -168,7 +194,8 @@ Examples of foundational tasks (adjust based on your project):
 - **User Stories (Phase 3+)**: All depend on Foundational phase completion
   - User stories can then proceed in parallel (if staffed)
   - Or sequentially in priority order (P1 → P2 → P3)
-- **Polish (Final Phase)**: Depends on all desired user stories being complete
+- **Polish (Phase N-1)**: Depends on all desired user stories being complete
+- **Media & Communications (Phase N)**: Depends on Polish - can start once feature is stable
 
 ### User Story Dependencies
 

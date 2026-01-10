@@ -131,4 +131,13 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Confirm the implementation follows the technical plan
    - Report final status with summary of completed work
 
+10. **Media & Communications** (after implementation complete):
+    - If tasks.md includes a Media & Communications phase, execute those tasks
+    - Use the media generation commands to create documentation and announcements:
+      - `/media.technical` - Architecture diagrams, README updates, API docs
+      - `/media.content` - Blog posts, LinkedIn summaries, release notes
+      - `/media.site` - Site documentation updates (if applicable)
+    - Alternatively, run `/media.coordinate` with a summary of the feature for coordinated content generation
+    - Report generated media artifacts in final summary
+
 Note: This command assumes a complete task breakdown exists in tasks.md. If tasks are incomplete or missing, suggest running `/speckit.tasks` first to regenerate the task list.
