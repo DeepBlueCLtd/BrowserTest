@@ -20,6 +20,8 @@ import { getStorageAdapter } from './storage/indexeddb.js';
 import { buildCacheFromRecord } from './session-cache.js';
 import { calculateCompletionState } from './state-calculator.js';
 import { recalculateTotalsFromPages } from '../utils/calculation-helpers.js';
+import { setJSON } from '../utils/storage-helpers.js';
+import { STORAGE_KEYS } from '../types/contracts.js';
 import { info, warn, error as logError } from '../utils/logger.js';
 
 /**
@@ -261,6 +263,30 @@ export class StorageService {
     } catch (err) {
       logError('Failed to get students by release', err as Error);
       throw err;
+    }
+  }
+
+  /**
+   * Load (and persist) the student record for a session and refresh the
+   * sessionStorage cache. Falls back to an empty cache on any IndexedDB error.
+   *
+   * Used on login to rebuild the R/A/G cache from IndexedDB.
+   *
+   * @param session - Current session data
+   */
+  async refreshCacheOnLogin(session: SessionData): Promise<void> {
+    try {
+      const record = await this.loadStudentRecord(session);
+      // Save (creates if new, updates if exists) then cache.
+      await this.saveStudentRecord(record);
+      setJSON(STORAGE_KEYS.CACHE, this.buildCache(record));
+      info(`Cache built from IndexedDB for ${session.serviceId}`);
+    } catch {
+      info('Failed to load from IndexedDB, initializing empty cache');
+      setJSON(STORAGE_KEYS.CACHE, {
+        totals: { total: 0, answered: 0, correct: 0 },
+        pages: {},
+      });
     }
   }
 
