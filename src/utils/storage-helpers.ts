@@ -9,6 +9,16 @@
 import { warn } from './logger.js';
 
 /**
+ * sessionStorage key for the instructor "show student answers" overlay toggle.
+ *
+ * Tracks whether the instructor answer overlay is active for the current
+ * session. Previously inlined as the magic string `'qd/instructor/showAnswers'`
+ * across multiple modules. Not part of the frozen STORAGE_KEYS contract in
+ * `src/types/contracts.ts`.
+ */
+export const INSTRUCTOR_SHOW_ANSWERS_KEY = 'qd/instructor/showAnswers';
+
+/**
  * Get and parse JSON data from sessionStorage
  *
  * @param key - Storage key

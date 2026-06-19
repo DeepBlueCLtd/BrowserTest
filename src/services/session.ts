@@ -17,6 +17,7 @@ import type {
 } from '../types/contracts.js';
 import { STORAGE_KEYS, SESSION_TIMEOUT_MS } from '../types/contracts.js';
 import { info, warn, error } from '../utils/logger.js';
+import { INSTRUCTOR_SHOW_ANSWERS_KEY } from '../utils/storage-helpers.js';
 import { isSessionExpired } from '../utils/calculation-helpers.js';
 
 /**
@@ -122,7 +123,7 @@ export class SessionService {
     sessionStorage.removeItem(STORAGE_KEYS.INSTRUCTOR);
 
     // Clear instructor-specific state (FR-001)
-    sessionStorage.removeItem('qd/instructor/showAnswers');
+    sessionStorage.removeItem(INSTRUCTOR_SHOW_ANSWERS_KEY);
 
     if (session) {
       info(`Session cleared for ${session.serviceId}`);

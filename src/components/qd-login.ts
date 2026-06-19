@@ -28,6 +28,7 @@ import { CONFIG_IDS } from '../config/dom-config-reader.js';
 import { getStorageAdapter } from '../services/storage/indexeddb.js';
 import { needsMigration, hasPinSet, completePinSetup } from '../services/storage/migration.js';
 import { verifyPin, hashPin } from '../services/auth/pin-service.js';
+import { hashPassword, getExpectedInstructorHash } from '../services/auth/instructor-auth.js';
 import {
   checkLockout,
   recordFailedAttempt,
@@ -900,41 +901,18 @@ export class QdLogin extends LitElement {
   }
 
   /**
-   * Hash password using SHA-256
-   */
-  private async hashPassword(password: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    // Return first 12 characters for author-friendly Oxygen dialogs
-    return hashArray
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('')
-      .substring(0, 12);
-  }
-
-  /**
-   * Get expected password hash from hidden element
-   */
-  private getExpectedHash(): string {
-    const hashElement = document.getElementById(CONFIG_IDS.instructorHash);
-    return hashElement?.textContent?.trim() || '';
-  }
-
-  /**
    * Handle instructor login with password
    */
   private async handleInstructorLogin(password: string) {
     try {
-      const passwordHash = await this.hashPassword(password);
-      const expectedHash = this.getExpectedHash();
+      const expectedHash = getExpectedInstructorHash();
 
       if (!expectedHash) {
         this.instructorError = 'Instructor password not configured';
         return;
       }
 
+      const passwordHash = await hashPassword(password);
       if (passwordHash !== expectedHash) {
         this.instructorError = 'Incorrect password';
         // TODO: Implement rate limiting (5 attempts per 60 seconds)

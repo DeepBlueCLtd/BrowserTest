@@ -29,7 +29,7 @@ import { formatStudentAnswersForDisplay } from '../services/answer-display.js';
 import { Debouncer } from '../utils/debouncer.js';
 import { createElement, addClass, removeClass } from '../utils/dom-helpers.js';
 import { emitCustomEvent } from '../utils/event-helpers.js';
-import { getJSON, setJSON } from '../utils/storage-helpers.js';
+import { getJSON, setJSON, INSTRUCTOR_SHOW_ANSWERS_KEY } from '../utils/storage-helpers.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
 import { info, error as logError, warn } from '../utils/logger.js';
 import { getStorageService } from '../services/storage-service.js';
@@ -47,7 +47,7 @@ export interface EnhanceQuizTableOptions {
 /**
  * Quiz table metadata (stored in WeakMap)
  */
-interface QuizTableMetadata {
+export interface QuizTableMetadata {
   /** Parsed quiz data */
   parsed: ParsedQuizTable;
   /** Enhancement mode */
@@ -304,7 +304,7 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
 
   // Check if instructor mode with toggle already enabled
   const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
-  const showAnswers = sessionStorage.getItem('qd/instructor/showAnswers') === 'true';
+  const showAnswers = sessionStorage.getItem(INSTRUCTOR_SHOW_ANSWERS_KEY) === 'true';
   if (isInstructor && showAnswers) {
     void showStudentAnswersForTable(table, metadata);
   }
@@ -776,11 +776,28 @@ export async function showStudentAnswersForTable(
           answerDiv.className = `qd-student-answer ${sa.cssClass}`;
 
           // Format: Name (last 4 of serviceId): answer [timestamp] (FR-007: 24-hour format)
-          answerDiv.innerHTML = `
-            <span class="qd-student-name">${sa.name} (${sa.maskedServiceId})</span>:
-            <span class="qd-student-answer-text">${sa.answer}</span>
-            <span class="qd-timestamp">${sa.formattedTimestamp}</span>
-          `;
+          // SECURITY (FR-004): student-controlled name/answer are set via
+          // textContent so any HTML they contain renders as inert text, never
+          // as live markup. Never use innerHTML for student-supplied data.
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'qd-student-name';
+          nameSpan.textContent = `${sa.name} (${sa.maskedServiceId})`;
+
+          const answerSpan = document.createElement('span');
+          answerSpan.className = 'qd-student-answer-text';
+          answerSpan.textContent = sa.answer;
+
+          const timestampSpan = document.createElement('span');
+          timestampSpan.className = 'qd-timestamp';
+          timestampSpan.textContent = sa.formattedTimestamp;
+
+          answerDiv.append(
+            nameSpan,
+            document.createTextNode(': '),
+            answerSpan,
+            document.createTextNode(' '),
+            timestampSpan,
+          );
 
           display.appendChild(answerDiv);
         });
