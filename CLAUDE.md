@@ -559,6 +559,8 @@ function getStorageKey(release: ReleaseId, serviceId: ServiceId): string {
 - N/A (CSS-only feature) (010-css-answer-hiding)
 - YAML (GitHub Actions workflows), Bash (scripts) + GitHub Actions (actions/checkout, actions/setup-node, softprops/action-gh-release) (011-release-automation)
 - N/A (CI/CD infrastructure only) (011-release-automation)
+- TypeScript 5.x / ES2020+ + Lit 3.x (Web Components), Vite 5.x (build), Vitest 2.x (unit/integration), Playwright 1.x (E2E) (012-code-review)
+- IndexedDB (primary, via `IndexedDBStorageAdapter`), sessionStorage (active session + R/A/G cache) — no schema changes in this feature (012-code-review)
 
 ## Recent Changes
 - 001-security-refactor: Added TypeScript 5.x / JavaScript ES2020+ + Lit 3.0 (Web Components), Vite 5.x (build), Vitest (testing)

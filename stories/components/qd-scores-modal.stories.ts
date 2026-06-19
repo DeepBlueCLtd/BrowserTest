@@ -256,10 +256,7 @@ export const Interactive: Story = {
           View Student Scores
         </button>
 
-        <qd-scores-modal
-          .students=${sampleStudents}
-          @close=${() => {}}
-        ></qd-scores-modal>
+        <qd-scores-modal .students=${sampleStudents} @close=${() => {}}></qd-scores-modal>
 
         <div
           style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 4px; font-size: 14px;"
