@@ -21,6 +21,30 @@ import { recalculateTotalsFromPages } from '../utils/calculation-helpers.js';
 import { info, warn, error as logError } from '../utils/logger.js';
 
 /**
+ * Build a fresh, empty student record for a session.
+ *
+ * Used when no persisted record exists yet (first login) or when IndexedDB
+ * cannot be read. Centralizes the record shape so the two creation paths in
+ * {@link StorageService.loadStudentRecord} stay identical.
+ *
+ * @param session - Current session data
+ * @returns A new, empty student record
+ */
+export function createEmptyStudentRecord(session: SessionData): StudentRecord {
+  return {
+    schema: 1,
+    docId: session.release, // Use release as docId
+    release: session.release,
+    serviceId: session.serviceId,
+    name: session.name,
+    attempted: 0,
+    correct: 0,
+    updated: new Date().toISOString(),
+    pages: {},
+  };
+}
+
+/**
  * Storage Service for managing student records
  */
 export class StorageService {
@@ -71,35 +95,14 @@ export class StorageService {
       }
 
       // Create new student record
-      const newRecord: StudentRecord = {
-        schema: 1,
-        docId: session.release, // Use release as docId
-        release: session.release,
-        serviceId: session.serviceId,
-        name: session.name,
-        attempted: 0,
-        correct: 0,
-        updated: new Date().toISOString(),
-        pages: {},
-      };
+      const newRecord = createEmptyStudentRecord(session);
 
       info(`Created new student record for ${session.serviceId}`);
       return newRecord;
     } catch (err) {
       // If IndexedDB has schema issues, create a new record
       warn(`IndexedDB error, creating new record: ${(err as Error).message}`);
-      const newRecord: StudentRecord = {
-        schema: 1,
-        docId: session.release,
-        release: session.release,
-        serviceId: session.serviceId,
-        name: session.name,
-        attempted: 0,
-        correct: 0,
-        updated: new Date().toISOString(),
-        pages: {},
-      };
-      return newRecord;
+      return createEmptyStudentRecord(session);
     }
   }
 

@@ -17,7 +17,8 @@ import {
 } from '../enhancers/analysis-table.js';
 import { getStorageService } from '../services/storage-service.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
-import { setJSON, getJSON } from '../utils/storage-helpers.js';
+import { setJSON, getJSON, INSTRUCTOR_SHOW_ANSWERS_KEY } from '../utils/storage-helpers.js';
+import { getPageIdFromUrl } from '../utils/page-id.js';
 import type { SessionData, SessionCache } from '../types/contracts.js';
 
 /**
@@ -135,10 +136,7 @@ export class EventCoordinator {
    * Upgrade all tables to interactive mode after login
    */
   private upgradeTablesAfterLogin(): void {
-    // Extract pageId from URL filename
-    const pathname = window.location.pathname;
-    const filename = pathname.substring(pathname.lastIndexOf('/') + 1);
-    const pageId = filename.replace(/\.html?$/i, '');
+    const pageId = getPageIdFromUrl();
 
     if (!pageId) {
       info('No pageId found, skipping table upgrade to interactive mode');
@@ -193,7 +191,7 @@ export class EventCoordinator {
         document.addEventListener('qd:instructor-hide-answers', hideAnswersHandler);
 
         // Check if toggle already enabled
-        const showAnswers = sessionStorage.getItem('qd/instructor/showAnswers') === 'true';
+        const showAnswers = sessionStorage.getItem(INSTRUCTOR_SHOW_ANSWERS_KEY) === 'true';
         if (showAnswers) {
           void showAnswersHandler();
         }

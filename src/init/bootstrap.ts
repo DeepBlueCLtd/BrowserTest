@@ -16,7 +16,8 @@ import {
 import { enhanceAnalysisTable } from '../enhancers/analysis-table.js';
 import { enhanceHomeBadges } from '../enhancers/home-badges.js';
 import { getStorageService } from '../services/storage-service.js';
-import { getJSON, setJSON } from '../utils/storage-helpers.js';
+import { getJSON, setJSON, INSTRUCTOR_SHOW_ANSWERS_KEY } from '../utils/storage-helpers.js';
+import { getPageIdFromUrl } from '../utils/page-id.js';
 import { STORAGE_KEYS, type SessionData, type SessionCache } from '../types/contracts.js';
 
 /**
@@ -311,10 +312,7 @@ function enhanceHomeBadgesIfPresent(): void {
  * Shows answer and detail columns that were hidden for security
  */
 function revealQuizAnswersForInstructor(): void {
-  // Extract pageId from URL
-  const pathname = window.location.pathname;
-  const filename = pathname.substring(pathname.lastIndexOf('/') + 1);
-  const pageId = filename.replace(/\.html?$/i, '');
+  const pageId = getPageIdFromUrl();
 
   // Reveal answer and detail columns for instructor (they're hidden by default in non-interactive mode)
   const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
@@ -366,7 +364,7 @@ function revealQuizAnswersForInstructor(): void {
     document.addEventListener('qd:instructor-hide-answers', hideAnswersHandler);
 
     // Check if toggle already enabled
-    const showAnswers = sessionStorage.getItem('qd/instructor/showAnswers') === 'true';
+    const showAnswers = sessionStorage.getItem(INSTRUCTOR_SHOW_ANSWERS_KEY) === 'true';
     if (showAnswers) {
       void showAnswersHandler();
     }
@@ -418,10 +416,7 @@ async function checkExistingSessionAndUpgradeTables(): Promise<void> {
     }
   }
 
-  // Extract pageId from URL filename
-  const pathname = window.location.pathname;
-  const filename = pathname.substring(pathname.lastIndexOf('/') + 1);
-  const pageId = filename.replace(/\.html?$/i, '');
+  const pageId = getPageIdFromUrl();
 
   if (!pageId) {
     info('No pageId found, skipping table upgrade');

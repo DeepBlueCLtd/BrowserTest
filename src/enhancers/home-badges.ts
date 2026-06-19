@@ -41,6 +41,17 @@ const STATE_TO_BADGE: Record<CompletionState, keyof typeof BADGE_CLASSES> = {
 };
 
 /**
+ * Remove all R/A/G badge classes from a link, reverting it to native styling.
+ *
+ * @param link - Link element to strip badge classes from
+ */
+function clearBadges(link: HTMLElement): void {
+  Object.values(BADGE_CLASSES).forEach((className) => {
+    link.classList.remove(className);
+  });
+}
+
+/**
  * Apply badge class to a link element
  *
  * @param link - Link element to apply badge to
@@ -48,9 +59,7 @@ const STATE_TO_BADGE: Record<CompletionState, keyof typeof BADGE_CLASSES> = {
  */
 function applyBadge(link: HTMLElement, state: CompletionState): void {
   // Remove all existing badge classes
-  Object.values(BADGE_CLASSES).forEach((className) => {
-    link.classList.remove(className);
-  });
+  clearBadges(link);
 
   // Apply new badge class based on state
   const badgeColor = STATE_TO_BADGE[state];
@@ -99,9 +108,7 @@ function updateAllBadges(): void {
   // If instructor mode OR no cache, remove all badge styling
   if (!cache || isInstructor) {
     links.forEach((link) => {
-      Object.values(BADGE_CLASSES).forEach((className) => {
-        link.classList.remove(className);
-      });
+      clearBadges(link);
     });
     if (isInstructor) {
       info(`Removed badge styling from ${links.length} page links (instructor mode)`);
@@ -154,9 +161,7 @@ function handleLogout(): void {
 
   links.forEach((link) => {
     // Remove all badge classes to revert to native button styling
-    Object.values(BADGE_CLASSES).forEach((className) => {
-      link.classList.remove(className);
-    });
+    clearBadges(link);
   });
 
   info(`Removed badge styling from ${links.length} page links`);

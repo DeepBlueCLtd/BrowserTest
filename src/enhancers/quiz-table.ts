@@ -29,7 +29,7 @@ import { formatStudentAnswersForDisplay } from '../services/answer-display.js';
 import { Debouncer } from '../utils/debouncer.js';
 import { createElement, addClass, removeClass } from '../utils/dom-helpers.js';
 import { emitCustomEvent } from '../utils/event-helpers.js';
-import { getJSON, setJSON } from '../utils/storage-helpers.js';
+import { getJSON, setJSON, INSTRUCTOR_SHOW_ANSWERS_KEY } from '../utils/storage-helpers.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
 import { info, error as logError, warn } from '../utils/logger.js';
 import { getStorageService } from '../services/storage-service.js';
@@ -304,7 +304,7 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
 
   // Check if instructor mode with toggle already enabled
   const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
-  const showAnswers = sessionStorage.getItem('qd/instructor/showAnswers') === 'true';
+  const showAnswers = sessionStorage.getItem(INSTRUCTOR_SHOW_ANSWERS_KEY) === 'true';
   if (isInstructor && showAnswers) {
     void showStudentAnswersForTable(table, metadata);
   }

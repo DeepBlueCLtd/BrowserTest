@@ -8,7 +8,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { sharedStyles } from './shared-styles.js';
 import type { StudentRecord, SessionData } from '../../types/contracts.js';
 import { STORAGE_KEYS } from '../../types/contracts.js';
-import { getJSON } from '../../utils/storage-helpers.js';
+import { getJSON, INSTRUCTOR_SHOW_ANSWERS_KEY } from '../../utils/storage-helpers.js';
 import { SessionService } from '../../services/session.js';
 import { getStorageService } from '../../services/storage-service.js';
 import './qd-instructor-unlock.js';
@@ -77,7 +77,7 @@ export class QdInstructor extends LitElement {
     }
 
     // Restore toggle state from sessionStorage
-    const savedState = sessionStorage.getItem('qd/instructor/showAnswers');
+    const savedState = sessionStorage.getItem(INSTRUCTOR_SHOW_ANSWERS_KEY);
     if (savedState !== null) {
       this.showStudentAnswers = savedState === 'true';
 
@@ -301,7 +301,7 @@ export class QdInstructor extends LitElement {
     );
 
     // Persist toggle state in sessionStorage
-    sessionStorage.setItem('qd/instructor/showAnswers', String(this.showStudentAnswers));
+    sessionStorage.setItem(INSTRUCTOR_SHOW_ANSWERS_KEY, String(this.showStudentAnswers));
   };
 
   private handleHelpOpen = (): void => {

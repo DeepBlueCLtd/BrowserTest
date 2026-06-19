@@ -73,6 +73,24 @@ For every extraction:
 | SC-005 (tests green, bundle OK) | full DoD command block passes; `size-check` under 40KB |
 | SC-006 (independently shippable) | each slice merges on its own with green CI |
 
+## Baseline (regression budget) — recorded T001/T002
+
+Captured before refactor (2026-06-19):
+
+- **Tests**: 782 unit + 67 integration passing; typecheck/lint/format clean.
+- **Bundle**: 146.12 KB min / **36.71 KB gzip** (limit 40 KB; 3.29 KB headroom). This is the regression budget — no slice may exceed 40 KB gzip.
+- **Files >400 lines (SC-002 targets)**:
+  | File | Lines |
+  |------|-------|
+  | src/components/qd-login.ts | 983 |
+  | src/enhancers/quiz-table.ts | 807 |
+  | src/services/storage/indexeddb.ts | 759 |
+  | src/enhancers/analysis-table.ts | 637 |
+  | src/components/qd-migration-dialog.ts | 519 |
+  | src/init/bootstrap.ts | 490 |
+  | src/services/session.ts | 443 |
+  | src/types/contracts.ts | 411 (FROZEN — out of scope) |
+
 ## Out of scope (do not touch)
 - `src/types/contracts.ts` (frozen).
 - `home-badges` → Lit conversion (breaks progressive enhancement).
