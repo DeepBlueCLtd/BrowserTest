@@ -102,7 +102,7 @@ Behavior-preserving, test-gated, one slice at a time. The **only** sanctioned be
 
 ### Tests for User Story 3 (write FIRST) ⚠️
 
-- [ ] T022 [P] [US3] Characterization tests `tests/integration/indexeddb-adapter.test.ts` covering get/save student, getByRelease, backup, audit-event, clearAll, and DB open/upgrade/recovery (baseline before split)
+- [X] T022 [P] [US3] Characterization tests `tests/integration/indexeddb-adapter.test.ts` covering get/save student, getByRelease, backup, audit-event, clearAll, and DB open/upgrade/recovery (baseline before split)
 - [ ] T023 [P] [US3] Characterization tests `tests/integration/quiz-table-enhance.test.ts` covering interactive enhancement, answer save + validation styling, and column show/hide
 - [ ] T024 [P] [US3] Characterization tests `tests/integration/analysis-table-enhance.test.ts` covering interactive enhancement, cell save, and student-entry display
 - [X] T025 [P] [US3] Characterization tests `tests/unit/session-cache.test.ts` for `buildCacheFromRecord` and related cache math
@@ -110,11 +110,11 @@ Behavior-preserving, test-gated, one slice at a time. The **only** sanctioned be
 
 ### Implementation — storage (`indexeddb.ts`, 759 lines)
 
-- [ ] T027 [P] [US3] Create `src/services/storage/idb-helpers.ts` (`promisifyRequest`, `runTransaction`) per contracts and add `tests/unit/idb-helpers.test.ts`
-- [ ] T028 [US3] Extract `src/services/storage/idb-codec.ts` (encryption-aware `encodeForStore`/`decodeStoredValue`, format-mismatch detection) from `indexeddb.ts`; adapter no longer references `ENCRYPT_STORAGE`/`deriveKey`
-- [ ] T029 [US3] Extract `src/services/storage/idb-connection.ts` (`openDatabase` owning `DB_VERSION`, `onupgradeneeded`, timeout/corruption recovery) from `indexeddb.ts`
-- [ ] T030 [P] [US3] Extract `src/services/storage/backup-repository.ts` and `src/services/storage/audit-log-repository.ts` from `indexeddb.ts`
-- [ ] T031 [US3] Refactor `src/services/storage/indexeddb.ts` into a thin coordinator delegating to T027–T030 (use `runTransaction` everywhere; remove hand-rolled `clearAll` barrier); verify <400 lines
+- [X] T027 [P] [US3] Create `src/services/storage/idb-helpers.ts` (`promisifyRequest`, `runTransaction`) per contracts and add `tests/unit/idb-helpers.test.ts`
+- [X] T028 [US3] Extract `src/services/storage/idb-codec.ts` (encryption-aware `encodeForStore`/`decodeStoredValue`, format-mismatch detection) from `indexeddb.ts`; adapter no longer references `ENCRYPT_STORAGE`/`deriveKey`
+- [X] T029 [US3] Extract `src/services/storage/idb-connection.ts` (`openDatabase` owning `DB_VERSION`, `onupgradeneeded`, timeout/corruption recovery) from `indexeddb.ts`
+- [X] T030 [P] [US3] Extract `src/services/storage/backup-repository.ts` and `src/services/storage/audit-log-repository.ts` from `indexeddb.ts`
+- [X] T031 [US3] Refactor `src/services/storage/indexeddb.ts` into a thin coordinator delegating to T027–T030 (use `runTransaction` everywhere; remove hand-rolled `clearAll` barrier); verify <400 lines
 
 ### Implementation — session (`session.ts`, 443 lines)
 
