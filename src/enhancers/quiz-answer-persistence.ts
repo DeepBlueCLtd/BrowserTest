@@ -11,9 +11,9 @@ import { STORAGE_KEYS } from '../types/contracts.js';
 import type { QuizTableMetadata } from './quiz-table.js';
 import { validateAnswer } from '../services/quiz-parser.js';
 import { getStorageService } from '../services/storage-service.js';
-import { getJSON, setJSON } from '../utils/storage-helpers.js';
+import { getJSON } from '../utils/storage-helpers.js';
 import { addClass, removeClass } from '../utils/dom-helpers.js';
-import { emitCustomEvent } from '../utils/event-helpers.js';
+import { persistAndNotify } from './persist-and-notify.js';
 import { info, error as logError, warn } from '../utils/logger.js';
 
 /**
@@ -113,41 +113,23 @@ export async function saveAnswer(
     totalQuestions,
   );
 
-  // Save updated record to IndexedDB
-  try {
-    await storageService.saveStudentRecord(updatedRecord);
-  } catch (err) {
-    warn('Failed to save student record to IndexedDB', err);
-  }
-
-  // Build cache from updated record
-  const cache = storageService.buildCache(updatedRecord);
-
-  // Save cache to sessionStorage for quick access
-  setJSON(STORAGE_KEYS.CACHE, cache);
-
-  // Apply validation styling
-  const row = table.querySelector(`tbody tr:nth-child(${questionIndex + 1})`);
-  if (row) {
-    const answerCell = row.querySelector('td:nth-child(2)');
-    if (answerCell) {
-      applyValidationStyling(answerCell, success);
-    }
-  }
-
-  // Emit events
-  emitCustomEvent('qd:answer-saved', {
-    pageId,
-    answer: answerRecord,
-  });
-
+  // Persist, refresh cache, apply validation styling, then emit events
   const pageData = updatedRecord.pages[pageId];
-  if (pageData) {
-    emitCustomEvent('qd:state-changed', {
-      pageId,
-      state: pageData.state,
-    });
-  }
+  await persistAndNotify(updatedRecord, {
+    onSavedDom: () => {
+      const row = table.querySelector(`tbody tr:nth-child(${questionIndex + 1})`);
+      const answerCell = row?.querySelector('td:nth-child(2)');
+      if (answerCell) {
+        applyValidationStyling(answerCell, success);
+      }
+    },
+    events: [
+      { name: 'qd:answer-saved', detail: { pageId, answer: answerRecord } },
+      ...(pageData
+        ? [{ name: 'qd:state-changed' as const, detail: { pageId, state: pageData.state } }]
+        : []),
+    ],
+  });
 
   info(
     `Answer saved for question ${questionIndex + 1} on page ${pageId}: ${success ? 'correct' : 'incorrect'}`,

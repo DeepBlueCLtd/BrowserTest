@@ -9,6 +9,7 @@ import { sharedStyles } from './shared-styles.js';
 import type { StudentRecord, SessionData } from '../../types/contracts.js';
 import { STORAGE_KEYS } from '../../types/contracts.js';
 import { getJSON, INSTRUCTOR_SHOW_ANSWERS_KEY } from '../../utils/storage-helpers.js';
+import { isInstructor } from '../../utils/session-state.js';
 import { SessionService } from '../../services/session.js';
 import { getStorageService } from '../../services/storage-service.js';
 import './qd-instructor-unlock.js';
@@ -69,8 +70,8 @@ export class QdInstructor extends LitElement {
     this.updateVisibility();
 
     // Auto-unlock if instructor is already logged in
-    const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
-    if (isInstructor) {
+    const instructorActive = isInstructor();
+    if (instructorActive) {
       this.unlock();
       // Load students data for export button
       void this.refreshStudents();
@@ -82,7 +83,7 @@ export class QdInstructor extends LitElement {
       this.showStudentAnswers = savedState === 'true';
 
       // If toggle was enabled and instructor is logged in, dispatch event to show answers
-      if (this.showStudentAnswers && isInstructor) {
+      if (this.showStudentAnswers && instructorActive) {
         // Dispatch after tables are enhanced (use setTimeout to defer)
         setTimeout(() => {
           this.dispatchEvent(
@@ -109,12 +110,7 @@ export class QdInstructor extends LitElement {
    * Update visibility based on instructor session state
    */
   private updateVisibility(): void {
-    const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
-    if (isInstructor) {
-      this.setAttribute('data-show', '');
-    } else {
-      this.removeAttribute('data-show');
-    }
+    this.toggleAttribute('data-show', isInstructor());
   }
 
   private handleLoginEvent = (event: Event): void => {

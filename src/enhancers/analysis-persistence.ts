@@ -10,9 +10,9 @@ import type { SessionData, CellKey } from '../types/contracts.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
 import type { AnalysisTableMetadata } from './analysis-table.js';
 import { getStorageService } from '../services/storage-service.js';
-import { getJSON, setJSON } from '../utils/storage-helpers.js';
+import { getJSON } from '../utils/storage-helpers.js';
 import { getTextContent } from '../utils/dom-helpers.js';
-import { emitCustomEvent } from '../utils/event-helpers.js';
+import { persistAndNotify } from './persist-and-notify.js';
 import { info, error as logError, warn } from '../utils/logger.js';
 
 /**
@@ -89,23 +89,11 @@ export async function saveCellData(
     content,
   );
 
-  // Save updated record to IndexedDB
-  try {
-    await storageService.saveStudentRecord(updatedRecord);
-  } catch (err) {
-    warn('Failed to save student record to IndexedDB', err);
-  }
-
-  // Build cache from updated record and persist to sessionStorage
-  const cache = storageService.buildCache(updatedRecord);
-  setJSON(STORAGE_KEYS.CACHE, cache);
-
-  // Emit event
-  emitCustomEvent('qd:analysis-saved', {
-    pageId,
-    tableId: parsed.tableId,
-    cellKey,
-    content,
+  // Persist, refresh cache, and emit the saved event
+  await persistAndNotify(updatedRecord, {
+    events: [
+      { name: 'qd:analysis-saved', detail: { pageId, tableId: parsed.tableId, cellKey, content } },
+    ],
   });
 
   info(`Analysis cell saved for ${cellKey} on page ${pageId}`);

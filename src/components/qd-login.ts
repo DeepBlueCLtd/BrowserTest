@@ -13,9 +13,7 @@
 import { LitElement, html } from 'lit';
 import { customElement, state, property } from 'lit/decorators.js';
 import { loginStyles } from './qd-login.styles.js';
-import { STORAGE_KEYS } from '../types/contracts.js';
-import type { SessionData } from '../types/contracts.js';
-import { getJSON } from '../utils/storage-helpers.js';
+import { hasActiveSession } from '../utils/session-state.js';
 import { validateStudentForm, sanitizePinInput } from '../utils/validation-helpers.js';
 import { SessionService } from '../services/session.js';
 import { readRelease, readDbName } from '../config/dom-config-reader.js';
@@ -106,8 +104,7 @@ export class QdLogin extends LitElement {
 
   /** Show the form only when NOT logged in. */
   private updateVisibility(): void {
-    const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
-    this.toggleAttribute('data-show', !session);
+    this.toggleAttribute('data-show', !hasActiveSession());
   }
 
   /** On logout, reset state and show the login form again. */

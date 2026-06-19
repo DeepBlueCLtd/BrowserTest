@@ -18,7 +18,8 @@ import { customElement, state } from 'lit/decorators.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
 import type { SessionCache, SessionData } from '../types/contracts.js';
 import { getJSON } from '../utils/storage-helpers.js';
-import { calculateStatusIndicator } from '../utils/calculation-helpers.js';
+import { isStudentLoggedIn } from '../utils/session-state.js';
+import { calculateStatusIndicator, calculatePercentage } from '../utils/calculation-helpers.js';
 import { SessionService } from '../services/session.js';
 import './qd-build-info.js';
 import './qd-help-trigger.js';
@@ -246,16 +247,8 @@ export class QdStatus extends LitElement {
 
     this.total = cache.totals.total;
     this.correct = cache.totals.correct;
-    this.percentage = this.calculatePercentage(cache.totals.total, cache.totals.correct);
+    this.percentage = calculatePercentage(cache.totals.correct, cache.totals.total);
     this.statusColor = this.calculateStatusColor(cache.totals.total, cache.totals.correct);
-  }
-
-  /**
-   * Calculate percentage from total/correct
-   */
-  private calculatePercentage(total: number, correct: number): number {
-    if (total === 0) return 0;
-    return Math.round((correct / total) * 100);
   }
 
   /**
@@ -273,14 +266,7 @@ export class QdStatus extends LitElement {
    * Show only if logged in as student (not instructor)
    */
   private updateVisibility() {
-    const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
-    const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
-
-    if (session && !isInstructor) {
-      this.setAttribute('data-show', '');
-    } else {
-      this.removeAttribute('data-show');
-    }
+    this.toggleAttribute('data-show', isStudentLoggedIn());
   }
 
   /**

@@ -169,9 +169,9 @@ Behavior-preserving, test-gated, one slice at a time. The **only** sanctioned be
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T051 [P] Add a shared session-state helper (`isStudentLoggedIn()`, `isInstructor()`) and dedupe the three `updateVisibility` implementations across `qd-login.ts`, `qd-status.ts`, `qd-instructor.ts`
-- [ ] T052 [P] Add a shared `persistAndNotify(record, { onSavedDom, events })` helper and use it in `quiz-answer-persistence.ts` and `analysis-persistence.ts`
-- [ ] T053 Move `calculatePercentage` from `qd-status.ts` into `calculation-helpers.ts`; use `sanitizePinInput` in `qd-pin-create.ts`
+- [X] T051 [P] Add a shared session-state helper (`isStudentLoggedIn()`, `isInstructor()`) and dedupe the three `updateVisibility` implementations across `qd-login.ts`, `qd-status.ts`, `qd-instructor.ts`
+- [X] T052 [P] Add a shared `persistAndNotify(record, { onSavedDom, events })` helper and use it in `quiz-answer-persistence.ts` and `analysis-persistence.ts`
+- [X] T053 Move `calculatePercentage` from `qd-status.ts` into `calculation-helpers.ts`; use `sanitizePinInput` in `qd-pin-create.ts`
 - [ ] T054 Verify SC-002 (`find src -name '*.ts' | xargs wc -l | awk '$1>400'` returns only `contracts.ts`) and SC-003 (no enhancer overlay renders student data via `innerHTML`)
 - [ ] T055 Run the full Definition of Done + `size-check`; confirm bundle ≤40KB min+gzip and no regression vs the T001 baseline (SC-005)
 - [ ] T056 Run `specs/012-code-review/quickstart.md` validation end-to-end and update `code-review-report.md` line references to final state
