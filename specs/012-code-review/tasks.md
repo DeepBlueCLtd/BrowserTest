@@ -104,7 +104,7 @@ Behavior-preserving, test-gated, one slice at a time. The **only** sanctioned be
 
 - [X] T022 [P] [US3] Characterization tests `tests/integration/indexeddb-adapter.test.ts` covering get/save student, getByRelease, backup, audit-event, clearAll, and DB open/upgrade/recovery (baseline before split)
 - [X] T023 [P] [US3] Characterization tests `tests/integration/quiz-table-enhance.test.ts` covering interactive enhancement, answer save + validation styling, and column show/hide
-- [ ] T024 [P] [US3] Characterization tests `tests/integration/analysis-table-enhance.test.ts` covering interactive enhancement, cell save, and student-entry display
+- [X] T024 [P] [US3] Characterization tests `tests/integration/analysis-table-enhance.test.ts` covering interactive enhancement, cell save, and student-entry display
 - [X] T025 [P] [US3] Characterization tests `tests/unit/session-cache.test.ts` for `buildCacheFromRecord` and related cache math
 - [ ] T026 [P] [US3] Characterization tests `tests/integration/bootstrap.test.ts` for global-style injection, table enhancement loops, and existing-session table upgrade
 
@@ -126,9 +126,9 @@ Behavior-preserving, test-gated, one slice at a time. The **only** sanctioned be
 - [X] T034 [P] [US3] Extract `src/enhancers/quiz-input-factory.ts` (`createQuestionInput`) from `quiz-table.ts`
 - [X] T035 [US3] Extract `src/enhancers/quiz-answer-persistence.ts` (`handleAnswerInput`, `saveAnswer`, `applyValidationStyling`) from `quiz-table.ts`
 - [X] T036 [US3] Extract `src/enhancers/quiz-instructor-overlay.ts` (show/hide student answers) from `quiz-table.ts`; reduce `quiz-table.ts` to lifecycle/orchestration and verify <400 lines
-- [ ] T037 [P] [US3] Create `src/services/analysis-display.ts` (pure `groupEntriesByCell`, `sortByTimestamp`) moved from `analysis-table.ts`, with `tests/unit/analysis-display.test.ts`
-- [ ] T038 [US3] Add `updateRecordWithAnalysis` to `src/services/storage-service.ts` and extract `src/enhancers/analysis-persistence.ts` (`saveCellData`) from `analysis-table.ts` using it
-- [ ] T039 [US3] Extract `src/enhancers/analysis-instructor-overlay.ts` (`createStudentEntriesDisplay`, show/hide entries) from `analysis-table.ts`; reduce `analysis-table.ts` to lifecycle and verify <400 lines
+- [X] T037 [P] [US3] Create `src/services/analysis-display.ts` (pure `groupEntriesByCell`, `sortByTimestamp`) moved from `analysis-table.ts`, with `tests/unit/analysis-display.test.ts`
+- [X] T038 [US3] Add `updateRecordWithAnalysis` to `src/services/storage-service.ts` and extract `src/enhancers/analysis-persistence.ts` (`saveCellData`) from `analysis-table.ts` using it
+- [X] T039 [US3] Extract `src/enhancers/analysis-instructor-overlay.ts` (`createStudentEntriesDisplay`, show/hide entries) from `analysis-table.ts`; reduce `analysis-table.ts` to lifecycle and verify <400 lines
 
 ### Implementation — init (`bootstrap.ts` 490, `event-coordinator.ts` 339)
 

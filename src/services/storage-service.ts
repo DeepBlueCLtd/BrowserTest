@@ -13,6 +13,8 @@ import type {
   PageId,
   ReleaseId,
   AnswerRecord,
+  AnalysisData,
+  CellKey,
 } from '../types/contracts.js';
 import { getStorageAdapter } from './storage/indexeddb.js';
 import { buildCacheFromRecord } from './session-cache.js';
@@ -184,6 +186,57 @@ export class StorageService {
         [pageId]: pageData,
       },
     };
+  }
+
+  /**
+   * Update a student record with an analysis cell edit.
+   *
+   * Mirrors {@link updateRecordWithAnswer} for analysis tables: gets/creates the
+   * page and its analysis data, writes the cell content, and stamps the
+   * first/last-edited timestamps.
+   *
+   * @param record - Current student record (mutated in place, also returned)
+   * @param pageId - Page where the cell was edited
+   * @param tableId - Analysis table identifier
+   * @param cellKey - Cell key being edited
+   * @param content - New cell content
+   * @returns The updated student record
+   */
+  updateRecordWithAnalysis(
+    record: StudentRecord,
+    pageId: PageId,
+    tableId: string,
+    cellKey: CellKey,
+    content: string,
+  ): StudentRecord {
+    // Get or create page data
+    const pageData: PageData = record.pages[pageId] || {
+      answers: [],
+      state: 'unstarted',
+    };
+
+    // Get or create analysis data
+    const analysisData: AnalysisData = pageData.analysis || {
+      tableId,
+      cells: {},
+    };
+
+    // Update cell content
+    analysisData.cells[cellKey] = content;
+
+    // Update timestamps
+    const now = new Date().toISOString();
+    if (!analysisData.firstEdited) {
+      analysisData.firstEdited = now;
+    }
+    analysisData.lastEdited = now;
+
+    // Store analysis data back in the page and record
+    pageData.analysis = analysisData;
+    record.pages[pageId] = pageData;
+    record.updated = now;
+
+    return record;
   }
 
   /**

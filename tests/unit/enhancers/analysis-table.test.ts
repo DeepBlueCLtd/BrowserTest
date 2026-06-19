@@ -5,11 +5,8 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { StudentRecord } from '../../../src/types/contracts.js';
-import {
-  groupEntriesByCell,
-  sortByTimestamp,
-  createStudentEntriesDisplay,
-} from '../../../src/enhancers/analysis-table.js';
+import { groupEntriesByCell, sortByTimestamp } from '../../../src/services/analysis-display.js';
+import { createStudentEntriesDisplay } from '../../../src/enhancers/analysis-instructor-overlay.js';
 
 describe('Analysis Table Enhancer - Instructor View (FR-012, FR-013)', () => {
   let table: HTMLTableElement;

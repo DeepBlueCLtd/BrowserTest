@@ -8,9 +8,9 @@ import type { StudentRecord, PageId } from '../../src/types/contracts.js';
 import {
   groupEntriesByCell,
   sortByTimestamp,
-  createStudentEntriesDisplay,
   type CellEntry,
-} from '../../src/enhancers/analysis-table.js';
+} from '../../src/services/analysis-display.js';
+import { createStudentEntriesDisplay } from '../../src/enhancers/analysis-instructor-overlay.js';
 
 describe('Analysis Table Instructor Display Integration (T046)', () => {
   beforeEach(() => {
