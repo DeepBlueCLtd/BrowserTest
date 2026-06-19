@@ -105,7 +105,7 @@ Behavior-preserving, test-gated, one slice at a time. The **only** sanctioned be
 - [ ] T022 [P] [US3] Characterization tests `tests/integration/indexeddb-adapter.test.ts` covering get/save student, getByRelease, backup, audit-event, clearAll, and DB open/upgrade/recovery (baseline before split)
 - [ ] T023 [P] [US3] Characterization tests `tests/integration/quiz-table-enhance.test.ts` covering interactive enhancement, answer save + validation styling, and column show/hide
 - [ ] T024 [P] [US3] Characterization tests `tests/integration/analysis-table-enhance.test.ts` covering interactive enhancement, cell save, and student-entry display
-- [ ] T025 [P] [US3] Characterization tests `tests/unit/session-cache.test.ts` for `buildCacheFromRecord` and related cache math
+- [X] T025 [P] [US3] Characterization tests `tests/unit/session-cache.test.ts` for `buildCacheFromRecord` and related cache math
 - [ ] T026 [P] [US3] Characterization tests `tests/integration/bootstrap.test.ts` for global-style injection, table enhancement loops, and existing-session table upgrade
 
 ### Implementation — storage (`indexeddb.ts`, 759 lines)
@@ -118,7 +118,7 @@ Behavior-preserving, test-gated, one slice at a time. The **only** sanctioned be
 
 ### Implementation — session (`session.ts`, 443 lines)
 
-- [ ] T032 [US3] Extract `src/services/session-cache.ts` (`buildCacheFromRecord`, `buildPageCache`, `registerPageQuestions`, `updateCacheWithAnswer`) from `src/services/session.ts`; re-point `storage-service.ts` import; verify `session.ts` <300 lines — make T025 pass
+- [X] T032 [US3] Extract `src/services/session-cache.ts` (`buildCacheFromRecord`, `buildPageCache`, `registerPageQuestions`, `updateCacheWithAnswer`) from `src/services/session.ts`; re-point `storage-service.ts` import; verify `session.ts` <300 lines — make T025 pass
 
 ### Implementation — enhancers (`quiz-table.ts` 807, `analysis-table.ts` 637)
 

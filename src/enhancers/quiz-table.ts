@@ -23,7 +23,7 @@ import type {
 } from '../types/contracts.js';
 import { parseQuizTable } from '../services/quiz-parser.js';
 import { validateAnswer } from '../services/quiz-parser.js';
-import { registerPageQuestions } from '../services/session.js';
+import { registerPageQuestions } from '../services/session-cache.js';
 import { getQuestionInputSpec } from '../services/question-input.js';
 import { formatStudentAnswersForDisplay } from '../services/answer-display.js';
 import { Debouncer } from '../utils/debouncer.js';

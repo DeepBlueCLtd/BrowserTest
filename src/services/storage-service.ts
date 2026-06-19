@@ -15,7 +15,7 @@ import type {
   AnswerRecord,
 } from '../types/contracts.js';
 import { getStorageAdapter } from './storage/indexeddb.js';
-import { buildCacheFromRecord } from './session.js';
+import { buildCacheFromRecord } from './session-cache.js';
 import { calculateCompletionState } from './state-calculator.js';
 import { recalculateTotalsFromPages } from '../utils/calculation-helpers.js';
 import { info, warn, error as logError } from '../utils/logger.js';
