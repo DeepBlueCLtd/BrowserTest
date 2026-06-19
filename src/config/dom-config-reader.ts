@@ -153,3 +153,43 @@ export function readDOMConfig(): DOMConfig {
 export function getDefaultConfig(): DOMConfig {
   return { ...DEFAULT_CONFIG };
 }
+
+/**
+ * Read the configured publication-title CSS selector.
+ *
+ * Centralizes the `#qd-title-selector` read so components do not call
+ * `document.getElementById` inline.
+ *
+ * @returns The configured selector, or the default when unset
+ */
+export function readTitleSelector(): string {
+  return readConfigElement(CONFIG_IDS.titleSelector, DEFAULT_CONFIG.titleSelector);
+}
+
+/**
+ * Read the configured IndexedDB database name without throwing.
+ *
+ * Unlike {@link readDOMConfig}, this returns an empty string when the element
+ * is missing or empty, leaving callers free to decide how to handle the
+ * misconfiguration.
+ *
+ * @returns The configured database name, or `''` when unset
+ */
+export function readDbName(): string {
+  const element = document.querySelector(`#${CONFIG_IDS.dbName}`);
+  return element?.textContent?.trim() || '';
+}
+
+/**
+ * Read the publication Release ID from the document.
+ *
+ * Resolves the title selector via {@link readTitleSelector}, then returns the
+ * trimmed text of the matched element. The Release ID is always read from the
+ * DOM (never user input).
+ *
+ * @returns The Release ID, or `''` when the title element is missing/empty
+ */
+export function readRelease(): string {
+  const titleElement = document.querySelector(readTitleSelector());
+  return titleElement?.textContent?.trim() || '';
+}

@@ -9,6 +9,7 @@ import { sharedStyles } from './shared-styles.js';
 import type { StudentRecord, SessionData } from '../../types/contracts.js';
 import { STORAGE_KEYS } from '../../types/contracts.js';
 import { getJSON, INSTRUCTOR_SHOW_ANSWERS_KEY } from '../../utils/storage-helpers.js';
+import { isInstructor } from '../../utils/session-state.js';
 import { SessionService } from '../../services/session.js';
 import { getStorageService } from '../../services/storage-service.js';
 import './qd-instructor-unlock.js';
@@ -69,11 +70,11 @@ export class QdInstructor extends LitElement {
     this.updateVisibility();
 
     // Auto-unlock if instructor is already logged in
-    const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
-    if (isInstructor) {
+    const instructorActive = isInstructor();
+    if (instructorActive) {
       this.unlock();
       // Load students data for export button
-      void this.loadStudents();
+      void this.refreshStudents();
     }
 
     // Restore toggle state from sessionStorage
@@ -82,7 +83,7 @@ export class QdInstructor extends LitElement {
       this.showStudentAnswers = savedState === 'true';
 
       // If toggle was enabled and instructor is logged in, dispatch event to show answers
-      if (this.showStudentAnswers && isInstructor) {
+      if (this.showStudentAnswers && instructorActive) {
         // Dispatch after tables are enhanced (use setTimeout to defer)
         setTimeout(() => {
           this.dispatchEvent(
@@ -109,12 +110,7 @@ export class QdInstructor extends LitElement {
    * Update visibility based on instructor session state
    */
   private updateVisibility(): void {
-    const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
-    if (isInstructor) {
-      this.setAttribute('data-show', '');
-    } else {
-      this.removeAttribute('data-show');
-    }
+    this.toggleAttribute('data-show', isInstructor());
   }
 
   private handleLoginEvent = (event: Event): void => {
@@ -127,7 +123,7 @@ export class QdInstructor extends LitElement {
     if (role === 'instructor') {
       this.unlock();
       // Load students data for export button
-      void this.loadStudents();
+      void this.refreshStudents();
     }
   };
 
@@ -144,16 +140,18 @@ export class QdInstructor extends LitElement {
   }
 
   /**
-   * Load students from storage for current release
+   * Load all students for the current release into `this.students`.
+   *
+   * The single source for loading students; every panel/handler that needs a
+   * fresh list calls this instead of duplicating the load/try-catch.
    */
-  private async loadStudents(): Promise<void> {
+  private async refreshStudents(): Promise<void> {
     const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
     if (!session) return;
 
     try {
       const storageService = getStorageService();
-      const students = await storageService.getStudentsByRelease(session.release);
-      this.students = students;
+      this.students = await storageService.getStudentsByRelease(session.release);
     } catch (err) {
       console.error('Failed to load students:', err);
       this.students = [];
@@ -178,18 +176,7 @@ export class QdInstructor extends LitElement {
 
   private handleResetPins = async (): Promise<void> => {
     // Load all students for current release before showing reset dialog
-    const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
-    if (!session) return;
-
-    try {
-      const storageService = getStorageService();
-      const students = await storageService.getStudentsByRelease(session.release);
-      this.students = students;
-    } catch (err) {
-      console.error('Failed to load students:', err);
-      this.students = [];
-    }
-
+    await this.refreshStudents();
     this.showPinReset = true;
   };
 
@@ -220,18 +207,7 @@ export class QdInstructor extends LitElement {
 
   private handleViewScores = async (): Promise<void> => {
     // Load all students for current release before showing scores
-    const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
-    if (!session) return;
-
-    try {
-      const storageService = getStorageService();
-      const students = await storageService.getStudentsByRelease(session.release);
-      this.students = students;
-    } catch (err) {
-      console.error('Failed to load students:', err);
-      this.students = [];
-    }
-
+    await this.refreshStudents();
     this.showScores = true;
   };
 
@@ -276,16 +252,7 @@ export class QdInstructor extends LitElement {
 
     // FR-004: Load student data in fresh session when toggle is enabled
     if (this.showStudentAnswers && this.students.length === 0) {
-      const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
-      if (session) {
-        try {
-          const storageService = getStorageService();
-          const students = await storageService.getStudentsByRelease(session.release);
-          this.students = students;
-        } catch (err) {
-          console.error('Failed to load students for toggle:', err);
-        }
-      }
+      await this.refreshStudents();
     }
 
     // Emit event to notify table enhancers

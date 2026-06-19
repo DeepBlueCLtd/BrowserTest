@@ -11,11 +11,11 @@
  * (`upgradeTablesAfterLogin`).
  */
 
+import type { QuizTableMetadata } from './quiz-table.js';
 import {
   showStudentAnswersForTable,
   hideStudentAnswersForTable,
-  type QuizTableMetadata,
-} from './quiz-table.js';
+} from './quiz-instructor-overlay.js';
 import { INSTRUCTOR_SHOW_ANSWERS_KEY } from '../utils/storage-helpers.js';
 
 /**

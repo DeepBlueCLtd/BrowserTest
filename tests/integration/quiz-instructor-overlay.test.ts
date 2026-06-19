@@ -8,12 +8,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { enhanceQuizTable, getQuizTableMetadata } from '../../src/enhancers/quiz-table.js';
 import {
-  enhanceQuizTable,
-  getQuizTableMetadata,
   showStudentAnswersForTable,
   hideStudentAnswersForTable,
-} from '../../src/enhancers/quiz-table.js';
+} from '../../src/enhancers/quiz-instructor-overlay.js';
 import type { SessionData, StudentRecord } from '../../src/types/contracts.js';
 
 type QuizMetadata = NonNullable<ReturnType<typeof getQuizTableMetadata>>;
@@ -118,10 +117,13 @@ describe('Quiz instructor answer overlay', () => {
     await showStudentAnswersForTable(table, metadata);
 
     const answerCell = table.querySelector('tbody tr:first-child td:nth-child(2)');
-    const overlay = answerCell?.querySelector('.qd-student-answers');
+    const overlay = answerCell?.querySelector('qd-student-answers') as HTMLElement & {
+      updateComplete: Promise<unknown>;
+    };
     expect(overlay).toBeTruthy();
+    await overlay.updateComplete;
 
-    const entries = overlay?.querySelectorAll('.qd-student-answer');
+    const entries = overlay.shadowRoot?.querySelectorAll('.qd-student-answer');
     expect(entries?.length).toBe(2);
 
     // Correct/incorrect css classes preserved
@@ -165,16 +167,19 @@ describe('Quiz instructor answer overlay', () => {
 
     await showStudentAnswersForTable(table, metadata);
 
-    const overlay = table.querySelector('.qd-student-answers');
+    const overlay = table.querySelector('qd-student-answers') as HTMLElement & {
+      updateComplete: Promise<unknown>;
+    };
     expect(overlay).toBeTruthy();
+    await overlay.updateComplete;
 
     // No live elements were created from the student-controlled strings.
-    expect(overlay?.querySelector('img')).toBeNull();
-    expect(overlay?.querySelector('script')).toBeNull();
+    expect(overlay.shadowRoot?.querySelector('img')).toBeNull();
+    expect(overlay.shadowRoot?.querySelector('script')).toBeNull();
 
     // The raw markup survives verbatim as text content.
-    const nameSpan = overlay?.querySelector('.qd-student-name');
-    const answerSpan = overlay?.querySelector('.qd-student-answer-text');
+    const nameSpan = overlay.shadowRoot?.querySelector('.qd-student-name');
+    const answerSpan = overlay.shadowRoot?.querySelector('.qd-student-answer-text');
     expect(nameSpan?.textContent).toContain(maliciousName);
     expect(answerSpan?.textContent).toBe(maliciousAnswer);
   });

@@ -8,9 +8,9 @@ import type { StudentRecord, PageId } from '../../src/types/contracts.js';
 import {
   groupEntriesByCell,
   sortByTimestamp,
-  createStudentEntriesDisplay,
   type CellEntry,
-} from '../../src/enhancers/analysis-table.js';
+} from '../../src/services/analysis-display.js';
+import { createStudentEntriesDisplay } from '../../src/enhancers/analysis-instructor-overlay.js';
 
 describe('Analysis Table Instructor Display Integration (T046)', () => {
   beforeEach(() => {
@@ -125,33 +125,32 @@ describe('Analysis Table Instructor Display Integration (T046)', () => {
       expect(sortedCell1[2]?.name).toBe('Alice Johnson');
     });
 
-    it('should create display with all student entries in correct order', () => {
+    it('should create display with all student entries in correct order', async () => {
       const grouped = groupEntriesByCell(students, pageId);
       const entries = grouped['R1C1#f:abc123'] || [];
 
-      // Create display element
       const display = createStudentEntriesDisplay(entries);
+      document.body.appendChild(display);
+      await display.updateComplete;
 
-      // Should have container class
-      expect(display.className).toContain('qd-student-entries');
-
-      // Should have 3 entry divs
-      const entryDivs = display.querySelectorAll('.qd-entry');
+      // Should have 3 entry divs (in shadow DOM)
+      const entryDivs = display.shadowRoot?.querySelectorAll('.qd-entry');
       expect(entryDivs).toHaveLength(3);
 
       // First entry should be Bob (newest)
-      const firstEntry = entryDivs[0];
+      const firstEntry = entryDivs?.[0];
       expect(firstEntry?.textContent).toContain('Bob Smith');
       expect(firstEntry?.textContent).toContain('5678'); // Last 4 digits
       expect(firstEntry?.textContent).toContain('Type B connector');
 
       // Last entry should be Alice (oldest)
-      const lastEntry = entryDivs[2];
+      const lastEntry = entryDivs?.[2];
       expect(lastEntry?.textContent).toContain('Alice Johnson');
       expect(lastEntry?.textContent).toContain('type A');
+      display.remove();
     });
 
-    it('should display timestamp in 24-hour format', () => {
+    it('should display timestamp in 24-hour format', async () => {
       const entries: CellEntry[] = [
         {
           serviceId: 'RN1234',
@@ -162,22 +161,28 @@ describe('Analysis Table Instructor Display Integration (T046)', () => {
       ];
 
       const display = createStudentEntriesDisplay(entries);
-      const text = display.textContent || '';
+      document.body.appendChild(display);
+      await display.updateComplete;
+      const text = display.shadowRoot?.textContent || '';
 
       // Should contain 24-hour time format
       expect(text).toMatch(/14:23/);
+      display.remove();
     });
 
-    it('should handle cell with no entries (FR-013)', () => {
+    it('should handle cell with no entries (FR-013)', async () => {
       // Cell R3C1 has no entries from any student
       const grouped = groupEntriesByCell(students, pageId);
       const emptyEntries = grouped['R3C1#f:empty'] || [];
 
       const display = createStudentEntriesDisplay(emptyEntries);
+      document.body.appendChild(display);
+      await display.updateComplete;
 
       // Should show placeholder
-      expect(display.textContent).toContain('(No entries yet)');
-      expect(display.className).toContain('qd-no-entries');
+      expect(display.shadowRoot?.textContent).toContain('(No entries yet)');
+      expect(display.shadowRoot?.querySelector('.qd-no-entries')).not.toBeNull();
+      display.remove();
     });
 
     it('should isolate entries by page', () => {
@@ -295,7 +300,7 @@ describe('Analysis Table Instructor Display Integration (T046)', () => {
       expect(serviceIds).toContain('RN3333');
     });
 
-    it('should handle very long content', () => {
+    it('should handle very long content', async () => {
       const longContent = 'A'.repeat(1000);
       const entries: CellEntry[] = [
         {
@@ -307,12 +312,15 @@ describe('Analysis Table Instructor Display Integration (T046)', () => {
       ];
 
       const display = createStudentEntriesDisplay(entries);
+      document.body.appendChild(display);
+      await display.updateComplete;
 
       // Should contain the full content
-      expect(display.textContent).toContain(longContent);
+      expect(display.shadowRoot?.textContent).toContain(longContent);
+      display.remove();
     });
 
-    it('should handle special characters in content', () => {
+    it('should handle special characters in content', async () => {
       const specialContent = '<script>alert("XSS")</script> & "quotes" \'apostrophes\'';
       const entries: CellEntry[] = [
         {
@@ -324,11 +332,13 @@ describe('Analysis Table Instructor Display Integration (T046)', () => {
       ];
 
       const display = createStudentEntriesDisplay(entries);
+      document.body.appendChild(display);
+      await display.updateComplete;
 
-      // Should escape HTML properly (textContent shows actual text)
-      expect(display.textContent).toContain('<script>');
-      // But innerHTML should not execute it
-      expect(display.innerHTML).not.toContain('<script>alert');
+      // Lit auto-escapes: the literal text is present, no live <script> element
+      expect(display.shadowRoot?.textContent).toContain('<script>');
+      expect(display.shadowRoot?.querySelector('script')).toBeNull();
+      display.remove();
     });
   });
 });

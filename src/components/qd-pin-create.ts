@@ -16,6 +16,7 @@ import {
   validatePinFormat,
   validatePinConfirmation,
 } from '../services/auth/pin-service.js';
+import { sanitizePinInput } from '../utils/validation-helpers.js';
 import { PIN_CONSTANTS } from '../types/contracts.js';
 
 @customElement('qd-pin-create')
@@ -284,15 +285,13 @@ export class QdPinCreate extends LitElement {
 
   private handlePinInput = (e: Event) => {
     const input = e.target as HTMLInputElement;
-    // Filter to digits only
-    this.pin = input.value.replace(/\D/g, '');
+    this.pin = sanitizePinInput(input.value);
     this.errorMessage = '';
   };
 
   private handleConfirmInput = (e: Event) => {
     const input = e.target as HTMLInputElement;
-    // Filter to digits only
-    this.confirmPin = input.value.replace(/\D/g, '');
+    this.confirmPin = sanitizePinInput(input.value);
     this.errorMessage = '';
   };
 

@@ -14,12 +14,11 @@
 
 import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import type { StudentRecord, PinResetEvent } from '../types/contracts.js';
-import { getStorageAdapter } from '../services/storage/indexeddb.js';
-import { resetPin } from '../services/storage/migration.js';
-import { CONFIG_IDS } from '../config/dom-config-reader.js';
+import type { StudentRecord } from '../types/contracts.js';
+import { resetStudentPin } from '../services/pin-reset-service.js';
 import './qd-modal.js';
 import './qd-confirm-dialog.js';
+import './qd-student-table.js';
 
 @customElement('qd-pin-reset-dialog')
 export class QdPinResetDialog extends LitElement {
@@ -34,12 +33,6 @@ export class QdPinResetDialog extends LitElement {
    */
   @property({ type: Boolean, reflect: true })
   open = false;
-
-  /**
-   * Search filter text
-   */
-  @state()
-  private searchText = '';
 
   /**
    * Student being confirmed for reset
@@ -69,83 +62,6 @@ export class QdPinResetDialog extends LitElement {
       max-width: 500px;
     }
 
-    .search-input {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 8px 12px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      margin-bottom: 12px;
-      font-size: 12px;
-    }
-
-    .search-input:focus {
-      outline: none;
-      border-color: #0066cc;
-      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
-    }
-
-    .student-table-container {
-      max-height: 300px;
-      overflow-y: auto;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-    }
-
-    .student-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
-
-    .student-table th {
-      text-align: left;
-      padding: 8px 12px;
-      background: #f5f5f5;
-      border-bottom: 1px solid #e0e0e0;
-      font-weight: 500;
-      position: sticky;
-      top: 0;
-    }
-
-    .student-table td {
-      padding: 6px 12px;
-      border-bottom: 1px solid #f0f0f0;
-    }
-
-    .student-table tbody tr:nth-child(even) {
-      background: #f8f8f8;
-    }
-
-    .student-table tbody tr:hover {
-      background: #f0f0f0;
-    }
-
-    .student-table tr:last-child td {
-      border-bottom: none;
-    }
-
-    .reset-btn {
-      background: #ff5722;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 4px 8px;
-      font-size: 10px;
-      cursor: pointer;
-    }
-
-    .reset-btn:hover {
-      background: #e64a19;
-    }
-
-    .empty-message {
-      padding: 16px;
-      text-align: center;
-      color: #666;
-      font-size: 12px;
-    }
-
     .error-message {
       color: #d32f2f;
       font-size: 11px;
@@ -167,16 +83,6 @@ export class QdPinResetDialog extends LitElement {
     return this.open;
   }
 
-  private get filteredStudents(): StudentRecord[] {
-    if (!this.searchText.trim()) {
-      return this.students;
-    }
-    const search = this.searchText.toLowerCase().trim();
-    return this.students.filter(
-      (s) => s.name.toLowerCase().includes(search) || s.serviceId.toLowerCase().includes(search),
-    );
-  }
-
   /**
    * Close the modal
    */
@@ -184,7 +90,6 @@ export class QdPinResetDialog extends LitElement {
     this.open = false;
     this.confirmingStudent = null;
     this.confirmDialogOpen = false;
-    this.searchText = '';
     this.errorMessage = '';
   }
 
@@ -205,14 +110,6 @@ export class QdPinResetDialog extends LitElement {
     }
     this.close();
     this.dispatchEvent(new CustomEvent('close'));
-  };
-
-  /**
-   * Handle search input
-   */
-  private handleSearchInput = (e: Event): void => {
-    const input = e.target as HTMLInputElement;
-    this.searchText = input.value;
   };
 
   /**
@@ -241,61 +138,37 @@ export class QdPinResetDialog extends LitElement {
   };
 
   private async executeReset(student: StudentRecord) {
-    try {
-      const dbNameElement = document.getElementById(CONFIG_IDS.dbName);
-      if (!dbNameElement?.textContent?.trim()) {
-        throw new Error(
-          `Database name not configured. Add <span id="${CONFIG_IDS.dbName}">dbName</span> to page.`,
-        );
-      }
-      const dbName = dbNameElement.textContent.trim();
-      const storage = getStorageAdapter(dbName);
-      await storage.init();
+    const result = await resetStudentPin(student);
 
-      // Reset the PIN
-      const updatedStudent = resetPin(student);
-      await storage.saveStudent(updatedStudent);
+    this.confirmDialogOpen = false;
+    this.confirmingStudent = null;
 
-      // Create audit log entry
-      const auditEvent: PinResetEvent = {
-        eventId: crypto.randomUUID(),
-        serviceId: student.serviceId,
-        resetBy: 'instructor',
-        resetAt: new Date().toISOString(),
-        release: student.release,
-      };
-      await storage.saveAuditEvent(auditEvent);
+    if (!result.ok) {
+      this.errorMessage = result.error ?? 'Failed to reset PIN. Please try again.';
+      return;
+    }
 
-      // Update local data
+    // Update local data to trigger reactivity
+    if (result.updated) {
       const index = this.students.findIndex((s) => s.serviceId === student.serviceId);
       if (index >= 0) {
-        this.students[index] = updatedStudent;
-        this.students = [...this.students]; // Trigger reactivity
+        this.students[index] = result.updated;
+        this.students = [...this.students];
       }
-
-      // Emit event
-      this.dispatchEvent(
-        new CustomEvent('qd:pin-reset', {
-          detail: {
-            serviceId: student.serviceId,
-            resetBy: 'instructor',
-            timestamp: new Date().toISOString(),
-          },
-          bubbles: true,
-          composed: true,
-        }),
-      );
-
-      // Close confirm dialog
-      this.confirmDialogOpen = false;
-      this.confirmingStudent = null;
-      this.errorMessage = '';
-    } catch (err) {
-      console.error('PIN reset error:', err);
-      this.errorMessage = 'Failed to reset PIN. Please try again.';
-      this.confirmDialogOpen = false;
-      this.confirmingStudent = null;
     }
+
+    this.errorMessage = '';
+    this.dispatchEvent(
+      new CustomEvent('qd:pin-reset', {
+        detail: {
+          serviceId: student.serviceId,
+          resetBy: 'instructor',
+          timestamp: new Date().toISOString(),
+        },
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   override render() {
@@ -315,50 +188,11 @@ export class QdPinResetDialog extends LitElement {
         ${this.open
           ? html`
               <div class="pin-reset-content">
-                <input
-                  type="text"
-                  class="search-input"
-                  placeholder="Search by name or ID..."
-                  .value=${this.searchText}
-                  @input=${this.handleSearchInput}
-                />
-
-                <div class="student-table-container">
-                  ${this.filteredStudents.length === 0
-                    ? html`<div class="empty-message">
-                        ${this.searchText ? 'No matching students' : 'No students found'}
-                      </div>`
-                    : html`
-                        <table class="student-table">
-                          <thead>
-                            <tr>
-                              <th>Name</th>
-                              <th>Service ID</th>
-                              <th>Reset PIN</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            ${this.filteredStudents.map(
-                              (s) => html`
-                                <tr>
-                                  <td>${s.name}</td>
-                                  <td>${s.serviceId}</td>
-                                  <td>
-                                    <button
-                                      class="reset-btn"
-                                      type="button"
-                                      @click=${() => this.handleResetClick(s)}
-                                    >
-                                      Reset
-                                    </button>
-                                  </td>
-                                </tr>
-                              `,
-                            )}
-                          </tbody>
-                        </table>
-                      `}
-                </div>
+                <qd-student-table
+                  .students=${this.students}
+                  actionLabel="Reset"
+                  @select=${(e: CustomEvent<StudentRecord>) => this.handleResetClick(e.detail)}
+                ></qd-student-table>
 
                 ${this.errorMessage
                   ? html`<div class="error-message">${this.errorMessage}</div>`

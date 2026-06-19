@@ -149,3 +149,27 @@ Files 400–340 lines that are *structurally healthy* (no split required): `qd-s
 7. **Extract reusable Lit components**: `<qd-student-answers>` / `<qd-student-entries>`, `qd-student-table`, `qd-spinner`, `qd-lockout-banner`; adopt `qd-modal` base in `qd-pin-create`.
 
 Each step should keep tests green per the Definition of Done (typecheck, lint, unit/integration, format, build, <40KB bundle). Refactors must preserve behavior — TDD: characterize current behavior with tests before moving logic.
+
+---
+
+## 7. Resolution (post-refactor — final state)
+
+All findings above have been implemented behavior-preservingly (the only sanctioned behavior change is the quiz instructor-overlay `innerHTML` → `textContent` XSS fix). Final line counts for the former hot-spots:
+
+| File | Before | After | Outcome |
+|------|-------:|------:|---------|
+| `src/components/qd-login.ts` | 983 | 395 | Presentational view over `AuthService`; styles → `qd-login.styles.ts` |
+| `src/enhancers/quiz-table.ts` | 807 | 399 | Split → `quiz-table-columns`, `quiz-input-factory`, `quiz-answer-persistence`, `quiz-instructor-overlay` |
+| `src/services/storage/indexeddb.ts` | 759 | 308 | Thin coordinator → `idb-connection`, `idb-helpers`, `idb-codec`, `backup-repository`, `audit-log-repository` |
+| `src/enhancers/analysis-table.ts` | 637 | 301 | Split → `analysis-display`, `analysis-persistence`, `analysis-instructor-overlay` |
+| `src/components/qd-migration-dialog.ts` | 519 | 344 | Styles extracted; uses shared `instructor-auth` + `qd-spinner` |
+| `src/init/bootstrap.ts` | 490 | 321 | CSS literal → `global-styles.ts`; parameterized table enhancement |
+| `src/services/session.ts` | 443 | 269 | Cache math → `session-cache.ts` |
+| `src/init/event-coordinator.ts` | 339 | 216 | Reduced to a pure event router |
+
+**Success criteria**:
+- **SC-002**: `find src -name '*.ts' | xargs wc -l | awk '$1>400'` returns only the frozen `src/types/contracts.ts` (411). ✅
+- **SC-003**: no enhancer overlay renders student data via `innerHTML`; quiz/analysis overlays are backed by the auto-escaped `<qd-student-answers>` / `<qd-student-entries>` Lit components. ✅
+- **SC-005**: full Definition of Done green (831 unit + 84 integration tests); IIFE bundle 37.6 KB gzip (≤40 KB limit, +0.9 KB vs the 36.7 KB baseline from the four new reusable Lit components). ✅
+
+Reusable components added: `<qd-student-answers>`, `<qd-student-entries>`, `<qd-student-table>`, `<qd-spinner>`. New shared helpers: `session-state.ts`, `persist-and-notify.ts`, `auth-service.ts`, `instructor-auth.ts`, `pin-reset-service.ts`, `page-id.ts`.

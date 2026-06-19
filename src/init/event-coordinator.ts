@@ -4,21 +4,13 @@
  */
 
 import { info } from '../utils/logger.js';
-import {
-  enhanceQuizTable,
-  getQuizTableMetadata,
-  resetQuizTableToNonInteractive,
-} from '../enhancers/quiz-table.js';
-import { revealInstructorAnswers } from '../enhancers/instructor-answer-reveal.js';
-import {
-  enhanceAnalysisTable,
-  resetAnalysisTableToNonInteractive,
-} from '../enhancers/analysis-table.js';
+import { resetQuizTableToNonInteractive } from '../enhancers/quiz-table.js';
+import { resetAnalysisTableToNonInteractive } from '../enhancers/analysis-table.js';
+import { upgradeTablesAfterLogin } from '../enhancers/table-upgrade.js';
 import { getStorageService } from '../services/storage-service.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
-import { setJSON, getJSON } from '../utils/storage-helpers.js';
-import { getPageIdFromUrl } from '../utils/page-id.js';
-import type { SessionData, SessionCache } from '../types/contracts.js';
+import { getJSON } from '../utils/storage-helpers.js';
+import type { SessionData } from '../types/contracts.js';
 
 /**
  * Custom event detail types
@@ -75,7 +67,11 @@ export class EventCoordinator {
   }
 
   /**
-   * Register handlers for login events
+   * Register handlers for login events.
+   *
+   * On a student login: rebuild the cache from IndexedDB (delegated to
+   * StorageService) and upgrade tables to interactive mode (delegated to the
+   * table-upgrade enhancer). Instructor logins skip student-record handling.
    */
   private registerLoginHandlers(): void {
     this.addEventListener('qd:login', (event) => {
@@ -83,106 +79,22 @@ export class EventCoordinator {
         const detail = (event as CustomEvent<LoginEventDetail>).detail;
         info(`Login event: ${detail.serviceId} (${detail.name})`);
 
-        // Skip student record handling for instructor logins
         if (detail.serviceId === 'INSTRUCTOR') {
           info('Instructor login - skipping student record handling');
           return;
         }
 
-        // Get session from storage (already created by SessionService)
         const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
         if (!session) {
           info('No session found in storage, skipping cache rebuild');
           return;
         }
 
-        // Load student record from IndexedDB
-        const storageService = getStorageService();
-        let studentRecord;
-        let cache;
-
-        try {
-          studentRecord = await storageService.loadStudentRecord(session);
-
-          // Save student record to IndexedDB (creates if new, updates if exists)
-          await storageService.saveStudentRecord(studentRecord);
-
-          cache = storageService.buildCache(studentRecord);
-
-          // Save cache to sessionStorage
-          setJSON(STORAGE_KEYS.CACHE, cache);
-          info(`Cache built from IndexedDB: ${cache.totals.total} total questions`);
-        } catch {
-          info('Failed to load from IndexedDB, initializing empty cache');
-          // Create empty cache for first-time users
-          const emptyCache: SessionCache = {
-            totals: { total: 0, answered: 0, correct: 0 },
-            pages: {},
-          };
-          setJSON(STORAGE_KEYS.CACHE, emptyCache);
-        }
-
-        // Trigger cache rebuild event
+        await getStorageService().refreshCacheOnLogin(session);
         this.dispatchEvent('qd:cache-rebuild', {});
-
-        // Upgrade tables to interactive mode
-        this.upgradeTablesAfterLogin();
+        upgradeTablesAfterLogin();
       })();
     });
-  }
-
-  /**
-   * Upgrade all tables to interactive mode after login
-   */
-  private upgradeTablesAfterLogin(): void {
-    const pageId = getPageIdFromUrl();
-
-    if (!pageId) {
-      info('No pageId found, skipping table upgrade to interactive mode');
-      return;
-    }
-
-    // Check if instructor - instructors don't need interactive tables
-    const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
-    if (isInstructor) {
-      info(
-        'Instructor session detected, tables remain in non-interactive mode with answers visible',
-      );
-      // Restore answer and detail columns for instructor view
-      const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
-
-      quizTables.forEach((table) => {
-        // Get parsed metadata (contains correct answers)
-        const metadata = getQuizTableMetadata(table);
-        if (!metadata) return;
-
-        // Update metadata with pageId for instructor toggle
-        metadata.pageId = pageId;
-
-        // Reveal answers + wire instructor toggles via the shared enhancer.
-        // The post-login path does not add the qd-quiz-instructor class.
-        revealInstructorAnswers(table, metadata);
-      });
-      return;
-    }
-
-    // Upgrade quiz tables
-    const quizTables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
-    if (quizTables.length > 0) {
-      info(`Upgrading ${quizTables.length} quiz table(s) to interactive mode...`);
-      quizTables.forEach((table) => {
-        enhanceQuizTable(table, { interactive: true, pageId });
-      });
-    }
-
-    // Upgrade analysis tables
-    const analysisTables = document.querySelectorAll<HTMLTableElement>('table.qd-analysis');
-    if (analysisTables.length > 0) {
-      info(`Upgrading ${analysisTables.length} analysis table(s) to interactive mode...`);
-      analysisTables.forEach((table) => {
-        enhanceAnalysisTable(table, { interactive: true, pageId });
-      });
-    }
   }
 
   /**
