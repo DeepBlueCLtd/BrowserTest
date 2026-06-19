@@ -15,7 +15,10 @@ import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
 import { migrateObfuscation } from '../services/storage/obfuscation-migration.js';
 import { ENCRYPT_STORAGE } from '../config/feature-flags.js';
-import { CONFIG_IDS } from '../config/dom-config-reader.js';
+import {
+  getExpectedInstructorHash,
+  verifyInstructorPassword,
+} from '../services/auth/instructor-auth.js';
 import { spinnerStyles } from './shared-styles.js';
 import './qd-modal.js';
 
@@ -304,25 +307,11 @@ export class QdMigrationDialog extends LitElement {
    * Validate instructor password against configured hash
    */
   private async validatePassword(password: string): Promise<boolean> {
-    const hashElement = document.getElementById(CONFIG_IDS.instructorHash);
-    const expectedHash = hashElement?.textContent?.trim();
-
-    if (!expectedHash) {
+    if (!getExpectedInstructorHash()) {
       this.error = 'Instructor password not configured';
       return false;
     }
-
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    // Truncate to 12 chars to match instructor login (author-friendly Oxygen dialogs)
-    const actualHash = hashArray
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('')
-      .substring(0, 12);
-
-    return actualHash === expectedHash;
+    return verifyInstructorPassword(password);
   }
 
   /**
