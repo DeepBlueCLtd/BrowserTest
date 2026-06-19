@@ -65,15 +65,14 @@ describe('QdLogin Component', () => {
       expect(serviceIdInput.placeholder).toContain('Service ID');
     });
 
-    it('should render Login and Instructor buttons', () => {
+    it('should render the Login button and the instructor-login child', () => {
       const buttons = element.shadowRoot?.querySelectorAll('button');
-      expect(buttons?.length).toBeGreaterThanOrEqual(2);
-
       const loginBtn = Array.from(buttons!).find((b) => b.textContent?.includes('Login'));
-      const instructorBtn = Array.from(buttons!).find((b) => b.textContent?.includes('Instructor'));
-
       expect(loginBtn).toBeDefined();
-      expect(instructorBtn).toBeDefined();
+
+      // The Instructor button now lives inside the <qd-instructor-login> child.
+      const instructorLogin = element.shadowRoot?.querySelector('qd-instructor-login');
+      expect(instructorLogin).not.toBeNull();
     });
 
     it('should allow custom title property', async () => {

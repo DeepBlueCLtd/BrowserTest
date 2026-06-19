@@ -179,3 +179,17 @@ export function readDbName(): string {
   const element = document.querySelector(`#${CONFIG_IDS.dbName}`);
   return element?.textContent?.trim() || '';
 }
+
+/**
+ * Read the publication Release ID from the document.
+ *
+ * Resolves the title selector via {@link readTitleSelector}, then returns the
+ * trimmed text of the matched element. The Release ID is always read from the
+ * DOM (never user input).
+ *
+ * @returns The Release ID, or `''` when the title element is missing/empty
+ */
+export function readRelease(): string {
+  const titleElement = document.querySelector(readTitleSelector());
+  return titleElement?.textContent?.trim() || '';
+}

@@ -138,7 +138,7 @@ Behavior-preserving, test-gated, one slice at a time. The **only** sanctioned be
 
 ### Implementation — login component (`qd-login.ts` 983)
 
-- [ ] T043 [US3] Reduce `src/components/qd-login.ts` to a presentational view that maps `AuthService` (T021) result unions → state; verify <400 lines — extract the optional `src/components/qd-lockout-banner.ts` if needed to meet the threshold
+- [X] T043 [US3] Reduce `src/components/qd-login.ts` to a presentational view that maps `AuthService` (T021) result unions → state; verify <400 lines — extract the optional `src/components/qd-lockout-banner.ts` if needed to meet the threshold
 
 **Checkpoint**: All six oversized modules under ~400 lines; extracted units tested; all existing tests green.
 
