@@ -132,8 +132,8 @@ Behavior-preserving, test-gated, one slice at a time. The **only** sanctioned be
 
 ### Implementation — init (`bootstrap.ts` 490, `event-coordinator.ts` 339)
 
-- [ ] T040 [P] [US3] Extract the global CSS literal into `src/init/global-styles.ts` and import it from `src/init/bootstrap.ts`
-- [ ] T041 [US3] Collapse the three near-identical `enhanceAll*`/`enhanceHomeBadgesIfPresent` helpers in `src/init/bootstrap.ts` into one parameterized helper; relocate `checkExistingSessionAndUpgradeTables` business logic so `bootstrap.ts` is a thin sequencer and verify <400 lines
+- [X] T040 [P] [US3] Extract the global CSS literal into `src/init/global-styles.ts` and import it from `src/init/bootstrap.ts`
+- [X] T041 [US3] Collapse the three near-identical `enhanceAll*`/`enhanceHomeBadgesIfPresent` helpers in `src/init/bootstrap.ts` into one parameterized helper; relocate `checkExistingSessionAndUpgradeTables` business logic so `bootstrap.ts` is a thin sequencer and verify <400 lines
 - [ ] T042 [US3] Move the inline login-handler IO block and `upgradeTablesAfterLogin` business logic out of `src/init/event-coordinator.ts` (into storage/session and the shared reveal from T019) so the coordinator only routes events
 
 ### Implementation — login component (`qd-login.ts` 983)

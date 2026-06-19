@@ -14,119 +14,8 @@ import { enhanceHomeBadges } from '../enhancers/home-badges.js';
 import { getStorageService } from '../services/storage-service.js';
 import { getJSON, setJSON } from '../utils/storage-helpers.js';
 import { getPageIdFromUrl } from '../utils/page-id.js';
+import { injectGlobalStyles } from './global-styles.js';
 import { STORAGE_KEYS, type SessionData, type SessionCache } from '../types/contracts.js';
-
-/**
- * Inject global CSS styles required by the quiz system
- * Must be called before any table enhancement
- */
-function injectGlobalStyles(): void {
-  // Check if styles already injected
-  if (document.getElementById('qd-global-styles')) {
-    return;
-  }
-
-  const style = document.createElement('style');
-  style.id = 'qd-global-styles';
-  style.textContent = `
-    /* Sonar Quiz System - Global Styles */
-    .qd-hidden {
-      display: none !important;
-    }
-
-    /* Quiz table interactive mode styles */
-    .qd-quiz-interactive .qd-quiz-input {
-      width: 100%;
-      padding: 0.5rem;
-      font-size: inherit;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-
-    /* Ensure select elements inherit font properly */
-    .qd-quiz-interactive select.qd-quiz-input {
-      font-family: inherit;
-      font-size: inherit;
-    }
-
-    /* Validation styling for answer cells */
-    .qd-quiz-interactive .qd-answer-correct {
-      background-color: #d4edda !important;
-      border-color: #28a745 !important;
-    }
-
-    .qd-quiz-interactive .qd-answer-incorrect {
-      background-color: #f8d7da !important;
-      border-color: #dc3545 !important;
-    }
-
-    /* Home page badge styles (R/A/G indicators) */
-    .qd-badge-red {
-      border-left: 4px solid #d32f2f !important;
-      background-color: #ffebee !important;
-    }
-
-    .qd-badge-amber {
-      border-left: 4px solid #ff9800 !important;
-      background-color: #fff3e0 !important;
-    }
-
-    .qd-badge-green {
-      border-left: 4px solid #4caf50 !important;
-      background-color: #e8f5e9 !important;
-    }
-
-    /* Instructor mode: Student answers display */
-    .qd-student-answers {
-      margin-top: 12px;
-      padding: 8px;
-      background: #f8f9fa;
-      border-radius: 4px;
-      border: 1px solid #dee2e6;
-    }
-
-    .qd-student-answer {
-      font-size: 12px;
-      padding: 4px 0;
-      line-height: 1.4;
-    }
-
-    .qd-student-answer.qd-correct {
-      color: #28a745;
-    }
-
-    .qd-student-answer.qd-incorrect {
-      color: #dc3545;
-    }
-
-    .qd-student-name {
-      font-weight: 600;
-    }
-
-    .qd-student-answer-text {
-      margin: 0 4px;
-    }
-
-    .qd-timestamp {
-      color: #6c757d;
-      font-size: 11px;
-      margin-left: 8px;
-    }
-
-    /* Modal error message styles (needed because qd-modal moves to body) */
-    .error-message {
-      color: #d32f2f;
-      font-size: 12px;
-      padding: 8px;
-      background: #ffebee;
-      border-radius: 4px;
-      border-left: 3px solid #d32f2f;
-    }
-  `;
-
-  document.head.appendChild(style);
-  info('Global styles injected');
-}
 
 /**
  * Bootstrap configuration options
@@ -197,11 +86,15 @@ export async function bootstrap(config: BootstrapConfig = {}): Promise<void> {
 
   // 5. Auto-enhance tables if enabled
   if (config.autoEnhanceQuizTables !== false) {
-    enhanceAllQuizTables();
+    enhanceAllTables('table.qd-quiz', 'quiz', (table) =>
+      enhanceQuizTable(table, { interactive: false }),
+    );
   }
 
   if (config.autoEnhanceAnalysisTables !== false) {
-    enhanceAllAnalysisTables();
+    enhanceAllTables('table.qd-analysis', 'analysis', (table) =>
+      enhanceAnalysisTable(table, { interactive: false }),
+    );
   }
 
   if (config.autoEnhanceHomeBadges !== false) {
@@ -226,59 +119,41 @@ export async function bootstrap(config: BootstrapConfig = {}): Promise<void> {
 }
 
 /**
- * Enhance all quiz tables found in the document
- * Initially enhances in non-interactive mode (hide answers for security)
- * Upgraded to interactive mode after login via event coordinator
+ * Enhance all tables matching a selector in non-interactive mode.
+ *
+ * Shared by quiz and analysis enhancement (they differ only in selector,
+ * label, and enhancer). Tables start non-interactive (answers hidden /
+ * read-only) and are upgraded to interactive after login.
+ *
+ * @param selector - CSS selector for the tables
+ * @param label - Human-readable label for logging
+ * @param enhance - Per-table non-interactive enhancer
  */
-function enhanceAllQuizTables(): void {
-  const tables = document.querySelectorAll<HTMLTableElement>('table.qd-quiz');
+function enhanceAllTables(
+  selector: string,
+  label: string,
+  enhance: (table: HTMLTableElement) => void,
+): void {
+  const tables = document.querySelectorAll<HTMLTableElement>(selector);
 
   if (tables.length === 0) {
-    info('No quiz tables found to enhance');
+    info(`No ${label} tables found to enhance`);
     return;
   }
 
-  info(`Enhancing ${tables.length} quiz table(s) in non-interactive mode...`);
+  info(`Enhancing ${tables.length} ${label} table(s) in non-interactive mode...`);
 
   let enhanced = 0;
   for (const table of Array.from(tables)) {
     try {
-      enhanceQuizTable(table, { interactive: false });
+      enhance(table);
       enhanced++;
     } catch (err) {
-      warn(`Failed to enhance quiz table: ${(err as Error).message}`);
+      warn(`Failed to enhance ${label} table: ${(err as Error).message}`);
     }
   }
 
-  info(`Enhanced ${enhanced} of ${tables.length} quiz table(s) (non-interactive)`);
-}
-
-/**
- * Enhance all analysis tables found in the document
- * Initially enhances in non-interactive mode (read-only)
- * Upgraded to interactive mode after login via event coordinator
- */
-function enhanceAllAnalysisTables(): void {
-  const tables = document.querySelectorAll<HTMLTableElement>('table.qd-analysis');
-
-  if (tables.length === 0) {
-    info('No analysis tables found to enhance');
-    return;
-  }
-
-  info(`Enhancing ${tables.length} analysis table(s) in non-interactive mode...`);
-
-  let enhanced = 0;
-  for (const table of Array.from(tables)) {
-    try {
-      enhanceAnalysisTable(table, { interactive: false });
-      enhanced++;
-    } catch (err) {
-      warn(`Failed to enhance analysis table: ${(err as Error).message}`);
-    }
-  }
-
-  info(`Enhanced ${enhanced} of ${tables.length} analysis table(s) (non-interactive)`);
+  info(`Enhanced ${enhanced} of ${tables.length} ${label} table(s) (non-interactive)`);
 }
 
 /**
