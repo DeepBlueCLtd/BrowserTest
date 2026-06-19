@@ -161,7 +161,7 @@ Behavior-preserving, test-gated, one slice at a time. The **only** sanctioned be
 - [X] T047 [US4] Create `src/components/qd-student-answers.ts` and back the quiz instructor overlay (T036) with it (auto-escaped; removes remaining string markup)
 - [X] T048 [US4] Create `src/components/qd-student-entries.ts` and back the analysis instructor overlay (T039) with it, removing inline `style.cssText` hex colors (Constitution V)
 - [ ] T049 [US4] Create `src/components/qd-student-table.ts` (searchable, emits per-row action) and adopt it in `src/components/qd-pin-reset-dialog.ts`; extract `src/services/pin-reset-service.ts` (reset PIN + audit event) so the dialog only renders results
-- [ ] T050 [P] [US4] Adopt the shared `qd-modal` base in `src/components/qd-pin-create.ts` (add a non-dismissable option to `qd-modal`) and dedupe the `loadStudents` routine in `src/components/qd-instructor/qd-instructor.ts` into one `refreshStudents()`
+- [~] T050 [P] [US4] Adopt the shared `qd-modal` base in `src/components/qd-pin-create.ts` (add a non-dismissable option to `qd-modal`) and dedupe the `loadStudents` routine in `src/components/qd-instructor/qd-instructor.ts` into one `refreshStudents()`
 
 **Checkpoint**: Reusable components in place; no inline-hex styling or student-data `innerHTML` in enhancers; bundle within budget.
 
