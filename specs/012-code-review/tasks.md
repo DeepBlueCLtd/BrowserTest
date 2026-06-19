@@ -157,7 +157,7 @@ Behavior-preserving, test-gated, one slice at a time. The **only** sanctioned be
 
 ### Implementation for User Story 4
 
-- [ ] T046 [P] [US4] Create `src/components/qd-spinner.ts` and adopt it in `src/components/qd-migration-dialog.ts`
+- [X] T046 [P] [US4] Create `src/components/qd-spinner.ts` and adopt it in `src/components/qd-migration-dialog.ts`
 - [ ] T047 [US4] Create `src/components/qd-student-answers.ts` and back the quiz instructor overlay (T036) with it (auto-escaped; removes remaining string markup)
 - [ ] T048 [US4] Create `src/components/qd-student-entries.ts` and back the analysis instructor overlay (T039) with it, removing inline `style.cssText` hex colors (Constitution V)
 - [ ] T049 [US4] Create `src/components/qd-student-table.ts` (searchable, emits per-row action) and adopt it in `src/components/qd-pin-reset-dialog.ts`; extract `src/services/pin-reset-service.ts` (reset PIN + audit event) so the dialog only renders results

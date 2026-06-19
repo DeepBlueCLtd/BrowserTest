@@ -19,16 +19,16 @@ import {
   getExpectedInstructorHash,
   verifyInstructorPassword,
 } from '../services/auth/instructor-auth.js';
-import { spinnerStyles } from './shared-styles.js';
 import { migrationDialogStyles } from './qd-migration-dialog.styles.js';
 import './qd-modal.js';
+import './qd-spinner.js';
 
 /** Migration dialog state */
 type MigrationState = 'password' | 'migrating' | 'error' | 'success';
 
 @customElement('qd-migration-dialog')
 export class QdMigrationDialog extends LitElement {
-  static override styles = [spinnerStyles, migrationDialogStyles];
+  static override styles = [migrationDialogStyles];
 
   /**
    * Whether dialog is open
@@ -295,7 +295,7 @@ export class QdMigrationDialog extends LitElement {
     return html`
       <div class="migration-content">
         <div class="migrating-state">
-          <div class="spinner"></div>
+          <qd-spinner></qd-spinner>
           <p>Migrating database records...</p>
           <p class="format-info">Please wait, do not close this window.</p>
         </div>
