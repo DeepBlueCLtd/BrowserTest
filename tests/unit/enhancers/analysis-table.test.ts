@@ -246,7 +246,7 @@ describe('Analysis Table Enhancer - Instructor View (FR-012, FR-013)', () => {
   });
 
   describe('FR-012: Display Student Entries', () => {
-    it('should create display element for cell with student entries', () => {
+    it('should create display element for cell with student entries', async () => {
       const entries = [
         {
           serviceId: 'RN2344',
@@ -263,36 +263,37 @@ describe('Analysis Table Enhancer - Instructor View (FR-012, FR-013)', () => {
       ];
 
       const displayElement = createStudentEntriesDisplay(entries);
+      document.body.appendChild(displayElement);
+      await displayElement.updateComplete;
 
-      // Should have container
-      expect(displayElement).toBeTruthy();
-      expect(displayElement.className).toContain('qd-student-entries');
+      expect(displayElement.tagName.toLowerCase()).toBe('qd-student-entries');
 
-      // Should have all entries
-      const entryElements = displayElement.querySelectorAll('.qd-entry');
+      // Entries render (newest first) inside the component's shadow root
+      const entryElements = displayElement.shadowRoot?.querySelectorAll('.qd-entry');
       expect(entryElements).toHaveLength(2);
 
-      // First entry should be Bob (newest)
-      const firstEntry = entryElements[0];
+      const firstEntry = entryElements?.[0];
       expect(firstEntry).toBeTruthy();
       if (firstEntry) {
         expect(firstEntry.textContent).toContain('Bob Student');
         expect(firstEntry.textContent).toContain('5678'); // Last 4 of serviceId
         expect(firstEntry.textContent).toContain('Bob answer');
-
         // Should have timestamp in 24-hour format
         expect(firstEntry.textContent).toContain('15:30');
       }
+      displayElement.remove();
     });
   });
 
   describe('FR-013: Empty Cell Placeholder', () => {
-    it('should create placeholder for cell with no entries', () => {
+    it('should create placeholder for cell with no entries', async () => {
       const displayElement = createStudentEntriesDisplay([]);
+      document.body.appendChild(displayElement);
+      await displayElement.updateComplete;
 
-      expect(displayElement).toBeTruthy();
-      expect(displayElement.textContent).toContain('(No entries yet)');
-      expect(displayElement.className).toContain('qd-no-entries');
+      expect(displayElement.shadowRoot?.textContent).toContain('(No entries yet)');
+      expect(displayElement.shadowRoot?.querySelector('.qd-no-entries')).not.toBeNull();
+      displayElement.remove();
     });
   });
 });
