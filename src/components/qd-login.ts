@@ -19,22 +19,15 @@
 
 import { LitElement, html, css } from 'lit';
 import { customElement, state, property } from 'lit/decorators.js';
-import { STORAGE_KEYS, SCHEMA_VERSION } from '../types/contracts.js';
-import type { SessionData, StudentRecord } from '../types/contracts.js';
+import { STORAGE_KEYS } from '../types/contracts.js';
+import type { SessionData } from '../types/contracts.js';
 import { getJSON } from '../utils/storage-helpers.js';
 import { validateStudentForm, sanitizePinInput } from '../utils/validation-helpers.js';
 import { SessionService } from '../services/session.js';
-import { CONFIG_IDS } from '../config/dom-config-reader.js';
-import { getStorageAdapter } from '../services/storage/indexeddb.js';
-import { needsMigration, hasPinSet, completePinSetup } from '../services/storage/migration.js';
-import { verifyPin, hashPin } from '../services/auth/pin-service.js';
+import { readTitleSelector, readDbName } from '../config/dom-config-reader.js';
 import { hashPassword, getExpectedInstructorHash } from '../services/auth/instructor-auth.js';
-import {
-  checkLockout,
-  recordFailedAttempt,
-  clearAttemptState,
-  getRemainingAttempts,
-} from '../services/auth/rate-limiter.js';
+import { AuthService } from '../services/auth/auth-service.js';
+import type { LoginResult } from '../services/auth/auth-service.js';
 import './qd-build-info.js';
 import './qd-password-modal.js';
 import './qd-confirm-dialog.js';
@@ -153,6 +146,11 @@ export class QdLogin extends LitElement {
    * Lockout countdown interval
    */
   private lockoutInterval: number | null = null;
+
+  /**
+   * Student authentication service (storage/crypto/rate-limit logic)
+   */
+  private authService = new AuthService();
 
   static styles = css`
     :host {
@@ -528,9 +526,8 @@ export class QdLogin extends LitElement {
    * Reads selector from config, then queries document
    */
   private getRelease(): string {
-    // Read title selector from config element
-    const selectorElement = document.getElementById(CONFIG_IDS.titleSelector);
-    const selector = selectorElement?.textContent?.trim() || '.wh_publication_title .title';
+    // Read title selector from centralized config reader
+    const selector = readTitleSelector();
 
     // Use selector to find title element
     const titleElement = document.querySelector(selector);
@@ -538,7 +535,11 @@ export class QdLogin extends LitElement {
   }
 
   /**
-   * Handle student login
+   * Handle student login.
+   *
+   * Validation, release/db-name resolution, session creation, events, and UI
+   * state live here; all storage/crypto/rate-limit logic is delegated to
+   * {@link AuthService} (one shared path with {@link retryLoginAfterMigration}).
    */
   private async handleStudentLogin(e: Event) {
     e.preventDefault();
@@ -551,147 +552,75 @@ export class QdLogin extends LitElement {
     this.isSubmitting = true;
     this.errorMessage = '';
 
-    try {
-      const release = this.getRelease();
-      if (!release) {
-        this.errorMessage = 'Release not found (missing publication title element)';
-        this.isSubmitting = false;
-        return;
-      }
-
-      const serviceId = this.serviceId.trim();
-      const name = this.name.trim();
-
-      // Check for lockout
-      const lockout = checkLockout(serviceId);
-      if (lockout.isLocked) {
-        this.startLockoutCountdown(lockout.remainingMs);
-        this.isSubmitting = false;
-        return;
-      }
-
-      // Get storage adapter with configured db name
-      const dbNameElement = document.getElementById(CONFIG_IDS.dbName);
-      if (!dbNameElement?.textContent?.trim()) {
-        throw new Error(
-          `Database name not configured. Add <span id="${CONFIG_IDS.dbName}">dbName</span> to page.`,
-        );
-      }
-      const dbName = dbNameElement.textContent.trim();
-      const storage = getStorageAdapter(dbName);
-      await storage.init();
-      const existingStudent = await storage.getStudent(release, serviceId);
-
-      if (existingStudent) {
-        // Check if student needs PIN setup (migration or no PIN)
-        if (needsMigration(existingStudent) || !hasPinSet(existingStudent)) {
-          // Hash the entered PIN and update student
-          const pinHash = await hashPin(this.pin);
-          const updatedStudent = completePinSetup(existingStudent, pinHash);
-          await storage.saveStudent(updatedStudent);
-
-          // Emit PIN created event
-          this.dispatchEvent(
-            new CustomEvent('qd:pin-created', {
-              detail: { serviceId, timestamp: new Date().toISOString() },
-              bubbles: true,
-              composed: true,
-            }),
-          );
-
-          // Show confirmation and complete login
-          this.showPinStoredConfirmation();
-          this.completeLogin(serviceId, name, release);
-          return;
-        }
-
-        // Existing student with PIN - verify it
-        const isValid = await verifyPin(this.pin, existingStudent.pinHash || '');
-        if (!isValid) {
-          // Record failed attempt
-          const state = recordFailedAttempt(serviceId);
-          const remaining = getRemainingAttempts(serviceId);
-
-          if (state.lockoutUntil) {
-            const lockoutMs = new Date(state.lockoutUntil).getTime() - Date.now();
-            this.startLockoutCountdown(lockoutMs);
-          } else {
-            this.errorMessage = `Incorrect PIN. ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining`;
-          }
-
-          this.pin = '';
-          this.isSubmitting = false;
-          return;
-        }
-
-        // PIN verified - clear rate limit and emit event
-        clearAttemptState(serviceId);
-        this.dispatchEvent(
-          new CustomEvent('qd:pin-verified', {
-            detail: { serviceId, timestamp: new Date().toISOString() },
-            bubbles: true,
-            composed: true,
-          }),
-        );
-      } else {
-        // New student - hash PIN and create record
-        const pinHash = await hashPin(this.pin);
-        const newStudent: StudentRecord = {
-          schema: SCHEMA_VERSION,
-          docId: '',
-          release,
-          serviceId,
-          name,
-          attempted: 0,
-          correct: 0,
-          updated: new Date().toISOString(),
-          pages: {},
-          pinHash,
-          pinCreatedAt: new Date().toISOString(),
-        };
-        await storage.saveStudent(newStudent);
-
-        // Emit PIN created event
-        this.dispatchEvent(
-          new CustomEvent('qd:pin-created', {
-            detail: { serviceId, timestamp: new Date().toISOString() },
-            bubbles: true,
-            composed: true,
-          }),
-        );
-
-        // Show confirmation and complete login
-        this.showPinStoredConfirmation();
-        this.completeLogin(serviceId, name, release);
-        return;
-      }
-
-      // Complete the login
-      this.completeLogin(serviceId, name, release);
-    } catch (err) {
-      // Check for storage format mismatch
-      if (err instanceof StorageFormatError) {
-        // Get dbName for migration
-        const dbNameElement = document.getElementById(CONFIG_IDS.dbName);
-        const dbName = dbNameElement?.textContent?.trim() || '';
-
-        this.migrationError = err;
-        this.pendingLoginData = {
-          serviceId: this.serviceId.trim(),
-          name: this.name.trim(),
-          release: this.getRelease(),
-          pin: this.pin,
-          dbName,
-        };
-        this.showMigrationDialog = true;
-        this.isSubmitting = false;
-        return;
-      }
-
-      this.errorMessage = 'Login failed. Please try again.';
-      console.error('Student login error:', err);
+    const release = this.getRelease();
+    if (!release) {
+      this.errorMessage = 'Release not found (missing publication title element)';
       this.isSubmitting = false;
+      return;
     }
+
+    const serviceId = this.serviceId.trim();
+    const name = this.name.trim();
+    const dbName = readDbName();
+    const pin = this.pin;
+
+    const result = await this.authService.loginStudent({ serviceId, name, pin, release, dbName });
+
+    if (result.kind === 'needs-migration') {
+      this.migrationError = result.error;
+      this.pendingLoginData = { serviceId, name, release, pin, dbName };
+      this.showMigrationDialog = true;
+      this.isSubmitting = false;
+      return;
+    }
+
+    this.applyLoginResult(result);
+  }
+
+  /**
+   * Translate an {@link AuthService} result into session creation, events, and
+   * UI state. Shared by the initial and post-migration login paths.
+   */
+  private applyLoginResult(result: LoginResult): void {
+    switch (result.kind) {
+      case 'pin-created':
+        this.dispatchPinEvent('qd:pin-created', result.serviceId);
+        this.showPinStoredConfirmation();
+        this.completeLogin(result.serviceId, result.name, result.release);
+        break;
+      case 'pin-verified':
+        this.dispatchPinEvent('qd:pin-verified', result.serviceId);
+        this.completeLogin(result.serviceId, result.name, result.release);
+        break;
+      case 'lockout':
+        this.startLockoutCountdown(result.lockoutMs);
+        this.isSubmitting = false;
+        break;
+      case 'bad-pin':
+        this.errorMessage = `Incorrect PIN. ${result.remaining} attempt${
+          result.remaining !== 1 ? 's' : ''
+        } remaining`;
+        this.pin = '';
+        this.isSubmitting = false;
+        break;
+      case 'error':
+        this.errorMessage = result.message;
+        this.isSubmitting = false;
+        break;
+    }
+  }
+
+  /**
+   * Dispatch a PIN lifecycle event (`qd:pin-created` / `qd:pin-verified`).
+   */
+  private dispatchPinEvent(name: 'qd:pin-created' | 'qd:pin-verified', serviceId: string): void {
+    this.dispatchEvent(
+      new CustomEvent(name, {
+        detail: { serviceId, timestamp: new Date().toISOString() },
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   /**
@@ -727,7 +656,10 @@ export class QdLogin extends LitElement {
   };
 
   /**
-   * Retry login after successful migration
+   * Retry login after successful migration.
+   *
+   * Delegates to {@link AuthService.retryAfterMigration} (skips the lockout
+   * pre-check) and reuses the shared result handling.
    */
   private async retryLoginAfterMigration(
     serviceId: string,
@@ -737,96 +669,16 @@ export class QdLogin extends LitElement {
     this.isSubmitting = true;
     this.errorMessage = '';
 
-    try {
-      const dbNameElement = document.getElementById(CONFIG_IDS.dbName);
-      const dbName = dbNameElement?.textContent?.trim() || '';
-      const storage = getStorageAdapter(dbName);
-      await storage.init();
-      const existingStudent = await storage.getStudent(release, serviceId);
+    const dbName = readDbName();
+    const result = await this.authService.retryAfterMigration({
+      serviceId,
+      name,
+      pin: this.pin,
+      release,
+      dbName,
+    });
 
-      if (existingStudent) {
-        // Check if student needs PIN setup (migration or no PIN)
-        if (needsMigration(existingStudent) || !hasPinSet(existingStudent)) {
-          const pinHash = await hashPin(this.pin);
-          const updatedStudent = completePinSetup(existingStudent, pinHash);
-          await storage.saveStudent(updatedStudent);
-
-          this.dispatchEvent(
-            new CustomEvent('qd:pin-created', {
-              detail: { serviceId, timestamp: new Date().toISOString() },
-              bubbles: true,
-              composed: true,
-            }),
-          );
-
-          this.showPinStoredConfirmation();
-          this.completeLogin(serviceId, name, release);
-          return;
-        }
-
-        // Verify PIN
-        const isValid = await verifyPin(this.pin, existingStudent.pinHash || '');
-        if (!isValid) {
-          const state = recordFailedAttempt(serviceId);
-          const remaining = getRemainingAttempts(serviceId);
-
-          if (state.lockoutUntil) {
-            const lockoutMs = new Date(state.lockoutUntil).getTime() - Date.now();
-            this.startLockoutCountdown(lockoutMs);
-          } else {
-            this.errorMessage = `Incorrect PIN. ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining`;
-          }
-
-          this.pin = '';
-          this.isSubmitting = false;
-          return;
-        }
-
-        clearAttemptState(serviceId);
-        this.dispatchEvent(
-          new CustomEvent('qd:pin-verified', {
-            detail: { serviceId, timestamp: new Date().toISOString() },
-            bubbles: true,
-            composed: true,
-          }),
-        );
-      } else {
-        // New student after migration
-        const pinHash = await hashPin(this.pin);
-        const newStudent: StudentRecord = {
-          schema: SCHEMA_VERSION,
-          docId: '',
-          release,
-          serviceId,
-          name,
-          attempted: 0,
-          correct: 0,
-          updated: new Date().toISOString(),
-          pages: {},
-          pinHash,
-          pinCreatedAt: new Date().toISOString(),
-        };
-        await storage.saveStudent(newStudent);
-
-        this.dispatchEvent(
-          new CustomEvent('qd:pin-created', {
-            detail: { serviceId, timestamp: new Date().toISOString() },
-            bubbles: true,
-            composed: true,
-          }),
-        );
-
-        this.showPinStoredConfirmation();
-        this.completeLogin(serviceId, name, release);
-        return;
-      }
-
-      this.completeLogin(serviceId, name, release);
-    } catch (err) {
-      this.errorMessage = 'Login failed after migration. Please try again.';
-      console.error('Post-migration login error:', err);
-      this.isSubmitting = false;
-    }
+    this.applyLoginResult(result);
   }
 
   /**

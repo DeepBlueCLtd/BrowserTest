@@ -17,7 +17,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 import type { StudentRecord, PinResetEvent } from '../types/contracts.js';
 import { getStorageAdapter } from '../services/storage/indexeddb.js';
 import { resetPin } from '../services/storage/migration.js';
-import { CONFIG_IDS } from '../config/dom-config-reader.js';
+import { CONFIG_IDS, readDbName } from '../config/dom-config-reader.js';
 import './qd-modal.js';
 import './qd-confirm-dialog.js';
 
@@ -242,13 +242,12 @@ export class QdPinResetDialog extends LitElement {
 
   private async executeReset(student: StudentRecord) {
     try {
-      const dbNameElement = document.getElementById(CONFIG_IDS.dbName);
-      if (!dbNameElement?.textContent?.trim()) {
+      const dbName = readDbName();
+      if (!dbName) {
         throw new Error(
           `Database name not configured. Add <span id="${CONFIG_IDS.dbName}">dbName</span> to page.`,
         );
       }
-      const dbName = dbNameElement.textContent.trim();
       const storage = getStorageAdapter(dbName);
       await storage.init();
 

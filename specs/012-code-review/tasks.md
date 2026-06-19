@@ -79,16 +79,16 @@ Behavior-preserving, test-gated, one slice at a time. The **only** sanctioned be
 - [X] T012 [P] [US2] Characterization test `tests/integration/quiz-instructor-overlay.test.ts` asserting current rendered student-answer overlay content and structure (baseline before XSS fix)
 - [X] T013 [P] [US2] Add XSS regression test in `tests/integration/quiz-instructor-overlay.test.ts`: a student answer/name containing `<script>`/HTML must render as literal text, not markup (FR-004, SC-003)
 - [X] T014 [P] [US2] Characterization test `tests/integration/instructor-answer-reveal.test.ts` capturing the current reveal behavior (columns unhidden, correct answers re-injected) for both initial-load and post-login paths (FR-005)
-- [ ] T015 [P] [US2] Characterization test `tests/unit/auth-service.test.ts` covering the current student login outcomes: success, new student, lockout, bad PIN, needs-migration, and retry-after-migration (FR-006)
+- [X] T015 [P] [US2] Characterization test `tests/unit/auth-service.test.ts` covering the current student login outcomes: success, new student, lockout, bad PIN, needs-migration, and retry-after-migration (FR-006)
 - [X] T016 [P] [US2] Unit test `tests/unit/instructor-auth.test.ts` for SHA-256 + 12-char-truncation hashing/verification (FR-008)
 
 ### Implementation for User Story 2
 
 - [X] T017 [P] [US2] Create `src/services/auth/instructor-auth.ts` (`hashPassword`, `verifyInstructorPassword`) per contracts; route `src/components/qd-login.ts` and `src/components/qd-migration-dialog.ts` through it, deleting the duplicated crypto
-- [ ] T018 [US2] Route all DOM config reads (DB name, title, hash) in `src/components/qd-login.ts`, `src/components/qd-pin-reset-dialog.ts`, and `src/components/qd-migration-dialog.ts` through `src/config/dom-config-reader.ts` (`readDOMConfig`/`CONFIG_IDS`), removing inline `document.getElementById(...)` reads (FR-008)
+- [X] T018 [US2] Route all DOM config reads (DB name, title, hash) in `src/components/qd-login.ts`, `src/components/qd-pin-reset-dialog.ts`, and `src/components/qd-migration-dialog.ts` through `src/config/dom-config-reader.ts` (`readDOMConfig`/`CONFIG_IDS`), removing inline `document.getElementById(...)` reads (FR-008)
 - [X] T019 [US2] Create `src/enhancers/instructor-answer-reveal.ts` exporting `revealInstructorAnswers`/`hideInstructorAnswers`; replace the duplicated instructor branches in `src/init/bootstrap.ts` (`revealQuizAnswersForInstructor`) and `src/init/event-coordinator.ts` (`upgradeTablesAfterLogin`) with calls to it (FR-005, SC-004)
 - [X] T020 [US2] Fix the `innerHTML` XSS in the quiz instructor overlay in `src/enhancers/quiz-table.ts` by rendering student-supplied fields via `textContent`/element construction (FR-004, SC-003) — make T013 pass
-- [ ] T021 [US2] Create `src/services/auth/auth-service.ts` with `loginStudent`/`retryAfterMigration` returning the result union per contracts; consolidate the duplicated success path so `handleStudentLogin` and `retryLoginAfterMigration` in `src/components/qd-login.ts` both delegate, deleting the ~100-line duplicate (FR-006, SC-004) — make T015 pass
+- [X] T021 [US2] Create `src/services/auth/auth-service.ts` with `loginStudent`/`retryAfterMigration` returning the result union per contracts; consolidate the duplicated success path so `handleStudentLogin` and `retryLoginAfterMigration` in `src/components/qd-login.ts` both delegate, deleting the ~100-line duplicate (FR-006, SC-004) — make T015 pass
 
 **Checkpoint**: No student data rendered via `innerHTML`; answer-reveal and login-success logic each exist in exactly one place; instructor-auth and config reads de-duplicated.
 
