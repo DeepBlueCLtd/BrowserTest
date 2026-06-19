@@ -15,6 +15,7 @@ import { getStorageService } from '../services/storage-service.js';
 import { formatStudentAnswersForDisplay } from '../services/answer-display.js';
 import { getJSON } from '../utils/storage-helpers.js';
 import { info, error as logError } from '../utils/logger.js';
+import '../components/qd-student-answers.js';
 
 /**
  * Show student answers for all questions in a table (instructor mode).
@@ -72,42 +73,12 @@ export async function showStudentAnswersForTable(
       // Use pure helper function to format student answers
       const studentAnswers = formatStudentAnswersForDisplay(students, pageId, questionIndex);
 
-      // Create display element from formatted data
+      // Render via the reusable, auto-escaped <qd-student-answers> component
+      // (FR-004: student-controlled fields are never rendered as live markup).
       if (studentAnswers.length > 0) {
-        const display = document.createElement('div');
-        display.className = 'qd-student-answers';
-
-        studentAnswers.forEach((sa) => {
-          const answerDiv = document.createElement('div');
-          answerDiv.className = `qd-student-answer ${sa.cssClass}`;
-
-          // Format: Name (last 4 of serviceId): answer [timestamp] (FR-007: 24-hour format)
-          // SECURITY (FR-004): student-controlled name/answer are set via
-          // textContent so any HTML they contain renders as inert text, never
-          // as live markup. Never use innerHTML for student-supplied data.
-          const nameSpan = document.createElement('span');
-          nameSpan.className = 'qd-student-name';
-          nameSpan.textContent = `${sa.name} (${sa.maskedServiceId})`;
-
-          const answerSpan = document.createElement('span');
-          answerSpan.className = 'qd-student-answer-text';
-          answerSpan.textContent = sa.answer;
-
-          const timestampSpan = document.createElement('span');
-          timestampSpan.className = 'qd-timestamp';
-          timestampSpan.textContent = sa.formattedTimestamp;
-
-          answerDiv.append(
-            nameSpan,
-            document.createTextNode(': '),
-            answerSpan,
-            document.createTextNode(' '),
-            timestampSpan,
-          );
-
-          display.appendChild(answerDiv);
-        });
-
+        const display = document.createElement('qd-student-answers');
+        display.classList.add('qd-student-answers');
+        display.answers = studentAnswers;
         answerCell.appendChild(display);
       }
     });
