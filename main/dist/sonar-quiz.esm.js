@@ -145,272 +145,6 @@ function validateAnswer(question, answer) {
     return Math.abs(userValue - correctValue) <= tolerance;
   }
 }
-const SCHEMA_VERSION = 2;
-const SESSION_TIMEOUT_MS = 30 * 60 * 1e3;
-const STORAGE_KEYS = {
-  SESSION: "qd/session",
-  CACHE: "qd/state",
-  INSTRUCTOR: "qd/instructor",
-  PIN_ATTEMPTS: "qd:pin-attempts"
-};
-const PIN_CONSTANTS = {
-  /** Maximum failed attempts before lockout */
-  MAX_ATTEMPTS: 3,
-  /** Lockout duration in milliseconds (30 seconds) */
-  LOCKOUT_MS: 30 * 1e3
-};
-const INSTRUCTOR_SHOW_ANSWERS_KEY = "qd/instructor/showAnswers";
-function getJSON(key) {
-  try {
-    const data = sessionStorage.getItem(key);
-    if (!data) {
-      return null;
-    }
-    return JSON.parse(data);
-  } catch (error2) {
-    warn(`Failed to parse JSON from sessionStorage key: ${key}`, error2);
-    return null;
-  }
-}
-function setJSON(key, value) {
-  try {
-    const json = JSON.stringify(value);
-    sessionStorage.setItem(key, json);
-    return true;
-  } catch (error2) {
-    warn(`Failed to store JSON in sessionStorage key: ${key}`, error2);
-    return false;
-  }
-}
-function clearQuizData() {
-  const keysToRemove = [];
-  for (let i3 = 0; i3 < sessionStorage.length; i3++) {
-    const key = sessionStorage.key(i3);
-    if (key && key.startsWith("qd/")) {
-      keysToRemove.push(key);
-    }
-  }
-  for (const key of keysToRemove) {
-    sessionStorage.removeItem(key);
-  }
-  return keysToRemove.length;
-}
-function calculateStatusIndicator(total, correct) {
-  if (total === 0 || correct === 0) {
-    return "red";
-  }
-  if (correct === total) {
-    return "green";
-  }
-  return "amber";
-}
-function recalculateTotalsFromPages(pages) {
-  let attempted = 0;
-  let correct = 0;
-  for (const pageId in pages) {
-    const pageData = pages[pageId];
-    if (pageData && pageData.answers && Array.isArray(pageData.answers)) {
-      const answered = pageData.answers.filter((a2) => a2.answer.trim() !== "");
-      attempted += answered.length;
-      correct += answered.filter((a2) => a2.success).length;
-    }
-  }
-  return { attempted, correct };
-}
-function isSessionExpired(expiresAt, now = /* @__PURE__ */ new Date()) {
-  const expiryDate = new Date(expiresAt);
-  if (isNaN(expiryDate.getTime())) {
-    return true;
-  }
-  return now >= expiryDate;
-}
-class SessionService {
-  /**
-   * Create a new session
-   *
-   * @param serviceId - Student service ID
-   * @param name - Student name
-   * @param release - Current release ID
-   * @returns Created session data
-   */
-  createSession(serviceId, name, release) {
-    const now = /* @__PURE__ */ new Date();
-    const loginTime = now.toISOString();
-    const expiresAt = new Date(now.getTime() + SESSION_TIMEOUT_MS).toISOString();
-    const session = {
-      serviceId,
-      name,
-      release,
-      loginTime,
-      lastActivity: loginTime,
-      expiresAt,
-      instructorUnlocked: false
-    };
-    this.saveSession(session);
-    this.emitEvent("qd:login", { serviceId, name, release, loginTime });
-    return session;
-  }
-  /**
-   * Get the current session
-   *
-   * @returns Session data or null if no session exists
-   */
-  getSession() {
-    try {
-      const sessionData = sessionStorage.getItem(STORAGE_KEYS.SESSION);
-      if (!sessionData) {
-        return null;
-      }
-      const session = JSON.parse(sessionData);
-      if (!session.serviceId || !session.release || !session.expiresAt) {
-        warn("Invalid session data, missing required fields");
-        return null;
-      }
-      return session;
-    } catch (err) {
-      error("Failed to parse session data", err);
-      return null;
-    }
-  }
-  /**
-   * Update last activity time and extend session expiry
-   */
-  updateActivity() {
-    const session = this.getSession();
-    if (!session) {
-      return;
-    }
-    const now = /* @__PURE__ */ new Date();
-    session.lastActivity = now.toISOString();
-    session.expiresAt = new Date(now.getTime() + SESSION_TIMEOUT_MS).toISOString();
-    this.saveSession(session);
-  }
-  /**
-   * Check if the current session is expired
-   *
-   * @returns True if session is expired or doesn't exist
-   */
-  isExpired() {
-    const session = this.getSession();
-    if (!session) {
-      return true;
-    }
-    return isSessionExpired(session.expiresAt);
-  }
-  /**
-   * Clear the current session
-   */
-  clearSession() {
-    const session = this.getSession();
-    sessionStorage.removeItem(STORAGE_KEYS.SESSION);
-    sessionStorage.removeItem(STORAGE_KEYS.CACHE);
-    sessionStorage.removeItem(STORAGE_KEYS.INSTRUCTOR);
-    sessionStorage.removeItem(INSTRUCTOR_SHOW_ANSWERS_KEY);
-    if (session) {
-      info(`Session cleared for ${session.serviceId}`);
-      this.emitEvent("qd:logout", {
-        serviceId: session.serviceId,
-        timestamp: (/* @__PURE__ */ new Date()).toISOString()
-      });
-    }
-  }
-  /**
-   * Unlock instructor mode
-   */
-  unlockInstructor() {
-    const session = this.getSession();
-    if (!session) {
-      return;
-    }
-    session.instructorUnlocked = true;
-    session.unlockTime = (/* @__PURE__ */ new Date()).toISOString();
-    this.saveSession(session);
-    this.emitEvent("qd:instructor-unlock", { timestamp: session.unlockTime });
-  }
-  /**
-   * Lock instructor mode
-   */
-  lockInstructor() {
-    const session = this.getSession();
-    if (!session) {
-      return;
-    }
-    session.instructorUnlocked = false;
-    delete session.unlockTime;
-    this.saveSession(session);
-    this.emitEvent("qd:instructor-lock", { timestamp: (/* @__PURE__ */ new Date()).toISOString() });
-  }
-  /**
-   * Check if instructor mode is unlocked
-   *
-   * @returns True if instructor mode is unlocked
-   */
-  isInstructorUnlocked() {
-    const session = this.getSession();
-    return session?.instructorUnlocked === true;
-  }
-  /**
-   * Get session cache from sessionStorage
-   *
-   * @returns Session cache or null if not found
-   */
-  getCache() {
-    try {
-      const cacheData = sessionStorage.getItem(STORAGE_KEYS.CACHE);
-      if (!cacheData) {
-        return null;
-      }
-      return JSON.parse(cacheData);
-    } catch (err) {
-      error("Failed to parse cache data", err);
-      return null;
-    }
-  }
-  /**
-   * Save session cache to sessionStorage
-   *
-   * @param cache - Cache data to save
-   */
-  saveCache(cache) {
-    try {
-      sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
-    } catch (err) {
-      error("Failed to save cache", err);
-    }
-  }
-  /**
-   * Clear the session cache
-   */
-  clearCache() {
-    sessionStorage.removeItem(STORAGE_KEYS.CACHE);
-  }
-  /**
-   * Save session to sessionStorage
-   *
-   * @param session - Session data to save
-   */
-  saveSession(session) {
-    try {
-      sessionStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(session));
-    } catch (err) {
-      error("Failed to save session", err);
-    }
-  }
-  /**
-   * Emit a custom event
-   *
-   * @param eventName - Name of the event
-   * @param detail - Event detail data
-   */
-  emitEvent(eventName, detail) {
-    try {
-      const event = new CustomEvent(eventName, { detail, bubbles: true });
-      document.dispatchEvent(event);
-    } catch (err) {
-      error(`Failed to emit event ${eventName}`, err);
-    }
-  }
-}
 function buildCacheFromRecord(record) {
   const cache = {
     totals: {
@@ -471,72 +205,6 @@ function registerPageQuestions(cache, pageId, totalQuestions) {
       [pageId]: updatedPage
     }
   };
-}
-function getQuestionInputSpec(question, existingAnswer) {
-  if (question.kind === "mcq") {
-    const options = (question.options || []).map((optionText, index) => ({
-      value: String(index + 1),
-      // 1-indexed
-      text: `${index + 1}. ${optionText}`
-    }));
-    return {
-      type: "select",
-      className: "qd-quiz-input",
-      placeholder: "Select an answer...",
-      value: existingAnswer?.answer || "",
-      options
-    };
-  } else {
-    return {
-      type: "text",
-      className: "qd-quiz-input",
-      placeholder: "Enter value",
-      value: existingAnswer?.answer || ""
-    };
-  }
-}
-function formatDisplayTimestamp(date) {
-  const month = date.toLocaleDateString("en-US", { month: "short" });
-  const day = date.getDate();
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-  return `${month} ${day} ${hours}:${minutes}`;
-}
-function formatCSVTimestamp(date) {
-  return date.toISOString();
-}
-function formatTimestamp(date, format = "display") {
-  if (date == null) {
-    console.warn("Invalid date provided to formatTimestamp:", date);
-    return "Invalid Date";
-  }
-  const dateObj = typeof date === "string" ? new Date(date) : date;
-  if (isNaN(dateObj.getTime())) {
-    console.warn("Invalid date provided to formatTimestamp:", date);
-    return "Invalid Date";
-  }
-  return format === "csv" ? formatCSVTimestamp(dateObj) : formatDisplayTimestamp(dateObj);
-}
-function formatStoredTimestamp(isoString) {
-  return formatTimestamp(isoString, "display");
-}
-function formatStudentAnswersForDisplay(students, pageId, questionIndex) {
-  const result = [];
-  for (const student of students) {
-    const pageData = student.pages[pageId];
-    if (!pageData || !pageData.answers) continue;
-    const answerRecord = pageData.answers[questionIndex];
-    if (!answerRecord) continue;
-    result.push({
-      name: student.name,
-      maskedServiceId: student.serviceId.slice(-4),
-      answer: answerRecord.answer,
-      success: answerRecord.success,
-      formattedTimestamp: formatStoredTimestamp(answerRecord.timestamp),
-      cssClass: answerRecord.success ? "qd-correct" : "qd-incorrect"
-    });
-  }
-  return result;
 }
 class Debouncer {
   constructor() {
@@ -647,23 +315,152 @@ function addClass(element, ...classNames) {
 function removeClass(element, ...classNames) {
   element.classList.remove(...classNames);
 }
-function emitCustomEvent(name, detail, options) {
-  const event = new CustomEvent(name, {
-    detail,
-    bubbles: true,
-    composed: true,
-    cancelable: false
-  });
-  return document.dispatchEvent(event);
+const INSTRUCTOR_SHOW_ANSWERS_KEY = "qd/instructor/showAnswers";
+function getJSON(key) {
+  try {
+    const data = sessionStorage.getItem(key);
+    if (!data) {
+      return null;
+    }
+    return JSON.parse(data);
+  } catch (error2) {
+    warn(`Failed to parse JSON from sessionStorage key: ${key}`, error2);
+    return null;
+  }
 }
-function dispatchEventOn(element, name, detail, options) {
-  const event = new CustomEvent(name, {
-    detail,
-    bubbles: true,
-    composed: true,
-    cancelable: false
+function setJSON(key, value) {
+  try {
+    const json = JSON.stringify(value);
+    sessionStorage.setItem(key, json);
+    return true;
+  } catch (error2) {
+    warn(`Failed to store JSON in sessionStorage key: ${key}`, error2);
+    return false;
+  }
+}
+function clearQuizData() {
+  const keysToRemove = [];
+  for (let i3 = 0; i3 < sessionStorage.length; i3++) {
+    const key = sessionStorage.key(i3);
+    if (key && key.startsWith("qd/")) {
+      keysToRemove.push(key);
+    }
+  }
+  for (const key of keysToRemove) {
+    sessionStorage.removeItem(key);
+  }
+  return keysToRemove.length;
+}
+const SCHEMA_VERSION = 2;
+const SESSION_TIMEOUT_MS = 30 * 60 * 1e3;
+const STORAGE_KEYS = {
+  SESSION: "qd/session",
+  CACHE: "qd/state",
+  INSTRUCTOR: "qd/instructor",
+  PIN_ATTEMPTS: "qd:pin-attempts"
+};
+const PIN_CONSTANTS = {
+  /** Maximum failed attempts before lockout */
+  MAX_ATTEMPTS: 3,
+  /** Lockout duration in milliseconds (30 seconds) */
+  LOCKOUT_MS: 30 * 1e3
+};
+function removeColgroup(table) {
+  const colgroup = table.querySelector("colgroup");
+  if (colgroup) {
+    colgroup.remove();
+  }
+}
+function hideAnswerColumn(table) {
+  const headerCells = table.querySelectorAll("thead th, thead td");
+  if (headerCells[1]) {
+    addClass(headerCells[1], "qd-hidden");
+  }
+  const rows = table.querySelectorAll("tbody tr");
+  rows.forEach((row) => {
+    const cells = row.querySelectorAll("td");
+    if (cells[1]) {
+      addClass(cells[1], "qd-hidden");
+      cells[1].textContent = "";
+    }
   });
-  return element.dispatchEvent(event);
+}
+function showAnswerColumn(table) {
+  const headerCells = table.querySelectorAll("thead th, thead td");
+  if (headerCells[1]) {
+    removeClass(headerCells[1], "qd-hidden");
+  }
+  const rows = table.querySelectorAll("tbody tr");
+  rows.forEach((row) => {
+    const cells = row.querySelectorAll("td");
+    if (cells[1]) {
+      removeClass(cells[1], "qd-hidden");
+    }
+  });
+}
+function hideDetailColumn(table) {
+  const headerCells = table.querySelectorAll("thead th, thead td");
+  if (headerCells[2]) {
+    addClass(headerCells[2], "qd-hidden");
+  }
+  const rows = table.querySelectorAll("tbody tr");
+  rows.forEach((row) => {
+    const cells = row.querySelectorAll("td");
+    if (cells[2]) {
+      addClass(cells[2], "qd-hidden");
+    }
+  });
+}
+function getQuestionInputSpec(question, existingAnswer) {
+  if (question.kind === "mcq") {
+    const options = (question.options || []).map((optionText, index) => ({
+      value: String(index + 1),
+      // 1-indexed
+      text: `${index + 1}. ${optionText}`
+    }));
+    return {
+      type: "select",
+      className: "qd-quiz-input",
+      placeholder: "Select an answer...",
+      value: existingAnswer?.answer || "",
+      options
+    };
+  } else {
+    return {
+      type: "text",
+      className: "qd-quiz-input",
+      placeholder: "Enter value",
+      value: existingAnswer?.answer || ""
+    };
+  }
+}
+function createQuestionInput(question, existingAnswer) {
+  const spec = getQuestionInputSpec(question, existingAnswer);
+  if (spec.type === "select") {
+    const select = createElement("select");
+    select.className = spec.className;
+    const placeholderOption = createElement("option");
+    placeholderOption.value = "";
+    placeholderOption.textContent = spec.placeholder;
+    placeholderOption.disabled = true;
+    select.appendChild(placeholderOption);
+    if (spec.options) {
+      spec.options.forEach((opt) => {
+        const option = createElement("option");
+        option.value = opt.value;
+        option.textContent = opt.text;
+        select.appendChild(option);
+      });
+    }
+    select.value = spec.value;
+    return select;
+  }
+  const input = createElement("input");
+  input.type = spec.type;
+  input.className = spec.className;
+  input.placeholder = spec.placeholder;
+  input.value = spec.value;
+  return input;
 }
 function getStorageKey(release, serviceId) {
   return `qd/${release}/u${serviceId}`;
@@ -701,6 +498,152 @@ class StorageFormatError extends StorageError {
     this.found = found;
     this.storageKey = storageKey;
   }
+}
+const DB_VERSION = 3;
+const STORE_STUDENTS$1 = "students";
+const STORE_BACKUPS = "backups";
+const STORE_AUDIT_LOG = "auditLog";
+const OPEN_TIMEOUT_MS = 5e3;
+function createSchema(event) {
+  const db = event.target.result;
+  const transaction = event.target.transaction;
+  if (transaction) {
+    transaction.onerror = () => {
+      error(`Upgrade transaction error: ${transaction.error?.message || "unknown"}`);
+    };
+    transaction.onabort = () => {
+      error(`Upgrade transaction aborted: ${transaction.error?.message || "unknown"}`);
+    };
+  }
+  try {
+    if (!db.objectStoreNames.contains(STORE_STUDENTS$1)) {
+      const studentsStore = db.createObjectStore(STORE_STUDENTS$1, { keyPath: null });
+      studentsStore.createIndex("by-release", "release", { unique: false });
+      studentsStore.createIndex("by-service-id", "serviceId", { unique: false });
+    }
+    if (!db.objectStoreNames.contains(STORE_BACKUPS)) {
+      const backupsStore = db.createObjectStore(STORE_BACKUPS, { keyPath: null });
+      backupsStore.createIndex("by-original-key", "originalKey", { unique: false });
+      backupsStore.createIndex("by-timestamp", "timestamp", { unique: false });
+    }
+    if (!db.objectStoreNames.contains(STORE_AUDIT_LOG)) {
+      const auditStore = db.createObjectStore(STORE_AUDIT_LOG, { keyPath: "eventId" });
+      auditStore.createIndex("by-service-id", "serviceId", { unique: false });
+      auditStore.createIndex("by-reset-at", "resetAt", { unique: false });
+    }
+  } catch (err) {
+    error("Error during database upgrade", err);
+    throw err;
+  }
+}
+function isCorrupted(db) {
+  return !db.objectStoreNames.contains(STORE_STUDENTS$1) || !db.objectStoreNames.contains(STORE_BACKUPS) || !db.objectStoreNames.contains(STORE_AUDIT_LOG);
+}
+function openDatabase$1(dbName) {
+  return new Promise((resolve, reject) => {
+    let timeoutId;
+    let resolved = false;
+    const cleanup2 = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = void 0;
+      }
+    };
+    timeoutId = window.setTimeout(() => {
+      if (resolved) return;
+      resolved = true;
+      warn(`IndexedDB open timed out after ${OPEN_TIMEOUT_MS}ms - attempting recovery`);
+      const deleteReq = indexedDB.deleteDatabase(dbName);
+      deleteReq.onsuccess = () => {
+        openDatabase$1(dbName).then(resolve).catch(reject);
+      };
+      deleteReq.onerror = () => {
+        reject(
+          new StorageError(
+            `Database "${dbName}" appears corrupted. Please clear site data in browser settings.`,
+            "init"
+          )
+        );
+      };
+      deleteReq.onblocked = () => {
+        reject(
+          new StorageError(
+            `Cannot recover database - close all other tabs with this site and reload.`,
+            "init"
+          )
+        );
+      };
+    }, OPEN_TIMEOUT_MS);
+    const request = indexedDB.open(dbName, DB_VERSION);
+    request.onerror = () => {
+      if (resolved) return;
+      resolved = true;
+      cleanup2();
+      error(`IndexedDB open error: ${request.error?.message || "unknown"}`);
+      reject(new StorageError("Failed to open database", "init", request.error));
+    };
+    request.onblocked = () => {
+      warn("IndexedDB open blocked - close other tabs with this database");
+    };
+    request.onsuccess = () => {
+      if (resolved) return;
+      resolved = true;
+      cleanup2();
+      const db = request.result;
+      if (isCorrupted(db)) {
+        warn(
+          `Database corrupted (missing stores). Found: [${Array.from(db.objectStoreNames).join(", ")}]`
+        );
+        db.close();
+        const deleteRequest = indexedDB.deleteDatabase(dbName);
+        deleteRequest.onsuccess = () => {
+          openDatabase$1(dbName).then(resolve).catch(reject);
+        };
+        deleteRequest.onerror = () => {
+          reject(
+            new StorageError(
+              "Failed to delete corrupted database",
+              "init",
+              deleteRequest.error
+            )
+          );
+        };
+        return;
+      }
+      resolve(db);
+    };
+    request.onupgradeneeded = (event) => {
+      createSchema(event);
+    };
+  });
+}
+function promisifyRequest(request, op) {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(toStorageError(request.error, op));
+  });
+}
+function runTransaction(db, store, mode, fn, op) {
+  return new Promise((resolve, reject) => {
+    let request;
+    try {
+      const transaction = db.transaction(store, mode);
+      const objectStore = transaction.objectStore(store);
+      request = fn(objectStore);
+      transaction.onerror = () => reject(toStorageError(transaction.error, op));
+    } catch (error2) {
+      reject(new StorageError(`Failed during ${op}`, op, error2));
+      return;
+    }
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(toStorageError(request.error, op));
+  });
+}
+function toStorageError(error2, op) {
+  if (error2?.name === "QuotaExceededError") {
+    return new StorageQuotaError(op);
+  }
+  return new StorageError(`Failed during ${op}`, op, error2);
 }
 const ENCRYPT_STORAGE = false;
 const OBFUSCATION_PREFIX = "OBF:";
@@ -784,10 +727,57 @@ function decode(encoded, key) {
 function isObfuscated(value) {
   return typeof value === "string" && value.startsWith(OBFUSCATION_PREFIX);
 }
-const DB_VERSION = 3;
-const STORE_STUDENTS$1 = "students";
-const STORE_BACKUPS = "backups";
-const STORE_AUDIT_LOG = "auditLog";
+function encodeForStore(record) {
+  return record;
+}
+function decodeStoredValue(rawValue, release, storageKey) {
+  const storedIsObfuscated = isObfuscated(rawValue);
+  if (storedIsObfuscated) {
+    throw new StorageFormatError(
+      "Obfuscated data found with ENCRYPT_STORAGE disabled. Run migration to decrypt or re-enable encryption.",
+      "plain",
+      "obfuscated",
+      storageKey
+    );
+  }
+  return rawValue;
+}
+function tryDecodeCursorValue(rawValue, release) {
+  if (!isObfuscated(rawValue)) {
+    return null;
+  }
+  try {
+    return decode(rawValue, deriveKey(release));
+  } catch {
+    return null;
+  }
+}
+async function createBackup(db, record) {
+  const timestamp = (/* @__PURE__ */ new Date()).toISOString();
+  const backupKey = `backup_${timestamp}_${record.serviceId}`;
+  const originalKey = getStorageKey(record.release, record.serviceId);
+  const backupRecord = {
+    ...record,
+    originalKey,
+    timestamp
+  };
+  await runTransaction(
+    db,
+    STORE_BACKUPS,
+    "readwrite",
+    (store) => store.put(backupRecord, backupKey),
+    "backup"
+  );
+}
+async function saveAuditEvent(db, event) {
+  await runTransaction(
+    db,
+    STORE_AUDIT_LOG,
+    "readwrite",
+    (store) => store.add(event),
+    "saveAuditEvent"
+  );
+}
 class IndexedDBStorageAdapter {
   /**
    * Create a new IndexedDB storage adapter
@@ -805,10 +795,8 @@ class IndexedDBStorageAdapter {
   /**
    * Initialize the IndexedDB database
    *
-   * Creates object stores and indexes on first run.
-   * Safe to call multiple times - will reuse existing connection.
-   *
-   * @returns Promise that resolves when database is ready
+   * Creates object stores and indexes on first run. Safe to call multiple
+   * times - will reuse the existing connection or in-flight init.
    */
   async init() {
     if (this.initPromise) {
@@ -817,119 +805,10 @@ class IndexedDBStorageAdapter {
     if (this.db) {
       return Promise.resolve();
     }
-    this.initPromise = new Promise((resolve, reject) => {
-      const OPEN_TIMEOUT_MS = 5e3;
-      let timeoutId;
-      let resolved = false;
-      const cleanup2 = () => {
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-          timeoutId = void 0;
-        }
-      };
-      timeoutId = window.setTimeout(() => {
-        if (resolved) return;
-        resolved = true;
-        this.initPromise = null;
-        warn(`IndexedDB open timed out after ${OPEN_TIMEOUT_MS}ms - attempting recovery`);
-        const deleteReq = indexedDB.deleteDatabase(this.dbName);
-        deleteReq.onsuccess = () => {
-          this.init().then(resolve).catch(reject);
-        };
-        deleteReq.onerror = () => {
-          reject(
-            new StorageError(
-              `Database "${this.dbName}" appears corrupted. Please clear site data in browser settings.`,
-              "init"
-            )
-          );
-        };
-        deleteReq.onblocked = () => {
-          reject(
-            new StorageError(
-              `Cannot recover database - close all other tabs with this site and reload.`,
-              "init"
-            )
-          );
-        };
-      }, OPEN_TIMEOUT_MS);
-      const request = indexedDB.open(this.dbName, DB_VERSION);
-      request.onerror = () => {
-        if (resolved) return;
-        resolved = true;
-        cleanup2();
-        error(`IndexedDB open error: ${request.error?.message || "unknown"}`);
-        this.initPromise = null;
-        reject(new StorageError("Failed to open database", "init", request.error));
-      };
-      request.onblocked = () => {
-        warn("IndexedDB open blocked - close other tabs with this database");
-      };
-      request.onsuccess = () => {
-        if (resolved) return;
-        resolved = true;
-        cleanup2();
-        this.db = request.result;
-        if (!this.db.objectStoreNames.contains(STORE_STUDENTS$1) || !this.db.objectStoreNames.contains(STORE_BACKUPS) || !this.db.objectStoreNames.contains(STORE_AUDIT_LOG)) {
-          warn(
-            `Database corrupted (missing stores). Found: [${Array.from(this.db.objectStoreNames).join(", ")}]`
-          );
-          this.db.close();
-          this.db = null;
-          const deleteRequest = indexedDB.deleteDatabase(this.dbName);
-          deleteRequest.onsuccess = () => {
-            this.initPromise = null;
-            this.init().then(resolve).catch(reject);
-          };
-          deleteRequest.onerror = () => {
-            this.initPromise = null;
-            reject(
-              new StorageError(
-                "Failed to delete corrupted database",
-                "init",
-                deleteRequest.error
-              )
-            );
-          };
-          return;
-        }
-        this.initPromise = null;
-        resolve();
-      };
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        const transaction = event.target.transaction;
-        if (transaction) {
-          transaction.onerror = () => {
-            error(`Upgrade transaction error: ${transaction.error?.message || "unknown"}`);
-          };
-          transaction.onabort = () => {
-            error(`Upgrade transaction aborted: ${transaction.error?.message || "unknown"}`);
-          };
-        }
-        try {
-          if (!db.objectStoreNames.contains(STORE_STUDENTS$1)) {
-            const studentsStore = db.createObjectStore(STORE_STUDENTS$1, { keyPath: null });
-            studentsStore.createIndex("by-release", "release", { unique: false });
-            studentsStore.createIndex("by-service-id", "serviceId", { unique: false });
-          }
-          if (!db.objectStoreNames.contains(STORE_BACKUPS)) {
-            const backupsStore = db.createObjectStore(STORE_BACKUPS, { keyPath: null });
-            backupsStore.createIndex("by-original-key", "originalKey", { unique: false });
-            backupsStore.createIndex("by-timestamp", "timestamp", { unique: false });
-          }
-          if (!db.objectStoreNames.contains(STORE_AUDIT_LOG)) {
-            const auditStore = db.createObjectStore(STORE_AUDIT_LOG, {
-              keyPath: "eventId"
-            });
-            auditStore.createIndex("by-service-id", "serviceId", { unique: false });
-            auditStore.createIndex("by-reset-at", "resetAt", { unique: false });
-          }
-        } catch (err) {
-          error("Error during database upgrade", err);
-          throw err;
-        }
-      };
+    this.initPromise = openDatabase$1(this.dbName).then((db) => {
+      this.db = db;
+    }).finally(() => {
+      this.initPromise = null;
     });
     return this.initPromise;
   }
@@ -948,9 +827,6 @@ class IndexedDBStorageAdapter {
   /**
    * Get a student record by release and service ID
    *
-   * Handles obfuscation based on ENCRYPT_STORAGE flag.
-   * Throws StorageFormatError if data format doesn't match flag setting.
-   *
    * @param release - Release identifier
    * @param serviceId - Service identifier
    * @returns Student record or null if not found
@@ -959,59 +835,20 @@ class IndexedDBStorageAdapter {
   async getStudent(release, serviceId) {
     const db = this.ensureInitialized();
     const key = getStorageKey(release, serviceId);
-    return new Promise((resolve, reject) => {
-      try {
-        const transaction = db.transaction(STORE_STUDENTS$1, "readonly");
-        const store = transaction.objectStore(STORE_STUDENTS$1);
-        const request = store.get(key);
-        request.onsuccess = () => {
-          const rawValue = request.result;
-          if (rawValue === void 0 || rawValue === null) {
-            resolve(null);
-            return;
-          }
-          try {
-            const record = this.decodeStoredValue(rawValue, release, key);
-            resolve(record);
-          } catch (error2) {
-            reject(error2 instanceof Error ? error2 : new Error(String(error2)));
-          }
-        };
-        request.onerror = () => {
-          reject(
-            new StorageError("Failed to get student record", "getStudent", request.error)
-          );
-        };
-      } catch (error2) {
-        reject(new StorageError("Failed to get student record", "getStudent", error2));
-      }
-    });
-  }
-  /**
-   * Decode stored value, checking format matches ENCRYPT_STORAGE setting
-   *
-   * @param rawValue - Value from IndexedDB (may be obfuscated string or plain object)
-   * @param release - Release ID for key derivation
-   * @param storageKey - Storage key for error reporting
-   * @returns Decoded StudentRecord
-   * @throws StorageFormatError if format doesn't match setting
-   */
-  decodeStoredValue(rawValue, release, storageKey) {
-    const storedIsObfuscated = isObfuscated(rawValue);
-    if (storedIsObfuscated) {
-      throw new StorageFormatError(
-        "Obfuscated data found with ENCRYPT_STORAGE disabled. Run migration to decrypt or re-enable encryption.",
-        "plain",
-        "obfuscated",
-        storageKey
-      );
+    const rawValue = await runTransaction(
+      db,
+      STORE_STUDENTS$1,
+      "readonly",
+      (store) => store.get(key),
+      "getStudent"
+    );
+    if (rawValue === void 0 || rawValue === null) {
+      return null;
     }
-    return rawValue;
+    return decodeStoredValue(rawValue, release, key);
   }
   /**
-   * Save a student record
-   *
-   * Encodes data if ENCRYPT_STORAGE is enabled.
+   * Save a student record (encodes when encryption is enabled).
    *
    * @param record - Student record to save
    * @throws StorageQuotaError if storage quota exceeded
@@ -1019,295 +856,107 @@ class IndexedDBStorageAdapter {
   async saveStudent(record) {
     const db = this.ensureInitialized();
     const key = getStorageKey(record.release, record.serviceId);
-    const valueToStore = record;
-    return new Promise((resolve, reject) => {
-      try {
-        const transaction = db.transaction(STORE_STUDENTS$1, "readwrite");
-        const store = transaction.objectStore(STORE_STUDENTS$1);
-        const request = store.put(valueToStore, key);
-        request.onsuccess = () => {
-          resolve();
-        };
-        request.onerror = () => {
-          if (request.error?.name === "QuotaExceededError") {
-            reject(new StorageQuotaError("saveStudent"));
-          } else {
-            reject(
-              new StorageError(
-                "Failed to save student record",
-                "saveStudent",
-                request.error
-              )
-            );
-          }
-        };
-        transaction.onerror = () => {
-          reject(
-            new StorageError(
-              "Transaction failed while saving student",
-              "saveStudent",
-              transaction.error
-            )
-          );
-        };
-      } catch (error2) {
-        reject(new StorageError("Failed to save student record", "saveStudent", error2));
-      }
-    });
+    const valueToStore = encodeForStore(record);
+    await runTransaction(
+      db,
+      STORE_STUDENTS$1,
+      "readwrite",
+      (store) => store.put(valueToStore, key),
+      "saveStudent"
+    );
   }
   /**
-   * Get all students for a specific release
+   * Get all students for a specific release.
    *
-   * When ENCRYPT_STORAGE is disabled, uses the by-release index for efficient queries.
-   * When ENCRYPT_STORAGE is enabled, performs full scan and decodes all records.
+   * Uses the by-release index in plain mode; performs a full decode scan when
+   * encryption is enabled (the index cannot see into obfuscated values).
    *
    * @param release - Release identifier
    * @returns Array of student records (empty if none found)
    */
   async getStudentsByRelease(release) {
     const db = this.ensureInitialized();
-    return new Promise((resolve, reject) => {
-      try {
-        const transaction = db.transaction(STORE_STUDENTS$1, "readonly");
-        const store = transaction.objectStore(STORE_STUDENTS$1);
-        const index = store.index("by-release");
-        const request = index.getAll(release);
-        request.onsuccess = () => {
-          resolve(request.result || []);
-        };
-        request.onerror = () => {
-          reject(
-            new StorageError(
-              "Failed to get students by release",
-              "getStudentsByRelease",
-              request.error
-            )
-          );
-        };
-      } catch (error2) {
-        reject(
-          new StorageError(
-            "Failed to get students by release",
-            "getStudentsByRelease",
-            error2
-          )
-        );
-      }
-    });
+    const all = await runTransaction(
+      db,
+      STORE_STUDENTS$1,
+      "readonly",
+      (store) => store.index("by-release").getAll(release),
+      "getStudentsByRelease"
+    );
+    return all || [];
   }
   /**
-   * Get all students for a release when encryption is enabled
-   *
-   * Performs full scan, decodes each record, and filters by release.
+   * Full-scan decode of all students for a release (encryption enabled).
    */
-  async getStudentsByReleaseEncrypted(release) {
+  getStudentsByReleaseEncrypted(release) {
     const db = this.ensureInitialized();
-    const obfKey = deriveKey(release);
     return new Promise((resolve, reject) => {
-      try {
-        const transaction = db.transaction(STORE_STUDENTS$1, "readonly");
-        const store = transaction.objectStore(STORE_STUDENTS$1);
-        const request = store.openCursor();
-        const results = [];
-        request.onsuccess = () => {
-          const cursor = request.result;
-          if (cursor) {
-            const rawValue = cursor.value;
-            if (isObfuscated(rawValue)) {
-              try {
-                const record = decode(rawValue, obfKey);
-                if (record.release === release) {
-                  results.push(record);
-                }
-              } catch {
-                const keyStr = typeof cursor.key === "string" ? cursor.key : JSON.stringify(cursor.key);
-                warn(`Skipping corrupted record at key: ${keyStr}`);
-              }
-            }
-            cursor.continue();
-          } else {
-            resolve(results);
+      const transaction = db.transaction(STORE_STUDENTS$1, "readonly");
+      const store = transaction.objectStore(STORE_STUDENTS$1);
+      const request = store.openCursor();
+      const results = [];
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (cursor) {
+          const record = tryDecodeCursorValue(cursor.value, release);
+          if (record && record.release === release) {
+            results.push(record);
           }
-        };
-        request.onerror = () => {
-          reject(
-            new StorageError(
-              "Failed to get students by release",
-              "getStudentsByRelease",
-              request.error
-            )
-          );
-        };
-      } catch (error2) {
+          cursor.continue();
+        } else {
+          resolve(results);
+        }
+      };
+      request.onerror = () => {
         reject(
           new StorageError(
-            "Failed to get students by release",
+            "Failed during getStudentsByRelease",
             "getStudentsByRelease",
-            error2
+            request.error
           )
         );
-      }
+      };
     });
   }
   /**
-   * Clear all data from the database
+   * Clear all data from the database.
    *
-   * Removes both students and backups in a single atomic transaction.
+   * Removes students, backups, and audit-log entries in a single atomic
+   * transaction.
    */
   async clearAll() {
     const db = this.ensureInitialized();
-    return new Promise((resolve, reject) => {
-      try {
-        const transaction = db.transaction(
-          [STORE_STUDENTS$1, STORE_BACKUPS, STORE_AUDIT_LOG],
-          "readwrite"
-        );
-        const studentsStore = transaction.objectStore(STORE_STUDENTS$1);
-        const backupsStore = transaction.objectStore(STORE_BACKUPS);
-        const auditStore = transaction.objectStore(STORE_AUDIT_LOG);
-        const clearStudentsRequest = studentsStore.clear();
-        const clearBackupsRequest = backupsStore.clear();
-        const clearAuditRequest = auditStore.clear();
-        let studentsCleared = false;
-        let backupsCleared = false;
-        let auditCleared = false;
-        clearStudentsRequest.onsuccess = () => {
-          studentsCleared = true;
-          if (backupsCleared && auditCleared) {
-            resolve();
-          }
-        };
-        clearBackupsRequest.onsuccess = () => {
-          backupsCleared = true;
-          if (studentsCleared && auditCleared) {
-            resolve();
-          }
-        };
-        clearAuditRequest.onsuccess = () => {
-          auditCleared = true;
-          if (studentsCleared && backupsCleared) {
-            resolve();
-          }
-        };
-        clearStudentsRequest.onerror = () => {
-          reject(
-            new StorageError(
-              "Failed to clear students",
-              "clearAll",
-              clearStudentsRequest.error
-            )
-          );
-        };
-        clearBackupsRequest.onerror = () => {
-          reject(
-            new StorageError(
-              "Failed to clear backups",
-              "clearAll",
-              clearBackupsRequest.error
-            )
-          );
-        };
-        clearAuditRequest.onerror = () => {
-          reject(
-            new StorageError(
-              "Failed to clear audit log",
-              "clearAll",
-              clearAuditRequest.error
-            )
-          );
-        };
-        transaction.onerror = () => {
-          reject(
-            new StorageError(
-              "Transaction failed during clearAll",
-              "clearAll",
-              transaction.error
-            )
-          );
-        };
-      } catch (error2) {
-        reject(new StorageError("Failed to clear all data", "clearAll", error2));
-      }
-    });
+    const transaction = db.transaction(
+      [STORE_STUDENTS$1, STORE_BACKUPS, STORE_AUDIT_LOG],
+      "readwrite"
+    );
+    await Promise.all([
+      promisifyRequest(transaction.objectStore(STORE_STUDENTS$1).clear(), "clearAll"),
+      promisifyRequest(transaction.objectStore(STORE_BACKUPS).clear(), "clearAll"),
+      promisifyRequest(transaction.objectStore(STORE_AUDIT_LOG).clear(), "clearAll")
+    ]);
   }
   /**
-   * Create a backup of a student record
-   *
-   * Backup key format: backup_{timestamp}_{serviceId}
+   * Create a backup of a student record.
    *
    * @param record - Student record to backup
    * @throws StorageQuotaError if storage quota exceeded
    */
   async backup(record) {
     const db = this.ensureInitialized();
-    const timestamp = (/* @__PURE__ */ new Date()).toISOString();
-    const backupKey = `backup_${timestamp}_${record.serviceId}`;
-    const originalKey = getStorageKey(record.release, record.serviceId);
-    const backupRecord = {
-      ...record,
-      originalKey,
-      timestamp
-    };
-    return new Promise((resolve, reject) => {
-      try {
-        const transaction = db.transaction(STORE_BACKUPS, "readwrite");
-        const store = transaction.objectStore(STORE_BACKUPS);
-        const request = store.put(backupRecord, backupKey);
-        request.onsuccess = () => {
-          resolve();
-        };
-        request.onerror = () => {
-          if (request.error?.name === "QuotaExceededError") {
-            reject(new StorageQuotaError("backup"));
-          } else {
-            reject(new StorageError("Failed to create backup", "backup", request.error));
-          }
-        };
-        transaction.onerror = () => {
-          reject(
-            new StorageError(
-              "Transaction failed during backup",
-              "backup",
-              transaction.error
-            )
-          );
-        };
-      } catch (error2) {
-        reject(new StorageError("Failed to create backup", "backup", error2));
-      }
-    });
+    await createBackup(db, record);
   }
   /**
-   * Save a PIN reset event to the audit log
+   * Save a PIN reset event to the audit log.
    *
    * @param event - PIN reset event to log
    */
   async saveAuditEvent(event) {
     const db = this.ensureInitialized();
-    return new Promise((resolve, reject) => {
-      try {
-        const transaction = db.transaction(STORE_AUDIT_LOG, "readwrite");
-        const store = transaction.objectStore(STORE_AUDIT_LOG);
-        const request = store.add(event);
-        request.onsuccess = () => {
-          resolve();
-        };
-        request.onerror = () => {
-          reject(
-            new StorageError(
-              "Failed to save audit event",
-              "saveAuditEvent",
-              request.error
-            )
-          );
-        };
-      } catch (error2) {
-        reject(new StorageError("Failed to save audit event", "saveAuditEvent", error2));
-      }
-    });
+    await saveAuditEvent(db, event);
   }
   /**
-   * Close the database connection
+   * Close the database connection.
    *
    * Useful for cleanup in tests and application shutdown.
    */
@@ -1355,6 +1004,41 @@ function isPageComplete(answers, totalQuestions) {
 }
 function isPageUnstarted(answers) {
   return answers.length === 0;
+}
+function calculateStatusIndicator(total, correct) {
+  if (total === 0 || correct === 0) {
+    return "red";
+  }
+  if (correct === total) {
+    return "green";
+  }
+  return "amber";
+}
+function calculatePercentage(correct, attempted) {
+  if (attempted === 0) {
+    return 0;
+  }
+  return Math.round(correct / attempted * 100);
+}
+function recalculateTotalsFromPages(pages) {
+  let attempted = 0;
+  let correct = 0;
+  for (const pageId in pages) {
+    const pageData = pages[pageId];
+    if (pageData && pageData.answers && Array.isArray(pageData.answers)) {
+      const answered = pageData.answers.filter((a2) => a2.answer.trim() !== "");
+      attempted += answered.length;
+      correct += answered.filter((a2) => a2.success).length;
+    }
+  }
+  return { attempted, correct };
+}
+function isSessionExpired(expiresAt, now = /* @__PURE__ */ new Date()) {
+  const expiryDate = new Date(expiresAt);
+  if (isNaN(expiryDate.getTime())) {
+    return true;
+  }
+  return now >= expiryDate;
 }
 function createEmptyStudentRecord(session) {
   return {
@@ -1475,6 +1159,40 @@ class StorageService {
     };
   }
   /**
+   * Update a student record with an analysis cell edit.
+   *
+   * Mirrors {@link updateRecordWithAnswer} for analysis tables: gets/creates the
+   * page and its analysis data, writes the cell content, and stamps the
+   * first/last-edited timestamps.
+   *
+   * @param record - Current student record (mutated in place, also returned)
+   * @param pageId - Page where the cell was edited
+   * @param tableId - Analysis table identifier
+   * @param cellKey - Cell key being edited
+   * @param content - New cell content
+   * @returns The updated student record
+   */
+  updateRecordWithAnalysis(record, pageId, tableId, cellKey, content) {
+    const pageData = record.pages[pageId] || {
+      answers: [],
+      state: "unstarted"
+    };
+    const analysisData = pageData.analysis || {
+      tableId,
+      cells: {}
+    };
+    analysisData.cells[cellKey] = content;
+    const now = (/* @__PURE__ */ new Date()).toISOString();
+    if (!analysisData.firstEdited) {
+      analysisData.firstEdited = now;
+    }
+    analysisData.lastEdited = now;
+    pageData.analysis = analysisData;
+    record.pages[pageId] = pageData;
+    record.updated = now;
+    return record;
+  }
+  /**
    * Build session cache from student record
    *
    * @param record - Student record
@@ -1495,6 +1213,27 @@ class StorageService {
     } catch (err) {
       error("Failed to get students by release", err);
       throw err;
+    }
+  }
+  /**
+   * Load (and persist) the student record for a session and refresh the
+   * sessionStorage cache. Falls back to an empty cache on any IndexedDB error.
+   *
+   * Used on login to rebuild the R/A/G cache from IndexedDB.
+   *
+   * @param session - Current session data
+   */
+  async refreshCacheOnLogin(session) {
+    try {
+      const record = await this.loadStudentRecord(session);
+      await this.saveStudentRecord(record);
+      setJSON(STORAGE_KEYS.CACHE, this.buildCache(record));
+      info(`Cache built from IndexedDB for ${session.serviceId}`);
+    } catch {
+      setJSON(STORAGE_KEYS.CACHE, {
+        totals: { total: 0, answered: 0, correct: 0 },
+        pages: {}
+      });
     }
   }
   /**
@@ -1544,196 +1283,37 @@ function getStorageService(dbName) {
   }
   return storageServiceInstance;
 }
-const tableMetadata$1 = /* @__PURE__ */ new WeakMap();
-function enhanceQuizTable(table, options) {
-  const existing = tableMetadata$1.get(table);
-  let parsed;
-  if (existing) {
-    if (!existing.interactive && options.interactive) {
-      parsed = existing.parsed;
-    } else {
-      return true;
-    }
-  } else {
-    parsed = parseQuizTable(table);
-    if (parsed.errors && parsed.errors.length > 0) {
-      error("Quiz table has validation errors:", parsed.errors);
-    }
-  }
-  const metadata = {
-    parsed,
-    interactive: options.interactive,
-    pageId: options.pageId
-  };
-  if (options.interactive) {
-    if (!options.pageId) {
-      error("Interactive mode requires pageId option");
-      return false;
-    }
-    info(`Preparing interactive enhancement for pageId: ${options.pageId}`);
-    metadata.debouncer = new Debouncer();
-    metadata.inputs = [];
-  }
-  tableMetadata$1.set(table, metadata);
-  if (options.interactive) {
-    const result = enhanceInteractive$1(table, metadata);
-    if (result) {
-      info(`Interactive enhancement succeeded for table with ${parsed.questions.length} questions`);
-    } else {
-      error("Interactive enhancement failed");
-    }
-    return result;
-  } else {
-    return enhanceNonInteractive$1(table);
-  }
-}
-function enhanceNonInteractive$1(table) {
-  removeColgroup(table);
-  hideAnswerColumn(table);
-  hideDetailColumn(table);
-  addClass(table, "qd-quiz-non-interactive");
-  return true;
-}
-function enhanceInteractive$1(table, metadata) {
-  const { parsed, pageId, debouncer } = metadata;
-  if (!pageId || !debouncer) {
-    error("Interactive mode requires pageId and debouncer");
-    return false;
-  }
-  showAnswerColumn(table);
-  hideDetailColumn(table);
-  const session = getJSON(STORAGE_KEYS.SESSION);
-  if (!session) {
-    error("No active session found");
-    return false;
-  }
-  let cache = getJSON(STORAGE_KEYS.CACHE);
-  if (!cache) {
-    cache = {
-      totals: { total: 0, answered: 0, correct: 0 },
-      pages: {}
-    };
-  } else {
-    info(
-      `Cache loaded: ${cache.totals.total} total questions, ${Object.keys(cache.pages).length} pages`
-    );
-  }
-  const totalQuestions = parsed.questions.length;
-  cache = registerPageQuestions(cache, pageId, totalQuestions);
-  setJSON(STORAGE_KEYS.CACHE, cache);
-  const pageCache = cache?.pages[pageId];
-  const existingAnswers = pageCache?.answers || [];
-  info(
-    `Page ${pageId}: ${existingAnswers.length} existing answers, state: ${pageCache?.state || "none"}`
-  );
-  const tbody = table.querySelector("tbody");
-  if (!tbody) {
-    error("Quiz table has no tbody element");
-    return false;
-  }
-  const rows = Array.from(tbody.querySelectorAll("tr"));
-  const inputs = [];
-  parsed.questions.forEach((question, index) => {
-    const row = rows[index];
-    if (!row) return;
-    const cells = Array.from(row.querySelectorAll("td"));
-    if (cells.length !== 3) return;
-    const questionCell = cells[0];
-    const answerCell = cells[1];
-    if (!questionCell || !answerCell) return;
-    const existingAnswer = existingAnswers[index];
-    if (existingAnswer && existingAnswer.answer) {
-      info(
-        `Q${index + 1}: Pre-filling with "${existingAnswer.answer}" (${existingAnswer.success ? "correct" : "incorrect"})`
-      );
-    }
-    const input = createQuestionInput(question, existingAnswer);
-    inputs.push(input);
-    removeClass(answerCell, "qd-answer-correct", "qd-answer-incorrect");
-    answerCell.textContent = "";
-    answerCell.appendChild(input);
-    if (existingAnswer) {
-      applyValidationStyling(answerCell, existingAnswer.success);
-    }
-    const eventType = input.tagName === "SELECT" ? "change" : "input";
-    input.addEventListener(eventType, () => {
-      handleAnswerInput(table, metadata, index, input.value);
-    });
+function emitCustomEvent(name, detail, options) {
+  const event = new CustomEvent(name, {
+    detail,
+    bubbles: options?.bubbles ?? true,
+    composed: options?.composed ?? true,
+    cancelable: options?.cancelable ?? false
   });
-  metadata.inputs = inputs;
-  const showAnswersHandler = () => {
-    void showStudentAnswersForTable(table, metadata);
-  };
-  const hideAnswersHandler = () => {
-    hideStudentAnswersForTable(table);
-  };
-  document.addEventListener("qd:instructor-show-answers", showAnswersHandler);
-  document.addEventListener("qd:instructor-hide-answers", hideAnswersHandler);
-  const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
-  const showAnswers = sessionStorage.getItem(INSTRUCTOR_SHOW_ANSWERS_KEY) === "true";
-  if (isInstructor && showAnswers) {
-    void showStudentAnswersForTable(table, metadata);
-  }
-  const resetUIState = () => {
-    const answerCells = table.querySelectorAll("td.qd-answer-correct, td.qd-answer-incorrect");
-    answerCells.forEach((cell) => {
-      removeClass(cell, "qd-answer-correct", "qd-answer-incorrect");
-    });
-    if (metadata.inputs) {
-      for (const input of metadata.inputs) {
-        if (input instanceof HTMLSelectElement) {
-          input.selectedIndex = 0;
-        } else if (input instanceof HTMLInputElement) {
-          input.value = "";
-        }
-      }
-    }
-    hideStudentAnswersForTable(table);
-  };
-  const logoutHandler = () => {
-    resetUIState();
-  };
-  const loginHandler = () => {
-    resetUIState();
-  };
-  document.addEventListener("qd:logout", logoutHandler);
-  document.addEventListener("qd:login", loginHandler);
-  metadata.cleanupInstructorListeners = () => {
-    document.removeEventListener("qd:instructor-show-answers", showAnswersHandler);
-    document.removeEventListener("qd:instructor-hide-answers", hideAnswersHandler);
-    document.removeEventListener("qd:logout", logoutHandler);
-    document.removeEventListener("qd:login", loginHandler);
-  };
-  addClass(table, "qd-quiz-interactive");
-  return true;
+  return document.dispatchEvent(event);
 }
-function createQuestionInput(question, existingAnswer) {
-  const spec = getQuestionInputSpec(question, existingAnswer);
-  if (spec.type === "select") {
-    const select = createElement("select");
-    select.className = spec.className;
-    const placeholderOption = createElement("option");
-    placeholderOption.value = "";
-    placeholderOption.textContent = spec.placeholder;
-    placeholderOption.disabled = true;
-    select.appendChild(placeholderOption);
-    if (spec.options) {
-      spec.options.forEach((opt) => {
-        const option = createElement("option");
-        option.value = opt.value;
-        option.textContent = opt.text;
-        select.appendChild(option);
-      });
-    }
-    select.value = spec.value;
-    return select;
-  } else {
-    const input = createElement("input");
-    input.type = spec.type;
-    input.className = spec.className;
-    input.placeholder = spec.placeholder;
-    input.value = spec.value;
-    return input;
+function dispatchEventOn(element, name, detail, options) {
+  const event = new CustomEvent(name, {
+    detail,
+    bubbles: true,
+    composed: true,
+    cancelable: false
+  });
+  return element.dispatchEvent(event);
+}
+async function persistAndNotify(record, options) {
+  const storageService = getStorageService();
+  try {
+    await storageService.saveStudentRecord(record);
+  } catch (err) {
+    warn("Failed to save student record to IndexedDB", err);
+  }
+  const cache = storageService.buildCache(record);
+  setJSON(STORAGE_KEYS.CACHE, cache);
+  options.onSavedDom?.();
+  const emit = emitCustomEvent;
+  for (const event of options.events) {
+    emit(event.name, event.detail);
   }
 }
 function handleAnswerInput(table, metadata, questionIndex, answer) {
@@ -1789,805 +1369,67 @@ async function saveAnswer(table, metadata, questionIndex, answer) {
     answerRecord,
     totalQuestions
   );
-  try {
-    await storageService.saveStudentRecord(updatedRecord);
-  } catch (err) {
-    warn("Failed to save student record to IndexedDB", err);
-  }
-  const cache = storageService.buildCache(updatedRecord);
-  setJSON(STORAGE_KEYS.CACHE, cache);
-  const row = table.querySelector(`tbody tr:nth-child(${questionIndex + 1})`);
-  if (row) {
-    const answerCell = row.querySelector("td:nth-child(2)");
-    if (answerCell) {
-      applyValidationStyling(answerCell, success);
-    }
-  }
-  emitCustomEvent("qd:answer-saved", {
-    pageId,
-    answer: answerRecord
-  });
   const pageData = updatedRecord.pages[pageId];
-  if (pageData) {
-    emitCustomEvent("qd:state-changed", {
-      pageId,
-      state: pageData.state
-    });
-  }
+  await persistAndNotify(updatedRecord, {
+    onSavedDom: () => {
+      const row = table.querySelector(`tbody tr:nth-child(${questionIndex + 1})`);
+      const answerCell = row?.querySelector("td:nth-child(2)");
+      if (answerCell) {
+        applyValidationStyling(answerCell, success);
+      }
+    },
+    events: [
+      { name: "qd:answer-saved", detail: { pageId, answer: answerRecord } },
+      ...pageData ? [{ name: "qd:state-changed", detail: { pageId, state: pageData.state } }] : []
+    ]
+  });
 }
 function applyValidationStyling(cell, success) {
   removeClass(cell, "qd-answer-correct", "qd-answer-incorrect");
   addClass(cell, success ? "qd-answer-correct" : "qd-answer-incorrect");
 }
-function removeColgroup(table) {
-  const colgroup = table.querySelector("colgroup");
-  if (colgroup) {
-    colgroup.remove();
+function formatDisplayTimestamp(date) {
+  const month = date.toLocaleDateString("en-US", { month: "short" });
+  const day = date.getDate();
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  return `${month} ${day} ${hours}:${minutes}`;
+}
+function formatCSVTimestamp(date) {
+  return date.toISOString();
+}
+function formatTimestamp(date, format = "display") {
+  if (date == null) {
+    console.warn("Invalid date provided to formatTimestamp:", date);
+    return "Invalid Date";
   }
-}
-function hideAnswerColumn(table) {
-  const headerCells = table.querySelectorAll("thead th, thead td");
-  if (headerCells[1]) {
-    addClass(headerCells[1], "qd-hidden");
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+  if (isNaN(dateObj.getTime())) {
+    console.warn("Invalid date provided to formatTimestamp:", date);
+    return "Invalid Date";
   }
-  const rows = table.querySelectorAll("tbody tr");
-  rows.forEach((row) => {
-    const cells = row.querySelectorAll("td");
-    if (cells[1]) {
-      addClass(cells[1], "qd-hidden");
-      cells[1].textContent = "";
-    }
-  });
+  return format === "csv" ? formatCSVTimestamp(dateObj) : formatDisplayTimestamp(dateObj);
 }
-function showAnswerColumn(table) {
-  const headerCells = table.querySelectorAll("thead th, thead td");
-  if (headerCells[1]) {
-    removeClass(headerCells[1], "qd-hidden");
-  }
-  const rows = table.querySelectorAll("tbody tr");
-  rows.forEach((row) => {
-    const cells = row.querySelectorAll("td");
-    if (cells[1]) {
-      removeClass(cells[1], "qd-hidden");
-    }
-  });
+function formatStoredTimestamp(isoString) {
+  return formatTimestamp(isoString, "display");
 }
-function hideDetailColumn(table) {
-  const headerCells = table.querySelectorAll("thead th, thead td");
-  if (headerCells[2]) {
-    addClass(headerCells[2], "qd-hidden");
-  }
-  const rows = table.querySelectorAll("tbody tr");
-  rows.forEach((row) => {
-    const cells = row.querySelectorAll("td");
-    if (cells[2]) {
-      addClass(cells[2], "qd-hidden");
-    }
-  });
-}
-function getQuizTableMetadata(table) {
-  return tableMetadata$1.get(table);
-}
-function isQuizTableEnhanced(table) {
-  return tableMetadata$1.has(table);
-}
-function resetQuizTableToNonInteractive(table) {
-  const metadata = tableMetadata$1.get(table);
-  if (!metadata) return;
-  metadata.interactive = false;
-  metadata.pageId = void 0;
-  metadata.inputs = void 0;
-  metadata.cleanupInstructorListeners?.();
-  metadata.cleanupInstructorListeners = void 0;
-  hideAnswerColumn(table);
-  hideDetailColumn(table);
-  removeClass(table, "qd-quiz-interactive");
-}
-async function showStudentAnswersForTable(table, metadata) {
-  const { pageId, parsed } = metadata;
-  if (!pageId) return;
-  const session = getJSON(STORAGE_KEYS.SESSION);
-  if (!session) return;
-  const storageService = getStorageService();
-  try {
-    const students = await storageService.getStudentsByRelease(session.release);
-    if (students.length === 0) {
-      info("No student data available for this release");
-      alert(
-        "No student data available for this release. Students need to log in and answer questions first."
-      );
-      return;
-    }
-    const tbody = table.querySelector("tbody");
-    if (!tbody) return;
-    const rows = Array.from(tbody.querySelectorAll("tr"));
-    parsed.questions.forEach((_question, questionIndex) => {
-      const row = rows[questionIndex];
-      if (!row) return;
-      const cells = Array.from(row.querySelectorAll("td"));
-      const answerCell = cells[1];
-      if (!answerCell) return;
-      const existingDisplay = answerCell.querySelector(".qd-student-answers");
-      if (existingDisplay) {
-        existingDisplay.remove();
-      }
-      const studentAnswers = formatStudentAnswersForDisplay(students, pageId, questionIndex);
-      if (studentAnswers.length > 0) {
-        const display = document.createElement("div");
-        display.className = "qd-student-answers";
-        studentAnswers.forEach((sa) => {
-          const answerDiv = document.createElement("div");
-          answerDiv.className = `qd-student-answer ${sa.cssClass}`;
-          const nameSpan = document.createElement("span");
-          nameSpan.className = "qd-student-name";
-          nameSpan.textContent = `${sa.name} (${sa.maskedServiceId})`;
-          const answerSpan = document.createElement("span");
-          answerSpan.className = "qd-student-answer-text";
-          answerSpan.textContent = sa.answer;
-          const timestampSpan = document.createElement("span");
-          timestampSpan.className = "qd-timestamp";
-          timestampSpan.textContent = sa.formattedTimestamp;
-          answerDiv.append(
-            nameSpan,
-            document.createTextNode(": "),
-            answerSpan,
-            document.createTextNode(" "),
-            timestampSpan
-          );
-          display.appendChild(answerDiv);
-        });
-        answerCell.appendChild(display);
-      }
-    });
-    info(`Displayed student answers for ${students.length} students on page ${pageId}`);
-  } catch (err) {
-    error("Failed to load student answers", err);
-  }
-}
-function hideStudentAnswersForTable(table) {
-  const displays = table.querySelectorAll(".qd-student-answers");
-  displays.forEach((display) => display.remove());
-}
-function revealInstructorAnswers(table, metadata, options = {}) {
-  if (options.addInstructorClass) {
-    table.classList.add("qd-quiz-instructor");
-  }
-  const answerCells = table.querySelectorAll("td:nth-child(2), th:nth-child(2)");
-  answerCells.forEach((cell) => {
-    cell.classList.remove("qd-hidden");
-  });
-  const answerDataCells = table.querySelectorAll("tbody td:nth-child(2)");
-  answerDataCells.forEach((cell, index) => {
-    const question = metadata.parsed.questions[index];
-    if (question && cell instanceof HTMLTableCellElement) {
-      cell.textContent = question.correctAnswer;
-    }
-  });
-  const detailCells = table.querySelectorAll("td:nth-child(3), th:nth-child(3)");
-  detailCells.forEach((cell) => cell.classList.remove("qd-hidden"));
-  const showAnswersHandler = () => {
-    void showStudentAnswersForTable(table, metadata);
-  };
-  const hideAnswersHandler = () => {
-    hideStudentAnswersForTable(table);
-  };
-  document.addEventListener("qd:instructor-show-answers", showAnswersHandler);
-  document.addEventListener("qd:instructor-hide-answers", hideAnswersHandler);
-  const showAnswers = sessionStorage.getItem(INSTRUCTOR_SHOW_ANSWERS_KEY) === "true";
-  if (showAnswers) {
-    void showAnswersHandler();
-  }
-}
-function hashString(input, length = 16) {
-  let hash = 5381;
-  for (let i3 = 0; i3 < input.length; i3++) {
-    const char = input.charCodeAt(i3);
-    hash = (hash << 5) + hash + char;
-    hash = hash & hash;
-  }
-  const hexHash = Math.abs(hash).toString(16).padStart(8, "0");
-  const repeatedHash = hexHash.repeat(Math.ceil(length / hexHash.length));
-  return repeatedHash.substring(0, length);
-}
-function generateTableId(table) {
-  const rows = getTableRows(table);
-  const firstRow = rows[0];
-  const cols = firstRow ? getRowCells(firstRow).length : 0;
-  const className = table.className || "qd-analysis";
-  const signature = `${rows.length}x${cols}:${className}`;
-  return hashString(signature, 16);
-}
-function generateCellKey(row, col, content) {
-  const normalized = content.replace(/\s+/g, " ").trim();
-  const contentHash = hashString(normalized, 8);
-  return `R${row}C${col}#f:${contentHash}`;
-}
-function isCellEditable(cell) {
-  return cell.classList.contains("interactive");
-}
-function parseAnalysisTable(table) {
-  const errors = [];
-  if (!table.querySelector("tbody")) {
-    errors.push("Analysis table must have a tbody element");
-  }
-  const rows = getTableRows(table);
-  if (rows.length === 0) {
-    errors.push("Analysis table must have at least one row");
-  }
-  const tableId = generateTableId(table);
-  const editableCells = [];
-  rows.forEach((row, rowIndex) => {
-    const cells = getRowCells(row);
-    cells.forEach((cell, colIndex) => {
-      if (isCellEditable(cell)) {
-        const content = getTextContent(cell);
-        const key = generateCellKey(rowIndex, colIndex, content);
-        editableCells.push({
-          row: rowIndex,
-          col: colIndex,
-          key
-        });
-      }
-    });
-  });
-  return {
-    element: table,
-    tableId,
-    editableCells,
-    errors: errors.length > 0 ? errors : void 0
-  };
-}
-const tableMetadata = /* @__PURE__ */ new WeakMap();
-function enhanceAnalysisTable(table, options) {
-  const parsed = parseAnalysisTable(table);
-  if (parsed.errors && parsed.errors.length > 0) {
-    error("Analysis table has validation errors:", parsed.errors);
-  }
-  const metadata = {
-    parsed,
-    interactive: options.interactive,
-    pageId: options.pageId
-  };
-  if (options.interactive) {
-    if (!options.pageId) {
-      error("Interactive mode requires pageId option");
-      return false;
-    }
-    metadata.debouncer = new Debouncer();
-    metadata.cellKeyMap = /* @__PURE__ */ new Map();
-  }
-  tableMetadata.set(table, metadata);
-  if (options.interactive) {
-    return enhanceInteractive(table, metadata);
-  } else {
-    return enhanceNonInteractive(table);
-  }
-}
-function enhanceNonInteractive(table) {
-  addClass(table, "qd-analysis-non-interactive");
-  const showHandler = () => {
-    void showStudentEntriesForTable(table);
-  };
-  const hideHandler = () => {
-    hideStudentEntriesForTable(table);
-  };
-  document.addEventListener("qd:instructor-show-answers", showHandler);
-  document.addEventListener("qd:instructor-hide-answers", hideHandler);
-  return true;
-}
-function enhanceInteractive(table, metadata) {
-  const { parsed, pageId, debouncer, cellKeyMap } = metadata;
-  if (!pageId || !debouncer || !cellKeyMap) {
-    error("Interactive mode requires pageId, debouncer, and cellKeyMap");
-    return false;
-  }
-  const session = getJSON(STORAGE_KEYS.SESSION);
-  if (!session) {
-    error("No active session found");
-    return false;
-  }
-  const cache = getJSON(STORAGE_KEYS.CACHE);
-  const pageCache = cache?.pages[pageId];
-  const existingAnalysis = pageCache?.analysis;
-  const existingCells = existingAnalysis?.cells || {};
-  const rows = getTableRows(table);
-  parsed.editableCells.forEach(({ row, col, key }) => {
-    const rowElement = rows[row];
-    if (!rowElement) return;
-    const cells = getRowCells(rowElement);
-    const cell = cells[col];
-    if (!cell) return;
-    if (!isCellEditable(cell)) {
-      error(`Cell at R${row}C${col} is no longer editable`);
-      return;
-    }
-    cellKeyMap.set(cell, key);
-    if (existingCells[key]) {
-      cell.textContent = existingCells[key];
-    }
-    cell.contentEditable = "true";
-    addClass(cell, "qd-editable");
-    cell.addEventListener("input", () => {
-      handleCellEdit(metadata, cell, key);
-    });
-  });
-  addClass(table, "qd-analysis-interactive");
-  return true;
-}
-function handleCellEdit(metadata, cell, cellKey) {
-  const { debouncer, pageId } = metadata;
-  if (!debouncer || !pageId) {
-    return;
-  }
-  const content = getTextContent(cell);
-  debouncer.debounce(
-    `save-cell-${cellKey}`,
-    () => {
-      void saveCellData(metadata, cellKey, content);
-    },
-    500
-  );
-}
-async function saveCellData(metadata, cellKey, content) {
-  const { pageId, parsed } = metadata;
-  if (!pageId) {
-    return;
-  }
-  const session = getJSON(STORAGE_KEYS.SESSION);
-  if (!session) {
-    error("No active session found");
-    return;
-  }
-  const storageService = getStorageService();
-  let studentRecord;
-  try {
-    studentRecord = await storageService.loadStudentRecord(session);
-  } catch (err) {
-    warn("Failed to load student record, analysis not saved", err);
-    return;
-  }
-  const pageData = studentRecord.pages[pageId] || {
-    answers: [],
-    state: "unstarted"
-  };
-  const analysisData = pageData.analysis || {
-    tableId: parsed.tableId,
-    cells: {}
-  };
-  analysisData.cells[cellKey] = content;
-  const now = (/* @__PURE__ */ new Date()).toISOString();
-  if (!analysisData.firstEdited) {
-    analysisData.firstEdited = now;
-  }
-  analysisData.lastEdited = now;
-  pageData.analysis = analysisData;
-  studentRecord.pages[pageId] = pageData;
-  studentRecord.updated = now;
-  try {
-    await storageService.saveStudentRecord(studentRecord);
-  } catch (err) {
-    warn("Failed to save student record to IndexedDB", err);
-  }
-  const cache = storageService.buildCache(studentRecord);
-  setJSON(STORAGE_KEYS.CACHE, cache);
-  emitCustomEvent("qd:analysis-saved", {
-    pageId,
-    tableId: parsed.tableId,
-    cellKey,
-    content
-  });
-}
-function getAnalysisTableMetadata(table) {
-  return tableMetadata.get(table);
-}
-function isAnalysisTableEnhanced(table) {
-  return tableMetadata.has(table);
-}
-function groupEntriesByCell(students, pageId) {
-  const grouped = {};
-  students.forEach((student) => {
+function formatStudentAnswersForDisplay(students, pageId, questionIndex) {
+  const result = [];
+  for (const student of students) {
     const pageData = student.pages[pageId];
-    if (!pageData || !pageData.analysis) {
-      return;
-    }
-    const { cells } = pageData.analysis;
-    const timestamp = pageData.analysis.lastEdited || student.updated;
-    Object.entries(cells).forEach(([cellKey, content]) => {
-      if (!grouped[cellKey]) {
-        grouped[cellKey] = [];
-      }
-      grouped[cellKey].push({
-        serviceId: student.serviceId,
-        name: student.name,
-        content,
-        timestamp
-      });
-    });
-  });
-  return grouped;
-}
-function sortByTimestamp(entries) {
-  return [...entries].sort((a2, b2) => {
-    const dateA = new Date(a2.timestamp).getTime();
-    const dateB = new Date(b2.timestamp).getTime();
-    return dateB - dateA;
-  });
-}
-function createStudentEntriesDisplay(entries) {
-  const container = document.createElement("div");
-  container.className = "qd-student-entries";
-  if (entries.length === 0) {
-    container.className += " qd-no-entries";
-    container.textContent = "(No entries yet)";
-    container.style.cssText = "color: #9ca3af; font-style: italic; font-size: 13px; padding: 8px 0;";
-    return container;
-  }
-  const sortedEntries = sortByTimestamp(entries);
-  sortedEntries.forEach((entry) => {
-    const entryDiv = document.createElement("div");
-    entryDiv.className = "qd-entry";
-    entryDiv.style.cssText = "padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-size: 13px; color: #1f2937;";
-    const last4 = entry.serviceId.slice(-4);
-    const timestamp = formatStoredTimestamp(entry.timestamp);
-    const nameSpan = document.createElement("span");
-    nameSpan.style.cssText = "font-weight: 600; color: #374151;";
-    nameSpan.textContent = `${entry.name} (${last4}) • ${timestamp}: `;
-    const contentSpan = document.createElement("span");
-    contentSpan.style.cssText = "white-space: pre-wrap;";
-    contentSpan.textContent = entry.content;
-    entryDiv.appendChild(nameSpan);
-    entryDiv.appendChild(contentSpan);
-    container.appendChild(entryDiv);
-  });
-  container.style.cssText = "margin-top: 12px; padding-top: 8px; border-top: 2px solid #3b82f6;";
-  return container;
-}
-async function showStudentEntriesForTable(table) {
-  const metadata = tableMetadata.get(table);
-  if (!metadata) {
-    warn("Cannot show student entries: table not enhanced");
-    return;
-  }
-  const pageId = metadata.pageId || getCurrentPageId();
-  if (!pageId) {
-    warn("Cannot show student entries: page ID not found");
-    return;
-  }
-  const session = getJSON(STORAGE_KEYS.SESSION);
-  if (!session) {
-    warn("Cannot show student entries: no active session");
-    return;
-  }
-  const storageService = getStorageService();
-  let students;
-  try {
-    students = await storageService.getStudentsByRelease(session.release);
-  } catch (err) {
-    error("Failed to load students for instructor view:", err);
-    return;
-  }
-  const grouped = groupEntriesByCell(students, pageId);
-  const { editableCells } = metadata.parsed;
-  const rows = getTableRows(table);
-  editableCells.forEach(({ row, col, key }) => {
-    const rowElement = rows[row];
-    if (!rowElement) return;
-    const cells = getRowCells(rowElement);
-    const cell = cells[col];
-    if (!cell) return;
-    const entries = grouped[key] || [];
-    const displayElement = createStudentEntriesDisplay(entries);
-    displayElement.setAttribute("data-qd-student-entries", "true");
-    const existing = cell.querySelector("[data-qd-student-entries]");
-    if (existing) {
-      existing.remove();
-    }
-    cell.appendChild(displayElement);
-  });
-  info(`Displayed student entries for ${editableCells.length} cells`);
-}
-function hideStudentEntriesForTable(table) {
-  const displays = table.querySelectorAll("[data-qd-student-entries]");
-  displays.forEach((display) => display.remove());
-}
-function resetAnalysisTableToNonInteractive(table) {
-  const metadata = tableMetadata.get(table);
-  if (!metadata) return;
-  hideStudentEntriesForTable(table);
-  if (metadata.interactive) {
-    const editableCells = table.querySelectorAll(".qd-editable");
-    editableCells.forEach((cell) => {
-      if (cell instanceof HTMLTableCellElement) {
-        cell.contentEditable = "false";
-        cell.classList.remove("qd-editable");
-        cell.textContent = "";
-      }
-    });
-    table.classList.remove("qd-analysis-interactive");
-    metadata.debouncer?.cancelAll();
-  }
-  metadata.interactive = false;
-  metadata.pageId = void 0;
-  metadata.debouncer = void 0;
-  metadata.cellKeyMap = void 0;
-}
-function getCurrentPageId() {
-  const bodyPageId = document.body.dataset.pageId;
-  if (bodyPageId) {
-    return bodyPageId;
-  }
-  const path = window.location.pathname;
-  const filename = path.split("/").pop() || "";
-  const pageId = filename.replace(".html", "");
-  return pageId || void 0;
-}
-function getPageIdFromUrl(url) {
-  const path = window.location.pathname.split(/[?#]/)[0] ?? "";
-  const filename = path.substring(path.lastIndexOf("/") + 1);
-  return filename.replace(/\.html?$/i, "");
-}
-class EventCoordinator {
-  constructor() {
-    this.listeners = /* @__PURE__ */ new Map();
-  }
-  /**
-   * Register all event listeners
-   */
-  initialize() {
-    this.registerLoginHandlers();
-    this.registerLogoutHandlers();
-    this.registerAnswerHandlers();
-    this.registerStateHandlers();
-    this.registerInstructorHandlers();
-    this.registerDataHandlers();
-  }
-  /**
-   * Register handlers for login events
-   */
-  registerLoginHandlers() {
-    this.addEventListener("qd:login", (event) => {
-      void (async () => {
-        const detail = event.detail;
-        info(`Login event: ${detail.serviceId} (${detail.name})`);
-        if (detail.serviceId === "INSTRUCTOR") {
-          return;
-        }
-        const session = getJSON(STORAGE_KEYS.SESSION);
-        if (!session) {
-          return;
-        }
-        const storageService = getStorageService();
-        let studentRecord;
-        let cache;
-        try {
-          studentRecord = await storageService.loadStudentRecord(session);
-          await storageService.saveStudentRecord(studentRecord);
-          cache = storageService.buildCache(studentRecord);
-          setJSON(STORAGE_KEYS.CACHE, cache);
-          info(`Cache built from IndexedDB: ${cache.totals.total} total questions`);
-        } catch {
-          const emptyCache = {
-            totals: { total: 0, answered: 0, correct: 0 },
-            pages: {}
-          };
-          setJSON(STORAGE_KEYS.CACHE, emptyCache);
-        }
-        this.dispatchEvent("qd:cache-rebuild", {});
-        this.upgradeTablesAfterLogin();
-      })();
+    if (!pageData || !pageData.answers) continue;
+    const answerRecord = pageData.answers[questionIndex];
+    if (!answerRecord) continue;
+    result.push({
+      name: student.name,
+      maskedServiceId: student.serviceId.slice(-4),
+      answer: answerRecord.answer,
+      success: answerRecord.success,
+      formattedTimestamp: formatStoredTimestamp(answerRecord.timestamp),
+      cssClass: answerRecord.success ? "qd-correct" : "qd-incorrect"
     });
   }
-  /**
-   * Upgrade all tables to interactive mode after login
-   */
-  upgradeTablesAfterLogin() {
-    const pageId = getPageIdFromUrl();
-    if (!pageId) {
-      return;
-    }
-    const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
-    if (isInstructor) {
-      const quizTables2 = document.querySelectorAll("table.qd-quiz");
-      quizTables2.forEach((table) => {
-        const metadata = getQuizTableMetadata(table);
-        if (!metadata) return;
-        metadata.pageId = pageId;
-        revealInstructorAnswers(table, metadata);
-      });
-      return;
-    }
-    const quizTables = document.querySelectorAll("table.qd-quiz");
-    if (quizTables.length > 0) {
-      info(`Upgrading ${quizTables.length} quiz table(s) to interactive mode...`);
-      quizTables.forEach((table) => {
-        enhanceQuizTable(table, { interactive: true, pageId });
-      });
-    }
-    const analysisTables = document.querySelectorAll("table.qd-analysis");
-    if (analysisTables.length > 0) {
-      info(`Upgrading ${analysisTables.length} analysis table(s) to interactive mode...`);
-      analysisTables.forEach((table) => {
-        enhanceAnalysisTable(table, { interactive: true, pageId });
-      });
-    }
-  }
-  /**
-   * Register handlers for logout events
-   */
-  registerLogoutHandlers() {
-    this.addEventListener("qd:logout", (event) => {
-      const detail = event.detail;
-      info(`Logout event: ${detail.serviceId}`);
-      const quizTables = document.querySelectorAll("table.qd-quiz");
-      quizTables.forEach((table) => {
-        resetQuizTableToNonInteractive(table);
-      });
-      const analysisTables = document.querySelectorAll("table.qd-analysis");
-      analysisTables.forEach((table) => {
-        resetAnalysisTableToNonInteractive(table);
-      });
-      this.dispatchEvent("qd:cache-clear", {});
-    });
-  }
-  /**
-   * Register handlers for answer saved events
-   */
-  registerAnswerHandlers() {
-    this.addEventListener("qd:answer-saved", (event) => {
-      const detail = event.detail;
-      info(
-        `Answer saved: ${detail.pageId} Q${detail.questionIndex} = ${detail.answer} (${detail.success ? "correct" : "incorrect"})`
-      );
-      this.dispatchEvent("qd:cache-update", { pageId: detail.pageId });
-    });
-  }
-  /**
-   * Register handlers for state changed events
-   */
-  registerStateHandlers() {
-    this.addEventListener("qd:state-changed", (event) => {
-      const detail = event.detail;
-      info(`State changed: ${detail.pageId} → ${detail.state}`);
-      this.dispatchEvent("qd:badge-update", { pageId: detail.pageId, state: detail.state });
-    });
-  }
-  /**
-   * Register handlers for instructor events
-   */
-  registerInstructorHandlers() {
-    this.addEventListener("qd:instructor-unlock", (event) => {
-      const detail = event.detail;
-      info(`Instructor mode unlocked at ${detail.unlockTime}`);
-    });
-    this.addEventListener("qd:instructor-lock", () => {
-    });
-  }
-  /**
-   * Register handlers for data management events
-   */
-  registerDataHandlers() {
-    this.addEventListener("qd:data-cleared", (event) => {
-      const detail = event.detail;
-      info(`All data cleared at ${detail.timestamp}`);
-      this.dispatchEvent("qd:cache-clear", {});
-    });
-  }
-  /**
-   * Add event listener
-   */
-  addEventListener(eventName, handler) {
-    document.addEventListener(eventName, handler);
-    const handlers = this.listeners.get(eventName) || [];
-    handlers.push(handler);
-    this.listeners.set(eventName, handlers);
-  }
-  /**
-   * Dispatch custom event
-   */
-  dispatchEvent(eventName, detail) {
-    const event = new CustomEvent(eventName, {
-      detail,
-      bubbles: true,
-      composed: true
-    });
-    document.dispatchEvent(event);
-  }
-  /**
-   * Cleanup event listeners
-   */
-  cleanup() {
-    for (const [eventName, handlers] of this.listeners) {
-      for (const handler of handlers) {
-        document.removeEventListener(eventName, handler);
-      }
-    }
-    this.listeners.clear();
-  }
-}
-class SessionCoordinator {
-  constructor() {
-    this.sessionService = new SessionService();
-  }
-  /**
-   * Initialize session coordinator
-   * - Load existing session from storage
-   * - Schedule expiry check
-   * - Setup activity tracking
-   */
-  initialize() {
-    const session = this.sessionService.getSession();
-    if (session) {
-      info(`Existing session loaded for ${session.serviceId}`);
-      if (this.sessionService.isExpired()) {
-        warn("Session expired, clearing");
-        this.sessionService.clearSession();
-        return;
-      }
-      this.scheduleExpiryCheck(session);
-      this.setupActivityTracking();
-    }
-  }
-  /**
-   * Schedule expiry check based on session timeout
-   */
-  scheduleExpiryCheck(session) {
-    if (this.expiryTimeoutId !== void 0) {
-      window.clearTimeout(this.expiryTimeoutId);
-    }
-    const now = (/* @__PURE__ */ new Date()).getTime();
-    const expiresAt = new Date(session.expiresAt).getTime();
-    const timeUntilExpiry = expiresAt - now;
-    if (timeUntilExpiry <= 0) {
-      this.sessionService.clearSession();
-      return;
-    }
-    this.expiryTimeoutId = window.setTimeout(() => {
-      this.sessionService.clearSession();
-    }, timeUntilExpiry);
-  }
-  /**
-   * Setup activity tracking to extend session on user interaction
-   */
-  setupActivityTracking() {
-    const activityHandler = () => {
-      const session = this.sessionService.getSession();
-      if (!session) {
-        return;
-      }
-      this.sessionService.updateActivity();
-      const updatedSession = this.sessionService.getSession();
-      if (updatedSession) {
-        this.scheduleExpiryCheck(updatedSession);
-      }
-    };
-    const events = ["click", "keydown", "scroll", "mousemove"];
-    let activityDebounceTimeout;
-    const debouncedHandler = () => {
-      if (activityDebounceTimeout !== void 0) {
-        window.clearTimeout(activityDebounceTimeout);
-      }
-      activityDebounceTimeout = window.setTimeout(() => {
-        activityHandler();
-      }, 5e3);
-    };
-    events.forEach((event) => {
-      document.addEventListener(event, debouncedHandler, { passive: true });
-    });
-  }
-  /**
-   * Cleanup session coordinator
-   */
-  cleanup() {
-    if (this.expiryTimeoutId !== void 0) {
-      window.clearTimeout(this.expiryTimeoutId);
-    }
-  }
-  /**
-   * Get the session service instance
-   */
-  getSessionService() {
-    return this.sessionService;
-  }
+  return result;
 }
 /**
  * @license
@@ -3178,6 +2020,1284 @@ function e$2(e2, r2) {
     } });
   };
 }
+var __defProp$j = Object.defineProperty;
+var __getOwnPropDesc$l = Object.getOwnPropertyDescriptor;
+var __decorateClass$l = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$l(target, key) : target;
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result) __defProp$j(target, key, result);
+  return result;
+};
+let QdStudentAnswers = class extends i$1 {
+  constructor() {
+    super(...arguments);
+    this.answers = [];
+  }
+  render() {
+    return this.answers.map(
+      (sa) => x`<div class="qd-student-answer ${sa.cssClass}">
+          <span class="qd-student-name">${sa.name} (${sa.maskedServiceId})</span>:
+          <span class="qd-student-answer-text">${sa.answer}</span>
+          <span class="qd-timestamp">${sa.formattedTimestamp}</span>
+        </div>`
+    );
+  }
+};
+QdStudentAnswers.styles = i$4`
+    :host {
+      display: block;
+      margin-top: 12px;
+      padding: 8px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      border: 1px solid #dee2e6;
+    }
+
+    .qd-student-answer {
+      font-size: 12px;
+      padding: 4px 0;
+      line-height: 1.4;
+    }
+
+    .qd-student-answer.qd-correct {
+      color: #28a745;
+    }
+
+    .qd-student-answer.qd-incorrect {
+      color: #dc3545;
+    }
+
+    .qd-student-name {
+      font-weight: 600;
+    }
+
+    .qd-student-answer-text {
+      margin: 0 4px;
+    }
+
+    .qd-timestamp {
+      color: #6c757d;
+      font-size: 11px;
+      margin-left: 8px;
+    }
+  `;
+__decorateClass$l([
+  n2({ attribute: false })
+], QdStudentAnswers.prototype, "answers", 2);
+QdStudentAnswers = __decorateClass$l([
+  t$1("qd-student-answers")
+], QdStudentAnswers);
+async function showStudentAnswersForTable(table, metadata) {
+  const { pageId, parsed } = metadata;
+  if (!pageId) return;
+  const session = getJSON(STORAGE_KEYS.SESSION);
+  if (!session) return;
+  const storageService = getStorageService();
+  try {
+    const students = await storageService.getStudentsByRelease(session.release);
+    if (students.length === 0) {
+      info("No student data available for this release");
+      alert(
+        "No student data available for this release. Students need to log in and answer questions first."
+      );
+      return;
+    }
+    const tbody = table.querySelector("tbody");
+    if (!tbody) return;
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+    parsed.questions.forEach((_question, questionIndex) => {
+      const row = rows[questionIndex];
+      if (!row) return;
+      const cells = Array.from(row.querySelectorAll("td"));
+      const answerCell = cells[1];
+      if (!answerCell) return;
+      const existingDisplay = answerCell.querySelector(".qd-student-answers");
+      if (existingDisplay) {
+        existingDisplay.remove();
+      }
+      const studentAnswers = formatStudentAnswersForDisplay(students, pageId, questionIndex);
+      if (studentAnswers.length > 0) {
+        const display = document.createElement("qd-student-answers");
+        display.classList.add("qd-student-answers");
+        display.answers = studentAnswers;
+        answerCell.appendChild(display);
+      }
+    });
+    info(`Displayed student answers for ${students.length} students on page ${pageId}`);
+  } catch (err) {
+    error("Failed to load student answers", err);
+  }
+}
+function hideStudentAnswersForTable(table) {
+  const displays = table.querySelectorAll(".qd-student-answers");
+  displays.forEach((display) => display.remove());
+}
+const tableMetadata$1 = /* @__PURE__ */ new WeakMap();
+function enhanceQuizTable(table, options) {
+  const existing = tableMetadata$1.get(table);
+  let parsed;
+  if (existing) {
+    if (!existing.interactive && options.interactive) {
+      parsed = existing.parsed;
+    } else {
+      return true;
+    }
+  } else {
+    parsed = parseQuizTable(table);
+    if (parsed.errors && parsed.errors.length > 0) {
+      error("Quiz table has validation errors:", parsed.errors);
+    }
+  }
+  const metadata = {
+    parsed,
+    interactive: options.interactive,
+    pageId: options.pageId
+  };
+  if (options.interactive) {
+    if (!options.pageId) {
+      error("Interactive mode requires pageId option");
+      return false;
+    }
+    info(`Preparing interactive enhancement for pageId: ${options.pageId}`);
+    metadata.debouncer = new Debouncer();
+    metadata.inputs = [];
+  }
+  tableMetadata$1.set(table, metadata);
+  if (options.interactive) {
+    const result = enhanceInteractive$1(table, metadata);
+    if (result) {
+      info(`Interactive enhancement succeeded for table with ${parsed.questions.length} questions`);
+    } else {
+      error("Interactive enhancement failed");
+    }
+    return result;
+  } else {
+    return enhanceNonInteractive$1(table);
+  }
+}
+function enhanceNonInteractive$1(table) {
+  removeColgroup(table);
+  hideAnswerColumn(table);
+  hideDetailColumn(table);
+  addClass(table, "qd-quiz-non-interactive");
+  return true;
+}
+function enhanceInteractive$1(table, metadata) {
+  const { parsed, pageId, debouncer } = metadata;
+  if (!pageId || !debouncer) {
+    error("Interactive mode requires pageId and debouncer");
+    return false;
+  }
+  showAnswerColumn(table);
+  hideDetailColumn(table);
+  const session = getJSON(STORAGE_KEYS.SESSION);
+  if (!session) {
+    error("No active session found");
+    return false;
+  }
+  let cache = getJSON(STORAGE_KEYS.CACHE);
+  if (!cache) {
+    cache = {
+      totals: { total: 0, answered: 0, correct: 0 },
+      pages: {}
+    };
+  } else {
+    info(
+      `Cache loaded: ${cache.totals.total} total questions, ${Object.keys(cache.pages).length} pages`
+    );
+  }
+  const totalQuestions = parsed.questions.length;
+  cache = registerPageQuestions(cache, pageId, totalQuestions);
+  setJSON(STORAGE_KEYS.CACHE, cache);
+  const pageCache = cache?.pages[pageId];
+  const existingAnswers = pageCache?.answers || [];
+  info(
+    `Page ${pageId}: ${existingAnswers.length} existing answers, state: ${pageCache?.state || "none"}`
+  );
+  const tbody = table.querySelector("tbody");
+  if (!tbody) {
+    error("Quiz table has no tbody element");
+    return false;
+  }
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const inputs = [];
+  parsed.questions.forEach((question, index) => {
+    const row = rows[index];
+    if (!row) return;
+    const cells = Array.from(row.querySelectorAll("td"));
+    if (cells.length !== 3) return;
+    const questionCell = cells[0];
+    const answerCell = cells[1];
+    if (!questionCell || !answerCell) return;
+    const existingAnswer = existingAnswers[index];
+    if (existingAnswer && existingAnswer.answer) {
+      info(
+        `Q${index + 1}: Pre-filling with "${existingAnswer.answer}" (${existingAnswer.success ? "correct" : "incorrect"})`
+      );
+    }
+    const input = createQuestionInput(question, existingAnswer);
+    inputs.push(input);
+    removeClass(answerCell, "qd-answer-correct", "qd-answer-incorrect");
+    answerCell.textContent = "";
+    answerCell.appendChild(input);
+    if (existingAnswer) {
+      applyValidationStyling(answerCell, existingAnswer.success);
+    }
+    const eventType = input.tagName === "SELECT" ? "change" : "input";
+    input.addEventListener(eventType, () => {
+      handleAnswerInput(table, metadata, index, input.value);
+    });
+  });
+  metadata.inputs = inputs;
+  const showAnswersHandler = () => {
+    void showStudentAnswersForTable(table, metadata);
+  };
+  const hideAnswersHandler = () => {
+    hideStudentAnswersForTable(table);
+  };
+  document.addEventListener("qd:instructor-show-answers", showAnswersHandler);
+  document.addEventListener("qd:instructor-hide-answers", hideAnswersHandler);
+  const isInstructor2 = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
+  const showAnswers = sessionStorage.getItem(INSTRUCTOR_SHOW_ANSWERS_KEY) === "true";
+  if (isInstructor2 && showAnswers) {
+    void showStudentAnswersForTable(table, metadata);
+  }
+  const resetUIState = () => {
+    const answerCells = table.querySelectorAll("td.qd-answer-correct, td.qd-answer-incorrect");
+    answerCells.forEach((cell) => {
+      removeClass(cell, "qd-answer-correct", "qd-answer-incorrect");
+    });
+    if (metadata.inputs) {
+      for (const input of metadata.inputs) {
+        if (input instanceof HTMLSelectElement) {
+          input.selectedIndex = 0;
+        } else if (input instanceof HTMLInputElement) {
+          input.value = "";
+        }
+      }
+    }
+    hideStudentAnswersForTable(table);
+  };
+  const logoutHandler = () => {
+    resetUIState();
+  };
+  const loginHandler = () => {
+    resetUIState();
+  };
+  document.addEventListener("qd:logout", logoutHandler);
+  document.addEventListener("qd:login", loginHandler);
+  metadata.cleanupInstructorListeners = () => {
+    document.removeEventListener("qd:instructor-show-answers", showAnswersHandler);
+    document.removeEventListener("qd:instructor-hide-answers", hideAnswersHandler);
+    document.removeEventListener("qd:logout", logoutHandler);
+    document.removeEventListener("qd:login", loginHandler);
+  };
+  addClass(table, "qd-quiz-interactive");
+  return true;
+}
+function getQuizTableMetadata(table) {
+  return tableMetadata$1.get(table);
+}
+function isQuizTableEnhanced(table) {
+  return tableMetadata$1.has(table);
+}
+function resetQuizTableToNonInteractive(table) {
+  const metadata = tableMetadata$1.get(table);
+  if (!metadata) return;
+  metadata.interactive = false;
+  metadata.pageId = void 0;
+  metadata.inputs = void 0;
+  metadata.cleanupInstructorListeners?.();
+  metadata.cleanupInstructorListeners = void 0;
+  hideAnswerColumn(table);
+  hideDetailColumn(table);
+  removeClass(table, "qd-quiz-interactive");
+}
+function hashString(input, length = 16) {
+  let hash = 5381;
+  for (let i3 = 0; i3 < input.length; i3++) {
+    const char = input.charCodeAt(i3);
+    hash = (hash << 5) + hash + char;
+    hash = hash & hash;
+  }
+  const hexHash = Math.abs(hash).toString(16).padStart(8, "0");
+  const repeatedHash = hexHash.repeat(Math.ceil(length / hexHash.length));
+  return repeatedHash.substring(0, length);
+}
+function generateTableId(table) {
+  const rows = getTableRows(table);
+  const firstRow = rows[0];
+  const cols = firstRow ? getRowCells(firstRow).length : 0;
+  const className = table.className || "qd-analysis";
+  const signature = `${rows.length}x${cols}:${className}`;
+  return hashString(signature, 16);
+}
+function generateCellKey(row, col, content) {
+  const normalized = content.replace(/\s+/g, " ").trim();
+  const contentHash = hashString(normalized, 8);
+  return `R${row}C${col}#f:${contentHash}`;
+}
+function isCellEditable(cell) {
+  return cell.classList.contains("interactive");
+}
+function parseAnalysisTable(table) {
+  const errors = [];
+  if (!table.querySelector("tbody")) {
+    errors.push("Analysis table must have a tbody element");
+  }
+  const rows = getTableRows(table);
+  if (rows.length === 0) {
+    errors.push("Analysis table must have at least one row");
+  }
+  const tableId = generateTableId(table);
+  const editableCells = [];
+  rows.forEach((row, rowIndex) => {
+    const cells = getRowCells(row);
+    cells.forEach((cell, colIndex) => {
+      if (isCellEditable(cell)) {
+        const content = getTextContent(cell);
+        const key = generateCellKey(rowIndex, colIndex, content);
+        editableCells.push({
+          row: rowIndex,
+          col: colIndex,
+          key
+        });
+      }
+    });
+  });
+  return {
+    element: table,
+    tableId,
+    editableCells,
+    errors: errors.length > 0 ? errors : void 0
+  };
+}
+function handleCellEdit(metadata, cell, cellKey) {
+  const { debouncer, pageId } = metadata;
+  if (!debouncer || !pageId) {
+    return;
+  }
+  const content = getTextContent(cell);
+  debouncer.debounce(
+    `save-cell-${cellKey}`,
+    () => {
+      void saveCellData(metadata, cellKey, content);
+    },
+    500
+  );
+}
+async function saveCellData(metadata, cellKey, content) {
+  const { pageId, parsed } = metadata;
+  if (!pageId) {
+    return;
+  }
+  const session = getJSON(STORAGE_KEYS.SESSION);
+  if (!session) {
+    error("No active session found");
+    return;
+  }
+  const storageService = getStorageService();
+  let studentRecord;
+  try {
+    studentRecord = await storageService.loadStudentRecord(session);
+  } catch (err) {
+    warn("Failed to load student record, analysis not saved", err);
+    return;
+  }
+  const updatedRecord = storageService.updateRecordWithAnalysis(
+    studentRecord,
+    pageId,
+    parsed.tableId,
+    cellKey,
+    content
+  );
+  await persistAndNotify(updatedRecord, {
+    events: [
+      { name: "qd:analysis-saved", detail: { pageId, tableId: parsed.tableId, cellKey, content } }
+    ]
+  });
+}
+function groupEntriesByCell(students, pageId) {
+  const grouped = {};
+  students.forEach((student) => {
+    const pageData = student.pages[pageId];
+    if (!pageData || !pageData.analysis) {
+      return;
+    }
+    const { cells } = pageData.analysis;
+    const timestamp = pageData.analysis.lastEdited || student.updated;
+    Object.entries(cells).forEach(([cellKey, content]) => {
+      if (!grouped[cellKey]) {
+        grouped[cellKey] = [];
+      }
+      grouped[cellKey].push({
+        serviceId: student.serviceId,
+        name: student.name,
+        content,
+        timestamp
+      });
+    });
+  });
+  return grouped;
+}
+function sortByTimestamp(entries) {
+  return [...entries].sort((a2, b2) => {
+    const dateA = new Date(a2.timestamp).getTime();
+    const dateB = new Date(b2.timestamp).getTime();
+    return dateB - dateA;
+  });
+}
+var __defProp$i = Object.defineProperty;
+var __getOwnPropDesc$k = Object.getOwnPropertyDescriptor;
+var __decorateClass$k = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$k(target, key) : target;
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result) __defProp$i(target, key, result);
+  return result;
+};
+let QdStudentEntries = class extends i$1 {
+  constructor() {
+    super(...arguments);
+    this.entries = [];
+  }
+  render() {
+    if (this.entries.length === 0) {
+      this.setAttribute("data-empty", "");
+      return x`<div class="qd-no-entries">(No entries yet)</div>`;
+    }
+    this.removeAttribute("data-empty");
+    return sortByTimestamp(this.entries).map((entry) => {
+      const last4 = entry.serviceId.slice(-4);
+      const timestamp = formatStoredTimestamp(entry.timestamp);
+      return x`<div class="qd-entry">
+        <span class="qd-entry-name">${entry.name} (${last4}) • ${timestamp}: </span>
+        <span class="qd-entry-content">${entry.content}</span>
+      </div>`;
+    });
+  }
+};
+QdStudentEntries.styles = i$4`
+    :host {
+      display: block;
+      margin-top: 12px;
+      padding-top: 8px;
+      border-top: 2px solid #3b82f6;
+    }
+
+    :host([data-empty]) {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: none;
+    }
+
+    .qd-no-entries {
+      color: #9ca3af;
+      font-style: italic;
+      font-size: 13px;
+      padding: 8px 0;
+    }
+
+    .qd-entry {
+      padding: 8px 0;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 13px;
+      color: #1f2937;
+    }
+
+    .qd-entry-name {
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .qd-entry-content {
+      white-space: pre-wrap;
+    }
+  `;
+__decorateClass$k([
+  n2({ attribute: false })
+], QdStudentEntries.prototype, "entries", 2);
+QdStudentEntries = __decorateClass$k([
+  t$1("qd-student-entries")
+], QdStudentEntries);
+function createStudentEntriesDisplay(entries) {
+  const el = document.createElement("qd-student-entries");
+  el.entries = entries;
+  return el;
+}
+async function showStudentEntriesForTable(table, metadata) {
+  const pageId = metadata.pageId || getCurrentPageId();
+  if (!pageId) {
+    warn("Cannot show student entries: page ID not found");
+    return;
+  }
+  const session = getJSON(STORAGE_KEYS.SESSION);
+  if (!session) {
+    warn("Cannot show student entries: no active session");
+    return;
+  }
+  const storageService = getStorageService();
+  let students;
+  try {
+    students = await storageService.getStudentsByRelease(session.release);
+  } catch (err) {
+    error("Failed to load students for instructor view:", err);
+    return;
+  }
+  const grouped = groupEntriesByCell(students, pageId);
+  const { editableCells } = metadata.parsed;
+  const rows = getTableRows(table);
+  editableCells.forEach(({ row, col, key }) => {
+    const rowElement = rows[row];
+    if (!rowElement) return;
+    const cells = getRowCells(rowElement);
+    const cell = cells[col];
+    if (!cell) return;
+    const entries = grouped[key] || [];
+    const displayElement = createStudentEntriesDisplay(entries);
+    displayElement.setAttribute("data-qd-student-entries", "true");
+    const existing = cell.querySelector("[data-qd-student-entries]");
+    if (existing) {
+      existing.remove();
+    }
+    cell.appendChild(displayElement);
+  });
+  info(`Displayed student entries for ${editableCells.length} cells`);
+}
+function hideStudentEntriesForTable(table) {
+  const displays = table.querySelectorAll("[data-qd-student-entries]");
+  displays.forEach((display) => display.remove());
+}
+function getCurrentPageId() {
+  const bodyPageId = document.body.dataset.pageId;
+  if (bodyPageId) {
+    return bodyPageId;
+  }
+  const path = window.location.pathname;
+  const filename = path.split("/").pop() || "";
+  const pageId = filename.replace(".html", "");
+  return pageId || void 0;
+}
+const tableMetadata = /* @__PURE__ */ new WeakMap();
+function enhanceAnalysisTable(table, options) {
+  const parsed = parseAnalysisTable(table);
+  if (parsed.errors && parsed.errors.length > 0) {
+    error("Analysis table has validation errors:", parsed.errors);
+  }
+  const metadata = {
+    parsed,
+    interactive: options.interactive,
+    pageId: options.pageId
+  };
+  if (options.interactive) {
+    if (!options.pageId) {
+      error("Interactive mode requires pageId option");
+      return false;
+    }
+    metadata.debouncer = new Debouncer();
+    metadata.cellKeyMap = /* @__PURE__ */ new Map();
+  }
+  tableMetadata.set(table, metadata);
+  if (options.interactive) {
+    return enhanceInteractive(table, metadata);
+  } else {
+    return enhanceNonInteractive(table);
+  }
+}
+function enhanceNonInteractive(table) {
+  addClass(table, "qd-analysis-non-interactive");
+  const showHandler = () => {
+    const metadata = tableMetadata.get(table);
+    if (metadata) {
+      void showStudentEntriesForTable(table, metadata);
+    }
+  };
+  const hideHandler = () => {
+    hideStudentEntriesForTable(table);
+  };
+  document.addEventListener("qd:instructor-show-answers", showHandler);
+  document.addEventListener("qd:instructor-hide-answers", hideHandler);
+  return true;
+}
+function enhanceInteractive(table, metadata) {
+  const { parsed, pageId, debouncer, cellKeyMap } = metadata;
+  if (!pageId || !debouncer || !cellKeyMap) {
+    error("Interactive mode requires pageId, debouncer, and cellKeyMap");
+    return false;
+  }
+  const session = getJSON(STORAGE_KEYS.SESSION);
+  if (!session) {
+    error("No active session found");
+    return false;
+  }
+  const cache = getJSON(STORAGE_KEYS.CACHE);
+  const pageCache = cache?.pages[pageId];
+  const existingAnalysis = pageCache?.analysis;
+  const existingCells = existingAnalysis?.cells || {};
+  const rows = getTableRows(table);
+  parsed.editableCells.forEach(({ row, col, key }) => {
+    const rowElement = rows[row];
+    if (!rowElement) return;
+    const cells = getRowCells(rowElement);
+    const cell = cells[col];
+    if (!cell) return;
+    if (!isCellEditable(cell)) {
+      error(`Cell at R${row}C${col} is no longer editable`);
+      return;
+    }
+    cellKeyMap.set(cell, key);
+    if (existingCells[key]) {
+      cell.textContent = existingCells[key];
+    }
+    cell.contentEditable = "true";
+    addClass(cell, "qd-editable");
+    cell.addEventListener("input", () => {
+      handleCellEdit(metadata, cell, key);
+    });
+  });
+  addClass(table, "qd-analysis-interactive");
+  return true;
+}
+function getAnalysisTableMetadata(table) {
+  return tableMetadata.get(table);
+}
+function isAnalysisTableEnhanced(table) {
+  return tableMetadata.has(table);
+}
+function resetAnalysisTableToNonInteractive(table) {
+  const metadata = tableMetadata.get(table);
+  if (!metadata) return;
+  hideStudentEntriesForTable(table);
+  if (metadata.interactive) {
+    const editableCells = table.querySelectorAll(".qd-editable");
+    editableCells.forEach((cell) => {
+      if (cell instanceof HTMLTableCellElement) {
+        cell.contentEditable = "false";
+        cell.classList.remove("qd-editable");
+        cell.textContent = "";
+      }
+    });
+    table.classList.remove("qd-analysis-interactive");
+    metadata.debouncer?.cancelAll();
+  }
+  metadata.interactive = false;
+  metadata.pageId = void 0;
+  metadata.debouncer = void 0;
+  metadata.cellKeyMap = void 0;
+}
+function revealInstructorAnswers(table, metadata, options = {}) {
+  if (options.addInstructorClass) {
+    table.classList.add("qd-quiz-instructor");
+  }
+  const answerCells = table.querySelectorAll("td:nth-child(2), th:nth-child(2)");
+  answerCells.forEach((cell) => {
+    cell.classList.remove("qd-hidden");
+  });
+  const answerDataCells = table.querySelectorAll("tbody td:nth-child(2)");
+  answerDataCells.forEach((cell, index) => {
+    const question = metadata.parsed.questions[index];
+    if (question && cell instanceof HTMLTableCellElement) {
+      cell.textContent = question.correctAnswer;
+    }
+  });
+  const detailCells = table.querySelectorAll("td:nth-child(3), th:nth-child(3)");
+  detailCells.forEach((cell) => cell.classList.remove("qd-hidden"));
+  const showAnswersHandler = () => {
+    void showStudentAnswersForTable(table, metadata);
+  };
+  const hideAnswersHandler = () => {
+    hideStudentAnswersForTable(table);
+  };
+  document.addEventListener("qd:instructor-show-answers", showAnswersHandler);
+  document.addEventListener("qd:instructor-hide-answers", hideAnswersHandler);
+  const showAnswers = sessionStorage.getItem(INSTRUCTOR_SHOW_ANSWERS_KEY) === "true";
+  if (showAnswers) {
+    void showAnswersHandler();
+  }
+}
+function getPageIdFromUrl(url) {
+  const path = window.location.pathname.split(/[?#]/)[0] ?? "";
+  const filename = path.substring(path.lastIndexOf("/") + 1);
+  return filename.replace(/\.html?$/i, "");
+}
+function upgradeTablesAfterLogin() {
+  const pageId = getPageIdFromUrl();
+  if (!pageId) {
+    return;
+  }
+  const isInstructor2 = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
+  if (isInstructor2) {
+    revealTablesForInstructor(pageId);
+    return;
+  }
+  const quizTables = document.querySelectorAll("table.qd-quiz");
+  if (quizTables.length > 0) {
+    info(`Upgrading ${quizTables.length} quiz table(s) to interactive mode...`);
+    quizTables.forEach((table) => enhanceQuizTable(table, { interactive: true, pageId }));
+  }
+  const analysisTables = document.querySelectorAll("table.qd-analysis");
+  if (analysisTables.length > 0) {
+    info(`Upgrading ${analysisTables.length} analysis table(s) to interactive mode...`);
+    analysisTables.forEach((table) => enhanceAnalysisTable(table, { interactive: true, pageId }));
+  }
+}
+function revealTablesForInstructor(pageId) {
+  const quizTables = document.querySelectorAll("table.qd-quiz");
+  quizTables.forEach((table) => {
+    const metadata = getQuizTableMetadata(table);
+    if (!metadata) return;
+    metadata.pageId = pageId;
+    revealInstructorAnswers(table, metadata);
+  });
+}
+class EventCoordinator {
+  constructor() {
+    this.listeners = /* @__PURE__ */ new Map();
+  }
+  /**
+   * Register all event listeners
+   */
+  initialize() {
+    this.registerLoginHandlers();
+    this.registerLogoutHandlers();
+    this.registerAnswerHandlers();
+    this.registerStateHandlers();
+    this.registerInstructorHandlers();
+    this.registerDataHandlers();
+  }
+  /**
+   * Register handlers for login events.
+   *
+   * On a student login: rebuild the cache from IndexedDB (delegated to
+   * StorageService) and upgrade tables to interactive mode (delegated to the
+   * table-upgrade enhancer). Instructor logins skip student-record handling.
+   */
+  registerLoginHandlers() {
+    this.addEventListener("qd:login", (event) => {
+      void (async () => {
+        const detail = event.detail;
+        info(`Login event: ${detail.serviceId} (${detail.name})`);
+        if (detail.serviceId === "INSTRUCTOR") {
+          return;
+        }
+        const session = getJSON(STORAGE_KEYS.SESSION);
+        if (!session) {
+          return;
+        }
+        await getStorageService().refreshCacheOnLogin(session);
+        this.dispatchEvent("qd:cache-rebuild", {});
+        upgradeTablesAfterLogin();
+      })();
+    });
+  }
+  /**
+   * Register handlers for logout events
+   */
+  registerLogoutHandlers() {
+    this.addEventListener("qd:logout", (event) => {
+      const detail = event.detail;
+      info(`Logout event: ${detail.serviceId}`);
+      const quizTables = document.querySelectorAll("table.qd-quiz");
+      quizTables.forEach((table) => {
+        resetQuizTableToNonInteractive(table);
+      });
+      const analysisTables = document.querySelectorAll("table.qd-analysis");
+      analysisTables.forEach((table) => {
+        resetAnalysisTableToNonInteractive(table);
+      });
+      this.dispatchEvent("qd:cache-clear", {});
+    });
+  }
+  /**
+   * Register handlers for answer saved events
+   */
+  registerAnswerHandlers() {
+    this.addEventListener("qd:answer-saved", (event) => {
+      const detail = event.detail;
+      info(
+        `Answer saved: ${detail.pageId} Q${detail.questionIndex} = ${detail.answer} (${detail.success ? "correct" : "incorrect"})`
+      );
+      this.dispatchEvent("qd:cache-update", { pageId: detail.pageId });
+    });
+  }
+  /**
+   * Register handlers for state changed events
+   */
+  registerStateHandlers() {
+    this.addEventListener("qd:state-changed", (event) => {
+      const detail = event.detail;
+      info(`State changed: ${detail.pageId} → ${detail.state}`);
+      this.dispatchEvent("qd:badge-update", { pageId: detail.pageId, state: detail.state });
+    });
+  }
+  /**
+   * Register handlers for instructor events
+   */
+  registerInstructorHandlers() {
+    this.addEventListener("qd:instructor-unlock", (event) => {
+      const detail = event.detail;
+      info(`Instructor mode unlocked at ${detail.unlockTime}`);
+    });
+    this.addEventListener("qd:instructor-lock", () => {
+    });
+  }
+  /**
+   * Register handlers for data management events
+   */
+  registerDataHandlers() {
+    this.addEventListener("qd:data-cleared", (event) => {
+      const detail = event.detail;
+      info(`All data cleared at ${detail.timestamp}`);
+      this.dispatchEvent("qd:cache-clear", {});
+    });
+  }
+  /**
+   * Add event listener
+   */
+  addEventListener(eventName, handler) {
+    document.addEventListener(eventName, handler);
+    const handlers = this.listeners.get(eventName) || [];
+    handlers.push(handler);
+    this.listeners.set(eventName, handlers);
+  }
+  /**
+   * Dispatch custom event
+   */
+  dispatchEvent(eventName, detail) {
+    const event = new CustomEvent(eventName, {
+      detail,
+      bubbles: true,
+      composed: true
+    });
+    document.dispatchEvent(event);
+  }
+  /**
+   * Cleanup event listeners
+   */
+  cleanup() {
+    for (const [eventName, handlers] of this.listeners) {
+      for (const handler of handlers) {
+        document.removeEventListener(eventName, handler);
+      }
+    }
+    this.listeners.clear();
+  }
+}
+class SessionService {
+  /**
+   * Create a new session
+   *
+   * @param serviceId - Student service ID
+   * @param name - Student name
+   * @param release - Current release ID
+   * @returns Created session data
+   */
+  createSession(serviceId, name, release) {
+    const now = /* @__PURE__ */ new Date();
+    const loginTime = now.toISOString();
+    const expiresAt = new Date(now.getTime() + SESSION_TIMEOUT_MS).toISOString();
+    const session = {
+      serviceId,
+      name,
+      release,
+      loginTime,
+      lastActivity: loginTime,
+      expiresAt,
+      instructorUnlocked: false
+    };
+    this.saveSession(session);
+    this.emitEvent("qd:login", { serviceId, name, release, loginTime });
+    return session;
+  }
+  /**
+   * Get the current session
+   *
+   * @returns Session data or null if no session exists
+   */
+  getSession() {
+    try {
+      const sessionData = sessionStorage.getItem(STORAGE_KEYS.SESSION);
+      if (!sessionData) {
+        return null;
+      }
+      const session = JSON.parse(sessionData);
+      if (!session.serviceId || !session.release || !session.expiresAt) {
+        warn("Invalid session data, missing required fields");
+        return null;
+      }
+      return session;
+    } catch (err) {
+      error("Failed to parse session data", err);
+      return null;
+    }
+  }
+  /**
+   * Update last activity time and extend session expiry
+   */
+  updateActivity() {
+    const session = this.getSession();
+    if (!session) {
+      return;
+    }
+    const now = /* @__PURE__ */ new Date();
+    session.lastActivity = now.toISOString();
+    session.expiresAt = new Date(now.getTime() + SESSION_TIMEOUT_MS).toISOString();
+    this.saveSession(session);
+  }
+  /**
+   * Check if the current session is expired
+   *
+   * @returns True if session is expired or doesn't exist
+   */
+  isExpired() {
+    const session = this.getSession();
+    if (!session) {
+      return true;
+    }
+    return isSessionExpired(session.expiresAt);
+  }
+  /**
+   * Clear the current session
+   */
+  clearSession() {
+    const session = this.getSession();
+    sessionStorage.removeItem(STORAGE_KEYS.SESSION);
+    sessionStorage.removeItem(STORAGE_KEYS.CACHE);
+    sessionStorage.removeItem(STORAGE_KEYS.INSTRUCTOR);
+    sessionStorage.removeItem(INSTRUCTOR_SHOW_ANSWERS_KEY);
+    if (session) {
+      info(`Session cleared for ${session.serviceId}`);
+      this.emitEvent("qd:logout", {
+        serviceId: session.serviceId,
+        timestamp: (/* @__PURE__ */ new Date()).toISOString()
+      });
+    }
+  }
+  /**
+   * Unlock instructor mode
+   */
+  unlockInstructor() {
+    const session = this.getSession();
+    if (!session) {
+      return;
+    }
+    session.instructorUnlocked = true;
+    session.unlockTime = (/* @__PURE__ */ new Date()).toISOString();
+    this.saveSession(session);
+    this.emitEvent("qd:instructor-unlock", { timestamp: session.unlockTime });
+  }
+  /**
+   * Lock instructor mode
+   */
+  lockInstructor() {
+    const session = this.getSession();
+    if (!session) {
+      return;
+    }
+    session.instructorUnlocked = false;
+    delete session.unlockTime;
+    this.saveSession(session);
+    this.emitEvent("qd:instructor-lock", { timestamp: (/* @__PURE__ */ new Date()).toISOString() });
+  }
+  /**
+   * Check if instructor mode is unlocked
+   *
+   * @returns True if instructor mode is unlocked
+   */
+  isInstructorUnlocked() {
+    const session = this.getSession();
+    return session?.instructorUnlocked === true;
+  }
+  /**
+   * Get session cache from sessionStorage
+   *
+   * @returns Session cache or null if not found
+   */
+  getCache() {
+    try {
+      const cacheData = sessionStorage.getItem(STORAGE_KEYS.CACHE);
+      if (!cacheData) {
+        return null;
+      }
+      return JSON.parse(cacheData);
+    } catch (err) {
+      error("Failed to parse cache data", err);
+      return null;
+    }
+  }
+  /**
+   * Save session cache to sessionStorage
+   *
+   * @param cache - Cache data to save
+   */
+  saveCache(cache) {
+    try {
+      sessionStorage.setItem(STORAGE_KEYS.CACHE, JSON.stringify(cache));
+    } catch (err) {
+      error("Failed to save cache", err);
+    }
+  }
+  /**
+   * Clear the session cache
+   */
+  clearCache() {
+    sessionStorage.removeItem(STORAGE_KEYS.CACHE);
+  }
+  /**
+   * Save session to sessionStorage
+   *
+   * @param session - Session data to save
+   */
+  saveSession(session) {
+    try {
+      sessionStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(session));
+    } catch (err) {
+      error("Failed to save session", err);
+    }
+  }
+  /**
+   * Emit a custom event
+   *
+   * @param eventName - Name of the event
+   * @param detail - Event detail data
+   */
+  emitEvent(eventName, detail) {
+    try {
+      const event = new CustomEvent(eventName, { detail, bubbles: true });
+      document.dispatchEvent(event);
+    } catch (err) {
+      error(`Failed to emit event ${eventName}`, err);
+    }
+  }
+}
+class SessionCoordinator {
+  constructor() {
+    this.sessionService = new SessionService();
+  }
+  /**
+   * Initialize session coordinator
+   * - Load existing session from storage
+   * - Schedule expiry check
+   * - Setup activity tracking
+   */
+  initialize() {
+    const session = this.sessionService.getSession();
+    if (session) {
+      info(`Existing session loaded for ${session.serviceId}`);
+      if (this.sessionService.isExpired()) {
+        warn("Session expired, clearing");
+        this.sessionService.clearSession();
+        return;
+      }
+      this.scheduleExpiryCheck(session);
+      this.setupActivityTracking();
+    }
+  }
+  /**
+   * Schedule expiry check based on session timeout
+   */
+  scheduleExpiryCheck(session) {
+    if (this.expiryTimeoutId !== void 0) {
+      window.clearTimeout(this.expiryTimeoutId);
+    }
+    const now = (/* @__PURE__ */ new Date()).getTime();
+    const expiresAt = new Date(session.expiresAt).getTime();
+    const timeUntilExpiry = expiresAt - now;
+    if (timeUntilExpiry <= 0) {
+      this.sessionService.clearSession();
+      return;
+    }
+    this.expiryTimeoutId = window.setTimeout(() => {
+      this.sessionService.clearSession();
+    }, timeUntilExpiry);
+  }
+  /**
+   * Setup activity tracking to extend session on user interaction
+   */
+  setupActivityTracking() {
+    const activityHandler = () => {
+      const session = this.sessionService.getSession();
+      if (!session) {
+        return;
+      }
+      this.sessionService.updateActivity();
+      const updatedSession = this.sessionService.getSession();
+      if (updatedSession) {
+        this.scheduleExpiryCheck(updatedSession);
+      }
+    };
+    const events = ["click", "keydown", "scroll", "mousemove"];
+    let activityDebounceTimeout;
+    const debouncedHandler = () => {
+      if (activityDebounceTimeout !== void 0) {
+        window.clearTimeout(activityDebounceTimeout);
+      }
+      activityDebounceTimeout = window.setTimeout(() => {
+        activityHandler();
+      }, 5e3);
+    };
+    events.forEach((event) => {
+      document.addEventListener(event, debouncedHandler, { passive: true });
+    });
+  }
+  /**
+   * Cleanup session coordinator
+   */
+  cleanup() {
+    if (this.expiryTimeoutId !== void 0) {
+      window.clearTimeout(this.expiryTimeoutId);
+    }
+  }
+  /**
+   * Get the session service instance
+   */
+  getSessionService() {
+    return this.sessionService;
+  }
+}
+const loginStyles = i$4`
+    :host {
+      display: none; /* Hidden if already logged in */
+      font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
+    }
+
+    :host([data-show]) {
+      display: block;
+    }
+
+    .login-container {
+      padding: 8px 12px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      max-width: 480px;
+    }
+
+    .title {
+      margin: 0 0 8px 0;
+      font-size: 15px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .login-form {
+      display: flex;
+      gap: 6px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    input {
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 11px;
+      width: 110px;
+      min-width: 75px;
+      max-width: 110px;
+    }
+
+    input.pin-input {
+      width: 45px;
+      min-width: 45px;
+      max-width: 45px;
+      text-align: center;
+      letter-spacing: 1px;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #0066cc;
+      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+    }
+
+    input:disabled {
+      background-color: #f5f5f5;
+      cursor: not-allowed;
+    }
+
+    button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .login-btn {
+      background: #0066cc;
+      color: white;
+    }
+
+    .login-btn:hover:not(:disabled) {
+      background: #0052a3;
+    }
+
+    .login-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .instructor-btn {
+      background: #6c757d;
+      color: white;
+    }
+
+    .instructor-btn:hover {
+      background: #5a6268;
+    }
+
+    .error-message {
+      width: 100%;
+      color: #d32f2f;
+      font-size: 11px;
+      margin-top: 3px;
+      padding: 4px 8px;
+      background: #ffebee;
+      border-radius: 3px;
+      border-left: 3px solid #d32f2f;
+    }
+
+    .lockout-message {
+      width: 100%;
+      color: #f57c00;
+      font-size: 11px;
+      margin-top: 3px;
+      padding: 4px 8px;
+      background: #fff3e0;
+      border-radius: 3px;
+      border-left: 3px solid #f57c00;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .login-form {
+        flex-direction: column;
+      }
+
+      input,
+      button {
+        width: 100%;
+      }
+`;
+function hasActiveSession() {
+  return getJSON(STORAGE_KEYS.SESSION) !== null;
+}
+function isInstructor() {
+  return sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
+}
+function isStudentLoggedIn() {
+  return hasActiveSession() && !isInstructor();
+}
 function validateStudentForm(name, serviceId, pin) {
   const errors = [];
   if (!name || name.trim() === "") {
@@ -3255,6 +3375,17 @@ function readDOMConfig() {
   };
   return config;
 }
+function readTitleSelector() {
+  return readConfigElement(CONFIG_IDS.titleSelector, DEFAULT_CONFIG.titleSelector);
+}
+function readDbName() {
+  const element = document.querySelector(`#${CONFIG_IDS.dbName}`);
+  return element?.textContent?.trim() || "";
+}
+function readRelease() {
+  const titleElement = document.querySelector(readTitleSelector());
+  return titleElement?.textContent?.trim() || "";
+}
 function needsMigration(record) {
   return record.schema < SCHEMA_VERSION;
 }
@@ -3296,25 +3427,6 @@ function constantTimeCompare$1(a2, b2) {
     result |= a2.charCodeAt(i3) ^ b2.charCodeAt(i3);
   }
   return result === 0;
-}
-async function hashPassword(plain) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(plain);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b2) => b2.toString(16).padStart(2, "0")).join("").substring(0, 12);
-}
-function getExpectedInstructorHash() {
-  const hashElement = document.getElementById(CONFIG_IDS.instructorHash);
-  return hashElement?.textContent?.trim() || "";
-}
-async function verifyInstructorPassword(plain) {
-  const expectedHash = getExpectedInstructorHash();
-  if (!expectedHash) {
-    return false;
-  }
-  const actualHash = await hashPassword(plain);
-  return actualHash === expectedHash;
 }
 function getAttemptKey(serviceId) {
   return `${STORAGE_KEYS.PIN_ATTEMPTS}:${serviceId}`;
@@ -3393,9 +3505,97 @@ function getRemainingAttempts(serviceId) {
   }
   return Math.max(0, PIN_CONSTANTS.MAX_ATTEMPTS - state2.attempts);
 }
-var __getOwnPropDesc$f = Object.getOwnPropertyDescriptor;
-var __decorateClass$f = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$f(target, key) : target;
+class AuthService {
+  /**
+   * Authenticate a student (initial login path).
+   *
+   * Enforces the lockout window and surfaces storage-format mismatches as
+   * `needs-migration` so the caller can offer migration.
+   */
+  loginStudent(input) {
+    return this.runLogin(input, {
+      checkLock: true,
+      surfaceMigration: true,
+      errorMessage: "Login failed. Please try again.",
+      errorLabel: "Student login error:"
+    });
+  }
+  /**
+   * Authenticate a student immediately after a successful data migration.
+   *
+   * Skips the lockout pre-check (the user just completed migration) and treats
+   * any remaining error as a generic post-migration failure.
+   */
+  retryAfterMigration(input) {
+    return this.runLogin(input, {
+      checkLock: false,
+      surfaceMigration: false,
+      errorMessage: "Login failed after migration. Please try again.",
+      errorLabel: "Post-migration login error:"
+    });
+  }
+  /**
+   * Shared login implementation for both the initial and post-migration paths.
+   */
+  async runLogin(input, opts) {
+    const { serviceId, name, pin, release, dbName } = input;
+    if (opts.checkLock) {
+      const lockout = checkLockout(serviceId);
+      if (lockout.isLocked) {
+        return { kind: "lockout", lockoutMs: lockout.remainingMs };
+      }
+    }
+    try {
+      const storage = getStorageAdapter(dbName);
+      await storage.init();
+      const existingStudent = await storage.getStudent(release, serviceId);
+      if (existingStudent) {
+        if (needsMigration(existingStudent) || !hasPinSet(existingStudent)) {
+          const pinHash2 = await hashPin(pin);
+          const updatedStudent = completePinSetup(existingStudent, pinHash2);
+          await storage.saveStudent(updatedStudent);
+          return { kind: "pin-created", serviceId, name, release };
+        }
+        const isValid = await verifyPin(pin, existingStudent.pinHash || "");
+        if (!isValid) {
+          const state2 = recordFailedAttempt(serviceId);
+          if (state2.lockoutUntil) {
+            const lockoutMs = new Date(state2.lockoutUntil).getTime() - Date.now();
+            return { kind: "lockout", lockoutMs };
+          }
+          return { kind: "bad-pin", remaining: getRemainingAttempts(serviceId) };
+        }
+        clearAttemptState(serviceId);
+        return { kind: "pin-verified", serviceId, name, release };
+      }
+      const pinHash = await hashPin(pin);
+      const newStudent = {
+        schema: SCHEMA_VERSION,
+        docId: "",
+        release,
+        serviceId,
+        name,
+        attempted: 0,
+        correct: 0,
+        updated: (/* @__PURE__ */ new Date()).toISOString(),
+        pages: {},
+        pinHash,
+        pinCreatedAt: (/* @__PURE__ */ new Date()).toISOString()
+      };
+      await storage.saveStudent(newStudent);
+      return { kind: "pin-created", serviceId, name, release };
+    } catch (err) {
+      if (opts.surfaceMigration && err instanceof StorageFormatError) {
+        return { kind: "needs-migration", error: err };
+      }
+      console.error(opts.errorLabel, err);
+      return { kind: "error", message: opts.errorMessage };
+    }
+  }
+}
+var __getOwnPropDesc$j = Object.getOwnPropertyDescriptor;
+var __decorateClass$j = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$j(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = decorator(result) || result;
@@ -3487,17 +3687,36 @@ QdBuildInfo.styles = i$4`
       line-height: 1.4;
     }
   `;
-QdBuildInfo = __decorateClass$f([
+QdBuildInfo = __decorateClass$j([
   t$1("qd-build-info")
 ], QdBuildInfo);
-var __defProp$e = Object.defineProperty;
-var __getOwnPropDesc$e = Object.getOwnPropertyDescriptor;
-var __decorateClass$e = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$e(target, key) : target;
+async function hashPassword(plain) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(plain);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b2) => b2.toString(16).padStart(2, "0")).join("").substring(0, 12);
+}
+function getExpectedInstructorHash() {
+  const hashElement = document.getElementById(CONFIG_IDS.instructorHash);
+  return hashElement?.textContent?.trim() || "";
+}
+async function verifyInstructorPassword(plain) {
+  const expectedHash = getExpectedInstructorHash();
+  if (!expectedHash) {
+    return false;
+  }
+  const actualHash = await hashPassword(plain);
+  return actualHash === expectedHash;
+}
+var __defProp$h = Object.defineProperty;
+var __getOwnPropDesc$i = Object.getOwnPropertyDescriptor;
+var __decorateClass$i = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$i(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$e(target, key, result);
+  if (kind && result) __defProp$h(target, key, result);
   return result;
 };
 const MODAL_STATE_KEY = "__qdModalCurrentRef__";
@@ -3781,23 +4000,23 @@ QdModal.styles = i$4`
       padding: 20px;
     }
   `;
-__decorateClass$e([
+__decorateClass$i([
   n2({ type: Boolean, reflect: true })
 ], QdModal.prototype, "open", 2);
-__decorateClass$e([
+__decorateClass$i([
   n2({ type: Boolean })
 ], QdModal.prototype, "closable", 2);
-QdModal = __decorateClass$e([
+QdModal = __decorateClass$i([
   t$1("qd-modal")
 ], QdModal);
-var __defProp$d = Object.defineProperty;
-var __getOwnPropDesc$d = Object.getOwnPropertyDescriptor;
-var __decorateClass$d = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$d(target, key) : target;
+var __defProp$g = Object.defineProperty;
+var __getOwnPropDesc$h = Object.getOwnPropertyDescriptor;
+var __decorateClass$h = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$h(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$d(target, key, result);
+  if (kind && result) __defProp$g(target, key, result);
   return result;
 };
 let QdPasswordModal = class extends i$1 {
@@ -3977,24 +4196,225 @@ QdPasswordModal.styles = i$4`
       background: #d0d0d0;
     }
   `;
-__decorateClass$d([
+__decorateClass$h([
   n2({ type: Boolean, reflect: true })
 ], QdPasswordModal.prototype, "open", 2);
-__decorateClass$d([
+__decorateClass$h([
   n2({ type: String })
 ], QdPasswordModal.prototype, "title", 2);
-__decorateClass$d([
+__decorateClass$h([
   n2({ type: String })
 ], QdPasswordModal.prototype, "error", 2);
-__decorateClass$d([
+__decorateClass$h([
   r()
 ], QdPasswordModal.prototype, "password", 2);
-__decorateClass$d([
+__decorateClass$h([
   e$2('input[type="password"]')
 ], QdPasswordModal.prototype, "passwordInput", 2);
-QdPasswordModal = __decorateClass$d([
+QdPasswordModal = __decorateClass$h([
   t$1("qd-password-modal")
 ], QdPasswordModal);
+var __defProp$f = Object.defineProperty;
+var __getOwnPropDesc$g = Object.getOwnPropertyDescriptor;
+var __decorateClass$g = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$g(target, key) : target;
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result) __defProp$f(target, key, result);
+  return result;
+};
+let QdInstructorLogin = class extends i$1 {
+  constructor() {
+    super(...arguments);
+    this.disabled = false;
+    this.showModal = false;
+    this.error = "";
+    this.open = () => {
+      this.showModal = true;
+      this.error = "";
+    };
+    this.handleClose = () => {
+      this.showModal = false;
+      this.error = "";
+    };
+    this.handleSubmit = (e2) => {
+      void this.login(e2.detail.password);
+    };
+  }
+  render() {
+    return x`
+      <button type="button" class="instructor-btn" @click=${this.open} ?disabled=${this.disabled}>
+        Instructor
+      </button>
+
+      <qd-password-modal
+        .open=${this.showModal}
+        title="Instructor Login"
+        .error=${this.error}
+        @qd:password-submit=${this.handleSubmit}
+        @close=${this.handleClose}
+      ></qd-password-modal>
+    `;
+  }
+  /**
+   * Verify the password and, on success, create the instructor session and
+   * emit `qd:login`.
+   */
+  async login(password) {
+    const expectedHash = getExpectedInstructorHash();
+    if (!expectedHash) {
+      this.error = "Instructor password not configured";
+      return;
+    }
+    try {
+      if (!await verifyInstructorPassword(password)) {
+        this.error = "Incorrect password";
+        return;
+      }
+      const release = readRelease();
+      const sessionService = new SessionService();
+      sessionService.createSession("INSTRUCTOR", "Instructor", release || "");
+      sessionStorage.setItem(STORAGE_KEYS.INSTRUCTOR, "true");
+      this.dispatchEvent(
+        new CustomEvent("qd:login", {
+          detail: {
+            serviceId: "INSTRUCTOR",
+            name: "Instructor",
+            release: release || "",
+            role: "instructor"
+          },
+          bubbles: true,
+          composed: true
+        })
+      );
+      this.showModal = false;
+      this.error = "";
+    } catch (err) {
+      this.error = "Login failed. Please try again.";
+      console.error("Instructor login error:", err);
+    }
+  }
+};
+QdInstructorLogin.styles = i$4`
+    button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      background: #6c757d;
+      color: white;
+    }
+
+    button:hover:not(:disabled) {
+      background: #5a6268;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+  `;
+__decorateClass$g([
+  n2({ type: Boolean })
+], QdInstructorLogin.prototype, "disabled", 2);
+__decorateClass$g([
+  r()
+], QdInstructorLogin.prototype, "showModal", 2);
+__decorateClass$g([
+  r()
+], QdInstructorLogin.prototype, "error", 2);
+QdInstructorLogin = __decorateClass$g([
+  t$1("qd-instructor-login")
+], QdInstructorLogin);
+var __defProp$e = Object.defineProperty;
+var __getOwnPropDesc$f = Object.getOwnPropertyDescriptor;
+var __decorateClass$f = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$f(target, key) : target;
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result) __defProp$e(target, key, result);
+  return result;
+};
+let QdLockoutBanner = class extends i$1 {
+  constructor() {
+    super(...arguments);
+    this.untilMs = 0;
+    this.seconds = 0;
+    this.interval = null;
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.clearTimer();
+  }
+  willUpdate(changed) {
+    if (changed.has("untilMs")) {
+      const remainingMs = this.untilMs - Date.now();
+      this.seconds = remainingMs > 0 ? Math.ceil(remainingMs / 1e3) : 0;
+    }
+  }
+  updated(changed) {
+    if (changed.has("untilMs")) {
+      this.startTimer();
+    }
+  }
+  render() {
+    if (this.seconds <= 0) {
+      return x``;
+    }
+    return x`<div class="lockout-message" role="alert" aria-live="polite" aria-atomic="true">
+      Too many attempts. Try again in ${this.seconds}s
+    </div>`;
+  }
+  /** (Re)start the 1s countdown timer based on the current `seconds`. */
+  startTimer() {
+    this.clearTimer();
+    if (this.seconds <= 0) {
+      return;
+    }
+    this.interval = window.setInterval(() => {
+      this.seconds--;
+      if (this.seconds <= 0) {
+        this.clearTimer();
+        this.dispatchEvent(
+          new CustomEvent("qd:lockout-expired", { bubbles: true, composed: true })
+        );
+      }
+    }, 1e3);
+  }
+  clearTimer() {
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = null;
+    }
+  }
+};
+QdLockoutBanner.styles = i$4`
+    .lockout-message {
+      width: 100%;
+      color: #f57c00;
+      font-size: 11px;
+      margin-top: 3px;
+      padding: 4px 8px;
+      background: #fff3e0;
+      border-radius: 3px;
+      border-left: 3px solid #f57c00;
+    }
+  `;
+__decorateClass$f([
+  n2({ type: Number })
+], QdLockoutBanner.prototype, "untilMs", 2);
+__decorateClass$f([
+  r()
+], QdLockoutBanner.prototype, "seconds", 2);
+QdLockoutBanner = __decorateClass$f([
+  t$1("qd-lockout-banner")
+], QdLockoutBanner);
 /**
  * @license
  * Copyright 2017 Google LLC
@@ -4038,14 +4458,14 @@ class e extends i2 {
 }
 e.directiveName = "unsafeHTML", e.resultType = 1;
 const o = e$1(e);
-var __defProp$c = Object.defineProperty;
-var __getOwnPropDesc$c = Object.getOwnPropertyDescriptor;
-var __decorateClass$c = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$c(target, key) : target;
+var __defProp$d = Object.defineProperty;
+var __getOwnPropDesc$e = Object.getOwnPropertyDescriptor;
+var __decorateClass$e = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$e(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$c(target, key, result);
+  if (kind && result) __defProp$d(target, key, result);
   return result;
 };
 let QdConfirmDialog = class extends i$1 {
@@ -4180,35 +4600,35 @@ QdConfirmDialog.styles = i$4`
       background: #b71c1c;
     }
   `;
-__decorateClass$c([
+__decorateClass$e([
   n2({ type: Boolean, reflect: true })
 ], QdConfirmDialog.prototype, "open", 2);
-__decorateClass$c([
+__decorateClass$e([
   n2({ type: String })
 ], QdConfirmDialog.prototype, "title", 2);
-__decorateClass$c([
+__decorateClass$e([
   n2({ type: String })
 ], QdConfirmDialog.prototype, "message", 2);
-__decorateClass$c([
+__decorateClass$e([
   n2({ type: String })
 ], QdConfirmDialog.prototype, "confirmText", 2);
-__decorateClass$c([
+__decorateClass$e([
   n2({ type: String })
 ], QdConfirmDialog.prototype, "cancelText", 2);
-__decorateClass$c([
+__decorateClass$e([
   n2({ type: Boolean })
 ], QdConfirmDialog.prototype, "destructive", 2);
-QdConfirmDialog = __decorateClass$c([
+QdConfirmDialog = __decorateClass$e([
   t$1("qd-confirm-dialog")
 ], QdConfirmDialog);
-var __defProp$b = Object.defineProperty;
-var __getOwnPropDesc$b = Object.getOwnPropertyDescriptor;
-var __decorateClass$b = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$b(target, key) : target;
+var __defProp$c = Object.defineProperty;
+var __getOwnPropDesc$d = Object.getOwnPropertyDescriptor;
+var __decorateClass$d = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$d(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$b(target, key, result);
+  if (kind && result) __defProp$c(target, key, result);
   return result;
 };
 let QdHelpTrigger = class extends i$1 {
@@ -4270,20 +4690,20 @@ QdHelpTrigger.styles = i$4`
       background: #004080;
     }
   `;
-__decorateClass$b([
+__decorateClass$d([
   n2({ type: String })
 ], QdHelpTrigger.prototype, "panelType", 2);
-QdHelpTrigger = __decorateClass$b([
+QdHelpTrigger = __decorateClass$d([
   t$1("qd-help-trigger")
 ], QdHelpTrigger);
-var __defProp$a = Object.defineProperty;
-var __getOwnPropDesc$a = Object.getOwnPropertyDescriptor;
-var __decorateClass$a = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$a(target, key) : target;
+var __defProp$b = Object.defineProperty;
+var __getOwnPropDesc$c = Object.getOwnPropertyDescriptor;
+var __decorateClass$c = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$c(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$a(target, key, result);
+  if (kind && result) __defProp$b(target, key, result);
   return result;
 };
 const HELP_POPUP_STYLES = `
@@ -4434,19 +4854,19 @@ let QdHelpPopup = class extends i$1 {
   }
 };
 QdHelpPopup.styleElement = null;
-__decorateClass$a([
+__decorateClass$c([
   n2({ type: Boolean, reflect: true })
 ], QdHelpPopup.prototype, "open", 2);
-__decorateClass$a([
+__decorateClass$c([
   n2({ type: String })
 ], QdHelpPopup.prototype, "title", 2);
-__decorateClass$a([
+__decorateClass$c([
   n2({ type: String })
 ], QdHelpPopup.prototype, "content", 2);
-__decorateClass$a([
+__decorateClass$c([
   r()
 ], QdHelpPopup.prototype, "_isOpen", 2);
-QdHelpPopup = __decorateClass$a([
+QdHelpPopup = __decorateClass$c([
   t$1("qd-help-popup")
 ], QdHelpPopup);
 const STORE_STUDENTS = "students";
@@ -4545,6 +4965,156 @@ async function putRawRecord(db, key, value) {
     };
   });
 }
+const migrationDialogStyles = i$4`
+  :host {
+    display: contents;
+  }
+
+  .migration-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 8px 0;
+  }
+
+  .warning-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: #fff3cd;
+    border-radius: 4px;
+    border-left: 4px solid #ffc107;
+  }
+
+  .warning-icon {
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .warning-text {
+    flex: 1;
+  }
+
+  .warning-text strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #856404;
+  }
+
+  .format-info {
+    font-size: 13px;
+    color: #666;
+  }
+
+  .format-row {
+    display: flex;
+    gap: 8px;
+    margin: 4px 0;
+  }
+
+  .format-label {
+    font-weight: 500;
+    min-width: 100px;
+  }
+
+  .format-value {
+    font-family: monospace;
+    background: #f5f5f5;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #333;
+  }
+
+  input[type='password'] {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  input[type='password']:focus {
+    outline: none;
+    border-color: #0066cc;
+    box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+  }
+
+  .error-message {
+    color: #d32f2f;
+    font-size: 12px;
+    padding: 8px;
+    background: #ffebee;
+    border-radius: 4px;
+    border-left: 3px solid #d32f2f;
+  }
+
+  .success-message {
+    color: #2e7d32;
+    font-size: 13px;
+    padding: 12px;
+    background: #e8f5e9;
+    border-radius: 4px;
+    border-left: 3px solid #4caf50;
+  }
+
+  .migrating-state {
+    text-align: center;
+    padding: 20px;
+  }
+
+  .button-row {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+
+  button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  button.primary {
+    background: #0066cc;
+    color: white;
+  }
+
+  button.primary:hover:not(:disabled) {
+    background: #0052a3;
+  }
+
+  button.secondary {
+    background: #e0e0e0;
+    color: #333;
+  }
+
+  button.secondary:hover:not(:disabled) {
+    background: #d0d0d0;
+  }
+`;
 const spinnerStyles = i$4`
   .spinner {
     display: inline-block;
@@ -4563,14 +5133,31 @@ const spinnerStyles = i$4`
     }
   }
 `;
-var __defProp$9 = Object.defineProperty;
-var __getOwnPropDesc$9 = Object.getOwnPropertyDescriptor;
-var __decorateClass$9 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$9(target, key) : target;
+var __getOwnPropDesc$b = Object.getOwnPropertyDescriptor;
+var __decorateClass$b = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$b(target, key) : target;
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
+      result = decorator(result) || result;
+  return result;
+};
+let QdSpinner = class extends i$1 {
+  render() {
+    return x`<div class="spinner" role="status" aria-label="Loading"></div>`;
+  }
+};
+QdSpinner.styles = [spinnerStyles];
+QdSpinner = __decorateClass$b([
+  t$1("qd-spinner")
+], QdSpinner);
+var __defProp$a = Object.defineProperty;
+var __getOwnPropDesc$a = Object.getOwnPropertyDescriptor;
+var __decorateClass$a = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$a(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$9(target, key, result);
+  if (kind && result) __defProp$a(target, key, result);
   return result;
 };
 let QdMigrationDialog = class extends i$1 {
@@ -4754,7 +5341,7 @@ let QdMigrationDialog = class extends i$1 {
     return x`
       <div class="migration-content">
         <div class="migrating-state">
-          <div class="spinner"></div>
+          <qd-spinner></qd-spinner>
           <p>Migrating database records...</p>
           <p class="format-info">Please wait, do not close this window.</p>
         </div>
@@ -4793,190 +5380,38 @@ let QdMigrationDialog = class extends i$1 {
     `;
   }
 };
-QdMigrationDialog.styles = [
-  spinnerStyles,
-  i$4`
-      :host {
-        display: contents;
-      }
-
-      .migration-content {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        padding: 8px 0;
-      }
-
-      .warning-banner {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        padding: 12px;
-        background: #fff3cd;
-        border-radius: 4px;
-        border-left: 4px solid #ffc107;
-      }
-
-      .warning-icon {
-        font-size: 20px;
-        line-height: 1;
-      }
-
-      .warning-text {
-        flex: 1;
-      }
-
-      .warning-text strong {
-        display: block;
-        margin-bottom: 4px;
-        color: #856404;
-      }
-
-      .format-info {
-        font-size: 13px;
-        color: #666;
-      }
-
-      .format-row {
-        display: flex;
-        gap: 8px;
-        margin: 4px 0;
-      }
-
-      .format-label {
-        font-weight: 500;
-        min-width: 100px;
-      }
-
-      .format-value {
-        font-family: monospace;
-        background: #f5f5f5;
-        padding: 2px 6px;
-        border-radius: 3px;
-      }
-
-      .form-field {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-
-      label {
-        font-size: 13px;
-        font-weight: 500;
-        color: #333;
-      }
-
-      input[type='password'] {
-        padding: 8px 12px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        font-size: 14px;
-        width: 100%;
-        box-sizing: border-box;
-      }
-
-      input[type='password']:focus {
-        outline: none;
-        border-color: #0066cc;
-        box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
-      }
-
-      .error-message {
-        color: #d32f2f;
-        font-size: 12px;
-        padding: 8px;
-        background: #ffebee;
-        border-radius: 4px;
-        border-left: 3px solid #d32f2f;
-      }
-
-      .success-message {
-        color: #2e7d32;
-        font-size: 13px;
-        padding: 12px;
-        background: #e8f5e9;
-        border-radius: 4px;
-        border-left: 3px solid #4caf50;
-      }
-
-      .migrating-state {
-        text-align: center;
-        padding: 20px;
-      }
-
-      .button-row {
-        display: flex;
-        gap: 8px;
-        justify-content: flex-end;
-        margin-top: 8px;
-      }
-
-      button {
-        padding: 8px 16px;
-        border: none;
-        border-radius: 4px;
-        font-size: 13px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: background-color 0.2s;
-      }
-
-      button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-
-      button.primary {
-        background: #0066cc;
-        color: white;
-      }
-
-      button.primary:hover:not(:disabled) {
-        background: #0052a3;
-      }
-
-      button.secondary {
-        background: #e0e0e0;
-        color: #333;
-      }
-
-      button.secondary:hover:not(:disabled) {
-        background: #d0d0d0;
-      }
-    `
-];
-__decorateClass$9([
+QdMigrationDialog.styles = [migrationDialogStyles];
+__decorateClass$a([
   n2({ type: Boolean, reflect: true })
 ], QdMigrationDialog.prototype, "open", 2);
-__decorateClass$9([
+__decorateClass$a([
   n2({ type: String })
 ], QdMigrationDialog.prototype, "expected", 2);
-__decorateClass$9([
+__decorateClass$a([
   n2({ type: String })
 ], QdMigrationDialog.prototype, "found", 2);
-__decorateClass$9([
+__decorateClass$a([
   n2({ type: String })
 ], QdMigrationDialog.prototype, "dbName", 2);
-__decorateClass$9([
+__decorateClass$a([
   n2({ type: String })
 ], QdMigrationDialog.prototype, "releaseId", 2);
-__decorateClass$9([
+__decorateClass$a([
   r()
 ], QdMigrationDialog.prototype, "dialogState", 2);
-__decorateClass$9([
+__decorateClass$a([
   r()
 ], QdMigrationDialog.prototype, "password", 2);
-__decorateClass$9([
+__decorateClass$a([
   r()
 ], QdMigrationDialog.prototype, "error", 2);
-__decorateClass$9([
+__decorateClass$a([
   r()
 ], QdMigrationDialog.prototype, "migrationResult", 2);
-__decorateClass$9([
+__decorateClass$a([
   e$2('input[type="password"]')
 ], QdMigrationDialog.prototype, "passwordInput", 2);
-QdMigrationDialog = __decorateClass$9([
+QdMigrationDialog = __decorateClass$a([
   t$1("qd-migration-dialog")
 ], QdMigrationDialog);
 const HELP_CONTENT = {
@@ -4996,14 +5431,14 @@ const HELP_CONTENT = {
 function getHelpContent(panelType) {
   return HELP_CONTENT[panelType];
 }
-var __defProp$8 = Object.defineProperty;
-var __getOwnPropDesc$8 = Object.getOwnPropertyDescriptor;
-var __decorateClass$8 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$8(target, key) : target;
+var __defProp$9 = Object.defineProperty;
+var __getOwnPropDesc$9 = Object.getOwnPropertyDescriptor;
+var __decorateClass$9 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$9(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$8(target, key, result);
+  if (kind && result) __defProp$9(target, key, result);
   return result;
 };
 let QdLogin = class extends i$1 {
@@ -5012,47 +5447,38 @@ let QdLogin = class extends i$1 {
     this.title = "Sonar Quiz System";
     this.name = "";
     this.serviceId = "";
-    this.showInstructorModal = false;
-    this.instructorError = "";
     this.errorMessage = "";
     this.isSubmitting = false;
     this.pin = "";
-    this.lockoutSeconds = 0;
+    this.lockoutUntil = 0;
     this.showPinConfirmation = false;
     this.helpOpen = false;
     this.showMigrationDialog = false;
     this.migrationError = null;
     this.pendingLoginData = null;
-    this.lockoutInterval = null;
+    this.authService = new AuthService();
+    this.handleLoginEvent = () => {
+      this.updateVisibility();
+    };
     this.handleLogoutEvent = () => {
       this.name = "";
       this.serviceId = "";
       this.errorMessage = "";
       this.isSubmitting = false;
-      this.showInstructorModal = false;
-      this.instructorError = "";
       this.pin = "";
-      this.lockoutSeconds = 0;
+      this.lockoutUntil = 0;
       this.showPinConfirmation = false;
       this.helpOpen = false;
-      if (this.lockoutInterval) {
-        clearInterval(this.lockoutInterval);
-        this.lockoutInterval = null;
-      }
       this.updateVisibility();
+    };
+    this.handleLockoutExpired = () => {
+      this.lockoutUntil = 0;
     };
     this.handleHelpOpen = () => {
       this.helpOpen = true;
     };
     this.handleHelpClose = () => {
       this.helpOpen = false;
-    };
-    this.handleInstructorPasswordSubmit = (e2) => {
-      void this.handleInstructorLogin(e2.detail.password);
-    };
-    this.handleInstructorModalClose = () => {
-      this.showInstructorModal = false;
-      this.instructorError = "";
     };
     this.handlePinConfirmationDismiss = () => {
       this.showPinConfirmation = false;
@@ -5078,31 +5504,24 @@ let QdLogin = class extends i$1 {
     super.connectedCallback();
     this.updateVisibility();
     document.addEventListener("qd:logout", this.handleLogoutEvent);
+    document.addEventListener("qd:login", this.handleLoginEvent);
   }
   disconnectedCallback() {
     super.disconnectedCallback();
     document.removeEventListener("qd:logout", this.handleLogoutEvent);
-    if (this.lockoutInterval) {
-      clearInterval(this.lockoutInterval);
-      this.lockoutInterval = null;
-    }
+    document.removeEventListener("qd:login", this.handleLoginEvent);
   }
-  /**
-   * Lifecycle: Called after first render completes (shadow DOM ready)
-   */
+  /** Lifecycle: signal readiness once the shadow DOM is rendered. */
   firstUpdated() {
     this.setAttribute("data-ready", "");
   }
-  /**
-   * Update visibility - show only if NOT logged in
-   */
+  /** Show the form only when NOT logged in. */
   updateVisibility() {
-    const session = getJSON(STORAGE_KEYS.SESSION);
-    if (!session) {
-      this.setAttribute("data-show", "");
-    } else {
-      this.removeAttribute("data-show");
-    }
+    this.toggleAttribute("data-show", !hasActiveSession());
+  }
+  /** Whether the account is currently within its lockout window. */
+  isLockedOut() {
+    return this.lockoutUntil > Date.now();
   }
   render() {
     return x`
@@ -5123,7 +5542,6 @@ let QdLogin = class extends i$1 {
             ?disabled=${this.isSubmitting}
             required
           />
-
           <input
             type="text"
             name="serviceId"
@@ -5135,7 +5553,6 @@ let QdLogin = class extends i$1 {
             title="2-10 alphanumeric characters"
             required
           />
-
           <input
             type="password"
             name="pin"
@@ -5148,42 +5565,24 @@ let QdLogin = class extends i$1 {
             aria-label="Enter your 4-digit PIN"
             .value=${this.pin}
             @input=${(e2) => this.handlePinInput(e2)}
-            ?disabled=${this.isSubmitting || this.lockoutSeconds > 0}
+            ?disabled=${this.isSubmitting || this.isLockedOut()}
             required
           />
-
           <button
             type="submit"
             class="login-btn"
-            ?disabled=${this.isSubmitting || !this.isValid() || this.lockoutSeconds > 0}
+            ?disabled=${this.isSubmitting || !this.isValid() || this.isLockedOut()}
           >
             Login
           </button>
-
-          <button
-            type="button"
-            class="instructor-btn"
-            @click=${() => this.openInstructorModal()}
-            ?disabled=${this.isSubmitting}
-          >
-            Instructor
-          </button>
-
+          <qd-instructor-login ?disabled=${this.isSubmitting}></qd-instructor-login>
           ${this.errorMessage ? x`<div class="error-message">${this.errorMessage}</div>` : ""}
-          ${this.lockoutSeconds > 0 ? x`<div class="lockout-message" role="alert" aria-live="polite" aria-atomic="true">
-                Too many attempts. Try again in ${this.lockoutSeconds}s
-              </div>` : ""}
+          <qd-lockout-banner
+            .untilMs=${this.lockoutUntil}
+            @qd:lockout-expired=${this.handleLockoutExpired}
+          ></qd-lockout-banner>
         </form>
       </div>
-
-      <qd-password-modal
-        .open=${this.showInstructorModal}
-        title="Instructor Login"
-        .error=${this.instructorError}
-        @qd:password-submit=${this.handleInstructorPasswordSubmit}
-        @close=${this.handleInstructorModalClose}
-      ></qd-password-modal>
-
       <qd-confirm-dialog
         .open=${this.showPinConfirmation}
         title="PIN Stored"
@@ -5193,14 +5592,12 @@ let QdLogin = class extends i$1 {
         @qd:confirm=${this.handlePinConfirmationDismiss}
         @qd:cancel=${this.handlePinConfirmationDismiss}
       ></qd-confirm-dialog>
-
       <qd-help-popup
         .open=${this.helpOpen}
         .title=${getHelpContent("login").title}
         .content=${getHelpContent("login").body}
         @qd:modal-close=${this.handleHelpClose}
       ></qd-help-popup>
-
       <qd-migration-dialog
         .open=${this.showMigrationDialog}
         .expected=${this.migrationError?.expected ?? "plain"}
@@ -5212,49 +5609,25 @@ let QdLogin = class extends i$1 {
       ></qd-migration-dialog>
     `;
   }
-  /**
-   * Handle name input
-   */
   handleNameInput(e2) {
-    const input = e2.target;
-    this.name = input.value;
+    this.name = e2.target.value;
     this.errorMessage = "";
   }
-  /**
-   * Handle service ID input
-   */
   handleServiceIdInput(e2) {
-    const input = e2.target;
-    this.serviceId = input.value;
+    this.serviceId = e2.target.value;
     this.errorMessage = "";
   }
-  /**
-   * Handle PIN input
-   */
   handlePinInput(e2) {
-    const input = e2.target;
-    this.pin = sanitizePinInput(input.value);
+    this.pin = sanitizePinInput(e2.target.value);
     this.errorMessage = "";
   }
-  /**
-   * Check if student form is valid using validation helper
-   */
+  /** Whether the student form passes validation. */
   isValid() {
-    const errors = validateStudentForm(this.name, this.serviceId, this.pin);
-    return errors.length === 0;
+    return validateStudentForm(this.name, this.serviceId, this.pin).length === 0;
   }
   /**
-   * Get release from document title
-   * Reads selector from config, then queries document
-   */
-  getRelease() {
-    const selectorElement = document.getElementById(CONFIG_IDS.titleSelector);
-    const selector = selectorElement?.textContent?.trim() || ".wh_publication_title .title";
-    const titleElement = document.querySelector(selector);
-    return titleElement?.textContent?.trim() || "";
-  }
-  /**
-   * Handle student login
+   * Handle student login: validate, resolve release/db-name, delegate to
+   * {@link AuthService}, and apply the result (or open the migration dialog).
    */
   async handleStudentLogin(e2) {
     e2.preventDefault();
@@ -5264,481 +5637,140 @@ let QdLogin = class extends i$1 {
     }
     this.isSubmitting = true;
     this.errorMessage = "";
-    try {
-      const release = this.getRelease();
-      if (!release) {
-        this.errorMessage = "Release not found (missing publication title element)";
-        this.isSubmitting = false;
-        return;
-      }
-      const serviceId = this.serviceId.trim();
-      const name = this.name.trim();
-      const lockout = checkLockout(serviceId);
-      if (lockout.isLocked) {
-        this.startLockoutCountdown(lockout.remainingMs);
-        this.isSubmitting = false;
-        return;
-      }
-      const dbNameElement = document.getElementById(CONFIG_IDS.dbName);
-      if (!dbNameElement?.textContent?.trim()) {
-        throw new Error(
-          `Database name not configured. Add <span id="${CONFIG_IDS.dbName}">dbName</span> to page.`
-        );
-      }
-      const dbName = dbNameElement.textContent.trim();
-      const storage = getStorageAdapter(dbName);
-      await storage.init();
-      const existingStudent = await storage.getStudent(release, serviceId);
-      if (existingStudent) {
-        if (needsMigration(existingStudent) || !hasPinSet(existingStudent)) {
-          const pinHash = await hashPin(this.pin);
-          const updatedStudent = completePinSetup(existingStudent, pinHash);
-          await storage.saveStudent(updatedStudent);
-          this.dispatchEvent(
-            new CustomEvent("qd:pin-created", {
-              detail: { serviceId, timestamp: (/* @__PURE__ */ new Date()).toISOString() },
-              bubbles: true,
-              composed: true
-            })
-          );
-          this.showPinStoredConfirmation();
-          this.completeLogin(serviceId, name, release);
-          return;
-        }
-        const isValid = await verifyPin(this.pin, existingStudent.pinHash || "");
-        if (!isValid) {
-          const state2 = recordFailedAttempt(serviceId);
-          const remaining = getRemainingAttempts(serviceId);
-          if (state2.lockoutUntil) {
-            const lockoutMs = new Date(state2.lockoutUntil).getTime() - Date.now();
-            this.startLockoutCountdown(lockoutMs);
-          } else {
-            this.errorMessage = `Incorrect PIN. ${remaining} attempt${remaining !== 1 ? "s" : ""} remaining`;
-          }
-          this.pin = "";
-          this.isSubmitting = false;
-          return;
-        }
-        clearAttemptState(serviceId);
-        this.dispatchEvent(
-          new CustomEvent("qd:pin-verified", {
-            detail: { serviceId, timestamp: (/* @__PURE__ */ new Date()).toISOString() },
-            bubbles: true,
-            composed: true
-          })
-        );
-      } else {
-        const pinHash = await hashPin(this.pin);
-        const newStudent = {
-          schema: SCHEMA_VERSION,
-          docId: "",
-          release,
-          serviceId,
-          name,
-          attempted: 0,
-          correct: 0,
-          updated: (/* @__PURE__ */ new Date()).toISOString(),
-          pages: {},
-          pinHash,
-          pinCreatedAt: (/* @__PURE__ */ new Date()).toISOString()
-        };
-        await storage.saveStudent(newStudent);
-        this.dispatchEvent(
-          new CustomEvent("qd:pin-created", {
-            detail: { serviceId, timestamp: (/* @__PURE__ */ new Date()).toISOString() },
-            bubbles: true,
-            composed: true
-          })
-        );
-        this.showPinStoredConfirmation();
-        this.completeLogin(serviceId, name, release);
-        return;
-      }
-      this.completeLogin(serviceId, name, release);
-    } catch (err) {
-      if (err instanceof StorageFormatError) {
-        const dbNameElement = document.getElementById(CONFIG_IDS.dbName);
-        const dbName = dbNameElement?.textContent?.trim() || "";
-        this.migrationError = err;
-        this.pendingLoginData = {
-          serviceId: this.serviceId.trim(),
-          name: this.name.trim(),
-          release: this.getRelease(),
-          pin: this.pin,
-          dbName
-        };
-        this.showMigrationDialog = true;
-        this.isSubmitting = false;
-        return;
-      }
-      this.errorMessage = "Login failed. Please try again.";
-      console.error("Student login error:", err);
+    const release = readRelease();
+    if (!release) {
+      this.errorMessage = "Release not found (missing publication title element)";
       this.isSubmitting = false;
+      return;
+    }
+    const serviceId = this.serviceId.trim();
+    const name = this.name.trim();
+    const dbName = readDbName();
+    const pin = this.pin;
+    const result = await this.authService.loginStudent({ serviceId, name, pin, release, dbName });
+    if (result.kind === "needs-migration") {
+      this.migrationError = result.error;
+      this.pendingLoginData = { serviceId, name, release, pin, dbName };
+      this.showMigrationDialog = true;
+      this.isSubmitting = false;
+      return;
+    }
+    this.applyLoginResult(result);
+  }
+  /** Map an {@link AuthService} result to session/events/UI state. */
+  applyLoginResult(result) {
+    switch (result.kind) {
+      case "pin-created":
+        this.dispatchPinEvent("qd:pin-created", result.serviceId);
+        this.showPinStoredConfirmation();
+        this.completeLogin(result.serviceId, result.name, result.release);
+        break;
+      case "pin-verified":
+        this.dispatchPinEvent("qd:pin-verified", result.serviceId);
+        this.completeLogin(result.serviceId, result.name, result.release);
+        break;
+      case "lockout":
+        this.lockoutUntil = Date.now() + result.lockoutMs;
+        this.errorMessage = "";
+        this.isSubmitting = false;
+        break;
+      case "bad-pin":
+        this.errorMessage = `Incorrect PIN. ${result.remaining} attempt${result.remaining !== 1 ? "s" : ""} remaining`;
+        this.pin = "";
+        this.isSubmitting = false;
+        break;
+      case "error":
+        this.errorMessage = result.message;
+        this.isSubmitting = false;
+        break;
     }
   }
-  /**
-   * Show confirmation popup that PIN has been stored
-   */
+  /** Dispatch a PIN lifecycle event (`qd:pin-created` / `qd:pin-verified`). */
+  dispatchPinEvent(name, serviceId) {
+    this.dispatchEvent(
+      new CustomEvent(name, {
+        detail: { serviceId, timestamp: (/* @__PURE__ */ new Date()).toISOString() },
+        bubbles: true,
+        composed: true
+      })
+    );
+  }
   showPinStoredConfirmation() {
     this.showPinConfirmation = true;
   }
-  /**
-   * Retry login after successful migration
-   */
+  /** Retry login after migration (skips the lockout pre-check). */
   async retryLoginAfterMigration(serviceId, name, release) {
     this.isSubmitting = true;
     this.errorMessage = "";
-    try {
-      const dbNameElement = document.getElementById(CONFIG_IDS.dbName);
-      const dbName = dbNameElement?.textContent?.trim() || "";
-      const storage = getStorageAdapter(dbName);
-      await storage.init();
-      const existingStudent = await storage.getStudent(release, serviceId);
-      if (existingStudent) {
-        if (needsMigration(existingStudent) || !hasPinSet(existingStudent)) {
-          const pinHash = await hashPin(this.pin);
-          const updatedStudent = completePinSetup(existingStudent, pinHash);
-          await storage.saveStudent(updatedStudent);
-          this.dispatchEvent(
-            new CustomEvent("qd:pin-created", {
-              detail: { serviceId, timestamp: (/* @__PURE__ */ new Date()).toISOString() },
-              bubbles: true,
-              composed: true
-            })
-          );
-          this.showPinStoredConfirmation();
-          this.completeLogin(serviceId, name, release);
-          return;
-        }
-        const isValid = await verifyPin(this.pin, existingStudent.pinHash || "");
-        if (!isValid) {
-          const state2 = recordFailedAttempt(serviceId);
-          const remaining = getRemainingAttempts(serviceId);
-          if (state2.lockoutUntil) {
-            const lockoutMs = new Date(state2.lockoutUntil).getTime() - Date.now();
-            this.startLockoutCountdown(lockoutMs);
-          } else {
-            this.errorMessage = `Incorrect PIN. ${remaining} attempt${remaining !== 1 ? "s" : ""} remaining`;
-          }
-          this.pin = "";
-          this.isSubmitting = false;
-          return;
-        }
-        clearAttemptState(serviceId);
-        this.dispatchEvent(
-          new CustomEvent("qd:pin-verified", {
-            detail: { serviceId, timestamp: (/* @__PURE__ */ new Date()).toISOString() },
-            bubbles: true,
-            composed: true
-          })
-        );
-      } else {
-        const pinHash = await hashPin(this.pin);
-        const newStudent = {
-          schema: SCHEMA_VERSION,
-          docId: "",
-          release,
-          serviceId,
-          name,
-          attempted: 0,
-          correct: 0,
-          updated: (/* @__PURE__ */ new Date()).toISOString(),
-          pages: {},
-          pinHash,
-          pinCreatedAt: (/* @__PURE__ */ new Date()).toISOString()
-        };
-        await storage.saveStudent(newStudent);
-        this.dispatchEvent(
-          new CustomEvent("qd:pin-created", {
-            detail: { serviceId, timestamp: (/* @__PURE__ */ new Date()).toISOString() },
-            bubbles: true,
-            composed: true
-          })
-        );
-        this.showPinStoredConfirmation();
-        this.completeLogin(serviceId, name, release);
-        return;
-      }
-      this.completeLogin(serviceId, name, release);
-    } catch (err) {
-      this.errorMessage = "Login failed after migration. Please try again.";
-      console.error("Post-migration login error:", err);
-      this.isSubmitting = false;
-    }
-  }
-  /**
-   * Start lockout countdown timer
-   */
-  startLockoutCountdown(remainingMs) {
-    this.lockoutSeconds = Math.ceil(remainingMs / 1e3);
-    this.errorMessage = "";
-    if (this.lockoutInterval) {
-      clearInterval(this.lockoutInterval);
-    }
-    this.lockoutInterval = window.setInterval(() => {
-      this.lockoutSeconds--;
-      if (this.lockoutSeconds <= 0) {
-        if (this.lockoutInterval) {
-          clearInterval(this.lockoutInterval);
-          this.lockoutInterval = null;
-        }
-      }
-    }, 1e3);
-  }
-  /**
-   * Complete the login process
-   */
-  completeLogin(serviceId, name, release) {
-    const sessionService = new SessionService();
-    sessionService.createSession(serviceId, name, release);
-    const loginData = {
+    const result = await this.authService.retryAfterMigration({
       serviceId,
       name,
+      pin: this.pin,
       release,
-      role: "student"
-    };
-    const event = new CustomEvent("qd:login", {
-      detail: loginData,
-      bubbles: true,
-      composed: true
+      dbName: readDbName()
     });
-    this.dispatchEvent(event);
+    this.applyLoginResult(result);
+  }
+  /** Create the student session, emit `qd:login`, and hide the form. */
+  completeLogin(serviceId, name, release) {
+    new SessionService().createSession(serviceId, name, release);
+    const loginData = { serviceId, name, release, role: "student" };
+    this.dispatchEvent(
+      new CustomEvent("qd:login", { detail: loginData, bubbles: true, composed: true })
+    );
     this.pin = "";
     this.isSubmitting = false;
     this.updateVisibility();
   }
-  /**
-   * Open instructor modal
-   */
-  openInstructorModal() {
-    this.showInstructorModal = true;
-    this.instructorError = "";
-  }
-  /**
-   * Handle instructor login with password
-   */
-  async handleInstructorLogin(password) {
-    try {
-      const expectedHash = getExpectedInstructorHash();
-      if (!expectedHash) {
-        this.instructorError = "Instructor password not configured";
-        return;
-      }
-      const passwordHash = await hashPassword(password);
-      if (passwordHash !== expectedHash) {
-        this.instructorError = "Incorrect password";
-        return;
-      }
-      const release = this.getRelease();
-      const sessionService = new SessionService();
-      sessionService.createSession("INSTRUCTOR", "Instructor", release || "");
-      sessionStorage.setItem(STORAGE_KEYS.INSTRUCTOR, "true");
-      const loginData = {
-        serviceId: "INSTRUCTOR",
-        name: "Instructor",
-        release: release || "",
-        role: "instructor"
-      };
-      const event = new CustomEvent("qd:login", {
-        detail: loginData,
-        bubbles: true,
-        composed: true
-      });
-      this.dispatchEvent(event);
-      this.showInstructorModal = false;
-      this.instructorError = "";
-      this.updateVisibility();
-    } catch (err) {
-      this.instructorError = "Login failed. Please try again.";
-      console.error("Instructor login error:", err);
-    }
-  }
 };
-QdLogin.styles = i$4`
-    :host {
-      display: none; /* Hidden if already logged in */
-      font-family:
-        system-ui,
-        -apple-system,
-        sans-serif;
-    }
-
-    :host([data-show]) {
-      display: block;
-    }
-
-    .login-container {
-      padding: 8px 12px;
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      max-width: 480px;
-    }
-
-    .title {
-      margin: 0 0 8px 0;
-      font-size: 15px;
-      font-weight: 600;
-      color: #333;
-    }
-
-    .login-form {
-      display: flex;
-      gap: 6px;
-      align-items: flex-start;
-      flex-wrap: wrap;
-    }
-
-    input {
-      padding: 6px 10px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 11px;
-      width: 110px;
-      min-width: 75px;
-      max-width: 110px;
-    }
-
-    input.pin-input {
-      width: 45px;
-      min-width: 45px;
-      max-width: 45px;
-      text-align: center;
-      letter-spacing: 1px;
-    }
-
-    input:focus {
-      outline: none;
-      border-color: #0066cc;
-      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
-    }
-
-    input:disabled {
-      background-color: #f5f5f5;
-      cursor: not-allowed;
-    }
-
-    button {
-      padding: 6px 12px;
-      border: none;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-
-    .login-btn {
-      background: #0066cc;
-      color: white;
-    }
-
-    .login-btn:hover:not(:disabled) {
-      background: #0052a3;
-    }
-
-    .login-btn:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
-
-    .instructor-btn {
-      background: #6c757d;
-      color: white;
-    }
-
-    .instructor-btn:hover {
-      background: #5a6268;
-    }
-
-    .error-message {
-      width: 100%;
-      color: #d32f2f;
-      font-size: 11px;
-      margin-top: 3px;
-      padding: 4px 8px;
-      background: #ffebee;
-      border-radius: 3px;
-      border-left: 3px solid #d32f2f;
-    }
-
-    .lockout-message {
-      width: 100%;
-      color: #f57c00;
-      font-size: 11px;
-      margin-top: 3px;
-      padding: 4px 8px;
-      background: #fff3e0;
-      border-radius: 3px;
-      border-left: 3px solid #f57c00;
-    }
-
-    /* Responsive */
-    @media (max-width: 600px) {
-      .login-form {
-        flex-direction: column;
-      }
-
-      input,
-      button {
-        width: 100%;
-      }
-    }
-  `;
-__decorateClass$8([
+QdLogin.styles = loginStyles;
+__decorateClass$9([
   n2({ type: String })
 ], QdLogin.prototype, "title", 2);
-__decorateClass$8([
+__decorateClass$9([
   r()
 ], QdLogin.prototype, "name", 2);
-__decorateClass$8([
+__decorateClass$9([
   r()
 ], QdLogin.prototype, "serviceId", 2);
-__decorateClass$8([
-  r()
-], QdLogin.prototype, "showInstructorModal", 2);
-__decorateClass$8([
-  r()
-], QdLogin.prototype, "instructorError", 2);
-__decorateClass$8([
+__decorateClass$9([
   r()
 ], QdLogin.prototype, "errorMessage", 2);
-__decorateClass$8([
+__decorateClass$9([
   r()
 ], QdLogin.prototype, "isSubmitting", 2);
-__decorateClass$8([
+__decorateClass$9([
   r()
 ], QdLogin.prototype, "pin", 2);
-__decorateClass$8([
+__decorateClass$9([
   r()
-], QdLogin.prototype, "lockoutSeconds", 2);
-__decorateClass$8([
+], QdLogin.prototype, "lockoutUntil", 2);
+__decorateClass$9([
   r()
 ], QdLogin.prototype, "showPinConfirmation", 2);
-__decorateClass$8([
+__decorateClass$9([
   r()
 ], QdLogin.prototype, "helpOpen", 2);
-__decorateClass$8([
+__decorateClass$9([
   r()
 ], QdLogin.prototype, "showMigrationDialog", 2);
-__decorateClass$8([
+__decorateClass$9([
   r()
 ], QdLogin.prototype, "migrationError", 2);
-__decorateClass$8([
+__decorateClass$9([
   r()
 ], QdLogin.prototype, "pendingLoginData", 2);
-QdLogin = __decorateClass$8([
+QdLogin = __decorateClass$9([
   t$1("qd-login")
 ], QdLogin);
-var __defProp$7 = Object.defineProperty;
-var __getOwnPropDesc$7 = Object.getOwnPropertyDescriptor;
-var __decorateClass$7 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$7(target, key) : target;
+var __defProp$8 = Object.defineProperty;
+var __getOwnPropDesc$8 = Object.getOwnPropertyDescriptor;
+var __decorateClass$8 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$8(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$7(target, key, result);
+  if (kind && result) __defProp$8(target, key, result);
   return result;
 };
 let QdStatus = class extends i$1 {
@@ -5840,15 +5872,8 @@ let QdStatus = class extends i$1 {
     }
     this.total = cache.totals.total;
     this.correct = cache.totals.correct;
-    this.percentage = this.calculatePercentage(cache.totals.total, cache.totals.correct);
+    this.percentage = calculatePercentage(cache.totals.correct, cache.totals.total);
     this.statusColor = this.calculateStatusColor(cache.totals.total, cache.totals.correct);
-  }
-  /**
-   * Calculate percentage from total/correct
-   */
-  calculatePercentage(total, correct) {
-    if (total === 0) return 0;
-    return Math.round(correct / total * 100);
   }
   /**
    * Calculate status indicator color using calculation helper
@@ -5864,13 +5889,7 @@ let QdStatus = class extends i$1 {
    * Show only if logged in as student (not instructor)
    */
   updateVisibility() {
-    const session = getJSON(STORAGE_KEYS.SESSION);
-    const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
-    if (session && !isInstructor) {
-      this.setAttribute("data-show", "");
-    } else {
-      this.removeAttribute("data-show");
-    }
+    this.toggleAttribute("data-show", isStudentLoggedIn());
   }
   /**
    * Handle logout button click
@@ -5984,28 +6003,28 @@ QdStatus.styles = i$4`
       background: #b71c1c;
     }
   `;
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdStatus.prototype, "total", 2);
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdStatus.prototype, "correct", 2);
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdStatus.prototype, "percentage", 2);
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdStatus.prototype, "statusColor", 2);
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdStatus.prototype, "name", 2);
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdStatus.prototype, "serviceId", 2);
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdStatus.prototype, "helpOpen", 2);
-QdStatus = __decorateClass$7([
+QdStatus = __decorateClass$8([
   t$1("qd-status")
 ], QdStatus);
 const sharedStyles = i$4`
@@ -6371,14 +6390,14 @@ function getInstructorPasswordHash() {
   }
   return hash.toLowerCase();
 }
-var __defProp$6 = Object.defineProperty;
-var __getOwnPropDesc$6 = Object.getOwnPropertyDescriptor;
-var __decorateClass$6 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$6(target, key) : target;
+var __defProp$7 = Object.defineProperty;
+var __getOwnPropDesc$7 = Object.getOwnPropertyDescriptor;
+var __decorateClass$7 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$7(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$6(target, key, result);
+  if (kind && result) __defProp$7(target, key, result);
   return result;
 };
 let QdInstructorUnlock = class extends i$1 {
@@ -6480,26 +6499,26 @@ let QdInstructorUnlock = class extends i$1 {
   }
 };
 QdInstructorUnlock.styles = sharedStyles;
-__decorateClass$6([
+__decorateClass$7([
   r()
 ], QdInstructorUnlock.prototype, "password", 2);
-__decorateClass$6([
+__decorateClass$7([
   r()
 ], QdInstructorUnlock.prototype, "error", 2);
-__decorateClass$6([
+__decorateClass$7([
   r()
 ], QdInstructorUnlock.prototype, "remainingSeconds", 2);
-QdInstructorUnlock = __decorateClass$6([
+QdInstructorUnlock = __decorateClass$7([
   t$1("qd-instructor-unlock")
 ], QdInstructorUnlock);
-var __defProp$5 = Object.defineProperty;
-var __getOwnPropDesc$5 = Object.getOwnPropertyDescriptor;
-var __decorateClass$5 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$5(target, key) : target;
+var __defProp$6 = Object.defineProperty;
+var __getOwnPropDesc$6 = Object.getOwnPropertyDescriptor;
+var __decorateClass$6 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$6(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$5(target, key, result);
+  if (kind && result) __defProp$6(target, key, result);
   return result;
 };
 let QdScoresModal = class extends i$1 {
@@ -6696,23 +6715,23 @@ QdScoresModal.styles = i$4`
       display: contents;
     }
   `;
-__decorateClass$5([
+__decorateClass$6([
   n2({ type: Boolean, reflect: true })
 ], QdScoresModal.prototype, "open", 2);
-__decorateClass$5([
+__decorateClass$6([
   n2({ type: Array })
 ], QdScoresModal.prototype, "students", 2);
-QdScoresModal = __decorateClass$5([
+QdScoresModal = __decorateClass$6([
   t$1("qd-scores-modal")
 ], QdScoresModal);
-var __defProp$4 = Object.defineProperty;
-var __getOwnPropDesc$4 = Object.getOwnPropertyDescriptor;
-var __decorateClass$4 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$4(target, key) : target;
+var __defProp$5 = Object.defineProperty;
+var __getOwnPropDesc$5 = Object.getOwnPropertyDescriptor;
+var __decorateClass$5 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$5(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$4(target, key, result);
+  if (kind && result) __defProp$5(target, key, result);
   return result;
 };
 let QdInstructorScores = class extends i$1 {
@@ -6735,23 +6754,23 @@ let QdInstructorScores = class extends i$1 {
   }
 };
 QdInstructorScores.styles = sharedStyles;
-__decorateClass$4([
+__decorateClass$5([
   n2({ type: Array })
 ], QdInstructorScores.prototype, "students", 2);
-__decorateClass$4([
+__decorateClass$5([
   n2({ type: Boolean })
 ], QdInstructorScores.prototype, "showModal", 2);
-QdInstructorScores = __decorateClass$4([
+QdInstructorScores = __decorateClass$5([
   t$1("qd-instructor-scores")
 ], QdInstructorScores);
-var __defProp$3 = Object.defineProperty;
-var __getOwnPropDesc$3 = Object.getOwnPropertyDescriptor;
-var __decorateClass$3 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$3(target, key) : target;
+var __defProp$4 = Object.defineProperty;
+var __getOwnPropDesc$4 = Object.getOwnPropertyDescriptor;
+var __decorateClass$4 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$4(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$3(target, key, result);
+  if (kind && result) __defProp$4(target, key, result);
   return result;
 };
 let QdInstructorExport = class extends i$1 {
@@ -6822,20 +6841,20 @@ let QdInstructorExport = class extends i$1 {
   }
 };
 QdInstructorExport.styles = sharedStyles;
-__decorateClass$3([
+__decorateClass$4([
   n2({ type: Array })
 ], QdInstructorExport.prototype, "students", 2);
-QdInstructorExport = __decorateClass$3([
+QdInstructorExport = __decorateClass$4([
   t$1("qd-instructor-export")
 ], QdInstructorExport);
-var __defProp$2 = Object.defineProperty;
-var __getOwnPropDesc$2 = Object.getOwnPropertyDescriptor;
-var __decorateClass$2 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$2(target, key) : target;
+var __defProp$3 = Object.defineProperty;
+var __getOwnPropDesc$3 = Object.getOwnPropertyDescriptor;
+var __decorateClass$3 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$3(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$2(target, key, result);
+  if (kind && result) __defProp$3(target, key, result);
   return result;
 };
 let QdInstructorManage = class extends i$1 {
@@ -7003,224 +7022,124 @@ let QdInstructorManage = class extends i$1 {
   }
 };
 QdInstructorManage.styles = sharedStyles;
-__decorateClass$2([
+__decorateClass$3([
   r()
 ], QdInstructorManage.prototype, "showConfirmDialog", 2);
-__decorateClass$2([
+__decorateClass$3([
   r()
 ], QdInstructorManage.prototype, "confirmText", 2);
-__decorateClass$2([
+__decorateClass$3([
   r()
 ], QdInstructorManage.prototype, "error", 2);
-__decorateClass$2([
+__decorateClass$3([
   r()
 ], QdInstructorManage.prototype, "success", 2);
-QdInstructorManage = __decorateClass$2([
+QdInstructorManage = __decorateClass$3([
   t$1("qd-instructor-manage")
 ], QdInstructorManage);
-var __defProp$1 = Object.defineProperty;
-var __getOwnPropDesc$1 = Object.getOwnPropertyDescriptor;
-var __decorateClass$1 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$1(target, key) : target;
+async function resetStudentPin(student) {
+  const dbName = readDbName();
+  if (!dbName) {
+    return {
+      ok: false,
+      error: `Database name not configured. Add <span id="${CONFIG_IDS.dbName}">dbName</span> to page.`
+    };
+  }
+  try {
+    const storage = getStorageAdapter(dbName);
+    await storage.init();
+    const updated = resetPin(student);
+    await storage.saveStudent(updated);
+    const auditEvent = {
+      eventId: crypto.randomUUID(),
+      serviceId: student.serviceId,
+      resetBy: "instructor",
+      resetAt: (/* @__PURE__ */ new Date()).toISOString(),
+      release: student.release
+    };
+    await storage.saveAuditEvent(auditEvent);
+    return { ok: true, updated };
+  } catch (err) {
+    console.error("PIN reset error:", err);
+    return { ok: false, error: "Failed to reset PIN. Please try again." };
+  }
+}
+var __defProp$2 = Object.defineProperty;
+var __getOwnPropDesc$2 = Object.getOwnPropertyDescriptor;
+var __decorateClass$2 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$2(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$1(target, key, result);
+  if (kind && result) __defProp$2(target, key, result);
   return result;
 };
-let QdPinResetDialog = class extends i$1 {
+let QdStudentTable = class extends i$1 {
   constructor() {
     super(...arguments);
     this.students = [];
-    this.open = false;
+    this.actionLabel = "Select";
     this.searchText = "";
-    this.confirmingStudent = null;
-    this.confirmDialogOpen = false;
-    this.errorMessage = "";
-    this.handleModalClose = () => {
-      if (this.confirmDialogOpen) {
-        return;
-      }
-      this.close();
-      this.dispatchEvent(new CustomEvent("close"));
-    };
     this.handleSearchInput = (e2) => {
-      const input = e2.target;
-      this.searchText = input.value;
+      this.searchText = e2.target.value;
     };
-    this.handleResetClick = (student) => {
-      this.confirmingStudent = student;
-      this.confirmDialogOpen = true;
-    };
-    this.handleConfirmReset = () => {
-      if (this.confirmingStudent) {
-        void this.executeReset(this.confirmingStudent);
-      }
-    };
-    this.handleCancelReset = () => {
-      this.confirmDialogOpen = false;
-      this.confirmingStudent = null;
-    };
-  }
-  set showModal(value) {
-    this.open = value;
-  }
-  get showModal() {
-    return this.open;
   }
   get filteredStudents() {
-    if (!this.searchText.trim()) {
+    const search = this.searchText.toLowerCase().trim();
+    if (!search) {
       return this.students;
     }
-    const search = this.searchText.toLowerCase().trim();
     return this.students.filter(
       (s2) => s2.name.toLowerCase().includes(search) || s2.serviceId.toLowerCase().includes(search)
     );
   }
-  /**
-   * Close the modal
-   */
-  close() {
-    this.open = false;
-    this.confirmingStudent = null;
-    this.confirmDialogOpen = false;
-    this.searchText = "";
-    this.errorMessage = "";
-  }
-  /**
-   * Show the modal
-   */
-  show() {
-    this.open = true;
-  }
-  async executeReset(student) {
-    try {
-      const dbNameElement = document.getElementById(CONFIG_IDS.dbName);
-      if (!dbNameElement?.textContent?.trim()) {
-        throw new Error(
-          `Database name not configured. Add <span id="${CONFIG_IDS.dbName}">dbName</span> to page.`
-        );
-      }
-      const dbName = dbNameElement.textContent.trim();
-      const storage = getStorageAdapter(dbName);
-      await storage.init();
-      const updatedStudent = resetPin(student);
-      await storage.saveStudent(updatedStudent);
-      const auditEvent = {
-        eventId: crypto.randomUUID(),
-        serviceId: student.serviceId,
-        resetBy: "instructor",
-        resetAt: (/* @__PURE__ */ new Date()).toISOString(),
-        release: student.release
-      };
-      await storage.saveAuditEvent(auditEvent);
-      const index = this.students.findIndex((s2) => s2.serviceId === student.serviceId);
-      if (index >= 0) {
-        this.students[index] = updatedStudent;
-        this.students = [...this.students];
-      }
-      this.dispatchEvent(
-        new CustomEvent("qd:pin-reset", {
-          detail: {
-            serviceId: student.serviceId,
-            resetBy: "instructor",
-            timestamp: (/* @__PURE__ */ new Date()).toISOString()
-          },
-          bubbles: true,
-          composed: true
-        })
-      );
-      this.confirmDialogOpen = false;
-      this.confirmingStudent = null;
-      this.errorMessage = "";
-    } catch (err) {
-      console.error("PIN reset error:", err);
-      this.errorMessage = "Failed to reset PIN. Please try again.";
-      this.confirmDialogOpen = false;
-      this.confirmingStudent = null;
-    }
+  emitSelect(student) {
+    this.dispatchEvent(
+      new CustomEvent("select", { detail: student, bubbles: true, composed: true })
+    );
   }
   render() {
-    const student = this.confirmingStudent;
-    const confirmMessage = student ? `Reset PIN for <strong>${student.name}</strong> (${student.serviceId})?<br><span style="font-size: 11px; color: #666;">They will need to create a new PIN on next login.</span>` : "";
+    const filtered = this.filteredStudents;
     return x`
-      <qd-modal
-        .open=${this.open && !this.confirmDialogOpen}
-        @qd:modal-close=${this.handleModalClose}
-      >
-        <span slot="header">Reset Student PIN</span>
-
-        ${this.open ? x`
-              <div class="pin-reset-content">
-                <input
-                  type="text"
-                  class="search-input"
-                  placeholder="Search by name or ID..."
-                  .value=${this.searchText}
-                  @input=${this.handleSearchInput}
-                />
-
-                <div class="student-table-container">
-                  ${this.filteredStudents.length === 0 ? x`<div class="empty-message">
-                        ${this.searchText ? "No matching students" : "No students found"}
-                      </div>` : x`
-                        <table class="student-table">
-                          <thead>
-                            <tr>
-                              <th>Name</th>
-                              <th>Service ID</th>
-                              <th>Reset PIN</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            ${this.filteredStudents.map(
-      (s2) => x`
-                                <tr>
-                                  <td>${s2.name}</td>
-                                  <td>${s2.serviceId}</td>
-                                  <td>
-                                    <button
-                                      class="reset-btn"
-                                      type="button"
-                                      @click=${() => this.handleResetClick(s2)}
-                                    >
-                                      Reset
-                                    </button>
-                                  </td>
-                                </tr>
-                              `
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Search by name or ID..."
+        .value=${this.searchText}
+        @input=${this.handleSearchInput}
+      />
+      <div class="student-table-container">
+        ${filtered.length === 0 ? x`<div class="empty-message">
+              ${this.searchText ? "No matching students" : "No students found"}
+            </div>` : x`<table class="student-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Service ID</th>
+                  <th>${this.actionLabel}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filtered.map(
+      (s2) => x`<tr>
+                      <td>${s2.name}</td>
+                      <td>${s2.serviceId}</td>
+                      <td>
+                        <button class="action-btn" type="button" @click=${() => this.emitSelect(s2)}>
+                          ${this.actionLabel}
+                        </button>
+                      </td>
+                    </tr>`
     )}
-                          </tbody>
-                        </table>
-                      `}
-                </div>
-
-                ${this.errorMessage ? x`<div class="error-message">${this.errorMessage}</div>` : ""}
-              </div>
-            ` : E}
-      </qd-modal>
-
-      <qd-confirm-dialog
-        .open=${this.confirmDialogOpen}
-        title="Reset PIN"
-        .message=${confirmMessage}
-        confirmText="Reset PIN"
-        cancelText="Cancel"
-        destructive
-        @qd:confirm=${this.handleConfirmReset}
-        @qd:cancel=${this.handleCancelReset}
-      ></qd-confirm-dialog>
+              </tbody>
+            </table>`}
+      </div>
     `;
   }
 };
-QdPinResetDialog.styles = i$4`
+QdStudentTable.styles = i$4`
     :host {
-      display: contents;
-    }
-
-    .pin-reset-content {
-      min-width: 400px;
-      max-width: 500px;
+      display: block;
     }
 
     .search-input {
@@ -7279,7 +7198,7 @@ QdPinResetDialog.styles = i$4`
       border-bottom: none;
     }
 
-    .reset-btn {
+    .action-btn {
       background: #ff5722;
       color: white;
       border: none;
@@ -7289,7 +7208,7 @@ QdPinResetDialog.styles = i$4`
       cursor: pointer;
     }
 
-    .reset-btn:hover {
+    .action-btn:hover {
       background: #e64a19;
     }
 
@@ -7298,6 +7217,152 @@ QdPinResetDialog.styles = i$4`
       text-align: center;
       color: #666;
       font-size: 12px;
+    }
+  `;
+__decorateClass$2([
+  n2({ type: Array })
+], QdStudentTable.prototype, "students", 2);
+__decorateClass$2([
+  n2({ type: String })
+], QdStudentTable.prototype, "actionLabel", 2);
+__decorateClass$2([
+  r()
+], QdStudentTable.prototype, "searchText", 2);
+QdStudentTable = __decorateClass$2([
+  t$1("qd-student-table")
+], QdStudentTable);
+var __defProp$1 = Object.defineProperty;
+var __getOwnPropDesc$1 = Object.getOwnPropertyDescriptor;
+var __decorateClass$1 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$1(target, key) : target;
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result) __defProp$1(target, key, result);
+  return result;
+};
+let QdPinResetDialog = class extends i$1 {
+  constructor() {
+    super(...arguments);
+    this.students = [];
+    this.open = false;
+    this.confirmingStudent = null;
+    this.confirmDialogOpen = false;
+    this.errorMessage = "";
+    this.handleModalClose = () => {
+      if (this.confirmDialogOpen) {
+        return;
+      }
+      this.close();
+      this.dispatchEvent(new CustomEvent("close"));
+    };
+    this.handleResetClick = (student) => {
+      this.confirmingStudent = student;
+      this.confirmDialogOpen = true;
+    };
+    this.handleConfirmReset = () => {
+      if (this.confirmingStudent) {
+        void this.executeReset(this.confirmingStudent);
+      }
+    };
+    this.handleCancelReset = () => {
+      this.confirmDialogOpen = false;
+      this.confirmingStudent = null;
+    };
+  }
+  set showModal(value) {
+    this.open = value;
+  }
+  get showModal() {
+    return this.open;
+  }
+  /**
+   * Close the modal
+   */
+  close() {
+    this.open = false;
+    this.confirmingStudent = null;
+    this.confirmDialogOpen = false;
+    this.errorMessage = "";
+  }
+  /**
+   * Show the modal
+   */
+  show() {
+    this.open = true;
+  }
+  async executeReset(student) {
+    const result = await resetStudentPin(student);
+    this.confirmDialogOpen = false;
+    this.confirmingStudent = null;
+    if (!result.ok) {
+      this.errorMessage = result.error ?? "Failed to reset PIN. Please try again.";
+      return;
+    }
+    if (result.updated) {
+      const index = this.students.findIndex((s2) => s2.serviceId === student.serviceId);
+      if (index >= 0) {
+        this.students[index] = result.updated;
+        this.students = [...this.students];
+      }
+    }
+    this.errorMessage = "";
+    this.dispatchEvent(
+      new CustomEvent("qd:pin-reset", {
+        detail: {
+          serviceId: student.serviceId,
+          resetBy: "instructor",
+          timestamp: (/* @__PURE__ */ new Date()).toISOString()
+        },
+        bubbles: true,
+        composed: true
+      })
+    );
+  }
+  render() {
+    const student = this.confirmingStudent;
+    const confirmMessage = student ? `Reset PIN for <strong>${student.name}</strong> (${student.serviceId})?<br><span style="font-size: 11px; color: #666;">They will need to create a new PIN on next login.</span>` : "";
+    return x`
+      <qd-modal
+        .open=${this.open && !this.confirmDialogOpen}
+        @qd:modal-close=${this.handleModalClose}
+      >
+        <span slot="header">Reset Student PIN</span>
+
+        ${this.open ? x`
+              <div class="pin-reset-content">
+                <qd-student-table
+                  .students=${this.students}
+                  actionLabel="Reset"
+                  @select=${(e2) => this.handleResetClick(e2.detail)}
+                ></qd-student-table>
+
+                ${this.errorMessage ? x`<div class="error-message">${this.errorMessage}</div>` : ""}
+              </div>
+            ` : E}
+      </qd-modal>
+
+      <qd-confirm-dialog
+        .open=${this.confirmDialogOpen}
+        title="Reset PIN"
+        .message=${confirmMessage}
+        confirmText="Reset PIN"
+        cancelText="Cancel"
+        destructive
+        @qd:confirm=${this.handleConfirmReset}
+        @qd:cancel=${this.handleCancelReset}
+      ></qd-confirm-dialog>
+    `;
+  }
+};
+QdPinResetDialog.styles = i$4`
+    :host {
+      display: contents;
+    }
+
+    .pin-reset-content {
+      min-width: 400px;
+      max-width: 500px;
     }
 
     .error-message {
@@ -7315,9 +7380,6 @@ __decorateClass$1([
 __decorateClass$1([
   n2({ type: Boolean, reflect: true })
 ], QdPinResetDialog.prototype, "open", 2);
-__decorateClass$1([
-  r()
-], QdPinResetDialog.prototype, "searchText", 2);
 __decorateClass$1([
   r()
 ], QdPinResetDialog.prototype, "confirmingStudent", 2);
@@ -7358,7 +7420,7 @@ let QdInstructor = class extends i$1 {
       this.updateVisibility();
       if (role === "instructor") {
         this.unlock();
-        void this.loadStudents();
+        void this.refreshStudents();
       }
     };
     this.handleLogoutEvent = () => {
@@ -7366,16 +7428,7 @@ let QdInstructor = class extends i$1 {
       this.lock();
     };
     this.handleResetPins = async () => {
-      const session = getJSON(STORAGE_KEYS.SESSION);
-      if (!session) return;
-      try {
-        const storageService = getStorageService();
-        const students = await storageService.getStudentsByRelease(session.release);
-        this.students = students;
-      } catch (err) {
-        console.error("Failed to load students:", err);
-        this.students = [];
-      }
+      await this.refreshStudents();
       this.showPinReset = true;
     };
     this.handleClosePinReset = () => {
@@ -7399,16 +7452,7 @@ let QdInstructor = class extends i$1 {
       );
     };
     this.handleViewScores = async () => {
-      const session = getJSON(STORAGE_KEYS.SESSION);
-      if (!session) return;
-      try {
-        const storageService = getStorageService();
-        const students = await storageService.getStudentsByRelease(session.release);
-        this.students = students;
-      } catch (err) {
-        console.error("Failed to load students:", err);
-        this.students = [];
-      }
+      await this.refreshStudents();
       this.showScores = true;
     };
     this.handleCloseScores = () => {
@@ -7441,16 +7485,7 @@ let QdInstructor = class extends i$1 {
       const checkbox = e2.target;
       this.showStudentAnswers = checkbox.checked;
       if (this.showStudentAnswers && this.students.length === 0) {
-        const session = getJSON(STORAGE_KEYS.SESSION);
-        if (session) {
-          try {
-            const storageService = getStorageService();
-            const students = await storageService.getStudentsByRelease(session.release);
-            this.students = students;
-          } catch (err) {
-            console.error("Failed to load students for toggle:", err);
-          }
-        }
+        await this.refreshStudents();
       }
       const eventName = this.showStudentAnswers ? "qd:instructor-show-answers" : "qd:instructor-hide-answers";
       this.dispatchEvent(
@@ -7471,15 +7506,15 @@ let QdInstructor = class extends i$1 {
   connectedCallback() {
     super.connectedCallback();
     this.updateVisibility();
-    const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
-    if (isInstructor) {
+    const instructorActive = isInstructor();
+    if (instructorActive) {
       this.unlock();
-      void this.loadStudents();
+      void this.refreshStudents();
     }
     const savedState = sessionStorage.getItem(INSTRUCTOR_SHOW_ANSWERS_KEY);
     if (savedState !== null) {
       this.showStudentAnswers = savedState === "true";
-      if (this.showStudentAnswers && isInstructor) {
+      if (this.showStudentAnswers && instructorActive) {
         setTimeout(() => {
           this.dispatchEvent(
             new CustomEvent("qd:instructor-show-answers", {
@@ -7502,12 +7537,7 @@ let QdInstructor = class extends i$1 {
    * Update visibility based on instructor session state
    */
   updateVisibility() {
-    const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
-    if (isInstructor) {
-      this.setAttribute("data-show", "");
-    } else {
-      this.removeAttribute("data-show");
-    }
+    this.toggleAttribute("data-show", isInstructor());
   }
   /**
    * Set student data for display
@@ -7516,15 +7546,17 @@ let QdInstructor = class extends i$1 {
     this.students = students;
   }
   /**
-   * Load students from storage for current release
+   * Load all students for the current release into `this.students`.
+   *
+   * The single source for loading students; every panel/handler that needs a
+   * fresh list calls this instead of duplicating the load/try-catch.
    */
-  async loadStudents() {
+  async refreshStudents() {
     const session = getJSON(STORAGE_KEYS.SESSION);
     if (!session) return;
     try {
       const storageService = getStorageService();
-      const students = await storageService.getStudentsByRelease(session.release);
-      this.students = students;
+      this.students = await storageService.getStudentsByRelease(session.release);
     } catch (err) {
       console.error("Failed to load students:", err);
       this.students = [];
@@ -7710,12 +7742,12 @@ function updateLinkBadge(link) {
 function updateAllBadges() {
   const links = document.querySelectorAll(".quizPageBtn");
   const cache = getJSON(STORAGE_KEYS.CACHE);
-  const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
-  if (!cache || isInstructor) {
+  const isInstructor2 = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
+  if (!cache || isInstructor2) {
     links.forEach((link) => {
       clearBadges(link);
     });
-    if (isInstructor) {
+    if (isInstructor2) {
       info(`Removed badge styling from ${links.length} page links (instructor mode)`);
     } else {
       info(`Removed badge styling from ${links.length} page links (no session)`);
@@ -7770,13 +7802,7 @@ function enhanceHomeBadges() {
   document.addEventListener("qd:cache-rebuild", handleCacheRebuild);
   document.addEventListener("qd:logout", handleLogout);
 }
-function injectGlobalStyles() {
-  if (document.getElementById("qd-global-styles")) {
-    return;
-  }
-  const style = document.createElement("style");
-  style.id = "qd-global-styles";
-  style.textContent = `
+const GLOBAL_CSS = `
     /* Sonar Quiz System - Global Styles */
     .qd-hidden {
       display: none !important;
@@ -7824,42 +7850,9 @@ function injectGlobalStyles() {
       background-color: #e8f5e9 !important;
     }
 
-    /* Instructor mode: Student answers display */
-    .qd-student-answers {
-      margin-top: 12px;
-      padding: 8px;
-      background: #f8f9fa;
-      border-radius: 4px;
-      border: 1px solid #dee2e6;
-    }
-
-    .qd-student-answer {
-      font-size: 12px;
-      padding: 4px 0;
-      line-height: 1.4;
-    }
-
-    .qd-student-answer.qd-correct {
-      color: #28a745;
-    }
-
-    .qd-student-answer.qd-incorrect {
-      color: #dc3545;
-    }
-
-    .qd-student-name {
-      font-weight: 600;
-    }
-
-    .qd-student-answer-text {
-      margin: 0 4px;
-    }
-
-    .qd-timestamp {
-      color: #6c757d;
-      font-size: 11px;
-      margin-left: 8px;
-    }
+    /* Instructor-mode student answers/entries are now rendered by the
+       Shadow-DOM <qd-student-answers> / <qd-student-entries> components, which
+       own their styles. No global rules are needed here. */
 
     /* Modal error message styles (needed because qd-modal moves to body) */
     .error-message {
@@ -7871,6 +7864,13 @@ function injectGlobalStyles() {
       border-left: 3px solid #d32f2f;
     }
   `;
+function injectGlobalStyles() {
+  if (document.getElementById("qd-global-styles")) {
+    return;
+  }
+  const style = document.createElement("style");
+  style.id = "qd-global-styles";
+  style.textContent = GLOBAL_CSS;
   document.head.appendChild(style);
 }
 const state = {
@@ -7900,10 +7900,18 @@ async function bootstrap(config = {}) {
     dbName: config.dbName
   });
   if (config.autoEnhanceQuizTables !== false) {
-    enhanceAllQuizTables();
+    enhanceAllTables(
+      "table.qd-quiz",
+      "quiz",
+      (table) => enhanceQuizTable(table, { interactive: false })
+    );
   }
   if (config.autoEnhanceAnalysisTables !== false) {
-    enhanceAllAnalysisTables();
+    enhanceAllTables(
+      "table.qd-analysis",
+      "analysis",
+      (table) => enhanceAnalysisTable(table, { interactive: false })
+    );
   }
   if (config.autoEnhanceHomeBadges !== false) {
     enhanceHomeBadgesIfPresent();
@@ -7917,39 +7925,22 @@ async function bootstrap(config = {}) {
   });
   state.initialized = true;
 }
-function enhanceAllQuizTables() {
-  const tables = document.querySelectorAll("table.qd-quiz");
+function enhanceAllTables(selector, label, enhance) {
+  const tables = document.querySelectorAll(selector);
   if (tables.length === 0) {
     return;
   }
-  info(`Enhancing ${tables.length} quiz table(s) in non-interactive mode...`);
+  info(`Enhancing ${tables.length} ${label} table(s) in non-interactive mode...`);
   let enhanced = 0;
   for (const table of Array.from(tables)) {
     try {
-      enhanceQuizTable(table, { interactive: false });
+      enhance(table);
       enhanced++;
     } catch (err) {
-      warn(`Failed to enhance quiz table: ${err.message}`);
+      warn(`Failed to enhance ${label} table: ${err.message}`);
     }
   }
-  info(`Enhanced ${enhanced} of ${tables.length} quiz table(s) (non-interactive)`);
-}
-function enhanceAllAnalysisTables() {
-  const tables = document.querySelectorAll("table.qd-analysis");
-  if (tables.length === 0) {
-    return;
-  }
-  info(`Enhancing ${tables.length} analysis table(s) in non-interactive mode...`);
-  let enhanced = 0;
-  for (const table of Array.from(tables)) {
-    try {
-      enhanceAnalysisTable(table, { interactive: false });
-      enhanced++;
-    } catch (err) {
-      warn(`Failed to enhance analysis table: ${err.message}`);
-    }
-  }
-  info(`Enhanced ${enhanced} of ${tables.length} analysis table(s) (non-interactive)`);
+  info(`Enhanced ${enhanced} of ${tables.length} ${label} table(s) (non-interactive)`);
 }
 function enhanceHomeBadgesIfPresent() {
   const links = document.querySelectorAll(".quizPageBtn");
@@ -7979,8 +7970,8 @@ function revealQuizAnswersForInstructor() {
   info(`Revealed answers for instructor on ${quizTables.length} quiz table(s)`);
 }
 async function checkExistingSessionAndUpgradeTables() {
-  const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
-  if (isInstructor) {
+  const isInstructor2 = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
+  if (isInstructor2) {
     revealQuizAnswersForInstructor();
     return;
   }
