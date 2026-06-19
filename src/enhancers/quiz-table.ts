@@ -13,26 +13,26 @@
  * - Event emission for state changes
  */
 
-import type {
-  ParsedQuizTable,
-  QuizQuestion,
-  AnswerRecord,
-  PageId,
-  SessionData,
-  SessionCache,
-} from '../types/contracts.js';
+import type { ParsedQuizTable, PageId, SessionData, SessionCache } from '../types/contracts.js';
 import { parseQuizTable } from '../services/quiz-parser.js';
-import { validateAnswer } from '../services/quiz-parser.js';
 import { registerPageQuestions } from '../services/session-cache.js';
-import { getQuestionInputSpec } from '../services/question-input.js';
-import { formatStudentAnswersForDisplay } from '../services/answer-display.js';
 import { Debouncer } from '../utils/debouncer.js';
-import { createElement, addClass, removeClass } from '../utils/dom-helpers.js';
-import { emitCustomEvent } from '../utils/event-helpers.js';
+import { addClass, removeClass } from '../utils/dom-helpers.js';
 import { getJSON, setJSON, INSTRUCTOR_SHOW_ANSWERS_KEY } from '../utils/storage-helpers.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
-import { info, error as logError, warn } from '../utils/logger.js';
-import { getStorageService } from '../services/storage-service.js';
+import { info, error as logError } from '../utils/logger.js';
+import {
+  removeColgroup,
+  hideAnswerColumn,
+  showAnswerColumn,
+  hideDetailColumn,
+} from './quiz-table-columns.js';
+import { createQuestionInput } from './quiz-input-factory.js';
+import { handleAnswerInput, applyValidationStyling } from './quiz-answer-persistence.js';
+import {
+  showStudentAnswersForTable,
+  hideStudentAnswersForTable,
+} from './quiz-instructor-overlay.js';
 
 /**
  * Enhancement options
@@ -66,23 +66,14 @@ export interface QuizTableMetadata {
 const tableMetadata = new WeakMap<HTMLTableElement, QuizTableMetadata>();
 
 /**
- * Enhance a quiz table with single-phase enhancement
+ * Enhance a quiz table with single-phase enhancement.
+ *
+ * Non-interactive mode hides the answer/detail columns; interactive mode
+ * (requires `pageId`) injects input controls, validation, and auto-save.
  *
  * @param table - The quiz table element
  * @param options - Enhancement options
  * @returns true if enhancement succeeded, false if errors occurred
- *
- * @example
- * ```typescript
- * // Non-interactive mode (hide answers)
- * const table = document.querySelector('table.qd-quiz');
- * if (table) {
- *   enhanceQuizTable(table, { interactive: false });
- * }
- *
- * // Interactive mode (inject controls)
- * enhanceQuizTable(table, { interactive: true, pageId: 'gram-1' });
- * ```
  */
 export function enhanceQuizTable(
   table: HTMLTableElement,
@@ -160,13 +151,9 @@ export function enhanceQuizTable(
  * @returns true if successful
  */
 function enhanceNonInteractive(table: HTMLTableElement): boolean {
-  // Remove colgroup to allow auto-sizing of columns
+  // Remove colgroup (auto-size), then hide answer + detail columns for security
   removeColgroup(table);
-
-  // Hide answer column (column index 1) - security: hide correct answers before login
   hideAnswerColumn(table);
-
-  // Hide detail column (column index 2) - security: hide MCQ options/tolerances
   hideDetailColumn(table);
 
   addClass(table, 'qd-quiz-non-interactive');
@@ -362,305 +349,6 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
 
   return true;
 }
-
-/**
- * Create input control for a question
- *
- * For MCQ questions: Creates a <select> dropdown with options
- * For numeric questions: Creates a text input
- *
- * Uses getQuestionInputSpec() for pure logic, then creates DOM elements.
- *
- * @param question - Quiz question
- * @param existingAnswer - Existing answer if any
- * @returns Input or select element
- */
-function createQuestionInput(
-  question: QuizQuestion,
-  existingAnswer?: AnswerRecord,
-): HTMLInputElement | HTMLSelectElement {
-  const spec = getQuestionInputSpec(question, existingAnswer);
-
-  if (spec.type === 'select') {
-    // Create select dropdown for MCQ
-    const select = createElement('select');
-    select.className = spec.className;
-
-    // Add placeholder option
-    const placeholderOption = createElement('option');
-    placeholderOption.value = '';
-    placeholderOption.textContent = spec.placeholder;
-    placeholderOption.disabled = true;
-    select.appendChild(placeholderOption);
-
-    // Add options from spec
-    if (spec.options) {
-      spec.options.forEach((opt) => {
-        const option = createElement('option');
-        option.value = opt.value;
-        option.textContent = opt.text;
-        select.appendChild(option);
-      });
-    }
-
-    // Set value from spec
-    select.value = spec.value;
-
-    return select;
-  } else {
-    // Create text input for numeric questions
-    const input = createElement('input');
-    input.type = spec.type;
-    input.className = spec.className;
-    input.placeholder = spec.placeholder;
-    input.value = spec.value;
-
-    return input;
-  }
-}
-
-/**
- * Handle user answer input
- *
- * @param table - Quiz table element
- * @param metadata - Table metadata
- * @param questionIndex - Question index
- * @param answer - User's answer
- */
-function handleAnswerInput(
-  table: HTMLTableElement,
-  metadata: QuizTableMetadata,
-  questionIndex: number,
-  answer: string,
-): void {
-  const { debouncer, pageId, parsed } = metadata;
-
-  if (!debouncer || !pageId) {
-    return;
-  }
-
-  const question = parsed.questions[questionIndex];
-  if (!question) {
-    return;
-  }
-
-  // Debounce the save operation (200ms delay)
-  debouncer.debounce(
-    `save-answer-${questionIndex}`,
-    () => {
-      void saveAnswer(table, metadata, questionIndex, answer);
-    },
-    200,
-  );
-}
-
-/**
- * Save answer to storage and update UI
- *
- * @param table - Quiz table element
- * @param metadata - Table metadata
- * @param questionIndex - Question index
- * @param answer - User's answer
- */
-async function saveAnswer(
-  table: HTMLTableElement,
-  metadata: QuizTableMetadata,
-  questionIndex: number,
-  answer: string,
-): Promise<void> {
-  const { pageId, parsed, inputs } = metadata;
-
-  if (!pageId || !inputs) {
-    return;
-  }
-
-  const question = parsed.questions[questionIndex];
-  if (!question) {
-    return;
-  }
-
-  // Get session
-  const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
-  if (!session) {
-    logError('No active session found');
-    return;
-  }
-
-  // Validate answer
-  const success = validateAnswer(question, answer);
-
-  // Create answer record
-  const answerRecord: AnswerRecord = {
-    answer: answer.trim(),
-    success,
-    timestamp: new Date().toISOString(),
-  };
-
-  // Load student record from IndexedDB
-  const storageService = getStorageService();
-  let studentRecord;
-  try {
-    studentRecord = await storageService.loadStudentRecord(session);
-  } catch (err) {
-    warn('Failed to load student record, answer not saved', err);
-    return;
-  }
-
-  // Update record with new answer
-  const totalQuestions = parsed.questions.length;
-  const updatedRecord = storageService.updateRecordWithAnswer(
-    studentRecord,
-    pageId,
-    questionIndex,
-    answerRecord,
-    totalQuestions,
-  );
-
-  // Save updated record to IndexedDB
-  try {
-    await storageService.saveStudentRecord(updatedRecord);
-  } catch (err) {
-    warn('Failed to save student record to IndexedDB', err);
-  }
-
-  // Build cache from updated record
-  const cache = storageService.buildCache(updatedRecord);
-
-  // Save cache to sessionStorage for quick access
-  setJSON(STORAGE_KEYS.CACHE, cache);
-
-  // Apply validation styling
-  const row = table.querySelector(`tbody tr:nth-child(${questionIndex + 1})`);
-  if (row) {
-    const answerCell = row.querySelector('td:nth-child(2)');
-    if (answerCell) {
-      applyValidationStyling(answerCell, success);
-    }
-  }
-
-  // Emit events
-  emitCustomEvent('qd:answer-saved', {
-    pageId,
-    answer: answerRecord,
-  });
-
-  const pageData = updatedRecord.pages[pageId];
-  if (pageData) {
-    emitCustomEvent('qd:state-changed', {
-      pageId,
-      state: pageData.state,
-    });
-  }
-
-  info(
-    `Answer saved for question ${questionIndex + 1} on page ${pageId}: ${success ? 'correct' : 'incorrect'}`,
-  );
-}
-
-/**
- * Apply validation styling to answer cell
- *
- * @param cell - Answer cell element
- * @param success - Whether answer is correct
- */
-function applyValidationStyling(cell: Element, success: boolean): void {
-  removeClass(cell, 'qd-answer-correct', 'qd-answer-incorrect');
-  addClass(cell, success ? 'qd-answer-correct' : 'qd-answer-incorrect');
-}
-
-/**
- * Remove colgroup element to allow automatic column sizing
- *
- * Fixed column widths (e.g., 40%/10%/50%) don't work well when
- * columns are hidden or contain interactive controls. Removing
- * the colgroup lets the browser auto-size based on content.
- *
- * @param table - Quiz table element
- */
-function removeColgroup(table: HTMLTableElement): void {
-  const colgroup = table.querySelector('colgroup');
-  if (colgroup) {
-    colgroup.remove();
-  }
-}
-
-/**
- * Hide answer column (column index 1)
- *
- * SECURITY: Removes correct answers from DOM to prevent inspection via DevTools/view-source.
- * Answers are already parsed and stored in memory (WeakMap), so they're available for
- * validation when needed but not exposed in the DOM.
- *
- * @param table - Quiz table element
- */
-function hideAnswerColumn(table: HTMLTableElement): void {
-  // Hide header cell (Answer is column 1)
-  const headerCells = table.querySelectorAll('thead th, thead td');
-  if (headerCells[1]) {
-    addClass(headerCells[1], 'qd-hidden');
-  }
-
-  // Hide answer cells and REMOVE content from DOM (security)
-  const rows = table.querySelectorAll('tbody tr');
-  rows.forEach((row) => {
-    const cells = row.querySelectorAll('td');
-    if (cells[1]) {
-      addClass(cells[1], 'qd-hidden');
-      cells[1].textContent = ''; // Remove answer from DOM
-    }
-  });
-}
-
-/**
- * Show answer column (column index 1) for interactive mode
- *
- * Removes qd-hidden class to reveal answer cells with input controls.
- * Called when upgrading from non-interactive to interactive mode.
- *
- * @param table - Quiz table element
- */
-function showAnswerColumn(table: HTMLTableElement): void {
-  // Show header cell (Answer is column 1)
-  const headerCells = table.querySelectorAll('thead th, thead td');
-  if (headerCells[1]) {
-    removeClass(headerCells[1], 'qd-hidden');
-  }
-
-  // Show answer cells in all rows
-  const rows = table.querySelectorAll('tbody tr');
-  rows.forEach((row) => {
-    const cells = row.querySelectorAll('td');
-    if (cells[1]) {
-      removeClass(cells[1], 'qd-hidden');
-    }
-  });
-}
-
-/**
- * Hide detail column (column index 2)
- *
- * Hides the Detail column which contains MCQ options or numeric tolerances.
- * This prevents users from seeing answer options before logging in.
- *
- * @param table - Quiz table element
- */
-function hideDetailColumn(table: HTMLTableElement): void {
-  // Hide header cell (Detail is column 2)
-  const headerCells = table.querySelectorAll('thead th, thead td');
-  if (headerCells[2]) {
-    addClass(headerCells[2], 'qd-hidden');
-  }
-
-  // Hide detail cells in all rows
-  const rows = table.querySelectorAll('tbody tr');
-  rows.forEach((row) => {
-    const cells = row.querySelectorAll('td');
-    if (cells[2]) {
-      addClass(cells[2], 'qd-hidden');
-    }
-  });
-}
-
 /**
  * Get quiz table metadata
  *
@@ -708,117 +396,4 @@ export function resetQuizTableToNonInteractive(table: HTMLTableElement): void {
   removeClass(table, 'qd-quiz-interactive');
 
   info('Quiz table reset to non-interactive mode');
-}
-
-/**
- * Show student answers for all questions in table (instructor mode)
- *
- * @param table - Quiz table element
- * @param metadata - Table metadata
- */
-export async function showStudentAnswersForTable(
-  table: HTMLTableElement,
-  metadata: QuizTableMetadata,
-): Promise<void> {
-  const { pageId, parsed } = metadata;
-  if (!pageId) return;
-
-  const session = getJSON<SessionData>(STORAGE_KEYS.SESSION);
-  if (!session) return;
-
-  // Get storage service to load all student records
-  const storageService = getStorageService();
-
-  try {
-    // Load all student records for current release
-    const students = await storageService.getStudentsByRelease(session.release);
-
-    // Check if there are any students
-    if (students.length === 0) {
-      info('No student data available for this release');
-      alert(
-        'No student data available for this release. Students need to log in and answer questions first.',
-      );
-      return;
-    }
-
-    // Get tbody rows
-    const tbody = table.querySelector('tbody');
-    if (!tbody) return;
-
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-
-    // For each question, collect student answers and display using formatStudentAnswersForDisplay
-    parsed.questions.forEach((_question, questionIndex) => {
-      const row = rows[questionIndex];
-      if (!row) return;
-
-      const cells = Array.from(row.querySelectorAll('td'));
-      const answerCell = cells[1];
-      if (!answerCell) return;
-
-      // Remove any existing student answers display
-      const existingDisplay = answerCell.querySelector('.qd-student-answers');
-      if (existingDisplay) {
-        existingDisplay.remove();
-      }
-
-      // Use pure helper function to format student answers
-      const studentAnswers = formatStudentAnswersForDisplay(students, pageId, questionIndex);
-
-      // Create display element from formatted data
-      if (studentAnswers.length > 0) {
-        const display = document.createElement('div');
-        display.className = 'qd-student-answers';
-
-        studentAnswers.forEach((sa) => {
-          const answerDiv = document.createElement('div');
-          answerDiv.className = `qd-student-answer ${sa.cssClass}`;
-
-          // Format: Name (last 4 of serviceId): answer [timestamp] (FR-007: 24-hour format)
-          // SECURITY (FR-004): student-controlled name/answer are set via
-          // textContent so any HTML they contain renders as inert text, never
-          // as live markup. Never use innerHTML for student-supplied data.
-          const nameSpan = document.createElement('span');
-          nameSpan.className = 'qd-student-name';
-          nameSpan.textContent = `${sa.name} (${sa.maskedServiceId})`;
-
-          const answerSpan = document.createElement('span');
-          answerSpan.className = 'qd-student-answer-text';
-          answerSpan.textContent = sa.answer;
-
-          const timestampSpan = document.createElement('span');
-          timestampSpan.className = 'qd-timestamp';
-          timestampSpan.textContent = sa.formattedTimestamp;
-
-          answerDiv.append(
-            nameSpan,
-            document.createTextNode(': '),
-            answerSpan,
-            document.createTextNode(' '),
-            timestampSpan,
-          );
-
-          display.appendChild(answerDiv);
-        });
-
-        answerCell.appendChild(display);
-      }
-    });
-
-    info(`Displayed student answers for ${students.length} students on page ${pageId}`);
-  } catch (err) {
-    logError('Failed to load student answers', err as Error);
-  }
-}
-
-/**
- * Hide student answers for all questions in table
- *
- * @param table - Quiz table element
- */
-export function hideStudentAnswersForTable(table: HTMLTableElement): void {
-  const displays = table.querySelectorAll('.qd-student-answers');
-  displays.forEach((display) => display.remove());
-  info('Hid student answers from quiz table');
 }

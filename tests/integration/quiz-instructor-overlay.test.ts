@@ -8,12 +8,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { enhanceQuizTable, getQuizTableMetadata } from '../../src/enhancers/quiz-table.js';
 import {
-  enhanceQuizTable,
-  getQuizTableMetadata,
   showStudentAnswersForTable,
   hideStudentAnswersForTable,
-} from '../../src/enhancers/quiz-table.js';
+} from '../../src/enhancers/quiz-instructor-overlay.js';
 import type { SessionData, StudentRecord } from '../../src/types/contracts.js';
 
 type QuizMetadata = NonNullable<ReturnType<typeof getQuizTableMetadata>>;

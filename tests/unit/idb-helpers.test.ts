@@ -40,7 +40,13 @@ describe('idb-helpers', () => {
   describe('runTransaction', () => {
     it('resolves with the request result on success', async () => {
       await runTransaction(db, STORE, 'readwrite', (s) => s.put('hello', 'k1'), 'put');
-      const value = await runTransaction<string>(db, STORE, 'readonly', (s) => s.get('k1'), 'get');
+      const value = await runTransaction<string>(
+        db,
+        STORE,
+        'readonly',
+        (s) => s.get('k1') as IDBRequest<string>,
+        'get',
+      );
       expect(value).toBe('hello');
     });
 
