@@ -159,6 +159,42 @@ const PIN_CONSTANTS = {
   /** Lockout duration in milliseconds (30 seconds) */
   LOCKOUT_MS: 30 * 1e3
 };
+const INSTRUCTOR_SHOW_ANSWERS_KEY = "qd/instructor/showAnswers";
+function getJSON(key) {
+  try {
+    const data = sessionStorage.getItem(key);
+    if (!data) {
+      return null;
+    }
+    return JSON.parse(data);
+  } catch (error2) {
+    warn(`Failed to parse JSON from sessionStorage key: ${key}`, error2);
+    return null;
+  }
+}
+function setJSON(key, value) {
+  try {
+    const json = JSON.stringify(value);
+    sessionStorage.setItem(key, json);
+    return true;
+  } catch (error2) {
+    warn(`Failed to store JSON in sessionStorage key: ${key}`, error2);
+    return false;
+  }
+}
+function clearQuizData() {
+  const keysToRemove = [];
+  for (let i3 = 0; i3 < sessionStorage.length; i3++) {
+    const key = sessionStorage.key(i3);
+    if (key && key.startsWith("qd/")) {
+      keysToRemove.push(key);
+    }
+  }
+  for (const key of keysToRemove) {
+    sessionStorage.removeItem(key);
+  }
+  return keysToRemove.length;
+}
 function calculateStatusIndicator(total, correct) {
   if (total === 0 || correct === 0) {
     return "red";
@@ -269,7 +305,7 @@ class SessionService {
     sessionStorage.removeItem(STORAGE_KEYS.SESSION);
     sessionStorage.removeItem(STORAGE_KEYS.CACHE);
     sessionStorage.removeItem(STORAGE_KEYS.INSTRUCTOR);
-    sessionStorage.removeItem("qd/instructor/showAnswers");
+    sessionStorage.removeItem(INSTRUCTOR_SHOW_ANSWERS_KEY);
     if (session) {
       info(`Session cleared for ${session.serviceId}`);
       this.emitEvent("qd:logout", {
@@ -628,41 +664,6 @@ function dispatchEventOn(element, name, detail, options) {
     cancelable: false
   });
   return element.dispatchEvent(event);
-}
-function getJSON(key) {
-  try {
-    const data = sessionStorage.getItem(key);
-    if (!data) {
-      return null;
-    }
-    return JSON.parse(data);
-  } catch (error2) {
-    warn(`Failed to parse JSON from sessionStorage key: ${key}`, error2);
-    return null;
-  }
-}
-function setJSON(key, value) {
-  try {
-    const json = JSON.stringify(value);
-    sessionStorage.setItem(key, json);
-    return true;
-  } catch (error2) {
-    warn(`Failed to store JSON in sessionStorage key: ${key}`, error2);
-    return false;
-  }
-}
-function clearQuizData() {
-  const keysToRemove = [];
-  for (let i3 = 0; i3 < sessionStorage.length; i3++) {
-    const key = sessionStorage.key(i3);
-    if (key && key.startsWith("qd/")) {
-      keysToRemove.push(key);
-    }
-  }
-  for (const key of keysToRemove) {
-    sessionStorage.removeItem(key);
-  }
-  return keysToRemove.length;
 }
 function getStorageKey(release, serviceId) {
   return `qd/${release}/u${serviceId}`;
@@ -1355,6 +1356,20 @@ function isPageComplete(answers, totalQuestions) {
 function isPageUnstarted(answers) {
   return answers.length === 0;
 }
+function createEmptyStudentRecord(session) {
+  return {
+    schema: 1,
+    docId: session.release,
+    // Use release as docId
+    release: session.release,
+    serviceId: session.serviceId,
+    name: session.name,
+    attempted: 0,
+    correct: 0,
+    updated: (/* @__PURE__ */ new Date()).toISOString(),
+    pages: {}
+  };
+}
 class StorageService {
   /**
    * Create storage service with specified database name
@@ -1395,34 +1410,12 @@ class StorageService {
         info(`Loaded student record for ${session.serviceId} from IndexedDB`);
         return existing;
       }
-      const newRecord = {
-        schema: 1,
-        docId: session.release,
-        // Use release as docId
-        release: session.release,
-        serviceId: session.serviceId,
-        name: session.name,
-        attempted: 0,
-        correct: 0,
-        updated: (/* @__PURE__ */ new Date()).toISOString(),
-        pages: {}
-      };
+      const newRecord = createEmptyStudentRecord(session);
       info(`Created new student record for ${session.serviceId}`);
       return newRecord;
     } catch (err) {
       warn(`IndexedDB error, creating new record: ${err.message}`);
-      const newRecord = {
-        schema: 1,
-        docId: session.release,
-        release: session.release,
-        serviceId: session.serviceId,
-        name: session.name,
-        attempted: 0,
-        correct: 0,
-        updated: (/* @__PURE__ */ new Date()).toISOString(),
-        pages: {}
-      };
-      return newRecord;
+      return createEmptyStudentRecord(session);
     }
   }
   /**
@@ -1677,7 +1670,7 @@ function enhanceInteractive$1(table, metadata) {
   document.addEventListener("qd:instructor-show-answers", showAnswersHandler);
   document.addEventListener("qd:instructor-hide-answers", hideAnswersHandler);
   const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
-  const showAnswers = sessionStorage.getItem("qd/instructor/showAnswers") === "true";
+  const showAnswers = sessionStorage.getItem(INSTRUCTOR_SHOW_ANSWERS_KEY) === "true";
   if (isInstructor && showAnswers) {
     void showStudentAnswersForTable(table, metadata);
   }
@@ -1925,11 +1918,22 @@ async function showStudentAnswersForTable(table, metadata) {
         studentAnswers.forEach((sa) => {
           const answerDiv = document.createElement("div");
           answerDiv.className = `qd-student-answer ${sa.cssClass}`;
-          answerDiv.innerHTML = `
-            <span class="qd-student-name">${sa.name} (${sa.maskedServiceId})</span>:
-            <span class="qd-student-answer-text">${sa.answer}</span>
-            <span class="qd-timestamp">${sa.formattedTimestamp}</span>
-          `;
+          const nameSpan = document.createElement("span");
+          nameSpan.className = "qd-student-name";
+          nameSpan.textContent = `${sa.name} (${sa.maskedServiceId})`;
+          const answerSpan = document.createElement("span");
+          answerSpan.className = "qd-student-answer-text";
+          answerSpan.textContent = sa.answer;
+          const timestampSpan = document.createElement("span");
+          timestampSpan.className = "qd-timestamp";
+          timestampSpan.textContent = sa.formattedTimestamp;
+          answerDiv.append(
+            nameSpan,
+            document.createTextNode(": "),
+            answerSpan,
+            document.createTextNode(" "),
+            timestampSpan
+          );
           display.appendChild(answerDiv);
         });
         answerCell.appendChild(display);
@@ -1943,6 +1947,36 @@ async function showStudentAnswersForTable(table, metadata) {
 function hideStudentAnswersForTable(table) {
   const displays = table.querySelectorAll(".qd-student-answers");
   displays.forEach((display) => display.remove());
+}
+function revealInstructorAnswers(table, metadata, options = {}) {
+  if (options.addInstructorClass) {
+    table.classList.add("qd-quiz-instructor");
+  }
+  const answerCells = table.querySelectorAll("td:nth-child(2), th:nth-child(2)");
+  answerCells.forEach((cell) => {
+    cell.classList.remove("qd-hidden");
+  });
+  const answerDataCells = table.querySelectorAll("tbody td:nth-child(2)");
+  answerDataCells.forEach((cell, index) => {
+    const question = metadata.parsed.questions[index];
+    if (question && cell instanceof HTMLTableCellElement) {
+      cell.textContent = question.correctAnswer;
+    }
+  });
+  const detailCells = table.querySelectorAll("td:nth-child(3), th:nth-child(3)");
+  detailCells.forEach((cell) => cell.classList.remove("qd-hidden"));
+  const showAnswersHandler = () => {
+    void showStudentAnswersForTable(table, metadata);
+  };
+  const hideAnswersHandler = () => {
+    hideStudentAnswersForTable(table);
+  };
+  document.addEventListener("qd:instructor-show-answers", showAnswersHandler);
+  document.addEventListener("qd:instructor-hide-answers", hideAnswersHandler);
+  const showAnswers = sessionStorage.getItem(INSTRUCTOR_SHOW_ANSWERS_KEY) === "true";
+  if (showAnswers) {
+    void showAnswersHandler();
+  }
 }
 function hashString(input, length = 16) {
   let hash = 5381;
@@ -2287,6 +2321,11 @@ function getCurrentPageId() {
   const pageId = filename.replace(".html", "");
   return pageId || void 0;
 }
+function getPageIdFromUrl(url) {
+  const path = window.location.pathname.split(/[?#]/)[0] ?? "";
+  const filename = path.substring(path.lastIndexOf("/") + 1);
+  return filename.replace(/\.html?$/i, "");
+}
 class EventCoordinator {
   constructor() {
     this.listeners = /* @__PURE__ */ new Map();
@@ -2342,9 +2381,7 @@ class EventCoordinator {
    * Upgrade all tables to interactive mode after login
    */
   upgradeTablesAfterLogin() {
-    const pathname = window.location.pathname;
-    const filename = pathname.substring(pathname.lastIndexOf("/") + 1);
-    const pageId = filename.replace(/\.html?$/i, "");
+    const pageId = getPageIdFromUrl();
     if (!pageId) {
       return;
     }
@@ -2355,31 +2392,7 @@ class EventCoordinator {
         const metadata = getQuizTableMetadata(table);
         if (!metadata) return;
         metadata.pageId = pageId;
-        const answerCells = table.querySelectorAll("td:nth-child(2), th:nth-child(2)");
-        answerCells.forEach((cell) => {
-          cell.classList.remove("qd-hidden");
-        });
-        const answerDataCells = table.querySelectorAll("tbody td:nth-child(2)");
-        answerDataCells.forEach((cell, index) => {
-          const question = metadata.parsed.questions[index];
-          if (question && cell instanceof HTMLTableCellElement) {
-            cell.textContent = question.correctAnswer;
-          }
-        });
-        const detailCells = table.querySelectorAll("td:nth-child(3), th:nth-child(3)");
-        detailCells.forEach((cell) => cell.classList.remove("qd-hidden"));
-        const showAnswersHandler = () => {
-          void showStudentAnswersForTable(table, metadata);
-        };
-        const hideAnswersHandler = () => {
-          hideStudentAnswersForTable(table);
-        };
-        document.addEventListener("qd:instructor-show-answers", showAnswersHandler);
-        document.addEventListener("qd:instructor-hide-answers", hideAnswersHandler);
-        const showAnswers = sessionStorage.getItem("qd/instructor/showAnswers") === "true";
-        if (showAnswers) {
-          void showAnswersHandler();
-        }
+        revealInstructorAnswers(table, metadata);
       });
       return;
     }
@@ -3283,6 +3296,25 @@ function constantTimeCompare$1(a2, b2) {
     result |= a2.charCodeAt(i3) ^ b2.charCodeAt(i3);
   }
   return result === 0;
+}
+async function hashPassword(plain) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(plain);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b2) => b2.toString(16).padStart(2, "0")).join("").substring(0, 12);
+}
+function getExpectedInstructorHash() {
+  const hashElement = document.getElementById(CONFIG_IDS.instructorHash);
+  return hashElement?.textContent?.trim() || "";
+}
+async function verifyInstructorPassword(plain) {
+  const expectedHash = getExpectedInstructorHash();
+  if (!expectedHash) {
+    return false;
+  }
+  const actualHash = await hashPassword(plain);
+  return actualHash === expectedHash;
 }
 function getAttemptKey(serviceId) {
   return `${STORAGE_KEYS.PIN_ATTEMPTS}:${serviceId}`;
@@ -4513,6 +4545,24 @@ async function putRawRecord(db, key, value) {
     };
   });
 }
+const spinnerStyles = i$4`
+  .spinner {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border: 3px solid #e0e0e0;
+    border-top-color: #0066cc;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 12px;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
 var __defProp$9 = Object.defineProperty;
 var __getOwnPropDesc$9 = Object.getOwnPropertyDescriptor;
 var __decorateClass$9 = (decorators, target, key, kind) => {
@@ -4600,18 +4650,11 @@ let QdMigrationDialog = class extends i$1 {
    * Validate instructor password against configured hash
    */
   async validatePassword(password) {
-    const hashElement = document.getElementById(CONFIG_IDS.instructorHash);
-    const expectedHash = hashElement?.textContent?.trim();
-    if (!expectedHash) {
+    if (!getExpectedInstructorHash()) {
       this.error = "Instructor password not configured";
       return false;
     }
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const actualHash = hashArray.map((b2) => b2.toString(16).padStart(2, "0")).join("").substring(0, 12);
-    return actualHash === expectedHash;
+    return verifyInstructorPassword(password);
   }
   /**
    * Run the migration
@@ -4750,173 +4793,159 @@ let QdMigrationDialog = class extends i$1 {
     `;
   }
 };
-QdMigrationDialog.styles = i$4`
-    :host {
-      display: contents;
-    }
-
-    .migration-content {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      padding: 8px 0;
-    }
-
-    .warning-banner {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      padding: 12px;
-      background: #fff3cd;
-      border-radius: 4px;
-      border-left: 4px solid #ffc107;
-    }
-
-    .warning-icon {
-      font-size: 20px;
-      line-height: 1;
-    }
-
-    .warning-text {
-      flex: 1;
-    }
-
-    .warning-text strong {
-      display: block;
-      margin-bottom: 4px;
-      color: #856404;
-    }
-
-    .format-info {
-      font-size: 13px;
-      color: #666;
-    }
-
-    .format-row {
-      display: flex;
-      gap: 8px;
-      margin: 4px 0;
-    }
-
-    .format-label {
-      font-weight: 500;
-      min-width: 100px;
-    }
-
-    .format-value {
-      font-family: monospace;
-      background: #f5f5f5;
-      padding: 2px 6px;
-      border-radius: 3px;
-    }
-
-    .form-field {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    label {
-      font-size: 13px;
-      font-weight: 500;
-      color: #333;
-    }
-
-    input[type='password'] {
-      padding: 8px 12px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 14px;
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    input[type='password']:focus {
-      outline: none;
-      border-color: #0066cc;
-      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
-    }
-
-    .error-message {
-      color: #d32f2f;
-      font-size: 12px;
-      padding: 8px;
-      background: #ffebee;
-      border-radius: 4px;
-      border-left: 3px solid #d32f2f;
-    }
-
-    .success-message {
-      color: #2e7d32;
-      font-size: 13px;
-      padding: 12px;
-      background: #e8f5e9;
-      border-radius: 4px;
-      border-left: 3px solid #4caf50;
-    }
-
-    .migrating-state {
-      text-align: center;
-      padding: 20px;
-    }
-
-    .spinner {
-      display: inline-block;
-      width: 24px;
-      height: 24px;
-      border: 3px solid #e0e0e0;
-      border-top-color: #0066cc;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-bottom: 12px;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
+QdMigrationDialog.styles = [
+  spinnerStyles,
+  i$4`
+      :host {
+        display: contents;
       }
-    }
 
-    .button-row {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-      margin-top: 8px;
-    }
+      .migration-content {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 8px 0;
+      }
 
-    button {
-      padding: 8px 16px;
-      border: none;
-      border-radius: 4px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
+      .warning-banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px;
+        background: #fff3cd;
+        border-radius: 4px;
+        border-left: 4px solid #ffc107;
+      }
 
-    button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
+      .warning-icon {
+        font-size: 20px;
+        line-height: 1;
+      }
 
-    button.primary {
-      background: #0066cc;
-      color: white;
-    }
+      .warning-text {
+        flex: 1;
+      }
 
-    button.primary:hover:not(:disabled) {
-      background: #0052a3;
-    }
+      .warning-text strong {
+        display: block;
+        margin-bottom: 4px;
+        color: #856404;
+      }
 
-    button.secondary {
-      background: #e0e0e0;
-      color: #333;
-    }
+      .format-info {
+        font-size: 13px;
+        color: #666;
+      }
 
-    button.secondary:hover:not(:disabled) {
-      background: #d0d0d0;
-    }
-  `;
+      .format-row {
+        display: flex;
+        gap: 8px;
+        margin: 4px 0;
+      }
+
+      .format-label {
+        font-weight: 500;
+        min-width: 100px;
+      }
+
+      .format-value {
+        font-family: monospace;
+        background: #f5f5f5;
+        padding: 2px 6px;
+        border-radius: 3px;
+      }
+
+      .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      label {
+        font-size: 13px;
+        font-weight: 500;
+        color: #333;
+      }
+
+      input[type='password'] {
+        padding: 8px 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      input[type='password']:focus {
+        outline: none;
+        border-color: #0066cc;
+        box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+      }
+
+      .error-message {
+        color: #d32f2f;
+        font-size: 12px;
+        padding: 8px;
+        background: #ffebee;
+        border-radius: 4px;
+        border-left: 3px solid #d32f2f;
+      }
+
+      .success-message {
+        color: #2e7d32;
+        font-size: 13px;
+        padding: 12px;
+        background: #e8f5e9;
+        border-radius: 4px;
+        border-left: 3px solid #4caf50;
+      }
+
+      .migrating-state {
+        text-align: center;
+        padding: 20px;
+      }
+
+      .button-row {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        margin-top: 8px;
+      }
+
+      button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      button.primary {
+        background: #0066cc;
+        color: white;
+      }
+
+      button.primary:hover:not(:disabled) {
+        background: #0052a3;
+      }
+
+      button.secondary {
+        background: #e0e0e0;
+        color: #333;
+      }
+
+      button.secondary:hover:not(:disabled) {
+        background: #d0d0d0;
+      }
+    `
+];
 __decorateClass$9([
   n2({ type: Boolean, reflect: true })
 ], QdMigrationDialog.prototype, "open", 2);
@@ -5486,33 +5515,16 @@ let QdLogin = class extends i$1 {
     this.instructorError = "";
   }
   /**
-   * Hash password using SHA-256
-   */
-  async hashPassword(password) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map((b2) => b2.toString(16).padStart(2, "0")).join("").substring(0, 12);
-  }
-  /**
-   * Get expected password hash from hidden element
-   */
-  getExpectedHash() {
-    const hashElement = document.getElementById(CONFIG_IDS.instructorHash);
-    return hashElement?.textContent?.trim() || "";
-  }
-  /**
    * Handle instructor login with password
    */
   async handleInstructorLogin(password) {
     try {
-      const passwordHash = await this.hashPassword(password);
-      const expectedHash = this.getExpectedHash();
+      const expectedHash = getExpectedInstructorHash();
       if (!expectedHash) {
         this.instructorError = "Instructor password not configured";
         return;
       }
+      const passwordHash = await hashPassword(password);
       if (passwordHash !== expectedHash) {
         this.instructorError = "Incorrect password";
         return;
@@ -7447,7 +7459,7 @@ let QdInstructor = class extends i$1 {
           composed: true
         })
       );
-      sessionStorage.setItem("qd/instructor/showAnswers", String(this.showStudentAnswers));
+      sessionStorage.setItem(INSTRUCTOR_SHOW_ANSWERS_KEY, String(this.showStudentAnswers));
     };
     this.handleHelpOpen = () => {
       this.helpOpen = true;
@@ -7464,7 +7476,7 @@ let QdInstructor = class extends i$1 {
       this.unlock();
       void this.loadStudents();
     }
-    const savedState = sessionStorage.getItem("qd/instructor/showAnswers");
+    const savedState = sessionStorage.getItem(INSTRUCTOR_SHOW_ANSWERS_KEY);
     if (savedState !== null) {
       this.showStudentAnswers = savedState === "true";
       if (this.showStudentAnswers && isInstructor) {
@@ -7671,10 +7683,13 @@ const STATE_TO_BADGE = {
   incomplete: "amber",
   complete: "green"
 };
-function applyBadge(link, state2) {
+function clearBadges(link) {
   Object.values(BADGE_CLASSES).forEach((className) => {
     link.classList.remove(className);
   });
+}
+function applyBadge(link, state2) {
+  clearBadges(link);
   const badgeColor = STATE_TO_BADGE[state2];
   const badgeClass = BADGE_CLASSES[badgeColor];
   link.classList.add(badgeClass);
@@ -7698,9 +7713,7 @@ function updateAllBadges() {
   const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
   if (!cache || isInstructor) {
     links.forEach((link) => {
-      Object.values(BADGE_CLASSES).forEach((className) => {
-        link.classList.remove(className);
-      });
+      clearBadges(link);
     });
     if (isInstructor) {
       info(`Removed badge styling from ${links.length} page links (instructor mode)`);
@@ -7728,9 +7741,7 @@ function handleCacheRebuild() {
 function handleLogout() {
   const links = document.querySelectorAll(".quizPageBtn");
   links.forEach((link) => {
-    Object.values(BADGE_CLASSES).forEach((className) => {
-      link.classList.remove(className);
-    });
+    clearBadges(link);
   });
   info(`Removed badge styling from ${links.length} page links`);
 }
@@ -7954,9 +7965,7 @@ function enhanceHomeBadgesIfPresent() {
   }
 }
 function revealQuizAnswersForInstructor() {
-  const pathname = window.location.pathname;
-  const filename = pathname.substring(pathname.lastIndexOf("/") + 1);
-  const pageId = filename.replace(/\.html?$/i, "");
+  const pageId = getPageIdFromUrl();
   const quizTables = document.querySelectorAll("table.qd-quiz");
   if (quizTables.length === 0) {
     return;
@@ -7965,32 +7974,7 @@ function revealQuizAnswersForInstructor() {
     const metadata = getQuizTableMetadata(table);
     if (!metadata) return;
     metadata.pageId = pageId;
-    table.classList.add("qd-quiz-instructor");
-    const answerCells = table.querySelectorAll("td:nth-child(2), th:nth-child(2)");
-    answerCells.forEach((cell) => {
-      cell.classList.remove("qd-hidden");
-    });
-    const answerDataCells = table.querySelectorAll("tbody td:nth-child(2)");
-    answerDataCells.forEach((cell, index) => {
-      const question = metadata.parsed.questions[index];
-      if (question && cell instanceof HTMLTableCellElement) {
-        cell.textContent = question.correctAnswer;
-      }
-    });
-    const detailCells = table.querySelectorAll("td:nth-child(3), th:nth-child(3)");
-    detailCells.forEach((cell) => cell.classList.remove("qd-hidden"));
-    const showAnswersHandler = () => {
-      void showStudentAnswersForTable(table, metadata);
-    };
-    const hideAnswersHandler = () => {
-      hideStudentAnswersForTable(table);
-    };
-    document.addEventListener("qd:instructor-show-answers", showAnswersHandler);
-    document.addEventListener("qd:instructor-hide-answers", hideAnswersHandler);
-    const showAnswers = sessionStorage.getItem("qd/instructor/showAnswers") === "true";
-    if (showAnswers) {
-      void showAnswersHandler();
-    }
+    revealInstructorAnswers(table, metadata, { addInstructorClass: true });
   });
   info(`Revealed answers for instructor on ${quizTables.length} quiz table(s)`);
 }
@@ -8022,9 +8006,7 @@ async function checkExistingSessionAndUpgradeTables() {
       setJSON(STORAGE_KEYS.CACHE, cache);
     }
   }
-  const pathname = window.location.pathname;
-  const filename = pathname.substring(pathname.lastIndexOf("/") + 1);
-  const pageId = filename.replace(/\.html?$/i, "");
+  const pageId = getPageIdFromUrl();
   if (!pageId) {
     return;
   }
