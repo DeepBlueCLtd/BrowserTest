@@ -7,16 +7,12 @@ import { info, warn } from '../utils/logger.js';
 import { EventCoordinator } from './event-coordinator.js';
 import { SessionCoordinator } from './session-coordinator.js';
 import { injectComponents, type ComponentInjectorConfig } from './component-injector.js';
-import {
-  enhanceQuizTable,
-  getQuizTableMetadata,
-  showStudentAnswersForTable,
-  hideStudentAnswersForTable,
-} from '../enhancers/quiz-table.js';
+import { enhanceQuizTable, getQuizTableMetadata } from '../enhancers/quiz-table.js';
+import { revealInstructorAnswers } from '../enhancers/instructor-answer-reveal.js';
 import { enhanceAnalysisTable } from '../enhancers/analysis-table.js';
 import { enhanceHomeBadges } from '../enhancers/home-badges.js';
 import { getStorageService } from '../services/storage-service.js';
-import { getJSON, setJSON, INSTRUCTOR_SHOW_ANSWERS_KEY } from '../utils/storage-helpers.js';
+import { getJSON, setJSON } from '../utils/storage-helpers.js';
 import { getPageIdFromUrl } from '../utils/page-id.js';
 import { STORAGE_KEYS, type SessionData, type SessionCache } from '../types/contracts.js';
 
@@ -330,44 +326,9 @@ function revealQuizAnswersForInstructor(): void {
     // Update metadata with pageId
     metadata.pageId = pageId;
 
-    // Add instructor class for CSS visibility override
-    table.classList.add('qd-quiz-instructor');
-
-    // Remove qd-hidden class from answer column (column 1)
-    const answerCells = table.querySelectorAll('td:nth-child(2), th:nth-child(2)');
-    answerCells.forEach((cell) => {
-      cell.classList.remove('qd-hidden');
-    });
-
-    // Restore answer text to data cells only (not header)
-    const answerDataCells = table.querySelectorAll('tbody td:nth-child(2)');
-    answerDataCells.forEach((cell, index) => {
-      const question = metadata.parsed.questions[index];
-      if (question && cell instanceof HTMLTableCellElement) {
-        cell.textContent = question.correctAnswer;
-      }
-    });
-
-    // Remove qd-hidden class from detail column (column 2)
-    const detailCells = table.querySelectorAll('td:nth-child(3), th:nth-child(3)');
-    detailCells.forEach((cell) => cell.classList.remove('qd-hidden'));
-
-    // Set up instructor toggle event listeners (since table is non-interactive)
-    const showAnswersHandler = () => {
-      void showStudentAnswersForTable(table, metadata);
-    };
-    const hideAnswersHandler = () => {
-      hideStudentAnswersForTable(table);
-    };
-
-    document.addEventListener('qd:instructor-show-answers', showAnswersHandler);
-    document.addEventListener('qd:instructor-hide-answers', hideAnswersHandler);
-
-    // Check if toggle already enabled
-    const showAnswers = sessionStorage.getItem(INSTRUCTOR_SHOW_ANSWERS_KEY) === 'true';
-    if (showAnswers) {
-      void showAnswersHandler();
-    }
+    // Reveal answers + wire instructor toggles via the shared enhancer.
+    // The initial-load path adds the qd-quiz-instructor CSS visibility class.
+    revealInstructorAnswers(table, metadata, { addInstructorClass: true });
   });
 
   info(`Revealed answers for instructor on ${quizTables.length} quiz table(s)`);

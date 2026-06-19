@@ -47,7 +47,7 @@ export interface EnhanceQuizTableOptions {
 /**
  * Quiz table metadata (stored in WeakMap)
  */
-interface QuizTableMetadata {
+export interface QuizTableMetadata {
   /** Parsed quiz data */
   parsed: ParsedQuizTable;
   /** Enhancement mode */
@@ -776,11 +776,28 @@ export async function showStudentAnswersForTable(
           answerDiv.className = `qd-student-answer ${sa.cssClass}`;
 
           // Format: Name (last 4 of serviceId): answer [timestamp] (FR-007: 24-hour format)
-          answerDiv.innerHTML = `
-            <span class="qd-student-name">${sa.name} (${sa.maskedServiceId})</span>:
-            <span class="qd-student-answer-text">${sa.answer}</span>
-            <span class="qd-timestamp">${sa.formattedTimestamp}</span>
-          `;
+          // SECURITY (FR-004): student-controlled name/answer are set via
+          // textContent so any HTML they contain renders as inert text, never
+          // as live markup. Never use innerHTML for student-supplied data.
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'qd-student-name';
+          nameSpan.textContent = `${sa.name} (${sa.maskedServiceId})`;
+
+          const answerSpan = document.createElement('span');
+          answerSpan.className = 'qd-student-answer-text';
+          answerSpan.textContent = sa.answer;
+
+          const timestampSpan = document.createElement('span');
+          timestampSpan.className = 'qd-timestamp';
+          timestampSpan.textContent = sa.formattedTimestamp;
+
+          answerDiv.append(
+            nameSpan,
+            document.createTextNode(': '),
+            answerSpan,
+            document.createTextNode(' '),
+            timestampSpan,
+          );
 
           display.appendChild(answerDiv);
         });
