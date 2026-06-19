@@ -106,7 +106,7 @@ Behavior-preserving, test-gated, one slice at a time. The **only** sanctioned be
 - [X] T023 [P] [US3] Characterization tests `tests/integration/quiz-table-enhance.test.ts` covering interactive enhancement, answer save + validation styling, and column show/hide
 - [X] T024 [P] [US3] Characterization tests `tests/integration/analysis-table-enhance.test.ts` covering interactive enhancement, cell save, and student-entry display
 - [X] T025 [P] [US3] Characterization tests `tests/unit/session-cache.test.ts` for `buildCacheFromRecord` and related cache math
-- [ ] T026 [P] [US3] Characterization tests `tests/integration/bootstrap.test.ts` for global-style injection, table enhancement loops, and existing-session table upgrade
+- [X] T026 [P] [US3] Characterization tests `tests/integration/bootstrap.test.ts` for global-style injection, table enhancement loops, and existing-session table upgrade
 
 ### Implementation — storage (`indexeddb.ts`, 759 lines)
 
