@@ -153,14 +153,14 @@ Behavior-preserving, test-gated, one slice at a time. The **only** sanctioned be
 ### Tests for User Story 4 (write FIRST) ⚠️
 
 - [X] T044 [P] [US4] Component tests `tests/unit/qd-student-answers.test.ts` and `tests/unit/qd-student-entries.test.ts` asserting escaped rendering and encapsulated styles
-- [ ] T045 [P] [US4] Component test `tests/unit/qd-student-table.test.ts` covering search filter and per-row select event
+- [X] T045 [P] [US4] Component test `tests/unit/qd-student-table.test.ts` covering search filter and per-row select event
 
 ### Implementation for User Story 4
 
 - [X] T046 [P] [US4] Create `src/components/qd-spinner.ts` and adopt it in `src/components/qd-migration-dialog.ts`
 - [X] T047 [US4] Create `src/components/qd-student-answers.ts` and back the quiz instructor overlay (T036) with it (auto-escaped; removes remaining string markup)
 - [X] T048 [US4] Create `src/components/qd-student-entries.ts` and back the analysis instructor overlay (T039) with it, removing inline `style.cssText` hex colors (Constitution V)
-- [ ] T049 [US4] Create `src/components/qd-student-table.ts` (searchable, emits per-row action) and adopt it in `src/components/qd-pin-reset-dialog.ts`; extract `src/services/pin-reset-service.ts` (reset PIN + audit event) so the dialog only renders results
+- [X] T049 [US4] Create `src/components/qd-student-table.ts` (searchable, emits per-row action) and adopt it in `src/components/qd-pin-reset-dialog.ts`; extract `src/services/pin-reset-service.ts` (reset PIN + audit event) so the dialog only renders results
 - [~] T050 [P] [US4] Adopt the shared `qd-modal` base in `src/components/qd-pin-create.ts` (add a non-dismissable option to `qd-modal`) and dedupe the `loadStudents` routine in `src/components/qd-instructor/qd-instructor.ts` into one `refreshStudents()`
 
 **Checkpoint**: Reusable components in place; no inline-hex styling or student-data `innerHTML` in enhancers; bundle within budget.
