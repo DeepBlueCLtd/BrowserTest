@@ -1,14 +1,14 @@
 # E2E Test Coverage Report
 
-Generated: 2025-11-26
+Generated: 2026-09-05
 
 ## Summary
 
 - **Total Features**: 11
 - **Covered**: 11 (100%)
 - **Gaps**: 0
-- **E2E Spec Files**: 12
-- **Total Tests**: 82
+- **E2E Spec Files**: 15
+- **Total Tests**: 92
 
 ## Feature Coverage Matrix
 
@@ -16,68 +16,71 @@ Generated: 2025-11-26
 |---------|---------------|--------|
 | Student login | analysis-capture.spec.ts | ✅ Covered |
 | Instructor login | analysis-capture.spec.ts | ✅ Covered |
-| Quiz interaction (MCQ) | cohort-management.spec.ts | ✅ Covered |
-| Quiz interaction (Numeric) | cohort-management.spec.ts | ✅ Covered |
+| Quiz interaction (MCQ) | answer-styling-reset.spec.ts | ✅ Covered |
+| Quiz interaction (Numeric) | answer-styling-reset.spec.ts | ✅ Covered |
 | Analysis table editing | analysis-capture.spec.ts | ✅ Covered |
 | Progress tracking (R/A/G badges) | dita-instructor-flow.spec.ts | ✅ Covered |
 | Session management (timeout) | session-timeout.spec.ts | ✅ Covered |
 | Data export (CSV) | csv-export.spec.ts | ✅ Covered |
 | Cohort management (data erasure) | cohort-management.spec.ts | ✅ Covered |
 | Build info display | build-info.spec.ts | ✅ Covered |
-| PIN authentication | build-info.spec.ts | ✅ Covered |
+| PIN authentication | answer-styling-reset.spec.ts | ✅ Covered |
 
 ## Spec File Analysis
 
 | Spec File | Tests | Clicks | Fills | Waits | Assertions |
 |-----------|-------|--------|-------|-------|------------|
 | analysis-capture.spec.ts | 7 | 10 | 13 | 0 | 18 |
-| build-info.spec.ts | 9 | 2 | 3 | 0 | 13 |
-| cohort-management.spec.ts | 4 | 27 | 22 | 0 | 50 |
-| csv-export.spec.ts | 6 | 19 | 13 | 0 | 36 |
+| answer-styling-reset.spec.ts | 2 | 2 | 3 | 1 | 4 |
+| build-info.spec.ts | 9 | 1 | 3 | 0 | 13 |
+| cohort-management.spec.ts | 4 | 26 | 22 | 0 | 50 |
+| csv-export.spec.ts | 6 | 18 | 13 | 0 | 36 |
 | data-coexistence.spec.ts | 5 | 11 | 20 | 0 | 14 |
-| dita-instructor-flow.spec.ts | 4 | 15 | 13 | 1 | 26 |
-| dita-student-flow.spec.ts | 12 | 28 | 42 | 1 | 50 |
-| instructor-mode-improvements.spec.ts | 8 | 17 | 5 | 0 | 21 |
-| instructor-review.spec.ts | 5 | 19 | 8 | 0 | 34 |
-| pin-authentication.spec.ts | 8 | 13 | 7 | 6 | 15 |
-| progress-tracking.spec.ts | 7 | 9 | 22 | 0 | 16 |
-| session-timeout.spec.ts | 7 | 14 | 22 | 0 | 20 |
+| dita-instructor-flow.spec.ts | 4 | 14 | 13 | 1 | 25 |
+| dita-student-flow.spec.ts | 12 | 27 | 42 | 1 | 50 |
+| instructor-dynamic-reveal.spec.ts | 3 | 8 | 6 | 1 | 22 |
+| instructor-mode-improvements.spec.ts | 8 | 16 | 5 | 0 | 21 |
+| instructor-review.spec.ts | 5 | 18 | 8 | 0 | 34 |
+| pin-authentication.spec.ts | 11 | 15 | 8 | 6 | 26 |
+| progress-tracking.spec.ts | 7 | 8 | 22 | 0 | 16 |
+| relogin-progress.spec.ts | 2 | 4 | 3 | 1 | 5 |
+| session-timeout.spec.ts | 7 | 13 | 22 | 0 | 20 |
 
 ## Tested Selectors
 
 Top selectors by frequency:
 
-- `qd-login` (12 specs)
-- `input[name=` (12 specs)
-- `button[type=` (12 specs)
-- `qd-status` (12 specs)
+- `qd-login` (15 specs)
+- `input[name=` (15 specs)
+- `button[type=` (15 specs)
+- `qd-status` (15 specs)
+- `table.qd-quiz` (12 specs)
+- `.qd-quiz-input` (12 specs)
+- `button` (10 specs)
 - `qd-login[data-ready]` (9 specs)
-- `button` (9 specs)
-- `table.qd-quiz` (9 specs)
-- `.qd-quiz-input` (9 specs)
-- `#qd-pin-confirmation-ok` (8 specs)
-- `.qd-modal-backdrop input[type=` (7 specs)
-- `.qd-modal-backdrop button[type=` (7 specs)
+- `qd-modal[open] input[type=` (8 specs)
+- `qd-modal[open] button[type=` (8 specs)
 - `View All Scores` (6 specs)
-- `qd-login button` (5 specs)
+- `qd-login button` (6 specs)
 - `td.interactive` (4 specs)
-- `.qd-modal-backdrop` (4 specs)
+- `.logout-button` (4 specs)
+- `tbody tr` (4 specs)
+- `td` (4 specs)
+- `qd-modal[open]` (4 specs)
 - `table.qd-analysis` (3 specs)
-- `.progress-text` (2 specs)
-- `.logout-button` (2 specs)
-- `qd-instructor` (2 specs)
-- `input[type=` (2 specs)
+- `.progress-text` (3 specs)
+- `qd-instructor` (3 specs)
 
 ## Action Summary
 
 | Action | Count |
 |--------|-------|
-| page.click() | 184 |
-| page.fill() | 190 |
-| page.waitForSelector() | 8 |
-| page.check() | 2 |
-| page.selectOption() | 29 |
-| page.goto() | 101 |
+| page.click() | 191 |
+| page.fill() | 203 |
+| page.waitForSelector() | 11 |
+| page.check() | 3 |
+| page.selectOption() | 34 |
+| page.goto() | 110 |
 
 ## Gaps Requiring Attention
 

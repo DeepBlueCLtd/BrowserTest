@@ -488,6 +488,7 @@ Enable via `data-qd-debug` attribute on quiz/analysis tables:
 
 ## Key Documentation
 
+- **docs/PROJECT_STATE.md**: Consolidation audit (2026-09-05): verification results, design drift, doc audit, restart backlog
 - **System_Requirements.md**: Functional requirements, data model, authoring rules
 - **Technical_Design.md**: Architecture, packaging, integration patterns
 - **ARCHITECTURE_FLOWS.md**: Event flows, login processes, DOM patterns, service interactions
