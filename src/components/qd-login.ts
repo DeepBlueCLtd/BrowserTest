@@ -165,6 +165,7 @@ export class QdLogin extends LitElement {
             name="pin"
             class="pin-input"
             placeholder="PIN"
+            title="4-digit PIN"
             inputmode="numeric"
             pattern="[0-9]*"
             maxlength="4"
@@ -183,7 +184,11 @@ export class QdLogin extends LitElement {
             Login
           </button>
           <qd-instructor-login ?disabled=${this.isSubmitting}></qd-instructor-login>
-          ${this.errorMessage ? html`<div class="error-message">${this.errorMessage}</div>` : ''}
+          ${this.errorMessage
+            ? html`<div class="error-message">${this.errorMessage}</div>`
+            : this.validationHint
+              ? html`<div class="hint-message" role="status">${this.validationHint}</div>`
+              : ''}
           <qd-lockout-banner
             .untilMs=${this.lockoutUntil}
             @qd:lockout-expired=${this.handleLockoutExpired}
@@ -241,6 +246,25 @@ export class QdLogin extends LitElement {
   /** Whether the student form passes validation. */
   private isValid(): boolean {
     return validateStudentForm(this.name, this.serviceId, this.pin).length === 0;
+  }
+
+  /**
+   * First outstanding validation problem, for display while the user types.
+   *
+   * The Login button is disabled until the form is valid, which on its own
+   * leaves no way to discover what is missing: the submit handler's error
+   * message is unreachable because submitting is exactly what is blocked.
+   * This surfaces the same message live instead. A pristine form stays quiet
+   * so the user is not scolded before typing anything.
+   *
+   * @returns The first validation error, or an empty string when the form is
+   *   untouched or valid
+   */
+  private get validationHint(): string {
+    if (!this.name && !this.serviceId && !this.pin) {
+      return '';
+    }
+    return validateStudentForm(this.name, this.serviceId, this.pin)[0] ?? '';
   }
 
   /**
