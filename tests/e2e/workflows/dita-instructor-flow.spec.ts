@@ -11,6 +11,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { submitStudentLogin } from '../helpers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -82,9 +83,8 @@ test.describe('DITA Instructor Flow', () => {
     await nameInput.fill('Alice Smith');
     await pinInput.fill('1234');
 
-    // Click login button
-    const loginButton = loginForm.locator('button[type="submit"]');
-    await loginButton.click();
+    // Click login button (creating the account takes the PIN twice)
+    await submitStudentLogin(loginForm);
 
     // Close PIN confirmation dialog if it appears
     await closePinConfirmationDialog(page);
@@ -142,7 +142,7 @@ test.describe('DITA Instructor Flow', () => {
     await loginForm.locator('input[name="serviceId"]').fill('STU002');
     await loginForm.locator('input[name="name"]').fill('Bob Jones');
     await loginForm.locator('input[name="pin"]').fill('1234');
-    await loginForm.locator('button[type="submit"]').click();
+    await submitStudentLogin(loginForm);
     await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor({ timeout: 3000 });
 
@@ -270,7 +270,7 @@ test.describe('DITA Instructor Flow', () => {
     await loginForm.locator('input[name="serviceId"]').fill('STU003');
     await loginForm.locator('input[name="name"]').fill('Carol White');
     await loginForm.locator('input[name="pin"]').fill('1234');
-    await loginForm.locator('button[type="submit"]').click();
+    await submitStudentLogin(loginForm);
     await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor({ timeout: 3000 });
 

@@ -58,6 +58,13 @@ export class QdLogin extends LitElement {
   @state() private lockoutUntil = 0;
   /** Whether the "PIN stored" confirmation is shown */
   @state() private showPinConfirmation = false;
+  /**
+   * Whether the entered service ID already has an account.
+   * `null` means not looked up yet, or the lookup failed.
+   */
+  @state() private isRegistered: boolean | null = null;
+  /** First PIN entry, held while the user re-types it to confirm (create flow) */
+  @state() private pendingPin = '';
   /** Whether the help popup is open */
   @state() private helpOpen = false;
   /** Whether the migration dialog is shown */
@@ -76,6 +83,9 @@ export class QdLogin extends LitElement {
   /** Student authentication service (storage/crypto/rate-limit logic) */
   private authService = new AuthService();
 
+  /** Pending debounce for the "is this service ID known?" lookup */
+  private registrationTimer?: number;
+
   static styles = loginStyles;
 
   connectedCallback() {
@@ -88,6 +98,7 @@ export class QdLogin extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    window.clearTimeout(this.registrationTimer);
     document.removeEventListener('qd:logout', this.handleLogoutEvent);
     document.removeEventListener('qd:login', this.handleLoginEvent);
   }
@@ -117,6 +128,8 @@ export class QdLogin extends LitElement {
     this.lockoutUntil = 0;
     this.showPinConfirmation = false;
     this.helpOpen = false;
+    this.isRegistered = null;
+    this.pendingPin = '';
     this.updateVisibility();
   };
 
@@ -164,8 +177,7 @@ export class QdLogin extends LitElement {
             type="password"
             name="pin"
             class="pin-input"
-            placeholder="PIN (4 digits)"
-            title="4-digit PIN"
+            placeholder=${this.pendingPin ? 'Re-enter PIN' : 'PIN (4 digits)'}
             inputmode="numeric"
             pattern="[0-9]*"
             maxlength="4"
@@ -181,7 +193,7 @@ export class QdLogin extends LitElement {
             class="login-btn"
             ?disabled=${this.isSubmitting || !this.isValid() || this.isLockedOut()}
           >
-            Login
+            ${this.submitLabel}
           </button>
           <qd-instructor-login ?disabled=${this.isSubmitting}></qd-instructor-login>
           ${this.errorMessage
@@ -236,6 +248,58 @@ export class QdLogin extends LitElement {
   private handleServiceIdInput(e: Event) {
     this.serviceId = (e.target as HTMLInputElement).value;
     this.errorMessage = '';
+    // The identity changed, so a PIN captured for the previous one is void
+    this.pendingPin = '';
+    this.scheduleRegistrationCheck();
+  }
+
+  /**
+   * Debounced lookup of whether the entered service ID already has an account,
+   * used to label the submit button "Login" or "Create".
+   */
+  private scheduleRegistrationCheck(): void {
+    window.clearTimeout(this.registrationTimer);
+    this.isRegistered = null;
+
+    const serviceId = this.serviceId.trim();
+    if (!/^[a-zA-Z0-9]{2,10}$/.test(serviceId)) {
+      return;
+    }
+
+    this.registrationTimer = window.setTimeout(() => {
+      void this.checkRegistration(serviceId);
+    }, 300);
+  }
+
+  /** Resolve {@link isRegistered} for one service ID, ignoring stale answers. */
+  private async checkRegistration(serviceId: string): Promise<void> {
+    let known: boolean | null = null;
+    try {
+      const release = readRelease();
+      known = release
+        ? await this.authService.isRegistered(serviceId, release, readDbName())
+        : null;
+    } catch {
+      known = null;
+    }
+    // Discard a late answer for a service ID the user has since edited
+    if (serviceId === this.serviceId.trim()) {
+      this.isRegistered = known;
+    }
+  }
+
+  /**
+   * Label for the submit button.
+   *
+   * A first-time user sees "Create" rather than a "Login" that cannot succeed,
+   * and "Confirm" while re-entering their new PIN. Unknown registration falls
+   * back to "Login".
+   */
+  private get submitLabel(): string {
+    if (this.pendingPin) {
+      return 'Confirm';
+    }
+    return this.isRegistered === false ? 'Create' : 'Login';
   }
   private handlePinInput(e: Event) {
     // Filter to digits only using validation helper
@@ -261,6 +325,9 @@ export class QdLogin extends LitElement {
    *   untouched or valid
    */
   private get validationHint(): string {
+    if (this.pendingPin) {
+      return 'Re-enter your PIN to confirm';
+    }
     if (!this.name && !this.serviceId && !this.pin) {
       return '';
     }
@@ -276,6 +343,30 @@ export class QdLogin extends LitElement {
 
     if (!this.isValid()) {
       this.errorMessage = 'Please enter name, service ID, and 4-digit PIN';
+      return;
+    }
+
+    // The debounced lookup may not have answered yet (fast typist, fast click),
+    // so settle it here rather than letting timing decide whether an account
+    // is created with or without confirmation.
+    if (this.isRegistered === null && !this.pendingPin) {
+      await this.checkRegistration(this.serviceId.trim());
+    }
+
+    // Creating an account takes the PIN twice, so a typo cannot silently
+    // become the stored PIN and lock the student out of their own record.
+    if (this.pendingPin) {
+      if (this.pin !== this.pendingPin) {
+        this.pendingPin = '';
+        this.pin = '';
+        this.errorMessage = 'PINs did not match. Please enter your PIN again.';
+        return;
+      }
+      this.pendingPin = '';
+    } else if (this.isRegistered === false) {
+      this.pendingPin = this.pin;
+      this.pin = '';
+      this.errorMessage = '';
       return;
     }
 

@@ -11,6 +11,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { submitStudentLogin } from '../helpers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,7 +40,7 @@ async function loginAsStudent(
   await login.locator('input[name="serviceId"]').fill(serviceId);
   await login.locator('input[name="name"]').fill(name);
   await login.locator('input[name="pin"]').fill(pin);
-  await login.locator('button[type="submit"]').click();
+  await submitStudentLogin(login);
   await expect(page.locator('qd-status')).toBeVisible({ timeout: 2000 });
 }
 

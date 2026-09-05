@@ -336,8 +336,85 @@ describe('QdLogin Component', () => {
       const pinInput = element.shadowRoot?.querySelector('input[name="pin"]') as HTMLInputElement;
 
       expect(pinInput.placeholder).toContain('4 digits');
-      expect(pinInput.title).toBe('4-digit PIN');
       expect(pinInput.getAttribute('aria-label')).toContain('4-digit PIN');
+    });
+  });
+
+  describe('Create vs Login', () => {
+    const submitButton = () =>
+      element.shadowRoot?.querySelector('button[type="submit"]') as HTMLButtonElement;
+
+    it('should read "Login" while registration is unknown', () => {
+      // Neutral default: never claim "Create" without having checked
+      expect(element['isRegistered']).toBeNull();
+      expect(submitButton().textContent?.trim()).toBe('Login');
+    });
+
+    it('should read "Create" for an unregistered service ID', async () => {
+      element['isRegistered'] = false;
+      await element.updateComplete;
+
+      expect(submitButton().textContent?.trim()).toBe('Create');
+    });
+
+    it('should read "Login" for a registered service ID', async () => {
+      element['isRegistered'] = true;
+      await element.updateComplete;
+
+      expect(submitButton().textContent?.trim()).toBe('Login');
+    });
+
+    it('should read "Confirm" while awaiting the repeated PIN', async () => {
+      element['pendingPin'] = '1234';
+      await element.updateComplete;
+
+      expect(submitButton().textContent?.trim()).toBe('Confirm');
+      const pinInput = element.shadowRoot?.querySelector('input[name="pin"]') as HTMLInputElement;
+      expect(pinInput.placeholder).toBe('Re-enter PIN');
+    });
+
+    it('should ask for the PIN again instead of creating on the first press', async () => {
+      element['name'] = 'J Smith';
+      element['serviceId'] = '30012345';
+      element['pin'] = '1234';
+      element['isRegistered'] = false;
+      await element.updateComplete;
+
+      await element['handleStudentLogin'](new Event('submit'));
+      await element.updateComplete;
+
+      expect(element['pendingPin']).toBe('1234');
+      expect(element['pin']).toBe('');
+      expect(submitButton().textContent?.trim()).toBe('Confirm');
+    });
+
+    it('should warn and return to create mode when the PINs differ', async () => {
+      element['name'] = 'J Smith';
+      element['serviceId'] = '30012345';
+      element['isRegistered'] = false;
+      element['pendingPin'] = '1234';
+      element['pin'] = '9999';
+      await element.updateComplete;
+
+      await element['handleStudentLogin'](new Event('submit'));
+      await element.updateComplete;
+
+      expect(element['errorMessage']).toContain('did not match');
+      expect(element['pendingPin']).toBe('');
+      expect(element['pin']).toBe('');
+      expect(submitButton().textContent?.trim()).toBe('Create');
+    });
+
+    it('should clear a half-finished create when the service ID changes', async () => {
+      element['pendingPin'] = '1234';
+      const serviceIdInput = element.shadowRoot?.querySelector(
+        'input[name="serviceId"]',
+      ) as HTMLInputElement;
+      serviceIdInput.value = '30099999';
+      serviceIdInput.dispatchEvent(new Event('input'));
+      await element.updateComplete;
+
+      expect(element['pendingPin']).toBe('');
     });
   });
 

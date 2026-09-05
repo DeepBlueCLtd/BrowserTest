@@ -11,6 +11,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { submitStudentLogin } from '../helpers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -72,7 +73,7 @@ test.describe('Session Timeout Management', () => {
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('input[name="pin"]').fill('1234');
-    await login.locator('button[type="submit"]').click();
+    await submitStudentLogin(login);
     await closePinConfirmationDialog(page);
 
     // Verify session created with required fields
@@ -102,7 +103,7 @@ test.describe('Session Timeout Management', () => {
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('input[name="pin"]').fill('1234');
-    await login.locator('button[type="submit"]').click();
+    await submitStudentLogin(login);
     await closePinConfirmationDialog(page);
 
     // Get initial lastActivity
@@ -140,7 +141,7 @@ test.describe('Session Timeout Management', () => {
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('input[name="pin"]').fill('1234');
-    await login.locator('button[type="submit"]').click();
+    await submitStudentLogin(login);
     await closePinConfirmationDialog(page);
 
     // Manually set expired session
@@ -172,7 +173,7 @@ test.describe('Session Timeout Management', () => {
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('input[name="pin"]').fill('1234');
-    await login.locator('button[type="submit"]').click();
+    await submitStudentLogin(login);
     await closePinConfirmationDialog(page);
 
     // Verify session exists
@@ -199,7 +200,7 @@ test.describe('Session Timeout Management', () => {
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('input[name="pin"]').fill('1234');
-    await login.locator('button[type="submit"]').click();
+    await submitStudentLogin(login);
     await closePinConfirmationDialog(page);
 
     // Setup logout event listener
@@ -226,7 +227,7 @@ test.describe('Session Timeout Management', () => {
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('input[name="pin"]').fill('1234');
-    await login.locator('button[type="submit"]').click();
+    await submitStudentLogin(login);
     await closePinConfirmationDialog(page);
 
     // Verify status panel visible
@@ -248,7 +249,7 @@ test.describe('Session Timeout Management', () => {
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('input[name="pin"]').fill('1234');
-    await login.locator('button[type="submit"]').click();
+    await submitStudentLogin(login);
     await closePinConfirmationDialog(page);
 
     // Logout student

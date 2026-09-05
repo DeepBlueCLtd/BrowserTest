@@ -13,6 +13,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { submitStudentLogin } from '../helpers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -76,7 +77,7 @@ test.describe('DITA Student Flow', () => {
     await loginForm.locator('input[name="pin"]').fill('1234');
 
     // Submit login
-    await loginForm.locator('button[type="submit"]').click();
+    await submitStudentLogin(loginForm);
 
     // Close PIN confirmation dialog if it appears
     await closePinConfirmationDialog(page);
@@ -103,7 +104,7 @@ test.describe('DITA Student Flow', () => {
     await loginForm.locator('input[name="serviceId"]').fill('BOB02');
     await loginForm.locator('input[name="name"]').fill('Bob Smith');
     await loginForm.locator('input[name="pin"]').fill('1234');
-    await loginForm.locator('button[type="submit"]').click();
+    await submitStudentLogin(loginForm);
     await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor();
 
@@ -142,7 +143,7 @@ test.describe('DITA Student Flow', () => {
     await loginForm.locator('input[name="serviceId"]').fill('CAROL03');
     await loginForm.locator('input[name="name"]').fill('Carol White');
     await loginForm.locator('input[name="pin"]').fill('1234');
-    await loginForm.locator('button[type="submit"]').click();
+    await submitStudentLogin(loginForm);
     await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor();
 
@@ -175,7 +176,7 @@ test.describe('DITA Student Flow', () => {
     await loginForm.locator('input[name="serviceId"]').fill('DAVE04');
     await loginForm.locator('input[name="name"]').fill('Dave Brown');
     await loginForm.locator('input[name="pin"]').fill('1234');
-    await loginForm.locator('button[type="submit"]').click();
+    await submitStudentLogin(loginForm);
     await closePinConfirmationDialog(page);
     const statusPanel = page.locator('qd-status');
     await statusPanel.waitFor();
@@ -224,7 +225,7 @@ test.describe('DITA Student Flow', () => {
     await loginForm.locator('input[name="serviceId"]').fill('EVE05');
     await loginForm.locator('input[name="name"]').fill('Eve Davis');
     await loginForm.locator('input[name="pin"]').fill('1234');
-    await loginForm.locator('button[type="submit"]').click();
+    await submitStudentLogin(loginForm);
     await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor();
 
@@ -269,7 +270,7 @@ test.describe('DITA Student Flow', () => {
     await loginForm.locator('input[name="serviceId"]').fill('FRANK06');
     await loginForm.locator('input[name="name"]').fill('Frank Miller');
     await loginForm.locator('input[name="pin"]').fill('1234');
-    await loginForm.locator('button[type="submit"]').click();
+    await submitStudentLogin(loginForm);
     await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor();
 
@@ -312,7 +313,7 @@ test.describe('DITA Student Flow', () => {
     await loginForm.locator('input[name="serviceId"]').fill('GRACE07');
     await loginForm.locator('input[name="name"]').fill('Grace Lee');
     await loginForm.locator('input[name="pin"]').fill('1234');
-    await loginForm.locator('button[type="submit"]').click();
+    await submitStudentLogin(loginForm);
     await closePinConfirmationDialog(page);
     const statusPanel = page.locator('qd-status');
     await statusPanel.waitFor();
@@ -348,7 +349,7 @@ test.describe('DITA Student Flow', () => {
     await loginForm.locator('input[name="serviceId"]').fill('HENRY08');
     await loginForm.locator('input[name="name"]').fill('Henry Wilson');
     await loginForm.locator('input[name="pin"]').fill('1234');
-    await loginForm.locator('button[type="submit"]').click();
+    await submitStudentLogin(loginForm);
     await closePinConfirmationDialog(page);
 
     await statusPanel.waitFor();
@@ -374,7 +375,7 @@ test.describe('DITA Student Flow', () => {
     await loginForm.locator('input[name="serviceId"]').fill('IVY09');
     await loginForm.locator('input[name="name"]').fill('Ivy Garcia');
     await loginForm.locator('input[name="pin"]').fill('1234');
-    await loginForm.locator('button[type="submit"]').click();
+    await submitStudentLogin(loginForm);
     await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor();
 
@@ -419,7 +420,7 @@ test.describe('DITA Student Flow', () => {
     await loginForm.locator('input[name="serviceId"]').fill('STRUCT01');
     await loginForm.locator('input[name="name"]').fill('Structure Test');
     await loginForm.locator('input[name="pin"]').fill('1234');
-    await loginForm.locator('button[type="submit"]').click();
+    await submitStudentLogin(loginForm);
     await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor();
 
@@ -464,7 +465,7 @@ test.describe('DITA Student Flow', () => {
     await loginForm.locator('input[name="serviceId"]').fill('STRUCT02');
     await loginForm.locator('input[name="name"]').fill('Structure Test 2');
     await loginForm.locator('input[name="pin"]').fill('1234');
-    await loginForm.locator('button[type="submit"]').click();
+    await submitStudentLogin(loginForm);
     await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor();
 
@@ -499,7 +500,7 @@ test.describe('DITA Student Flow', () => {
     await loginForm.locator('input[name="serviceId"]').fill('STRUCT03');
     await loginForm.locator('input[name="name"]').fill('Structure Test 3');
     await loginForm.locator('input[name="pin"]').fill('1234');
-    await loginForm.locator('button[type="submit"]').click();
+    await submitStudentLogin(loginForm);
     await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor();
 
@@ -530,7 +531,7 @@ test.describe('DITA Student Flow', () => {
     await loginForm.locator('input[name="serviceId"]').fill('STRUCT04');
     await loginForm.locator('input[name="name"]').fill('Structure Test 4');
     await loginForm.locator('input[name="pin"]').fill('1234');
-    await loginForm.locator('button[type="submit"]').click();
+    await submitStudentLogin(loginForm);
     await closePinConfirmationDialog(page);
     await page.locator('qd-status').waitFor();
 
@@ -556,5 +557,78 @@ test.describe('DITA Student Flow', () => {
       const inputType = await input.getAttribute('type');
       expect(inputType).toBe('text');
     }
+  });
+
+  test.describe('Account creation affordance', () => {
+    test('offers Create for a new service ID and takes the PIN twice', async ({ page }) => {
+      await page.goto(`file://${ditaPath}/page-index.html`);
+      await waitForBootstrap(page);
+
+      const loginForm = page.locator('qd-login');
+      const submit = loginForm.locator('button[type="submit"]');
+
+      // A service ID with no account should not offer a "Login" that cannot work
+      await loginForm.locator('input[name="name"]').fill('Brand New');
+      await loginForm.locator('input[name="serviceId"]').fill('FRESH01');
+      await expect(submit).toHaveText('Create', { timeout: 2000 });
+
+      // First press captures the PIN and asks for it again
+      await loginForm.locator('input[name="pin"]').fill('5678');
+      await submit.click();
+      await expect(submit).toHaveText('Confirm', { timeout: 2000 });
+      await expect(loginForm.locator('input[name="pin"]')).toHaveValue('');
+
+      // Repeating it creates the account and logs in
+      await loginForm.locator('input[name="pin"]').fill('5678');
+      await submit.click();
+      await closePinConfirmationDialog(page);
+      await expect(page.locator('qd-status')).toBeVisible({ timeout: 3000 });
+    });
+
+    test('warns and returns to Create when the repeated PIN differs', async ({ page }) => {
+      await page.goto(`file://${ditaPath}/page-index.html`);
+      await waitForBootstrap(page);
+
+      const loginForm = page.locator('qd-login');
+      const submit = loginForm.locator('button[type="submit"]');
+
+      await loginForm.locator('input[name="name"]').fill('Typo User');
+      await loginForm.locator('input[name="serviceId"]').fill('TYPO01');
+      await expect(submit).toHaveText('Create', { timeout: 2000 });
+      await loginForm.locator('input[name="pin"]').fill('1111');
+      await submit.click();
+      await expect(submit).toHaveText('Confirm', { timeout: 2000 });
+
+      // A mismatch must not create the account
+      await loginForm.locator('input[name="pin"]').fill('2222');
+      await submit.click();
+
+      await expect(loginForm.locator('.error-message')).toContainText('did not match');
+      await expect(submit).toHaveText('Create');
+      await expect(page.locator('qd-status')).toBeHidden();
+    });
+
+    test('offers Login once the account exists', async ({ page }) => {
+      await page.goto(`file://${ditaPath}/page-index.html`);
+      await waitForBootstrap(page);
+
+      const loginForm = page.locator('qd-login');
+      await loginForm.locator('input[name="name"]').fill('Returning User');
+      await loginForm.locator('input[name="serviceId"]').fill('BACK01');
+      await loginForm.locator('input[name="pin"]').fill('4321');
+      await submitStudentLogin(loginForm);
+      await closePinConfirmationDialog(page);
+      await expect(page.locator('qd-status')).toBeVisible({ timeout: 3000 });
+
+      await page.locator('qd-status >> .logout-button').click();
+      await expect(loginForm).toBeVisible({ timeout: 2000 });
+
+      // The same identity is now known, so the button offers Login
+      await loginForm.locator('input[name="name"]').fill('Returning User');
+      await loginForm.locator('input[name="serviceId"]').fill('BACK01');
+      await expect(loginForm.locator('button[type="submit"]')).toHaveText('Login', {
+        timeout: 2000,
+      });
+    });
   });
 });

@@ -21,6 +21,7 @@ import {
   clearAttemptState,
 } from '../../src/services/auth/rate-limiter.js';
 import { SCHEMA_VERSION, type StudentRecord } from '../../src/types/contracts.js';
+import { AuthService } from '../../src/services/auth/auth-service.js';
 
 describe('Login Flow with PIN Authentication', () => {
   const TEST_DB = 'LoginFlowTestDB';
@@ -380,6 +381,88 @@ describe('Login Flow with PIN Authentication', () => {
       expect(await verifyPin(newPin, retrieved!.pinHash!)).toBe(true);
       expect(await verifyPin(oldPin, retrieved!.pinHash!)).toBe(false);
       expect(retrieved?.attempted).toBe(5); // Data preserved
+    });
+  });
+
+  describe('Registration lookup (Create vs Login)', () => {
+    // The login form asks this to decide whether to offer "Create" or "Login".
+    // A wrong answer either blocks a new student or walks an existing one into
+    // the create-and-confirm flow for an account they already own.
+    const RELEASE = 'Test Release 2025';
+
+    it('reports an unknown service ID as unregistered', async () => {
+      const auth = new AuthService();
+
+      const result = await auth.isRegistered('NEVERSEEN', RELEASE, TEST_DB);
+
+      expect(result).toBe(false);
+    });
+
+    it('reports a student who has completed PIN setup as registered', async () => {
+      const pinHash = await hashPin('1234');
+      const record: StudentRecord = {
+        schema: SCHEMA_VERSION,
+        docId: 'known-doc',
+        updated: new Date().toISOString(),
+        serviceId: 'KNOWN01',
+        name: 'Known Student',
+        release: RELEASE,
+        pinHash,
+        attempted: 0,
+        correct: 0,
+        pages: {},
+      };
+      await storage.saveStudent(record);
+
+      const result = await new AuthService().isRegistered('KNOWN01', RELEASE, TEST_DB);
+
+      expect(result).toBe(true);
+    });
+
+    it('treats a record still awaiting PIN setup as unregistered', async () => {
+      // A legacy record with no PIN must still go through create-and-confirm
+      const record: StudentRecord = {
+        schema: SCHEMA_VERSION,
+        docId: 'legacy-doc',
+        updated: new Date().toISOString(),
+        serviceId: 'NOPIN01',
+        name: 'Legacy Student',
+        release: RELEASE,
+        attempted: 0,
+        correct: 0,
+        pages: {},
+      };
+      await storage.saveStudent(record);
+
+      const result = await new AuthService().isRegistered('NOPIN01', RELEASE, TEST_DB);
+
+      expect(result).toBe(false);
+    });
+
+    it('scopes registration to the release', async () => {
+      const pinHash = await hashPin('1234');
+      await storage.saveStudent({
+        schema: SCHEMA_VERSION,
+        docId: 'scoped-doc',
+        updated: new Date().toISOString(),
+        serviceId: 'SCOPED1',
+        name: 'Scoped Student',
+        release: RELEASE,
+        pinHash,
+        attempted: 0,
+        correct: 0,
+        pages: {},
+      });
+
+      const sameRelease = await new AuthService().isRegistered('SCOPED1', RELEASE, TEST_DB);
+      const otherRelease = await new AuthService().isRegistered(
+        'SCOPED1',
+        'Some Other Release',
+        TEST_DB,
+      );
+
+      expect(sameRelease).toBe(true);
+      expect(otherRelease).toBe(false);
     });
   });
 });
