@@ -30,13 +30,25 @@ jobs:
           node-version: '22'
           cache: 'npm'
       - run: npm ci
-      - run: npm run test:unit
-      - run: npm run test:integration
-      - name: Upload coverage
+      # Coverage runs enforce the thresholds in vitest.config.ts / vitest.integration.config.ts.
+      # The thresholds are a ratchet: set at the measured level, raise them as tests are added.
+      - run: npm run test:coverage:unit
+      - name: Upload unit coverage
         uses: codecov/codecov-action@v4
         if: always()
         with:
           files: ./coverage/lcov.info
+          flags: unit
+      - run: npm run test:coverage:integration
+      - name: Upload integration coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./coverage/lcov.info
+          flags: integration
+      # Structural gap check: fails if the number of source files without a test grows.
+      - name: Test-gap ratchet
+        run: npm run test:gaps -- --max-gaps 25
 
   build:
     name: Build & Bundle Size Check
@@ -57,38 +69,55 @@ jobs:
           name: dist
           path: dist/
 
-  # e2e:
-  #   name: E2E Tests
-  #   runs-on: ubuntu-latest
-  #   needs: build
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-node@v4
-  #       with:
-  #         node-version: '22'
-  #         cache: 'npm'
-  #     - run: npm ci
-  #     - name: Download build artifacts
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         name: dist
-  #         path: dist/
-  #     - name: Install Playwright browsers
-  #       run: npx playwright install chromium --with-deps
-  #     - run: npm run test:e2e
-  #     - name: Upload test results
-  #       uses: actions/upload-artifact@v4
-  #       if: always()
-  #       with:
-  #         name: playwright-report
-  #         path: playwright-report/
-  # E2E tests temporarily disabled - will be re-enabled in future PR
+  e2e:
+    name: E2E Tests (${{ matrix.mode }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [default, encrypted]
+    env:
+      # Playwright's webServer starts Storybook; CI=true stops it opening a browser.
+      CI: 'true'
+      PLAYWRIGHT_BROWSERS_PATH: ~/.cache/ms-playwright
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+      # The E2E pages under dita-demo/ load the bundle from the copied resources, so build
+      # and copy the bundle for the mode under test (the copy is not committed back).
+      - name: Build bundle (default)
+        if: matrix.mode == 'default'
+        run: npm run build:dita
+      - name: Build bundle (encrypted)
+        if: matrix.mode == 'encrypted'
+        run: npm run build:dita:encrypted
+      - name: Run Playwright (default)
+        if: matrix.mode == 'default'
+        run: npm run test:e2e
+      - name: Run Playwright (encrypted)
+        if: matrix.mode == 'encrypted'
+        run: npm run test:e2e:encrypted
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.mode }}
+          path: playwright-report/
+          retention-days: 7
 
   chromatic:
     name: Visual Regression Tests
     runs-on: ubuntu-latest
     # Only run on push events to main branch
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    env:
+      CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -98,12 +127,17 @@ jobs:
           node-version: '22'
           cache: 'npm'
       - run: npm ci
+      # Always prove Storybook builds. A broken story must fail CI, not be hidden.
+      - name: Build Storybook
+        run: npm run build-storybook
       - name: Run Chromatic
+        if: env.CHROMATIC_PROJECT_TOKEN != ''
         uses: chromaui/action@latest
-        # Don't fail if CHROMATIC_PROJECT_TOKEN is not configured
-        continue-on-error: true
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           exitZeroOnChanges: true
-          # Don't fail the build on Chromatic errors during Phase 0
           onlyChanged: true
+          storybookBuildDir: storybook-static
+      - name: Chromatic skipped
+        if: env.CHROMATIC_PROJECT_TOKEN == ''
+        run: echo "::notice::CHROMATIC_PROJECT_TOKEN is not set; Storybook built OK but no snapshots were uploaded. See docs/CHROMATIC_SETUP.md."

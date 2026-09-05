@@ -60,7 +60,7 @@ export { calculateCompletionState } from './services/state-calculator.js';
 // Export utilities
 export { Debouncer } from './utils/debouncer.js';
 export { getJSON, setJSON, clearQuizData } from './utils/storage-helpers.js';
-export { info, warn, error } from './utils/logger.js';
+export { info, warn, error, setDebugMode } from './utils/logger.js';
 
 // Export obfuscation utilities for console access
 export { migrateObfuscation } from './services/storage/obfuscation-migration.js';
@@ -89,11 +89,13 @@ export type { ComponentInjectorConfig } from './init/component-injector.js';
 /**
  * Version information
  */
-export const VERSION = '0.1.0-phase3.1';
+export const VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'development';
 export const BUILD_DATE = typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__ : 'development';
 
-// Declare global for build date injection
+// Declared globals injected by Vite `define` at build time (see vite.config.ts).
+// VERSION comes from package.json so it cannot drift from the release tag.
 declare const __BUILD_DATE__: string;
+declare const __APP_VERSION__: string;
 
 /**
  * Auto-initialize on DOMContentLoaded

@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 import { resolve } from 'path';
+import { readFileSync } from 'fs';
+
+const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8')) as { version: string };
 
 export default defineConfig(({ command, mode }) => {
   // Only enable dts plugin for library builds (not Storybook)
@@ -19,6 +22,7 @@ export default defineConfig(({ command, mode }) => {
   return {
     define: {
       __BUILD_DATE__: JSON.stringify(buildDate),
+      __APP_VERSION__: JSON.stringify(pkg.version),
       __ENCRYPT_STORAGE__: JSON.stringify(encryptStorage),
     },
     plugins: [

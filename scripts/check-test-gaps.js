@@ -8,6 +8,7 @@
  *   node scripts/check-test-gaps.js          # Text output
  *   node scripts/check-test-gaps.js --json   # JSON output
  *   node scripts/check-test-gaps.js --strict # Exit code 1 if gaps found
+ *   node scripts/check-test-gaps.js --max-gaps 20 # Exit code 1 if more than 20 gaps (ratchet for CI)
  */
 
 import { readdirSync, statSync, existsSync } from 'fs';
@@ -33,6 +34,8 @@ const EXCLUSIONS = [
 const args = process.argv.slice(2);
 const jsonOutput = args.includes('--json');
 const strictMode = args.includes('--strict');
+const maxGapsIdx = args.indexOf('--max-gaps');
+const maxGaps = maxGapsIdx >= 0 ? Number.parseInt(args[maxGapsIdx + 1], 10) : null;
 
 /**
  * Recursively get all TypeScript files in a directory
@@ -73,12 +76,12 @@ function getExpectedTestPaths(srcPath) {
 
   const paths = [];
 
-  // Unit test path preserves directory structure
+  // Unit test path preserves directory structure...
   if (dir && dir !== '.') {
     paths.push(join('tests/unit', dir, testName));
-  } else {
-    paths.push(join('tests/unit', testName));
   }
+  // ...but a flat tests/unit/<name>.test.ts is also accepted (older tests live there)
+  paths.push(join('tests/unit', testName));
 
   // Integration test path (flat structure)
   paths.push(join('tests/integration', testName));
@@ -148,6 +151,12 @@ if (jsonOutput) {
   console.log(`Files with tests: ${covered.length}`);
   console.log(`Files without tests: ${gaps.length}`);
   console.log(`Coverage: ${coveragePercent}%`);
+}
+
+// Exit with error if the gap count exceeds the ratchet
+if (maxGaps !== null && gaps.length > maxGaps) {
+  console.error(`\n❌ ${gaps.length} files without tests exceeds --max-gaps ${maxGaps}`);
+  process.exit(1);
 }
 
 // Exit with error if strict mode and gaps found
