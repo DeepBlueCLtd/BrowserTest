@@ -333,10 +333,9 @@ describe('QdLogin Component', () => {
     });
 
     it('should state the 4-digit requirement on the PIN field', () => {
-      // The field stays narrow to keep the header on one row, so the rule is
-      // carried by the tooltip and aria-label rather than the placeholder.
       const pinInput = element.shadowRoot?.querySelector('input[name="pin"]') as HTMLInputElement;
 
+      expect(pinInput.placeholder).toContain('4 digits');
       expect(pinInput.title).toBe('4-digit PIN');
       expect(pinInput.getAttribute('aria-label')).toContain('4-digit PIN');
     });

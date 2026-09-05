@@ -164,7 +164,7 @@ export class QdLogin extends LitElement {
             type="password"
             name="pin"
             class="pin-input"
-            placeholder="PIN"
+            placeholder="PIN (4 digits)"
             title="4-digit PIN"
             inputmode="numeric"
             pattern="[0-9]*"
