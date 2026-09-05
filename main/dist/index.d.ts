@@ -214,6 +214,8 @@ export declare interface SessionData {
     unlockTime?: string;
 }
 
+export declare function setDebugMode(enabled: boolean): void;
+
 export declare function setJSON<T>(key: string, value: T): boolean;
 
 export declare const STORAGE_KEYS: {
@@ -242,7 +244,7 @@ export declare type TableId = string;
 
 export declare function validateAnswer(question: QuizQuestion, answer: string): boolean;
 
-export declare const VERSION = "0.1.0-phase3.1";
+export declare const VERSION: string;
 
 export declare function warn(message: string, data?: unknown): void;
 

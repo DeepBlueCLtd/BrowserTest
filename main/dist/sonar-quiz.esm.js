@@ -1,3 +1,7 @@
+let debugEnabled = false;
+function setDebugMode(enabled) {
+  debugEnabled = enabled;
+}
 function maskServiceId(serviceId) {
   if (serviceId.length < 2) {
     return "**";
@@ -31,6 +35,13 @@ function sanitize(obj) {
   return sanitized;
 }
 function info(message, data) {
+  if (debugEnabled) {
+    if (data !== void 0) {
+      console.log(`[INFO] ${message}`, sanitize(data));
+    } else {
+      console.log(`[INFO] ${message}`);
+    }
+  }
 }
 function error(message, error2) {
   if (error2 instanceof Error) {
@@ -38,6 +49,9 @@ function error(message, error2) {
       name: error2.name,
       message: error2.message
     };
+    if (debugEnabled && error2.stack) {
+      errorObj.stack = error2.stack;
+    }
     console.error(`[ERROR] ${message}`, errorObj);
   } else if (error2 !== void 0) {
     console.error(`[ERROR] ${message}`, sanitize(error2));
@@ -315,6 +329,9 @@ function addClass(element, ...classNames) {
 function removeClass(element, ...classNames) {
   element.classList.remove(...classNames);
 }
+function escapeHtml(value) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
 const INSTRUCTOR_SHOW_ANSWERS_KEY = "qd/instructor/showAnswers";
 function getJSON(key) {
   try {
@@ -342,7 +359,7 @@ function clearQuizData() {
   const keysToRemove = [];
   for (let i3 = 0; i3 < sessionStorage.length; i3++) {
     const key = sessionStorage.key(i3);
-    if (key && key.startsWith("qd/")) {
+    if (key && (key.startsWith("qd/") || key.startsWith("qd:"))) {
       keysToRemove.push(key);
     }
   }
@@ -365,6 +382,7 @@ const PIN_CONSTANTS = {
   /** Lockout duration in milliseconds (30 seconds) */
   LOCKOUT_MS: 30 * 1e3
 };
+const detailCellContent = /* @__PURE__ */ new WeakMap();
 function removeColgroup(table) {
   const colgroup = table.querySelector("colgroup");
   if (colgroup) {
@@ -406,8 +424,31 @@ function hideDetailColumn(table) {
   const rows = table.querySelectorAll("tbody tr");
   rows.forEach((row) => {
     const cells = row.querySelectorAll("td");
-    if (cells[2]) {
-      addClass(cells[2], "qd-hidden");
+    const cell = cells[2];
+    if (cell) {
+      addClass(cell, "qd-hidden");
+      if (!detailCellContent.has(cell)) {
+        detailCellContent.set(cell, cell.innerHTML);
+      }
+      cell.textContent = "";
+    }
+  });
+}
+function restoreDetailColumn(table) {
+  const headerCells = table.querySelectorAll("thead th, thead td");
+  if (headerCells[2]) {
+    removeClass(headerCells[2], "qd-hidden");
+  }
+  const rows = table.querySelectorAll("tbody tr");
+  rows.forEach((row) => {
+    const cells = row.querySelectorAll("td");
+    const cell = cells[2];
+    if (cell) {
+      removeClass(cell, "qd-hidden");
+      const original = detailCellContent.get(cell);
+      if (original !== void 0) {
+        cell.innerHTML = original;
+      }
     }
   });
 }
@@ -1230,6 +1271,7 @@ class StorageService {
       setJSON(STORAGE_KEYS.CACHE, this.buildCache(record));
       info(`Cache built from IndexedDB for ${session.serviceId}`);
     } catch {
+      info("Failed to load from IndexedDB, initializing empty cache");
       setJSON(STORAGE_KEYS.CACHE, {
         totals: { total: 0, answered: 0, correct: 0 },
         pages: {}
@@ -1383,6 +1425,9 @@ async function saveAnswer(table, metadata, questionIndex, answer) {
       ...pageData ? [{ name: "qd:state-changed", detail: { pageId, state: pageData.state } }] : []
     ]
   });
+  info(
+    `Answer saved for question ${questionIndex + 1} on page ${pageId}: ${success ? "correct" : "incorrect"}`
+  );
 }
 function applyValidationStyling(cell, success) {
   removeClass(cell, "qd-answer-correct", "qd-answer-incorrect");
@@ -2133,6 +2178,7 @@ async function showStudentAnswersForTable(table, metadata) {
 function hideStudentAnswersForTable(table) {
   const displays = table.querySelectorAll(".qd-student-answers");
   displays.forEach((display) => display.remove());
+  info("Hid student answers from quiz table");
 }
 const tableMetadata$1 = /* @__PURE__ */ new WeakMap();
 function enhanceQuizTable(table, options) {
@@ -2140,8 +2186,10 @@ function enhanceQuizTable(table, options) {
   let parsed;
   if (existing) {
     if (!existing.interactive && options.interactive) {
+      info("Upgrading quiz table from non-interactive to interactive mode");
       parsed = existing.parsed;
     } else {
+      info("Quiz table already enhanced, skipping");
       return true;
     }
   } else {
@@ -2182,6 +2230,7 @@ function enhanceNonInteractive$1(table) {
   hideAnswerColumn(table);
   hideDetailColumn(table);
   addClass(table, "qd-quiz-non-interactive");
+  info("Quiz table enhanced in non-interactive mode");
   return true;
 }
 function enhanceInteractive$1(table, metadata) {
@@ -2199,6 +2248,7 @@ function enhanceInteractive$1(table, metadata) {
   }
   let cache = getJSON(STORAGE_KEYS.CACHE);
   if (!cache) {
+    info("No cache found, creating empty cache");
     cache = {
       totals: { total: 0, answered: 0, correct: 0 },
       pages: {}
@@ -2282,9 +2332,11 @@ function enhanceInteractive$1(table, metadata) {
   };
   const logoutHandler = () => {
     resetUIState();
+    info("Cleared student UI state from quiz table on logout");
   };
   const loginHandler = () => {
     resetUIState();
+    info("Reset quiz table UI on login");
   };
   document.addEventListener("qd:logout", logoutHandler);
   document.addEventListener("qd:login", loginHandler);
@@ -2295,6 +2347,7 @@ function enhanceInteractive$1(table, metadata) {
     document.removeEventListener("qd:login", loginHandler);
   };
   addClass(table, "qd-quiz-interactive");
+  info(`Quiz table enhanced in interactive mode for page ${pageId}`);
   return true;
 }
 function getQuizTableMetadata(table) {
@@ -2314,6 +2367,7 @@ function resetQuizTableToNonInteractive(table) {
   hideAnswerColumn(table);
   hideDetailColumn(table);
   removeClass(table, "qd-quiz-interactive");
+  info("Quiz table reset to non-interactive mode");
 }
 function hashString(input, length = 16) {
   let hash = 5381;
@@ -2418,6 +2472,7 @@ async function saveCellData(metadata, cellKey, content) {
       { name: "qd:analysis-saved", detail: { pageId, tableId: parsed.tableId, cellKey, content } }
     ]
   });
+  info(`Analysis cell saved for ${cellKey} on page ${pageId}`);
 }
 function groupEntriesByCell(students, pageId) {
   const grouped = {};
@@ -2570,6 +2625,7 @@ async function showStudentEntriesForTable(table, metadata) {
 function hideStudentEntriesForTable(table) {
   const displays = table.querySelectorAll("[data-qd-student-entries]");
   displays.forEach((display) => display.remove());
+  info("Hidden student entries from analysis table");
 }
 function getCurrentPageId() {
   const bodyPageId = document.body.dataset.pageId;
@@ -2620,6 +2676,7 @@ function enhanceNonInteractive(table) {
   };
   document.addEventListener("qd:instructor-show-answers", showHandler);
   document.addEventListener("qd:instructor-hide-answers", hideHandler);
+  info("Analysis table enhanced in non-interactive mode with instructor view support");
   return true;
 }
 function enhanceInteractive(table, metadata) {
@@ -2659,6 +2716,7 @@ function enhanceInteractive(table, metadata) {
     });
   });
   addClass(table, "qd-analysis-interactive");
+  info(`Analysis table enhanced in interactive mode for page ${pageId}`);
   return true;
 }
 function getAnalysisTableMetadata(table) {
@@ -2687,6 +2745,7 @@ function resetAnalysisTableToNonInteractive(table) {
   metadata.pageId = void 0;
   metadata.debouncer = void 0;
   metadata.cellKeyMap = void 0;
+  info("Reset analysis table to non-interactive mode");
 }
 function revealInstructorAnswers(table, metadata, options = {}) {
   if (options.addInstructorClass) {
@@ -2703,8 +2762,7 @@ function revealInstructorAnswers(table, metadata, options = {}) {
       cell.textContent = question.correctAnswer;
     }
   });
-  const detailCells = table.querySelectorAll("td:nth-child(3), th:nth-child(3)");
-  detailCells.forEach((cell) => cell.classList.remove("qd-hidden"));
+  restoreDetailColumn(table);
   const showAnswersHandler = () => {
     void showStudentAnswersForTable(table, metadata);
   };
@@ -2726,6 +2784,7 @@ function getPageIdFromUrl(url) {
 function upgradeTablesAfterLogin() {
   const pageId = getPageIdFromUrl();
   if (!pageId) {
+    info("No pageId found, skipping table upgrade to interactive mode");
     return;
   }
   const isInstructor2 = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
@@ -2745,6 +2804,7 @@ function upgradeTablesAfterLogin() {
   }
 }
 function revealTablesForInstructor(pageId) {
+  info("Instructor session detected, tables remain in non-interactive mode with answers visible");
   const quizTables = document.querySelectorAll("table.qd-quiz");
   quizTables.forEach((table) => {
     const metadata = getQuizTableMetadata(table);
@@ -2767,6 +2827,7 @@ class EventCoordinator {
     this.registerStateHandlers();
     this.registerInstructorHandlers();
     this.registerDataHandlers();
+    info("Event coordinator initialized");
   }
   /**
    * Register handlers for login events.
@@ -2781,10 +2842,12 @@ class EventCoordinator {
         const detail = event.detail;
         info(`Login event: ${detail.serviceId} (${detail.name})`);
         if (detail.serviceId === "INSTRUCTOR") {
+          info("Instructor login - skipping student record handling");
           return;
         }
         const session = getJSON(STORAGE_KEYS.SESSION);
         if (!session) {
+          info("No session found in storage, skipping cache rebuild");
           return;
         }
         await getStorageService().refreshCacheOnLogin(session);
@@ -2842,6 +2905,7 @@ class EventCoordinator {
       info(`Instructor mode unlocked at ${detail.unlockTime}`);
     });
     this.addEventListener("qd:instructor-lock", () => {
+      info("Instructor mode locked");
     });
   }
   /**
@@ -2884,6 +2948,7 @@ class EventCoordinator {
       }
     }
     this.listeners.clear();
+    info("Event coordinator cleaned up");
   }
 }
 class SessionService {
@@ -2909,6 +2974,7 @@ class SessionService {
       instructorUnlocked: false
     };
     this.saveSession(session);
+    info(`Session created for ${serviceId} (${name})`);
     this.emitEvent("qd:login", { serviceId, name, release, loginTime });
     return session;
   }
@@ -2987,6 +3053,7 @@ class SessionService {
     session.instructorUnlocked = true;
     session.unlockTime = (/* @__PURE__ */ new Date()).toISOString();
     this.saveSession(session);
+    info("Instructor mode unlocked");
     this.emitEvent("qd:instructor-unlock", { timestamp: session.unlockTime });
   }
   /**
@@ -3000,6 +3067,7 @@ class SessionService {
     session.instructorUnlocked = false;
     delete session.unlockTime;
     this.saveSession(session);
+    info("Instructor mode locked");
     this.emitEvent("qd:instructor-lock", { timestamp: (/* @__PURE__ */ new Date()).toISOString() });
   }
   /**
@@ -3094,6 +3162,8 @@ class SessionCoordinator {
       }
       this.scheduleExpiryCheck(session);
       this.setupActivityTracking();
+    } else {
+      info("No existing session found");
     }
   }
   /**
@@ -3111,6 +3181,7 @@ class SessionCoordinator {
       return;
     }
     this.expiryTimeoutId = window.setTimeout(() => {
+      info("Session expired (timeout)");
       this.sessionService.clearSession();
     }, timeUntilExpiry);
   }
@@ -3345,6 +3416,7 @@ function readConfigElement(elementId, defaultValue) {
     warn(`Config element #${elementId} found but empty, using default: "${defaultValue}"`);
     return defaultValue;
   }
+  info(`Config read from #${elementId}: "${value}"`);
   return value;
 }
 function readRequiredConfigElement(elementId) {
@@ -3360,9 +3432,11 @@ function readRequiredConfigElement(elementId) {
     console.error(msg);
     throw new Error(msg);
   }
+  info(`Required config read from #${elementId}: "${value}"`);
   return value;
 }
 function readDOMConfig() {
+  info("Reading configuration from DOM...");
   const dbName = readRequiredConfigElement(CONFIG_IDS.dbName);
   const config = {
     statusPanelContainer: readConfigElement(
@@ -3373,6 +3447,7 @@ function readDOMConfig() {
     instructorHash: readConfigElement(CONFIG_IDS.instructorHash, DEFAULT_CONFIG.instructorHash),
     dbName
   };
+  info("Configuration loaded:", config);
   return config;
 }
 function readTitleSelector() {
@@ -3690,6 +3765,115 @@ QdBuildInfo.styles = i$4`
 QdBuildInfo = __decorateClass$j([
   t$1("qd-build-info")
 ], QdBuildInfo);
+class RateLimiter {
+  /**
+   * @param freeFailures - Number of failed attempts allowed before any lockout
+   *   is applied. 0 (the default) locks out from the first failure. Interactive
+   *   password prompts pass a small allowance so a single typo does not stall
+   *   the user, while still bounding brute-force attempts.
+   */
+  constructor(freeFailures = 0) {
+    this.freeFailures = freeFailures;
+    this.failureCount = 0;
+    this.lockoutUntil = null;
+  }
+  /**
+   * Attempt an action (e.g., login attempt)
+   *
+   * @returns true if action is allowed, false if rate limited
+   */
+  attempt() {
+    if (this.lockoutUntil && Date.now() < this.lockoutUntil) {
+      return false;
+    }
+    if (this.lockoutUntil && Date.now() >= this.lockoutUntil) {
+      this.lockoutUntil = null;
+    }
+    return true;
+  }
+  /**
+   * Record a failed attempt and apply exponential backoff
+   *
+   * Delays: 2s, 4s, 8s, 16s, 30s (max), starting after any `freeFailures` allowance
+   */
+  recordFailure() {
+    this.failureCount++;
+    if (this.failureCount <= this.freeFailures) {
+      return;
+    }
+    const delays = [2e3, 4e3, 8e3, 16e3, 3e4];
+    const delayIndex = Math.min(this.failureCount - this.freeFailures - 1, delays.length - 1);
+    const delay = delays[delayIndex] ?? 3e4;
+    this.lockoutUntil = Date.now() + delay;
+  }
+  /**
+   * Reset the rate limiter after successful authentication
+   */
+  reset() {
+    this.failureCount = 0;
+    this.lockoutUntil = null;
+  }
+  /**
+   * Get remaining lockout time in seconds
+   *
+   * @returns Number of seconds until next attempt allowed, or 0 if not locked
+   */
+  getRemainingSeconds() {
+    if (!this.lockoutUntil) {
+      return 0;
+    }
+    const remaining = Math.max(0, this.lockoutUntil - Date.now());
+    return Math.ceil(remaining / 1e3);
+  }
+  /**
+   * Check if currently locked out
+   */
+  isLockedOut() {
+    return this.lockoutUntil !== null && Date.now() < this.lockoutUntil;
+  }
+}
+async function constantTimeCompare(a2, b2) {
+  if (a2.length !== b2.length) {
+    return false;
+  }
+  if (a2.length === 0) {
+    return true;
+  }
+  const encoder = new TextEncoder();
+  const aBuffer = encoder.encode(a2);
+  const bBuffer = encoder.encode(b2);
+  try {
+    const key = await crypto.subtle.importKey(
+      "raw",
+      aBuffer,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const signature = await crypto.subtle.sign("HMAC", key, bBuffer);
+    const expectedKey = await crypto.subtle.importKey(
+      "raw",
+      bBuffer,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const expectedSignature = await crypto.subtle.sign("HMAC", expectedKey, aBuffer);
+    if (signature.byteLength !== expectedSignature.byteLength) {
+      return false;
+    }
+    const sigView = new Uint8Array(signature);
+    const expView = new Uint8Array(expectedSignature);
+    let result = 0;
+    for (let i3 = 0; i3 < sigView.length; i3++) {
+      result |= (sigView[i3] ?? 0) ^ (expView[i3] ?? 0);
+    }
+    return result === 0;
+  } catch (error2) {
+    console.error("Constant-time comparison failed:", error2);
+    return false;
+  }
+}
 async function hashPassword(plain) {
   const encoder = new TextEncoder();
   const data = encoder.encode(plain);
@@ -3707,7 +3891,7 @@ async function verifyInstructorPassword(plain) {
     return false;
   }
   const actualHash = await hashPassword(plain);
-  return actualHash === expectedHash;
+  return constantTimeCompare(actualHash, expectedHash);
 }
 var __defProp$h = Object.defineProperty;
 var __getOwnPropDesc$i = Object.getOwnPropertyDescriptor;
@@ -4230,6 +4414,7 @@ let QdInstructorLogin = class extends i$1 {
     this.disabled = false;
     this.showModal = false;
     this.error = "";
+    this.rateLimiter = new RateLimiter(PIN_CONSTANTS.MAX_ATTEMPTS - 1);
     this.open = () => {
       this.showModal = true;
       this.error = "";
@@ -4267,11 +4452,17 @@ let QdInstructorLogin = class extends i$1 {
       this.error = "Instructor password not configured";
       return;
     }
+    if (!this.rateLimiter.attempt()) {
+      this.error = `Too many attempts. Try again in ${this.rateLimiter.getRemainingSeconds()}s`;
+      return;
+    }
     try {
       if (!await verifyInstructorPassword(password)) {
+        this.rateLimiter.recordFailure();
         this.error = "Incorrect password";
         return;
       }
+      this.rateLimiter.reset();
       const release = readRelease();
       const sessionService = new SessionService();
       sessionService.createSession("INSTRUCTOR", "Instructor", release || "");
@@ -4880,6 +5071,7 @@ async function migrateObfuscation(dbName, direction, options) {
   };
   const { releaseId, dryRun = false } = options;
   const obfKey = deriveKey(releaseId);
+  info(`Starting obfuscation migration: direction=${direction}, dryRun=${dryRun}`);
   const db = await openDatabase(dbName);
   try {
     const allRecords = await getAllRawRecords(db);
@@ -6270,126 +6462,6 @@ const sharedStyles = i$4`
     color: #000;
   }
 `;
-class RateLimiter {
-  constructor() {
-    this.failureCount = 0;
-    this.lockoutUntil = null;
-  }
-  /**
-   * Attempt an action (e.g., login attempt)
-   *
-   * @returns true if action is allowed, false if rate limited
-   */
-  attempt() {
-    if (this.lockoutUntil && Date.now() < this.lockoutUntil) {
-      return false;
-    }
-    if (this.lockoutUntil && Date.now() >= this.lockoutUntil) {
-      this.lockoutUntil = null;
-    }
-    return true;
-  }
-  /**
-   * Record a failed attempt and apply exponential backoff
-   *
-   * Delays: 2s, 4s, 8s, 16s, 30s (max)
-   */
-  recordFailure() {
-    this.failureCount++;
-    const delays = [2e3, 4e3, 8e3, 16e3, 3e4];
-    const delayIndex = Math.min(this.failureCount - 1, delays.length - 1);
-    const delay = delays[delayIndex] ?? 3e4;
-    this.lockoutUntil = Date.now() + delay;
-  }
-  /**
-   * Reset the rate limiter after successful authentication
-   */
-  reset() {
-    this.failureCount = 0;
-    this.lockoutUntil = null;
-  }
-  /**
-   * Get remaining lockout time in seconds
-   *
-   * @returns Number of seconds until next attempt allowed, or 0 if not locked
-   */
-  getRemainingSeconds() {
-    if (!this.lockoutUntil) {
-      return 0;
-    }
-    const remaining = Math.max(0, this.lockoutUntil - Date.now());
-    return Math.ceil(remaining / 1e3);
-  }
-  /**
-   * Check if currently locked out
-   */
-  isLockedOut() {
-    return this.lockoutUntil !== null && Date.now() < this.lockoutUntil;
-  }
-}
-async function constantTimeCompare(a2, b2) {
-  if (a2.length !== b2.length) {
-    return false;
-  }
-  if (a2.length === 0) {
-    return true;
-  }
-  const encoder = new TextEncoder();
-  const aBuffer = encoder.encode(a2);
-  const bBuffer = encoder.encode(b2);
-  try {
-    const key = await crypto.subtle.importKey(
-      "raw",
-      aBuffer,
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"]
-    );
-    const signature = await crypto.subtle.sign("HMAC", key, bBuffer);
-    const expectedKey = await crypto.subtle.importKey(
-      "raw",
-      bBuffer,
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"]
-    );
-    const expectedSignature = await crypto.subtle.sign("HMAC", expectedKey, aBuffer);
-    if (signature.byteLength !== expectedSignature.byteLength) {
-      return false;
-    }
-    const sigView = new Uint8Array(signature);
-    const expView = new Uint8Array(expectedSignature);
-    let result = 0;
-    for (let i3 = 0; i3 < sigView.length; i3++) {
-      result |= (sigView[i3] ?? 0) ^ (expView[i3] ?? 0);
-    }
-    return result === 0;
-  } catch (error2) {
-    console.error("Constant-time comparison failed:", error2);
-    return false;
-  }
-}
-const PASSWORD_HASH_ELEMENT_ID = "instructor.password.hash";
-function getInstructorPasswordHash() {
-  const hashElement = document.getElementById(PASSWORD_HASH_ELEMENT_ID);
-  if (!hashElement) {
-    const errorMsg = `Instructor password hash not found. Expected element with id="${PASSWORD_HASH_ELEMENT_ID}". Check Oxygen XSL transform configuration.`;
-    error(errorMsg);
-    throw new Error(errorMsg);
-  }
-  const hash = hashElement.textContent?.trim();
-  if (!hash) {
-    const errorMsg = `Instructor password hash element is empty. Check Oxygen parameter configuration.`;
-    error(errorMsg);
-    throw new Error(errorMsg);
-  }
-  if (!/^[a-f0-9]{64}$/i.test(hash)) {
-    const errorMsg = `Invalid password hash format. Expected 64 hex characters (SHA-256), got: ${hash.substring(0, 20)}...`;
-    error(errorMsg);
-    throw new Error(errorMsg);
-  }
-  return hash.toLowerCase();
-}
 var __defProp$7 = Object.defineProperty;
 var __getOwnPropDesc$7 = Object.getOwnPropertyDescriptor;
 var __decorateClass$7 = (decorators, target, key, kind) => {
@@ -6406,7 +6478,7 @@ let QdInstructorUnlock = class extends i$1 {
     this.password = "";
     this.error = "";
     this.remainingSeconds = 0;
-    this.rateLimiter = new RateLimiter();
+    this.rateLimiter = new RateLimiter(PIN_CONSTANTS.MAX_ATTEMPTS - 1);
     this.handlePasswordInput = (e2) => {
       const input = e2.target;
       this.password = input.value;
@@ -6422,12 +6494,11 @@ let QdInstructorUnlock = class extends i$1 {
         return;
       }
       try {
-        const expectedHash = getInstructorPasswordHash();
-        const encoder = new TextEncoder();
-        const data = encoder.encode(this.password);
-        const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const actualHash = hashArray.map((b2) => b2.toString(16).padStart(2, "0")).join("");
+        const expectedHash = getExpectedInstructorHash();
+        if (!expectedHash) {
+          throw new Error("Instructor password hash not configured");
+        }
+        const actualHash = await hashPassword(this.password);
         const valid = await constantTimeCompare(actualHash, expectedHash);
         if (valid) {
           this.rateLimiter.reset();
@@ -6435,6 +6506,7 @@ let QdInstructorUnlock = class extends i$1 {
           this.error = "";
           dispatchEventOn(this, "qd:instructor-unlock", {});
         } else {
+          this.rateLimiter.recordFailure();
           this.error = "Invalid password";
           this.password = "";
         }
@@ -6793,7 +6865,10 @@ let QdInstructorExport = class extends i$1 {
     };
   }
   escapeCSVField(field) {
-    const str = String(field);
+    let str = String(field);
+    if (/^[=+\-@\t\r]/.test(str)) {
+      str = `'${str}`;
+    }
     if (str.includes(",") || str.includes('"') || str.includes("\n")) {
       return `"${str.replace(/"/g, '""')}"`;
     }
@@ -6880,12 +6955,13 @@ let QdInstructorManage = class extends i$1 {
       const input = e2.target;
       this.confirmText = input.value;
     };
-    this.handleConfirmClear = () => {
+    this.handleConfirmClear = async () => {
       if (this.confirmText !== "DELETE ALL DATA") {
         this.error = "Confirmation text does not match";
         return;
       }
       try {
+        await getStorageService().clearAll();
         clearQuizData();
         dispatchEventOn(this, "qd:data-cleared", {});
         this.success = "All quiz data cleared successfully";
@@ -7321,7 +7397,7 @@ let QdPinResetDialog = class extends i$1 {
   }
   render() {
     const student = this.confirmingStudent;
-    const confirmMessage = student ? `Reset PIN for <strong>${student.name}</strong> (${student.serviceId})?<br><span style="font-size: 11px; color: #666;">They will need to create a new PIN on next login.</span>` : "";
+    const confirmMessage = student ? `Reset PIN for <strong>${escapeHtml(student.name)}</strong> (${escapeHtml(student.serviceId)})?<br><span style="font-size: 11px; color: #666;">They will need to create a new PIN on next login.</span>` : "";
     return x`
       <qd-modal
         .open=${this.open && !this.confirmDialogOpen}
@@ -7675,28 +7751,34 @@ const DEFAULT_CONTAINERS = {
 function injectLoginComponent(containerSelector) {
   const container = document.querySelector(containerSelector);
   if (!container) {
+    info(`Login component not injected: container '${containerSelector}' not found`);
     return null;
   }
   const login = document.createElement("qd-login");
   container.appendChild(login);
+  info("Login component injected");
   return login;
 }
 function injectStatusComponent(containerSelector) {
   const container = document.querySelector(containerSelector);
   if (!container) {
+    info(`Status component not injected: container '${containerSelector}' not found`);
     return null;
   }
   const status = document.createElement("qd-status");
   container.appendChild(status);
+  info("Status component injected");
   return status;
 }
 function injectInstructorComponent(containerSelector) {
   const container = document.querySelector(containerSelector);
   if (!container) {
+    info(`Instructor component not injected: container '${containerSelector}' not found`);
     return null;
   }
   const instructor = document.createElement("qd-instructor");
   container.appendChild(instructor);
+  info("Instructor component injected");
   return instructor;
 }
 function injectComponents(config = {}) {
@@ -7765,12 +7847,15 @@ function handleStateChanged(event) {
   const link = document.querySelector(`[data-page-id="${pageId}"]`);
   if (link && link.classList.contains("quizPageBtn")) {
     updateLinkBadge(link);
+    info(`Updated badge for page ${pageId}`);
   }
 }
 function handleCacheRebuild() {
+  info("Cache rebuilt, refreshing all badges");
   updateAllBadges();
 }
 function handleLogout() {
+  info("Logout detected, removing all badge styling");
   const links = document.querySelectorAll(".quizPageBtn");
   links.forEach((link) => {
     clearBadges(link);
@@ -7801,6 +7886,7 @@ function enhanceHomeBadges() {
   document.addEventListener("qd:state-changed", handleStateChanged);
   document.addEventListener("qd:cache-rebuild", handleCacheRebuild);
   document.addEventListener("qd:logout", handleLogout);
+  info("Home page badges enhanced with event listeners");
 }
 const GLOBAL_CSS = `
     /* Sonar Quiz System - Global Styles */
@@ -7872,6 +7958,7 @@ function injectGlobalStyles() {
   style.id = "qd-global-styles";
   style.textContent = GLOBAL_CSS;
   document.head.appendChild(style);
+  info("Global styles injected");
 }
 const state = {
   initialized: false
@@ -7881,6 +7968,7 @@ async function bootstrap(config = {}) {
     warn("Bootstrap already initialized, skipping");
     return;
   }
+  info("Bootstrapping Sonar Quiz System...");
   injectGlobalStyles();
   if (!config.dbName) {
     const msg = "FATAL: dbName not provided in bootstrap config. Processing stopped.";
@@ -7920,14 +8008,17 @@ async function bootstrap(config = {}) {
   document.addEventListener("qd:login", (event) => {
     const detail = event.detail;
     if (detail?.role === "instructor") {
+      info("Instructor login event received, revealing quiz answers");
       revealQuizAnswersForInstructor();
     }
   });
   state.initialized = true;
+  info("Bootstrap complete");
 }
 function enhanceAllTables(selector, label, enhance) {
   const tables = document.querySelectorAll(selector);
   if (tables.length === 0) {
+    info(`No ${label} tables found to enhance`);
     return;
   }
   info(`Enhancing ${tables.length} ${label} table(s) in non-interactive mode...`);
@@ -7945,6 +8036,7 @@ function enhanceAllTables(selector, label, enhance) {
 function enhanceHomeBadgesIfPresent() {
   const links = document.querySelectorAll(".quizPageBtn");
   if (links.length === 0) {
+    info("No .quizPageBtn links found, skipping badge enhancement");
     return;
   }
   info(`Enhancing home page badges for ${links.length} link(s)...`);
@@ -7959,6 +8051,7 @@ function revealQuizAnswersForInstructor() {
   const pageId = getPageIdFromUrl();
   const quizTables = document.querySelectorAll("table.qd-quiz");
   if (quizTables.length === 0) {
+    info("No quiz tables found to reveal answers for");
     return;
   }
   quizTables.forEach((table) => {
@@ -7972,17 +8065,20 @@ function revealQuizAnswersForInstructor() {
 async function checkExistingSessionAndUpgradeTables() {
   const isInstructor2 = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
   if (isInstructor2) {
+    info("Instructor session detected, revealing answers in non-interactive tables");
     revealQuizAnswersForInstructor();
     return;
   }
   const session = getJSON(STORAGE_KEYS.SESSION);
   if (!session) {
+    info("No existing session, tables remain in non-interactive mode");
     return;
   }
   info(`Existing session detected for ${session.serviceId}, upgrading tables to interactive mode`);
   const storageService = getStorageService();
   let cache = getJSON(STORAGE_KEYS.CACHE);
   if (!cache) {
+    info("Cache not found, rebuilding from IndexedDB...");
     try {
       const studentRecord = await storageService.loadStudentRecord(session);
       cache = storageService.buildCache(studentRecord);
@@ -7999,6 +8095,7 @@ async function checkExistingSessionAndUpgradeTables() {
   }
   const pageId = getPageIdFromUrl();
   if (!pageId) {
+    info("No pageId found, skipping table upgrade");
     return;
   }
   const quizTables = document.querySelectorAll("table.qd-quiz");
@@ -8021,19 +8118,22 @@ function cleanup() {
     warn("Bootstrap not initialized, nothing to cleanup");
     return;
   }
+  info("Cleaning up bootstrap resources...");
   state.eventCoordinator?.cleanup();
   state.sessionCoordinator?.cleanup();
   state.initialized = false;
   state.eventCoordinator = void 0;
   state.sessionCoordinator = void 0;
+  info("Bootstrap cleanup complete");
 }
 function isInitialized() {
   return state.initialized;
 }
-const VERSION = "0.1.0-phase3.1";
+const VERSION = "0.2.0";
 const BUILD_DATE = "5/Sep/2026";
 if (typeof window !== "undefined") {
   const init = () => {
+    info("Auto-initializing Sonar Quiz System");
     const domConfig = readDOMConfig();
     bootstrap({
       dbName: domConfig.dbName,
@@ -8085,6 +8185,7 @@ export {
   migrateObfuscation,
   parseAnalysisTable,
   parseQuizTable,
+  setDebugMode,
   setJSON,
   validateAnswer,
   warn
