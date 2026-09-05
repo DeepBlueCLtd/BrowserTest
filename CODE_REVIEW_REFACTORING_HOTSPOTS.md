@@ -1,5 +1,7 @@
 # Sonar Quiz System - Code Review: Refactoring Hotspots
 
+> **Status (2026-09-05): superseded.** This review (Nov 2025) seeded [spec 012 — code review / hot-spot refactor](specs/012-code-review/), which was completed and merged in June 2026. The file paths, line counts and line numbers below describe the **pre-refactor** codebase and no longer match `src/` (for example `qd-instructor-login-modal.ts`, `quiz-inputs/`, `qd-student-answers-list.ts` do not exist). Kept for historical context only; see `docs/PROJECT_STATE.md` for the current state.
+
 ## Executive Summary
 
 This code review identifies 18 high-priority refactoring opportunities across 791 total lines in the largest files. The primary issues are:
