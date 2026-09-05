@@ -52,6 +52,10 @@ export const loginStyles = css`
     }
 
     input.pin-input {
+      /* Kept narrow deliberately: the header bar has only a few pixels of
+         slack at 1280px, and a wider field wraps the Instructor button onto a
+         second row. The "4 digits" rule is carried by the hint message and the
+         field's title/aria-label instead. */
       width: 45px;
       min-width: 45px;
       max-width: 45px;
@@ -102,6 +106,17 @@ export const loginStyles = css`
 
     .instructor-btn:hover {
       background: #5a6268;
+    }
+
+    .hint-message {
+      width: 100%;
+      color: #555;
+      font-size: 11px;
+      margin-top: 3px;
+      padding: 4px 8px;
+      background: #f1f3f4;
+      border-radius: 3px;
+      border-left: 3px solid #9aa0a6;
     }
 
     .error-message {

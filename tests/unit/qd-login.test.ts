@@ -282,6 +282,66 @@ describe('QdLogin Component', () => {
   // Note: Instructor Modal tests moved to tests/unit/components/qd-password-modal.test.ts
   // The old imperative modal was replaced with <qd-password-modal> component
 
+  describe('Validation hint', () => {
+    const hintText = () =>
+      element.shadowRoot?.querySelector('.hint-message')?.textContent?.trim() ?? null;
+
+    it('should stay quiet on a pristine form', () => {
+      // Nothing typed yet: do not scold the user before they start
+      expect(hintText()).toBeNull();
+    });
+
+    it('should say what is missing once the user starts typing', async () => {
+      const nameInput = element.shadowRoot?.querySelector('input[name="name"]') as HTMLInputElement;
+      nameInput.value = 'J Smith';
+      nameInput.dispatchEvent(new Event('input'));
+      await element.updateComplete;
+
+      expect(hintText()).toBe('Service ID required');
+    });
+
+    it('should name the PIN length rule when the PIN is too short', async () => {
+      const set = (name: string, value: string) => {
+        const input = element.shadowRoot?.querySelector(
+          `input[name="${name}"]`,
+        ) as HTMLInputElement;
+        input.value = value;
+        input.dispatchEvent(new Event('input'));
+      };
+      set('name', 'J Smith');
+      set('serviceId', '30012345');
+      set('pin', '123');
+      await element.updateComplete;
+
+      expect(hintText()).toBe('PIN must be exactly 4 digits');
+    });
+
+    it('should clear the hint once the form is valid', async () => {
+      const set = (name: string, value: string) => {
+        const input = element.shadowRoot?.querySelector(
+          `input[name="${name}"]`,
+        ) as HTMLInputElement;
+        input.value = value;
+        input.dispatchEvent(new Event('input'));
+      };
+      set('name', 'J Smith');
+      set('serviceId', '30012345');
+      set('pin', '1234');
+      await element.updateComplete;
+
+      expect(hintText()).toBeNull();
+    });
+
+    it('should state the 4-digit requirement on the PIN field', () => {
+      // The field stays narrow to keep the header on one row, so the rule is
+      // carried by the tooltip and aria-label rather than the placeholder.
+      const pinInput = element.shadowRoot?.querySelector('input[name="pin"]') as HTMLInputElement;
+
+      expect(pinInput.title).toBe('4-digit PIN');
+      expect(pinInput.getAttribute('aria-label')).toContain('4-digit PIN');
+    });
+  });
+
   describe('UI Behavior', () => {
     it('should disable Login button when form is invalid', () => {
       const buttons = element.shadowRoot?.querySelectorAll('button');

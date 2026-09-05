@@ -5,6 +5,15 @@ Written for an incoming maintainer. Every number below comes from commands run o
 2026-09-05 against `main` at `5383ca2` (last commit 2026-06-19), on Node 22.22 / npm 10.9.
 Existing documents were audited, not rewritten.
 
+> **Correction (2026-09-05).** This report originally stated that the release workflow had never
+> run and that no tag had ever been pushed. That is false. Tag `v0.2.0` and a GitHub Release,
+> with `sonar-quiz.iife.js` and its source map attached, were published on 2025-11-29 by the
+> workflow itself. The error came from checking `git tag` in a clone whose fetch refspec is
+> `+refs/heads/*:refs/remotes/origin/*` — heads only, no tags — and concluding from an empty
+> local list that no releases existed, without checking the remote. Any claim in a future audit
+> about tags or releases should be verified with `git ls-remote --tags origin` or the Releases
+> API, not `git tag`. The affected rows below have been corrected in place.
+
 ## 1. Summary
 
 - **The code is healthy; the project's picture of itself is not.** Type-check, lint, format,
@@ -43,7 +52,7 @@ Existing documents were audited, not rewritten.
 | Tests | 52 unit, 12 integration, 16 E2E spec files (~20,400 LOC) |
 | TODO/FIXME in `src/` | 0 |
 | CI on `main` | green (lint, unit+integration, build+size); E2E disabled; Chromatic masked |
-| Releases | `release.yml` triggers on `v*` tags; no tag has ever been pushed, so it is unexercised |
+| Releases | `release.yml` triggers on `v*` tags. `v0.2.0` was published 2025-11-29 with both bundle assets attached, so the automation is proven. Nothing has been released since. |
 
 Activity came in two bursts: Nov 2025 (all design/security docs, phases 0–7) and June 2026
 (specs 005–012, a large refactor). Only `CLAUDE.md` was updated during the second burst.
@@ -149,7 +158,7 @@ Status key: **Current** = safe to trust; **Historical** = accurate for its time,
 | `docs/COMPONENT_SPEC.md` | 14 | 2025-11-18 | Stale | Component list predates the qd-instructor split and PIN/help components | Re-baseline or archive |
 | `docs/INSTRUCTOR_PASSWORD_IMPLEMENTATION.md` | 35 | 2025-11-18 | Historical | Design notes; does not mention the duplicate hash id | Archive |
 | `docs/CODE_REDUCTION_PROPOSAL.md` | 3 | 2025-11-24 | Historical | Executed as spec 005 | Archive |
-| `docs/RELEASE.md` | 3 | 2025-11-29 | Current (untested) | Process never exercised; no tags exist | Keep; exercise once |
+| `docs/RELEASE.md` | 3 | 2025-11-29 | Current | Matches the workflow; the v0.2.0 release confirms it works | Keep |
 | `docs/CHROMATIC_SETUP.md` | 2 | 2025-11-15 | Stale | Says "Chromatic is configured"; build is broken and token status unknown | Update after fix |
 | `docs/test-coverage-report.md` | 2 | regenerated today | Generated | See §3 caveat on scope | Keep regenerating; do not hand-edit |
 
@@ -207,7 +216,7 @@ What an incoming maintainer needs, and where it is today:
 | Config contract (hidden spans, DITA XSL) | Exists, with a hole | `CLAUDE.md` Constitution VII; second hash id undocumented |
 | Data model and storage layout | Partial | `Contracts.md`, `CLAUDE.md`; object-store count wrong; obfuscation key derivation only in code |
 | Event catalogue | Wrong | `Technical_Design.md` §19 and `ARCHITECTURE_FLOWS.md` disagree with code; no single list |
-| CI, deploy, PR preview, release | Exists | `CLAUDE.md` GitHub Pages section; `docs/RELEASE.md` (never exercised) |
+| CI, deploy, PR preview, release | Exists | `CLAUDE.md` GitHub Pages section; `docs/RELEASE.md` |
 | Chromatic / visual testing | Wrong | `docs/CHROMATIC_SETUP.md` |
 | Known issues / deferred work | Missing | No list anywhere; this report is the first |
 | Which documents to trust | Missing | 13 root docs, no index; this report's §5 is the first classification |
@@ -242,7 +251,7 @@ Ranked by risk. Effort: S (< half a day), M (1–2 days), L (more).
 | 14 | Add unit tests for `src/init/*` and `src/services/state-calculator.ts`; make `test:gaps` path-aware or move the 7 flat tests, then run it `--strict` in CI | Bootstrap and state calculation are the two least-covered critical paths | M | M | Done: 124 unit tests for `src/init/*` and `state-calculator.ts` (init 0% → 99%); gap script accepts flat paths; `--max-gaps` ratchet in CI |
 | 15 | Write `docs/MAINTAINERS.md` from §7 and a document index from §5 | No maintainer-facing entry point exists | M | S | Done: `docs/MAINTAINERS.md` and `docs/README.md` index |
 | 16 | Backfill plan/tasks for specs 003 and 004, or mark them "implemented without plan" | Two shipped features have no implementation record | L | S | Done: `STATUS.md` in specs 003 and 004 |
-| 17 | Exercise the release workflow once with a `v0.2.0` tag | Release automation has never run | L | S | **After merge**: tag `v0.2.0` on `main` (owner approved) |
+| 17 | Exercise the release workflow once with a `v0.2.0` tag | Release automation has never run | L | S | **Withdrawn — the premise was wrong.** See the correction below: `v0.2.0` shipped in November 2025. What remains is a version bump for the unreleased work, which is the owner's call. |
 | 18 | Budget the ESM bundle or state it is unbudgeted; note IIFE headroom is 2.4 KB | Any new feature will hit the limit | L | S | Done: ESM stated as unbudgeted in `Technical_Design.md` §4; headroom noted |
 
 Trivial fixes applied in the first consolidation PR (#95): regenerated
