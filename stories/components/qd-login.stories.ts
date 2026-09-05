@@ -45,8 +45,8 @@ Compact authentication component for students and instructors.
 
 **Instructor Setup:**
 \`\`\`html
-<!-- SHA-256 hash of password -->
-<div id="instructor.password.hash" style="display: none;">
+<!-- SHA-256 hash of password, truncated to 12 hex chars -->
+<div id="qd-instructor-hash" style="display: none;">
   hash_here
 </div>
 \`\`\`
@@ -184,12 +184,12 @@ export const InstructorPasswordDemo: Story = {
     }
 
     // Add instructor password hash (SHA-256 of "test123")
-    const hashExists = document.getElementById('instructor.password.hash');
+    const hashExists = document.getElementById('qd-instructor-hash');
     if (!hashExists) {
       const hashElement = document.createElement('div');
-      hashElement.id = 'instructor.password.hash';
+      hashElement.id = 'qd-instructor-hash';
       hashElement.style.display = 'none';
-      hashElement.textContent = 'ecd71870d1963316a97e3ac3408c9835ad8cf0f3c1bc703527c30265534f75ae';
+      hashElement.textContent = 'ecd71870d196';
       document.body.appendChild(hashElement);
     }
 
