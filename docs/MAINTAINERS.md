@@ -57,7 +57,7 @@ The demo pages load `dist/sonar-quiz.iife.js` and provide the hidden config span
 | Bundle size | `npm run build && npm run size-check` | CI, 40 KB gzip on the IIFE |
 | E2E | `npm run test:e2e` and `npm run test:e2e:encrypted` | CI matrix |
 | Storybook build | `npm run build-storybook` | CI, on every push and PR |
-| Release | Tag `vX.Y.Z` on `main` | `release.yml` builds and publishes; see `docs/RELEASE.md` |
+| Release | Tag `vX.Y.Z` on `main` | `release.yml` builds and publishes; see `docs/RELEASE.md`. Last release: `v0.2.0`, 2025-11-29. Bump `package.json` first — `VERSION` in the bundle is injected from it. |
 
 **Raising the ratchets.** The coverage thresholds and `--max-gaps` value are set to the measured
 level. When you add tests, raise them in the same PR so the improvement is locked in.
