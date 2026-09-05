@@ -11,9 +11,10 @@
 
 import { LitElement, html, css } from 'lit';
 import { customElement, state, property } from 'lit/decorators.js';
-import { STORAGE_KEYS } from '../types/contracts.js';
+import { STORAGE_KEYS, PIN_CONSTANTS } from '../types/contracts.js';
 import { SessionService } from '../services/session.js';
 import { readRelease } from '../config/dom-config-reader.js';
+import { RateLimiter } from '../utils/security.js';
 import {
   getExpectedInstructorHash,
   verifyInstructorPassword,
@@ -34,6 +35,10 @@ export class QdInstructorLogin extends LitElement {
 
   @state()
   private error = '';
+
+  // Same allowance as the student PIN policy (PIN_CONSTANTS.MAX_ATTEMPTS): the
+  // third consecutive wrong password starts the exponential lockout.
+  private rateLimiter = new RateLimiter(PIN_CONSTANTS.MAX_ATTEMPTS - 1);
 
   static styles = css`
     button {
@@ -100,11 +105,19 @@ export class QdInstructorLogin extends LitElement {
       return;
     }
 
+    // Rate limit guesses (same limiter as the toolbar unlock path)
+    if (!this.rateLimiter.attempt()) {
+      this.error = `Too many attempts. Try again in ${this.rateLimiter.getRemainingSeconds()}s`;
+      return;
+    }
+
     try {
       if (!(await verifyInstructorPassword(password))) {
+        this.rateLimiter.recordFailure();
         this.error = 'Incorrect password';
         return;
       }
+      this.rateLimiter.reset();
 
       const release = readRelease();
 

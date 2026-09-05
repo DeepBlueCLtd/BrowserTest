@@ -222,28 +222,81 @@ than another design document.
 ## 8. Recommended restart backlog
 
 Ranked by risk. Effort: S (< half a day), M (1–2 days), L (more).
+**Status column added 2026-09-05** after the owner asked for every item to be applied; see §9.
 
-| # | Item | Why it matters | Risk | Effort |
-|---|---|---|---|---|
-| 1 | Delete or rewrite `stories/components/qd-error-banner.stories.ts`; remove `continue-on-error` from the Chromatic job | Restores Storybook build, PR-preview Storybook and visual regression; ends a false-green signal | H | S |
-| 2 | Decide what "Erase All Data" must do, then wire `StorageService.clearAll()` (or document the current behaviour and rename the button) | Constitution VI promises complete erasure; instructors will believe cohort data is gone when it is not | H | S–M |
-| 3 | Re-enable the E2E job in `ci.yml` (body is already written; add `--ci` to the Storybook command) | 105 passing tests currently guard nothing on PRs | H | S |
-| 4 | Make coverage a real gate or delete the thresholds: run `test:coverage:*` in CI with thresholds set to today's numbers, ratchet up | Thresholds that never run and would fail are worse than none | M | S |
-| 5 | Resolve the duplicate instructor-hash id (`#instructor.password.hash` vs `#qd-instructor-hash`) to one reader | Toolbar unlock cannot work in DITA output; two code paths for one secret | M | S |
-| 6 | Confirm `CHROMATIC_PROJECT_TOKEN` exists; capture a fresh baseline after #1 | Visual regression has had no baseline since before the refactor | M | S |
-| 7 | Close spec 009: write `tests/e2e/encrypted-storage.spec.ts` or formally drop T034/T035/T038 | Only open tasks in the repo; encrypted mode is otherwise untested end-to-end in CI | M | M |
-| 8 | Re-baseline `Technical_Design.md` against §4, or retitle it "original design intent" and point readers to an as-built doc | 14 of 20 claims wrong; a formal review will read it as truth | M | M |
-| 9 | Remove or wire the dead modules (`validation.ts`, `csv-export.ts`, `runtime-config.ts`, `qd-pin-create.ts`) | 900+ lines that mislead readers and skew coverage; `validation.ts` is the only path to author-error banners | M | S–M |
-| 10 | Fix `CLAUDE.md` errors (phase status, `DEBUG_MODE`, store count, erase-all) and add a Known Issues section | It is the document agents and people actually read | M | S |
-| 11 | Fix README status/phase text and the two dead links; align `VERSION` in `src/index.ts` with `package.json` | First thing a reviewer sees | M | S |
-| 12 | Archive `POST_PHASE_7_REVIEW.md`, `CODE_REVIEW_REFACTORING_HOTSPOTS.md`, `docs/CODE_REDUCTION_PROPOSAL.md`, `docs/INSTRUCTOR_PASSWORD_IMPLEMENTATION.md` under `docs/history/`; merge the five `SECURITY_*.md` into one | Halves the root doc set; removes files that cite deleted code | L | S |
-| 13 | Strip the numeric tolerance from the Detail column in `quiz-table-columns.ts` as the answer column is, or accept that it is visible in view-source | Constitution VIII is only partly honoured; low impact (tolerance, not the answer) | L | S |
-| 14 | Add unit tests for `src/init/*` and `src/services/state-calculator.ts`; make `test:gaps` path-aware or move the 7 flat tests, then run it `--strict` in CI | Bootstrap and state calculation are the two least-covered critical paths | M | M |
-| 15 | Write `docs/MAINTAINERS.md` from §7 and a document index from §5 | No maintainer-facing entry point exists | M | S |
-| 16 | Backfill plan/tasks for specs 003 and 004, or mark them "implemented without plan" | Two shipped features have no implementation record | L | S |
-| 17 | Exercise the release workflow once with a `v0.2.0` tag | Release automation has never run | L | S |
-| 18 | Budget the ESM bundle or state it is unbudgeted; note IIFE headroom is 2.4 KB | Any new feature will hit the limit | L | S |
+| # | Item | Why it matters | Risk | Effort | Status |
+|---|---|---|---|---|---|
+| 1 | Delete or rewrite `stories/components/qd-error-banner.stories.ts`; remove `continue-on-error` from the Chromatic job | Restores Storybook build, PR-preview Storybook and visual regression; ends a false-green signal | H | S | Done: story deleted; Storybook build is a hard CI step; Chromatic runs only with a token |
+| 2 | Decide what "Erase All Data" must do, then wire `StorageService.clearAll()` (or document the current behaviour and rename the button) | Constitution VI promises complete erasure; instructors will believe cohort data is gone when it is not | H | S–M | Done: erase-all clears the three IndexedDB stores and all `qd/*`/`qd:*` keys; E2E asserts it |
+| 3 | Re-enable the E2E job in `ci.yml` (body is already written; add `--ci` to the Storybook command) | 105 passing tests currently guard nothing on PRs | H | S | Done: E2E job restored as a default/encrypted matrix |
+| 4 | Make coverage a real gate or delete the thresholds: run `test:coverage:*` in CI with thresholds set to today's numbers, ratchet up | Thresholds that never run and would fail are worse than none | M | S | Done: CI runs the coverage configs; thresholds set to measured levels as a ratchet |
+| 5 | Resolve the duplicate instructor-hash id (`#instructor.password.hash` vs `#qd-instructor-hash`) to one reader | Toolbar unlock cannot work in DITA output; two code paths for one secret | M | S | Done: both paths use `instructor-auth.ts` and `#qd-instructor-hash`; `instructor-password.ts` removed |
+| 6 | Confirm `CHROMATIC_PROJECT_TOKEN` exists; capture a fresh baseline after #1 | Visual regression has had no baseline since before the refactor | M | S | **Will not do**: Chromatic dropped (account lapsed). Storybook build kept as a CI gate; no visual regression remains — see §9 |
+| 7 | Close spec 009: write `tests/e2e/encrypted-storage.spec.ts` or formally drop T034/T035/T038 | Only open tasks in the repo; encrypted mode is otherwise untested end-to-end in CI | M | M | Done: `tests/e2e/encrypted-storage.spec.ts` (3 tests); spec 009 tasks closed |
+| 8 | Re-baseline `Technical_Design.md` against §4, or retitle it "original design intent" and point readers to an as-built doc | 14 of 20 claims wrong; a formal review will read it as truth | M | M | Done: re-baselined in place, numbering kept |
+| 9 | Remove or wire the dead modules (`validation.ts`, `csv-export.ts`, `runtime-config.ts`, `qd-pin-create.ts`) | 900+ lines that mislead readers and skew coverage; `validation.ts` is the only path to author-error banners | M | S–M | Done: four modules and their tests removed |
+| 10 | Fix `CLAUDE.md` errors (phase status, `DEBUG_MODE`, store count, erase-all) and add a Known Issues section | It is the document agents and people actually read | M | S | Done: phase status, debug mode, store count, erase-all corrected; doc index links added |
+| 11 | Fix README status/phase text and the two dead links; align `VERSION` in `src/index.ts` with `package.json` | First thing a reviewer sees | M | S | Done: status/phase text and links fixed; `VERSION` now injected from `package.json` |
+| 12 | Archive `POST_PHASE_7_REVIEW.md`, `CODE_REVIEW_REFACTORING_HOTSPOTS.md`, `docs/CODE_REDUCTION_PROPOSAL.md`, `docs/INSTRUCTOR_PASSWORD_IMPLEMENTATION.md` under `docs/history/`; merge the five `SECURITY_*.md` into one | Halves the root doc set; removes files that cite deleted code | L | S | Done: four docs archived to `docs/history/`; five SECURITY files merged into `docs/SECURITY.md` and archived |
+| 13 | Strip the numeric tolerance from the Detail column in `quiz-table-columns.ts` as the answer column is, or accept that it is visible in view-source | Constitution VIII is only partly honoured; low impact (tolerance, not the answer) | L | S | Done: Detail column content stripped to memory on load, restored on instructor reveal |
+| 14 | Add unit tests for `src/init/*` and `src/services/state-calculator.ts`; make `test:gaps` path-aware or move the 7 flat tests, then run it `--strict` in CI | Bootstrap and state calculation are the two least-covered critical paths | M | M | Done: 124 unit tests for `src/init/*` and `state-calculator.ts` (init 0% → 99%); gap script accepts flat paths; `--max-gaps` ratchet in CI |
+| 15 | Write `docs/MAINTAINERS.md` from §7 and a document index from §5 | No maintainer-facing entry point exists | M | S | Done: `docs/MAINTAINERS.md` and `docs/README.md` index |
+| 16 | Backfill plan/tasks for specs 003 and 004, or mark them "implemented without plan" | Two shipped features have no implementation record | L | S | Done: `STATUS.md` in specs 003 and 004 |
+| 17 | Exercise the release workflow once with a `v0.2.0` tag | Release automation has never run | L | S | **After merge**: tag `v0.2.0` on `main` (owner approved) |
+| 18 | Budget the ESM bundle or state it is unbudgeted; note IIFE headroom is 2.4 KB | Any new feature will hit the limit | L | S | Done: ESM stated as unbudgeted in `Technical_Design.md` §4; headroom noted |
 
-Trivial fixes applied in this consolidation PR: regenerated `docs/test-coverage-report.md`,
-deleted the stray `temp-e2e/` folder, added a "superseded" banner to
-`CODE_REVIEW_REFACTORING_HOTSPOTS.md`, and linked this report from `CLAUDE.md`.
+Trivial fixes applied in the first consolidation PR (#95): regenerated
+`docs/test-coverage-report.md`, deleted the stray `temp-e2e/` folder, added a "superseded"
+banner to the hotspots review (now under `docs/history/`), and linked this report from `CLAUDE.md`.
+
+## 9. Follow-up: backlog applied (2026-09-05)
+
+The second consolidation PR applied every item above except the two that need the owner
+(#6 token check, #17 release tag after merge). Additional defects found and fixed while doing so,
+none of which were in the original backlog:
+
+- **Stored XSS into the instructor's browser.** `qd-pin-reset-dialog` built a confirmation
+  message from the unescaped student name and `qd-confirm-dialog` rendered it with `unsafeHTML`.
+  Fixed with a new `escapeHtml()` in `src/utils/dom-helpers.ts` (unit-tested).
+- **Instructor password compare was not constant-time** on the login-modal path
+  (`verifyInstructorPassword` used `===`). Now uses `constantTimeCompare`.
+- **No rate limiting on the login-modal instructor path.** CLAUDE.md claimed it; only the
+  unreachable toolbar path had it. The modal now uses the same `RateLimiter`.
+- **Erase-all left `qd:pin-attempts:*` keys behind.** `clearQuizData()` now strips `qd:` as well
+  as `qd/` keys.
+- **CSV export had no formula-injection guard.** A student name or free-text answer starting
+  with `=`, `+`, `-` or `@` became a live formula when the instructor opened the export in Excel
+  or Sheets. `escapeCSVField` now prefixes a single quote (unit tested).
+- **The toolbar unlock never recorded failed attempts**, so its rate limiter never engaged.
+  Both instructor paths now share one policy: two wrong passwords are free, the third starts the
+  existing 2/4/8/16/30 s backoff. This matches the student PIN policy already in
+  `contracts.ts` (`PIN_CONSTANTS.MAX_ATTEMPTS`) and is covered by new unit tests.
+- **Playwright's `reporter: 'html'` never exits locally**, because it serves the HTML report at
+  the end of every run. Any scripted invocation hung. Now `[['list'], ['html', {open: 'never'}]]`.
+
+**Chromatic was then dropped entirely** (owner decision, September 2026: the account lapsed). The
+service, its two dev dependencies, `chromatic.config.json`, the npm script, the Storybook addon
+and `docs/CHROMATIC_SETUP.md` are removed. What it was actually catching in practice is kept and
+strengthened: CI builds Storybook as a hard gate, now on pull requests as well as `main`, so a
+story importing a deleted module fails before merge instead of silently breaking PR previews.
+Backlog item 6 is therefore closed as "will not do", and **the project now has no visual
+regression testing at all** — nothing compares rendered output between commits. Playwright
+screenshot assertions (`expect(page).toHaveScreenshot()`) are the natural replacement, using the
+E2E suite that already exists, if that coverage is wanted again.
+- `setDebugMode()` is now exported on `window.SonarQuiz` so debug logging can actually be enabled.
+
+Measured after this pass: unit 55 files / 876 tests, lines 69.4% (was 62.4%); integration 84 tests,
+lines 42.6% (was 39.6%); 25 source files without a test (was 39, of which 7 were false positives).
+E2E: 105 passed / 6 skipped in default mode, 110 passed / 1 skipped with `ENCRYPT_STORAGE=true`,
+no failures in either. Storybook builds. Coverage thresholds and the `--max-gaps` value are set to
+these levels and enforced in CI.
+
+**Bundle headroom is now the tightest constraint.** The IIFE is 39.10 KB gzipped against the
+40 KB ceiling, leaving 0.90 KB. The security fixes above account for most of the growth (it was
+37.61 KB before this pass). The next feature will need to trim before it can add; removing the
+`unsafeHTML` dependency from `qd-confirm-dialog` is the obvious first candidate.
+
+Still open after this pass (recorded in `docs/MAINTAINERS.md` §6): no authoring-error banner,
+no `qd:storage-error` / `qd:session-expired` events, no cross-tab sync, `backups` store never
+written, `injectComponents()` and `SessionCoordinator.cleanup()` are not idempotent, no formal
+WCAG audit.

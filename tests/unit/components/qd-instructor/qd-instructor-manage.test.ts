@@ -2,7 +2,15 @@
  * Unit tests for qd-instructor-manage component
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+// Erase-all clears IndexedDB through the storage service singleton; the
+// singleton is not initialised in unit tests, so stub it.
+const { clearAllMock } = vi.hoisted(() => ({ clearAllMock: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('../../../../src/services/storage-service.js', () => ({
+  getStorageService: () => ({ clearAll: clearAllMock }),
+}));
+
 import '../../../../src/components/qd-instructor/qd-instructor-manage.js';
 import type { QdInstructorManage } from '../../../../src/components/qd-instructor/qd-instructor-manage.js';
 
@@ -73,7 +81,7 @@ describe('qd-instructor-manage', () => {
       await element.updateComplete;
 
       // Manually call handler to test logic
-      element['handleConfirmClear']();
+      await element['handleConfirmClear']();
       await element.updateComplete;
 
       expect(element['error']).toContain('Confirmation text does not match');

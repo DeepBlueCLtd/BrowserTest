@@ -128,9 +128,7 @@ export const InstructorLoginFlow: Story = {
     </style>
 
     <!-- Inject password hash (simulating Oxygen XSL) -->
-    <span id="instructor.password.hash" style="display:none;"
-      >c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5</span
-    >
+    <span id="qd-instructor-hash" style="display:none;">c1437a55f6e9</span>
 
     <div class="demo-container">
       <div class="demo-instructions">
@@ -144,7 +142,7 @@ export const InstructorLoginFlow: Story = {
         </ol>
         <div class="password-info">
           Test Password: <strong>instructor123</strong><br />
-          Hash: c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5
+          Hash: c1437a55f6e9
         </div>
       </div>
 
@@ -383,9 +381,7 @@ export const InstructorModeFullControls: Story = {
     </style>
 
     <!-- Inject password hash -->
-    <span id="instructor.password.hash" style="display:none;"
-      >c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5</span
-    >
+    <span id="qd-instructor-hash" style="display:none;">c1437a55f6e9</span>
 
     <div class="demo-container">
       <div class="demo-instructions">

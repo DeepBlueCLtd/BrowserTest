@@ -111,14 +111,14 @@
 ### Tests (TDD - write first, verify fail)
 
 - [X] T033 [P] [US3] Integration test: getStudentsByRelease() returns decoded records when ENCRYPT_STORAGE=true in tests/integration/storage/encrypted-storage.test.ts
-- [ ] T034 [P] [US3] E2E test: instructor can view scores with obfuscation enabled in tests/e2e/encrypted-storage.spec.ts
-- [ ] T035 [P] [US3] E2E test: CSV export contains readable data with obfuscation enabled in tests/e2e/encrypted-storage.spec.ts
+- [X] T034 [P] [US3] E2E test: instructor can view scores with obfuscation enabled in tests/e2e/encrypted-storage.spec.ts
+- [X] T035 [P] [US3] E2E test: CSV export contains readable data with obfuscation enabled in tests/e2e/encrypted-storage.spec.ts
 
 ### Implementation
 
 - [X] T036 [US3] Modify getStudentsByRelease() in src/services/storage/indexeddb.ts to decode all records when ENCRYPT_STORAGE=true
 - [X] T037 [US3] Verify CSV export service uses decoded data (should work via existing getStudentsByRelease)
-- [ ] T038 [US3] Verify all T033-T035 tests pass (green)
+- [X] T038 [US3] Verify all T033-T035 tests pass (green)
 
 **Checkpoint**: US3 complete - instructor features unaffected by obfuscation
 

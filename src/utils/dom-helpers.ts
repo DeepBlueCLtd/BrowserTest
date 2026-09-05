@@ -287,3 +287,21 @@ export function removeClass(element: Element, ...classNames: string[]): void {
 export function toggleClass(element: Element, className: string): boolean {
   return element.classList.toggle(className);
 }
+
+/**
+ * Escape a string for safe interpolation into an HTML fragment.
+ *
+ * Use this whenever user-supplied text (student names, service IDs) is
+ * placed into markup that is later rendered with `unsafeHTML` or `innerHTML`.
+ *
+ * @param value - Raw text
+ * @returns Text with `& < > " '` replaced by HTML entities
+ */
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}

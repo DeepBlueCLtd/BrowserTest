@@ -5,9 +5,9 @@
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { sharedStyles } from './shared-styles.js';
-import { RateLimiter } from '../../utils/security.js';
-import { constantTimeCompare } from '../../utils/security.js';
-import { getInstructorPasswordHash } from '../../config/instructor-password.js';
+import { RateLimiter, constantTimeCompare } from '../../utils/security.js';
+import { getExpectedInstructorHash, hashPassword } from '../../services/auth/instructor-auth.js';
+import { PIN_CONSTANTS } from '../../types/contracts.js';
 import { dispatchEventOn } from '../../utils/event-helpers.js';
 
 /**
@@ -34,7 +34,9 @@ export class QdInstructorUnlock extends LitElement {
   @state()
   private remainingSeconds = 0;
 
-  private rateLimiter = new RateLimiter();
+  // Same allowance as the student PIN policy (PIN_CONSTANTS.MAX_ATTEMPTS): the
+  // third consecutive wrong password starts the exponential lockout.
+  private rateLimiter = new RateLimiter(PIN_CONSTANTS.MAX_ATTEMPTS - 1);
   private countdownInterval?: number;
 
   override disconnectedCallback(): void {
@@ -64,14 +66,13 @@ export class QdInstructorUnlock extends LitElement {
 
     // Validate password
     try {
-      const expectedHash = getInstructorPasswordHash();
-
-      // Hash the entered password
-      const encoder = new TextEncoder();
-      const data = encoder.encode(this.password);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const actualHash = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+      // Same config element and hash format as the login modal (#qd-instructor-hash,
+      // SHA-256 truncated to 12 hex chars) so the two unlock paths cannot disagree.
+      const expectedHash = getExpectedInstructorHash();
+      if (!expectedHash) {
+        throw new Error('Instructor password hash not configured');
+      }
+      const actualHash = await hashPassword(this.password);
 
       // Constant-time comparison
       const valid = await constantTimeCompare(actualHash, expectedHash);
@@ -83,7 +84,9 @@ export class QdInstructorUnlock extends LitElement {
         this.error = '';
         dispatchEventOn(this, 'qd:instructor-unlock', {});
       } else {
-        // Failure - show error
+        // Failure - count it (this path previously never recorded failures, so
+        // the limiter never engaged) and show the error
+        this.rateLimiter.recordFailure();
         this.error = 'Invalid password';
         this.password = '';
       }

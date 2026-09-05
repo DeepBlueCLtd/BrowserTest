@@ -15,7 +15,7 @@ declare const __ENCRYPT_STORAGE__: boolean;
  * When false: Data stored as plain JSON objects (readable in DevTools).
  *
  * IMPORTANT: Changing this flag requires data migration.
- * Use `window.SonarQuiz.migrateStorage()` to convert existing data.
+ * Use `window.SonarQuiz.migrateObfuscation()` (exported from src/index.ts) to convert existing data.
  *
  * Set via environment variable at build time:
  *   ENCRYPT_STORAGE=true npm run build

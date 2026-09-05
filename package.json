@@ -34,7 +34,6 @@
     "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"stories/**/*.ts\"",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "chromatic": "chromatic --exit-zero-on-changes",
     "size-check": "node scripts/check-bundle-size.js",
     "test:coverage": "vitest run --coverage",
     "test:coverage:unit": "vitest run --coverage",
@@ -57,7 +56,6 @@
     "lit": "^3.1.0"
   },
   "devDependencies": {
-    "@chromatic-com/storybook": "^3.2.7",
     "@eslint/js": "^9.39.1",
     "@peculiar/webcrypto": "^1.5.0",
     "@playwright/test": "^1.56.1",
@@ -71,7 +69,6 @@
     "@testing-library/dom": "^10.4.1",
     "@types/jsdom": "^27.0.0",
     "@vitest/coverage-v8": "^2.1.9",
-    "chromatic": "^13.3.3",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-lit": "^2.1.1",

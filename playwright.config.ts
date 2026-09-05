@@ -10,7 +10,10 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 2 : undefined, // Use 2 workers in CI for faster execution
-  reporter: 'html',
+  // 'html' alone starts a report server at the end of every local run and never
+  // exits, which hangs scripted/CI-style invocations. 'list' gives live output;
+  // the HTML report is still written to playwright-report/ but never auto-served.
+  reporter: [['list'], ['html', { open: 'never' }]],
 
   // Global timeout for each test (5 seconds - SPA operations take <2s)
   timeout: 5000,

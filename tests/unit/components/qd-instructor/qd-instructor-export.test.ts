@@ -77,6 +77,18 @@ describe('qd-instructor-export', () => {
       expect(escaped).toBe('"Say ""Hello"""');
     });
 
+    it('should neutralise leading formula characters', () => {
+      // Untrusted student names / answers must not execute in Excel or Sheets
+      expect(element['escapeCSVField']('=cmd|calc')).toBe("'=cmd|calc");
+      expect(element['escapeCSVField']('+1234')).toBe("'+1234");
+      expect(element['escapeCSVField']('-1+1')).toBe("'-1+1");
+      expect(element['escapeCSVField']('@SUM(A1)')).toBe("'@SUM(A1)");
+    });
+
+    it('should neutralise and quote a formula field containing a comma', () => {
+      expect(element['escapeCSVField']('=HYPERLINK("a","b")')).toBe('"\'=HYPERLINK(""a"",""b"")"');
+    });
+
     it('should not escape simple fields', () => {
       const escaped = element['escapeCSVField']('SimpleField');
       expect(escaped).toBe('SimpleField');

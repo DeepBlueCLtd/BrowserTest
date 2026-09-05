@@ -17,6 +17,7 @@ import {
   hideStudentAnswersForTable,
 } from './quiz-instructor-overlay.js';
 import { INSTRUCTOR_SHOW_ANSWERS_KEY } from '../utils/storage-helpers.js';
+import { restoreDetailColumn } from './quiz-table-columns.js';
 
 /**
  * Options controlling reveal behavior. Defaults preserve the historical
@@ -62,9 +63,8 @@ export function revealInstructorAnswers(
     }
   });
 
-  // Remove qd-hidden class from detail column (column 2)
-  const detailCells = table.querySelectorAll('td:nth-child(3), th:nth-child(3)');
-  detailCells.forEach((cell) => cell.classList.remove('qd-hidden'));
+  // Show the detail column (column 2) again and restore its content from memory
+  restoreDetailColumn(table);
 
   // Set up instructor toggle event listeners (since table is non-interactive)
   const showAnswersHandler = (): void => {

@@ -7,6 +7,7 @@ import { LitElement, html, render } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { sharedStyles } from './shared-styles.js';
 import { clearQuizData } from '../../utils/storage-helpers.js';
+import { getStorageService } from '../../services/storage-service.js';
 import { dispatchEventOn } from '../../utils/event-helpers.js';
 
 /**
@@ -94,7 +95,7 @@ export class QdInstructorManage extends LitElement {
     this.confirmText = input.value;
   };
 
-  private handleConfirmClear = (): void => {
+  private handleConfirmClear = async (): Promise<void> => {
     // Require exact match
     if (this.confirmText !== 'DELETE ALL DATA') {
       this.error = 'Confirmation text does not match';
@@ -102,7 +103,9 @@ export class QdInstructorManage extends LitElement {
     }
 
     try {
-      // Clear all quiz data from storage
+      // Clear persisted data (IndexedDB: students, backups, audit log) ...
+      await getStorageService().clearAll();
+      // ... then the session cache (sessionStorage qd/* keys)
       clearQuizData();
 
       // Emit event

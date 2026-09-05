@@ -110,6 +110,19 @@ describe('Storage Helpers', () => {
       expect(hasItem('other-app')).toBe(true);
     });
 
+    it('should also remove qd: prefixed keys (PIN rate-limit state)', () => {
+      setJSON('qd/session', { data: 'quiz' });
+      sessionStorage.setItem('qd:pin-attempts:RN1234', '3');
+      setJSON('other-app', { data: 'other' });
+
+      const cleared = clearQuizData();
+
+      expect(cleared).toBe(2);
+      expect(hasItem('qd/session')).toBe(false);
+      expect(sessionStorage.getItem('qd:pin-attempts:RN1234')).toBeNull();
+      expect(hasItem('other-app')).toBe(true);
+    });
+
     it('should return 0 when no quiz data exists', () => {
       setJSON('other-app', { data: 'other' });
 

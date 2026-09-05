@@ -191,4 +191,53 @@ describe('hashPassword', () => {
     expect(hash).toMatch(/^[a-f0-9]{64}$/);
     expect(hash.length).toBe(64);
   });
+
+  describe('RateLimiter freeFailures allowance', () => {
+    it('does not lock out while within the allowance', () => {
+      const lenient = new RateLimiter(2);
+
+      lenient.recordFailure();
+      expect(lenient.isLockedOut()).toBe(false);
+      expect(lenient.attempt()).toBe(true);
+
+      lenient.recordFailure();
+      expect(lenient.isLockedOut()).toBe(false);
+      expect(lenient.attempt()).toBe(true);
+    });
+
+    it('locks out on the failure after the allowance is used up', () => {
+      const lenient = new RateLimiter(2);
+
+      lenient.recordFailure();
+      lenient.recordFailure();
+      lenient.recordFailure();
+
+      expect(lenient.isLockedOut()).toBe(true);
+      expect(lenient.attempt()).toBe(false);
+      // First real lockout is the shortest backoff step
+      expect(lenient.getRemainingSeconds()).toBeLessThanOrEqual(2);
+    });
+
+    it('defaults to locking out on the first failure', () => {
+      const strict = new RateLimiter();
+
+      strict.recordFailure();
+
+      expect(strict.isLockedOut()).toBe(true);
+    });
+
+    it('reset() clears the used allowance', () => {
+      const lenient = new RateLimiter(2);
+      lenient.recordFailure();
+      lenient.recordFailure();
+      lenient.recordFailure();
+      expect(lenient.isLockedOut()).toBe(true);
+
+      lenient.reset();
+
+      expect(lenient.isLockedOut()).toBe(false);
+      lenient.recordFailure();
+      expect(lenient.isLockedOut()).toBe(false);
+    });
+  });
 });

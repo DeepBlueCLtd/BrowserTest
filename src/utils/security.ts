@@ -38,6 +38,14 @@ export class RateLimiter {
   private lockoutUntil: number | null = null;
 
   /**
+   * @param freeFailures - Number of failed attempts allowed before any lockout
+   *   is applied. 0 (the default) locks out from the first failure. Interactive
+   *   password prompts pass a small allowance so a single typo does not stall
+   *   the user, while still bounding brute-force attempts.
+   */
+  constructor(private readonly freeFailures: number = 0) {}
+
+  /**
    * Attempt an action (e.g., login attempt)
    *
    * @returns true if action is allowed, false if rate limited
@@ -58,14 +66,19 @@ export class RateLimiter {
   /**
    * Record a failed attempt and apply exponential backoff
    *
-   * Delays: 2s, 4s, 8s, 16s, 30s (max)
+   * Delays: 2s, 4s, 8s, 16s, 30s (max), starting after any `freeFailures` allowance
    */
   recordFailure(): void {
     this.failureCount++;
 
+    // Allowance for honest mistakes before any lockout kicks in
+    if (this.failureCount <= this.freeFailures) {
+      return;
+    }
+
     // Exponential backoff with max of 30 seconds
     const delays = [2000, 4000, 8000, 16000, 30000];
-    const delayIndex = Math.min(this.failureCount - 1, delays.length - 1);
+    const delayIndex = Math.min(this.failureCount - this.freeFailures - 1, delays.length - 1);
     const delay = delays[delayIndex] ?? 30000;
 
     this.lockoutUntil = Date.now() + delay;

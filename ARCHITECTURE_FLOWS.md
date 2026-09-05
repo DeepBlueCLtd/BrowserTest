@@ -62,13 +62,19 @@ graph LR
 
 | Event | Producer | Consumers | Payload | Purpose |
 |-------|----------|-----------|---------|---------|
-| `qd:login` | qd-login | index.ts, home-badges, storage-monitor | SessionData | User authentication |
-| `qd:logout` | qd-status | index.ts, home-badges, storage-monitor | {serviceId} | Session termination |
-| `qd:answer-saved` | quiz-table enhancer | index.ts, storage-monitor | {pageId, answer} | Quiz progress |
-| `qd:state-changed` | index.ts | home-badges, storage-monitor | {pageId, state} | Page completion state |
-| `qd:instructor-unlock` | qd-instructor | storage-monitor, quiz tables | {timestamp} | Reveal answers |
-| `qd:instructor-login` | qd-login, qd-status | index.ts | {password} | Instructor auth |
-| `qd:data-cleared` | qd-instructor | storage-monitor | {timestamp} | Data erasure |
+| `qd:login` | qd-login, qd-instructor-login, SessionService | event-coordinator, bootstrap, qd-status, qd-instructor, quiz-table | {serviceId, name, release, role} | Student or instructor authentication (instructor login carries `role: 'instructor'`) |
+| `qd:logout` | qd-status, qd-instructor, SessionService | event-coordinator, qd-status, qd-login, qd-instructor, home-badges | {serviceId} | Session termination |
+| `qd:answer-saved` | quiz-answer-persistence | event-coordinator (→ `qd:cache-update`) | {pageId, answer} | Quiz progress |
+| `qd:state-changed` | quiz-answer-persistence | event-coordinator (→ `qd:badge-update`), qd-status, home-badges | {pageId, state} | Page completion state |
+| `qd:analysis-saved` | analysis-persistence | (none) | {pageId, tableId} | Analysis cell saved |
+| `qd:instructor-unlock` / `-lock` | qd-instructor-unlock, SessionService | event-coordinator (log only) | {} | Toolbar unlock / lock |
+| `qd:instructor-show-answers` / `-hide-answers` | qd-instructor | quiz-table, analysis-table, instructor-answer-reveal | {} | Per-student overlay toggle |
+| `qd:data-cleared` | qd-instructor-manage | event-coordinator (→ `qd:cache-clear`) | {timestamp} | Data erasure |
+| `qd:cache-rebuild` / `-update` / `-clear`, `qd:badge-update` | event-coordinator | qd-status, home-badges | varies | Cache and badge coordination |
+
+All of these are dispatched on `document` (not `window`); see `src/init/event-coordinator.ts` and
+`Technical_Design.md` §19 for the full list including component‑local events. There is no
+`qd:instructor-login` event: instructor login emits `qd:login` with `role: 'instructor'`.
 
 ---
 
@@ -113,12 +119,13 @@ sequenceDiagram
         SessionService->>Storage: Save to sessionStorage
         index.ts->>DOM: Rebuild cache from IndexedDB
     else Path 2: Instructor Login
-        User->>qd-status: Click instructor button
-        qd-status->>EventBus: Dispatch qd:instructor-login
-        EventBus->>index.ts: Show instructor modal
-        User->>qd-instructor: Enter password
-        qd-instructor->>EventBus: Dispatch qd:instructor-unlock
-        EventBus->>DOM: Reveal correct answers
+        User->>qd-login: Click "Instructor" button
+        qd-login->>qd-instructor-login: Open password modal
+        User->>qd-instructor-login: Enter password (rate limited)
+        qd-instructor-login->>instructor-auth: verifyInstructorPassword (#qd-instructor-hash)
+        qd-instructor-login->>SessionService: createSession('INSTRUCTOR') + qd/instructor flag
+        qd-instructor-login->>EventBus: Dispatch qd:login (role: instructor)
+        EventBus->>bootstrap: revealInstructorAnswers for each quiz table
     else Path 3: Session Resume
         User->>DOM: Return to page
         DOM->>SessionService: Check sessionStorage

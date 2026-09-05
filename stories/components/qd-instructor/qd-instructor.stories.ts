@@ -68,7 +68,7 @@ const mockStudents: StudentRecord[] = [
  *
  * **Test Password:** `instructor123`
  *
- * **How it works:** The password hash is read from a hidden DOM element with `id="instructor.password.hash"`.
+ * **How it works:** The password hash is read from a hidden DOM element with `id="qd-instructor-hash"`.
  * This element is injected by the Oxygen XSL transform during DITA publishing. This allows different
  * passwords per deployment without rebuilding the JavaScript bundle.
  *
@@ -80,12 +80,12 @@ const mockStudents: StudentRecord[] = [
 export const Locked: Story = {
   render: () => {
     // Hash for "instructor123"
-    const passwordHash = 'c1437a55f6e93b7049c4064af1b0920974e383a435283f5d0b0496ee4a8a47b5';
+    const passwordHash = 'c1437a55f6e9';
 
     return html`
       <div>
         <!-- Hidden password hash element (mimics Oxygen XSL injection) -->
-        <span id="instructor.password.hash" style="display:none;">${passwordHash}</span>
+        <span id="qd-instructor-hash" style="display:none;">${passwordHash}</span>
 
         <div
           style="background: #f0f0f0; padding: 16px; margin-bottom: 16px; border-radius: 4px; font-family: monospace; font-size: 12px;"
@@ -97,8 +97,8 @@ export const Locked: Story = {
           ><br />
           <br />
           <strong>Password Storage:</strong> The hash is read from a hidden DOM element
-          <code>&lt;span id="instructor.password.hash"&gt;</code> injected by Oxygen XSL transform.
-          This story includes the hash for "instructor123".<br />
+          <code>&lt;span id="qd-instructor-hash"&gt;</code> injected by Oxygen XSL transform. This
+          story includes the hash for "instructor123".<br />
           <br />
           <strong>Generate a hash:</strong><br />
           <code>echo -n "your-password" | openssl dgst -sha256</code><br />
