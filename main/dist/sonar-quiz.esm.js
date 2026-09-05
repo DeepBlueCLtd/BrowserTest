@@ -3275,6 +3275,10 @@ const loginStyles = i$4`
     }
 
     input.pin-input {
+      /* Kept narrow deliberately: the header bar has only a few pixels of
+         slack at 1280px, and a wider field wraps the Instructor button onto a
+         second row. The "4 digits" rule is carried by the hint message and the
+         field's title/aria-label instead. */
       width: 45px;
       min-width: 45px;
       max-width: 45px;
@@ -3325,6 +3329,17 @@ const loginStyles = i$4`
 
     .instructor-btn:hover {
       background: #5a6268;
+    }
+
+    .hint-message {
+      width: 100%;
+      color: #555;
+      font-size: 11px;
+      margin-top: 3px;
+      padding: 4px 8px;
+      background: #f1f3f4;
+      border-radius: 3px;
+      border-left: 3px solid #9aa0a6;
     }
 
     .error-message {
@@ -5609,7 +5624,7 @@ QdMigrationDialog = __decorateClass$a([
 const HELP_CONTENT = {
   login: {
     title: "Login Help",
-    body: '<p>Enter <strong>Name</strong> and <strong>Service ID</strong> to log in.  Provide a new <strong>PIN</strong> if this is your first visit to this release of this document, otherwise use the PIN you previously created. Your instructor is able to reset PINs.  See the <b>Feedback</b> page for more support.</p><p> <strong>Instructors:</strong> click "Instructor" for instructor login page (password accompanies distribution).</p>'
+    body: '<p>Enter <strong>Name</strong> and <strong>Service ID</strong> to log in.  Provide a new <strong>4-digit PIN</strong> if this is your first visit to this release of this document, otherwise use the PIN you previously created. Your instructor is able to reset PINs.  See the <b>Feedback</b> page for more support.</p><p> <strong>Instructors:</strong> click "Instructor" for instructor login page (password accompanies distribution).</p>'
   },
   status: {
     title: "Student View",
@@ -5750,6 +5765,7 @@ let QdLogin = class extends i$1 {
             name="pin"
             class="pin-input"
             placeholder="PIN"
+            title="4-digit PIN"
             inputmode="numeric"
             pattern="[0-9]*"
             maxlength="4"
@@ -5768,7 +5784,7 @@ let QdLogin = class extends i$1 {
             Login
           </button>
           <qd-instructor-login ?disabled=${this.isSubmitting}></qd-instructor-login>
-          ${this.errorMessage ? x`<div class="error-message">${this.errorMessage}</div>` : ""}
+          ${this.errorMessage ? x`<div class="error-message">${this.errorMessage}</div>` : this.validationHint ? x`<div class="hint-message" role="status">${this.validationHint}</div>` : ""}
           <qd-lockout-banner
             .untilMs=${this.lockoutUntil}
             @qd:lockout-expired=${this.handleLockoutExpired}
@@ -5816,6 +5832,24 @@ let QdLogin = class extends i$1 {
   /** Whether the student form passes validation. */
   isValid() {
     return validateStudentForm(this.name, this.serviceId, this.pin).length === 0;
+  }
+  /**
+   * First outstanding validation problem, for display while the user types.
+   *
+   * The Login button is disabled until the form is valid, which on its own
+   * leaves no way to discover what is missing: the submit handler's error
+   * message is unreachable because submitting is exactly what is blocked.
+   * This surfaces the same message live instead. A pristine form stays quiet
+   * so the user is not scolded before typing anything.
+   *
+   * @returns The first validation error, or an empty string when the form is
+   *   untouched or valid
+   */
+  get validationHint() {
+    if (!this.name && !this.serviceId && !this.pin) {
+      return "";
+    }
+    return validateStudentForm(this.name, this.serviceId, this.pin)[0] ?? "";
   }
   /**
    * Handle student login: validate, resolve release/db-name, delegate to
