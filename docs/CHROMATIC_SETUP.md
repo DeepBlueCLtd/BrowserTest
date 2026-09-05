@@ -1,79 +1,38 @@
-# Chromatic Setup Guide
+# Chromatic (Visual Regression) Setup
 
-Chromatic provides visual regression testing for Storybook. This is **optional** for Phase 0 but recommended for production use.
+Chromatic captures screenshots of every Storybook story and diffs them against the last
+accepted baseline. It is wired into `.github/workflows/ci.yml` as the **Visual Regression Tests**
+job, which runs on pushes to `main` only.
 
-## Current Status
+## How the job behaves
 
-- ✅ Chromatic is configured in the CI workflow
-- ⚠️ Chromatic will be **skipped** until you add the project token
-- ✅ All other CI checks will pass without Chromatic
+1. `npm run build-storybook` runs unconditionally. If a story is broken (for example it imports a
+   component that no longer exists) **the job fails**. This step exists because between June and
+   September 2026 the Storybook build was broken and a `continue-on-error` flag hid it.
+2. The Chromatic upload step runs only when the `CHROMATIC_PROJECT_TOKEN` secret is set. Without
+   the token the step is skipped and the job is reported as passed with a notice in the log.
 
-## Setup Instructions
+There is no `continue-on-error` any more: a red Chromatic step is a real failure.
 
-### 1. Create a Chromatic Account
+## One-time setup
 
-1. Go to [chromatic.com](https://www.chromatic.com/)
-2. Sign up with your GitHub account
-3. Create a new project for "Sonar Quiz System"
+1. Create a project at [chromatic.com](https://www.chromatic.com/) linked to this repository.
+2. Copy the project token (`chpt_...`).
+3. Add it as a repository secret named `CHROMATIC_PROJECT_TOKEN`
+   (Settings → Secrets and variables → Actions).
+4. Push to `main`. The first run establishes the baseline; accept it in the Chromatic UI.
 
-### 2. Get Your Project Token
-
-1. In Chromatic dashboard, go to your project settings
-2. Copy the **Project Token** (looks like: `chpt_xxxxxxxxxxxxx`)
-
-### 3. Add Token to GitHub Secrets
-
-1. Go to your GitHub repository
-2. Navigate to: **Settings** → **Secrets and variables** → **Actions**
-3. Click **New repository secret**
-4. Name: `CHROMATIC_PROJECT_TOKEN`
-5. Value: Paste your Chromatic project token
-6. Click **Add secret**
-
-### 4. Verify Setup
-
-Once the token is added:
-
-1. Push a commit to your branch
-2. GitHub Actions will automatically run Chromatic
-3. Check the workflow run to see visual regression results
-4. View detailed reports in the Chromatic dashboard
-
-## Running Locally
+## Running locally
 
 ```bash
-# Set your token as an environment variable
 export CHROMATIC_PROJECT_TOKEN=chpt_xxxxxxxxxxxxx
-
-# Run Chromatic locally
 npm run chromatic
 ```
 
-## What Chromatic Does
+`npm run build-storybook` on its own is the quickest way to check that every story still
+compiles, and needs no token.
 
-- 📸 Captures snapshots of all Storybook stories
-- 🔍 Compares them against the baseline
-- ⚠️ Flags visual changes for review
-- ✅ Prevents unintended UI regressions
+## Free tier
 
-## Free Tier Limits
-
-Chromatic's free tier includes:
-- 5,000 snapshots/month
-- Unlimited collaborators
-- 1 concurrent build
-
-This is sufficient for Phase 0-1 development.
-
-## Disabling Chromatic
-
-If you don't want to use Chromatic:
-
-1. The CI will automatically skip it (no action needed)
-2. Alternatively, remove the `chromatic` job from `.github/workflows/ci.yml`
-3. Remove the `chromatic` dev dependency from `package.json`
-
-## Learn More
-
-- [Chromatic Documentation](https://www.chromatic.com/docs/)
-- [Storybook + Chromatic Tutorial](https://storybook.js.org/tutorials/intro-to-storybook/react/en/deploy/)
+5,000 snapshots per month and one concurrent build, which is ample for this project's story
+count. `onlyChanged: true` in the workflow limits snapshots to stories affected by each push.

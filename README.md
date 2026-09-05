@@ -6,7 +6,7 @@ A browser-based quiz tool, capable of storing scores across a range of players a
 
 BrowserTest is an interactive quiz and analysis platform designed for offline use. It progressively enhances HTML documents with quiz functionality, student progress tracking, and instructor review capabilities—all without requiring a network connection or server backend.
 
-**Status:** In active development
+**Status:** Feature-complete for the original eight-phase plan (June 2026); consolidated for restart in September 2026. See [docs/PROJECT_STATE.md](./docs/PROJECT_STATE.md) for the audit and [docs/MAINTAINERS.md](./docs/MAINTAINERS.md) for the maintainer guide.
 
 ## Key Features
 
@@ -143,14 +143,16 @@ See [docs/RELEASE.md](./docs/RELEASE.md) for complete release instructions.
 | [Technical_Design.md](./Technical_Design.md) | Architecture, technology decisions, packaging, integration, and acceptance criteria |
 | [ARCHITECTURE_FLOWS.md](./ARCHITECTURE_FLOWS.md) | Event flows, login processes, DOM patterns, and service interactions |
 | [Contracts.md](./Contracts.md) | Core types, interfaces, events, constants, and validation rules (frozen API) |
-| [Delivery_Plan.md](./Delivery_Plan.md) | Phase-by-phase development plan with exit gates and testing strategy |
-| [Storybook_Plan.md](./Storybook_Plan.md) | Component stories, controls, interaction tests, and visual regression policy |
+| [docs/MAINTAINERS.md](./docs/MAINTAINERS.md) | Maintainer guide: setup, repo map, where the truth lives, known issues |
+| [docs/PROJECT_STATE.md](./docs/PROJECT_STATE.md) | September 2026 consolidation audit and restart backlog |
+| [docs/SECURITY.md](./docs/SECURITY.md) | What the project does for security, and its limits |
+| [docs/README.md](./docs/README.md) | Index of all documentation, including archived material |
 
 ## Development Phases
 
 The project follows an 8-phase delivery plan:
 
-- **Phase 0:** Bootstrap + Contracts (toolchain, frozen interfaces) ← *Current phase*
+- **Phase 0:** Bootstrap + Contracts (toolchain, frozen interfaces)
 - **Phase 1:** Quiz Core (interactive quizzes, no login/IDB)
 - **Phase 2:** Analysis Workbook (editable tables)
 - **Phase 3:** Instructor Unlock (supervisor mode)
@@ -160,11 +162,11 @@ The project follows an 8-phase delivery plan:
 - **Phase 7:** Beta Deployment & Feedback
 - **Phase 8:** Security/Enhancements (optional)
 
-See [Delivery_Plan.md](./Delivery_Plan.md) for detailed phase descriptions and exit criteria.
+All eight phases are complete. Later work (specs 001–012 under `specs/`) added security hardening, PIN authentication, help popups, storage obfuscation, release automation and a hot-spot refactor.
 
 ## Architecture
 
-- **Runtime:** Single JavaScript bundle (IIFE ≤25 KB gzipped) that progressively enhances DITA-published HTML
+- **Runtime:** Single JavaScript bundle (IIFE ≤40 KB gzipped, enforced in CI) that progressively enhances DITA-published HTML
 - **Pattern:** DOM upgrades for tables + Lit 3 custom elements for UI overlays
 - **Data flow:** User actions → sessionStorage cache → IndexedDB persistence
 - **Isolation:** Shadow DOM for components, scoped CSS for upgraded tables

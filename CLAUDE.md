@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 BrowserTest (internally "Sonar Quiz System") is an offline-first interactive quiz and analysis platform that progressively enhances DITA-published HTML training materials. The system operates entirely from `file://` URLs with no network dependencies, targeting air-gapped training environments.
 
-**Current Phase**: Phase 1 Complete (Foundation Layer) → Starting Phase 2 (Components & Integration)
+**Current Phase**: All eight delivery phases and specs 001–012 are complete (June 2026). The project was dormant until the September 2026 consolidation; see `docs/PROJECT_STATE.md` for the audit and `docs/MAINTAINERS.md` for the maintainer guide.
 
 ## Core Architecture
 
@@ -27,7 +27,7 @@ User Input → DOM Handler → Service Layer → Storage Adapter
 **Storage Strategy**:
 - **IndexedDB**: Primary persistence with composite keys `qd/{release}/u{serviceId}`
   - Database name: `BrowserTest` (defined in `src/services/storage/indexeddb.ts`)
-  - Object stores: `students`, `backups`
+  - Object stores: `students`, `backups`, `auditLog` (DB version 3, see `src/services/storage/idb-connection.ts`)
 - **sessionStorage**: Active session + R/A/G cache (expires 30 min)
 - **No network**: All data remains local, no telemetry/CDN/remote config
 
@@ -76,7 +76,7 @@ Consolidated control center with:
   - For analysis tables: Shows student entries in comparison format
 - **Button**: "View All Scores" → Opens `<qd-scores-modal>`
 - **Button**: "Export to CSV" → Downloads detailed answer data
-- **Button**: "Erase All Data" → Clears all storage (with confirmation dialog)
+- **Button**: "Erase All Data" → Clears IndexedDB (students, backups, audit log) and all `qd/*` sessionStorage keys (typed confirmation required)
 - **Button**: "Logout"
 
 #### **Scores Modal** (`<qd-scores-modal>`)
@@ -204,7 +204,7 @@ python3 -m http.server 8000
 # Visit: http://localhost:8000/demo/quiz-index.html
 ```
 
-All demo files load the built bundle from `dist/sonar-quiz.iife.js` with configuration provided via hidden `<span>` elements. Debug mode is controlled by `DEBUG_MODE` constant in `src/index.ts`. See **demo/README.md** for:
+All demo files load the built bundle from `dist/sonar-quiz.iife.js` with configuration provided via hidden `<span>` elements. Debug logging is off by default and can be switched on at runtime with `setDebugMode(true)` from `src/utils/logger.ts` (exported on `window.SonarQuiz`). See **demo/README.md** for:
 - Detailed test scenarios (login, quiz interaction, analysis tables, session management)
 - Browser DevTools inspection tips (IndexedDB, sessionStorage, custom events)
 - Configuration examples using hidden span elements
@@ -289,7 +289,7 @@ npm run build
   - `#qd-title-selector`: CSS selector for publication title/Release ID (default: `.wh_publication_title .title`)
   - `#qd-db-name`: IndexedDB database name (**REQUIRED** - no default, throws error if missing/empty)
   - `#qd-instructor-hash`: SHA-256 hash of instructor password (optional)
-- Debug mode controlled by `DEBUG_MODE` constant in `src/index.ts` (single toggle point)
+- Debug logging controlled by `setDebugMode()` in `src/utils/logger.ts` (off by default; no `data-qd-debug` attribute is read)
 - No setup, no manual config, no network dependencies
 
 **Example HTML Structure** (injected by DITA/Oxygen transform):
@@ -493,7 +493,9 @@ Enable via `data-qd-debug` attribute on quiz/analysis tables:
 - **Technical_Design.md**: Architecture, packaging, integration patterns
 - **ARCHITECTURE_FLOWS.md**: Event flows, login processes, DOM patterns, service interactions
 - **Contracts.md**: Frozen types and interfaces
-- **Delivery_Plan.md**: 8-phase plan with exit gates
+- **docs/MAINTAINERS.md**: Maintainer guide — setup, repo map, where the truth lives, known issues
+- **docs/SECURITY.md**: What the project actually does for security, and its limits
+- **docs/history/**: Archived design reviews and proposals (historical, not current)
 - **demo/README.md**: Demo HTML files, testing workflows, troubleshooting guide
 - **specs/001-sonar-quiz-system/**: Feature spec, plan, data model, contracts
 
