@@ -3603,7 +3603,7 @@ var __decorateClass$j = (decorators, target, key, kind) => {
 };
 let QdBuildInfo = class extends i$1 {
   render() {
-    const buildDate = "19/Jun/2026";
+    const buildDate = "5/Sep/2026";
     return x`
       <span class="info-icon" tabindex="0" role="button" aria-label="Build information">i</span>
       <div class="tooltip" role="tooltip">
@@ -8031,7 +8031,7 @@ function isInitialized() {
   return state.initialized;
 }
 const VERSION = "0.1.0-phase3.1";
-const BUILD_DATE = "19/Jun/2026";
+const BUILD_DATE = "5/Sep/2026";
 if (typeof window !== "undefined") {
   const init = () => {
     const domConfig = readDOMConfig();
