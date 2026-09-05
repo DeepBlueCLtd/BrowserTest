@@ -35,7 +35,7 @@
 ## 5. Build Strategy
 - **Tooling:** Vite (library mode) + Rollup; TypeScript 5; `vite-plugin-dts` for typings.
 - **Build‑time defines:** `__BUILD_DATE__`, `__APP_VERSION__`, `__ENCRYPT_STORAGE__` (from the `ENCRYPT_STORAGE` env var).
-- **CI (`.github/workflows/ci.yml`):** lint + format; unit and integration tests with coverage thresholds (a ratchet, raised as tests are added); test‑gap ratchet (`scripts/check-test-gaps.js --max-gaps N`); build + bundle size; Playwright E2E in default and encrypted modes; Storybook build plus Chromatic on pushes to `main`.
+- **CI (`.github/workflows/ci.yml`):** lint + format; unit and integration tests with coverage thresholds (a ratchet, raised as tests are added); test‑gap ratchet (`scripts/check-test-gaps.js --max-gaps N`); build + bundle size; Playwright E2E in default and encrypted modes; Storybook build.
 
 ## 6. Integration with DITA / Oxygen
 - **Include:** Single `<script defer src="sonar-quiz.iife.js">` in the Oxygen template footer.
@@ -92,7 +92,7 @@ See `docs/SECURITY.md` for the full description and known limitations. In brief:
 - **Unit (Vitest, jsdom, fake‑indexeddb):** parsers, state calculation, services, components, init layer. `tests/unit/`.
 - **Integration (Vitest, separate config):** DOM upgrade flows, storage round‑trips, instructor reveal. `tests/integration/`.
 - **E2E (Playwright, Chromium):** Drives the committed DITA output under `dita-demo/` over `file://`; Storybook is started as the Playwright web server. Runs in default and `ENCRYPT_STORAGE=true` modes. `tests/e2e/`.
-- **Visual regression:** Storybook build is required to pass in CI; Chromatic uploads snapshots when a project token is configured (`docs/CHROMATIC_SETUP.md`).
+- **Visual regression:** none. Chromatic was removed in September 2026 when the account lapsed; CI proves every story still compiles (`npm run build-storybook`) but nothing compares rendered output. Playwright screenshot assertions are the obvious replacement if visual coverage is wanted again.
 - **Coverage:** Thresholds in the two Vitest configs are enforced in CI and raised as coverage improves.
 
 ## 14. Browser and Platform Support

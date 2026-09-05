@@ -111,33 +111,18 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
-  chromatic:
-    name: Visual Regression Tests
+  storybook:
+    name: Storybook Build
     runs-on: ubuntu-latest
-    # Only run on push events to main branch
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    env:
-      CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
       - run: npm ci
-      # Always prove Storybook builds. A broken story must fail CI, not be hidden.
-      - name: Build Storybook
-        run: npm run build-storybook
-      - name: Run Chromatic
-        if: env.CHROMATIC_PROJECT_TOKEN != ''
-        uses: chromaui/action@latest
-        with:
-          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
-          exitZeroOnChanges: true
-          onlyChanged: true
-          storybookBuildDir: storybook-static
-      - name: Chromatic skipped
-        if: env.CHROMATIC_PROJECT_TOKEN == ''
-        run: echo "::notice::CHROMATIC_PROJECT_TOKEN is not set; Storybook built OK but no snapshots were uploaded. See docs/CHROMATIC_SETUP.md."
+      # Every story must compile. A story importing a deleted module used to break
+      # this silently (it was hidden behind continue-on-error on the old Chromatic
+      # job), which also took down the Storybook half of PR previews. Running it on
+      # pull requests catches that before merge.
+      - run: npm run build-storybook

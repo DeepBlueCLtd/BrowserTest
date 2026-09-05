@@ -30,7 +30,7 @@ The demo pages load `dist/sonar-quiz.iife.js` and provide the hidden config span
 | `src/config/` | Hidden-span config reader, feature flags, help text | `dom-config-reader.ts` is the config contract |
 | `src/types/contracts.ts` | Frozen types, event names, storage keys | Do not change without a schema bump |
 | `tests/unit`, `tests/integration`, `tests/e2e` | Vitest, Vitest (separate config), Playwright | E2E drives `dita-demo/` pages over `file://` |
-| `stories/` | Storybook stories; also the Playwright web server | A story importing a deleted module breaks Chromatic and PR previews |
+| `stories/` | Storybook stories; also the Playwright web server | A story importing a deleted module breaks the Storybook build and PR previews |
 | `dita/` | Oxygen template + XSL that injects the config spans | `customHeader.xsl` is the real config source in production |
 | `dita-demo/` | Committed DITA output used by E2E and PR previews | Refresh with `npm run update-dita-demo` after a DITA build |
 | `scripts/` | Bundle size check, test-gap check, E2E gap report | All wired into CI or `npm run` |
@@ -56,7 +56,7 @@ The demo pages load `dist/sonar-quiz.iife.js` and provide the hidden config span
 | Untested-file ratchet | `npm run test:gaps -- --max-gaps N` | CI (`N` set in `ci.yml`) |
 | Bundle size | `npm run build && npm run size-check` | CI, 40 KB gzip on the IIFE |
 | E2E | `npm run test:e2e` and `npm run test:e2e:encrypted` | CI matrix |
-| Storybook build | `npm run build-storybook` | CI on pushes to `main` (Chromatic uploads if token set) |
+| Storybook build | `npm run build-storybook` | CI, on every push and PR |
 | Release | Tag `vX.Y.Z` on `main` | `release.yml` builds and publishes; see `docs/RELEASE.md` |
 
 **Raising the ratchets.** The coverage thresholds and `--max-gaps` value are set to the measured
@@ -88,10 +88,12 @@ needs Storybook started with `ENCRYPT_STORAGE=true` and the bundle built with
 
 ## 6. Known issues and deferred work
 
-Tracked in `docs/PROJECT_STATE.md` §8. At the time of writing the open items are: no runtime
-validation banner for authoring errors; no `qd:storage-error` / `qd:session-expired` events;
-no cross-tab sync; `backups` store never written; formal WCAG audit not done; ESM bundle
-unbudgeted; ~2.4 KB of IIFE headroom.
+Tracked in `docs/PROJECT_STATE.md` §8. At the time of writing the open items are: **no visual
+regression testing** (Chromatic was dropped in September 2026; CI proves stories compile but
+nothing compares rendered output — Playwright screenshot assertions would be the replacement);
+no runtime validation banner for authoring errors; no `qd:storage-error` / `qd:session-expired`
+events; no cross-tab sync; `backups` store never written; formal WCAG audit not done; ESM bundle
+unbudgeted; under 1 KB of IIFE headroom.
 
 ## 7. Adding a feature
 

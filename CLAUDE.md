@@ -116,7 +116,6 @@ npm test                # Run all tests
 npm run test:unit       # Vitest unit tests
 npm run test:integration # DOM upgrade integration tests
 npm run test:e2e        # Playwright E2E tests (auto-starts/stops Storybook)
-npm run chromatic       # Visual regression tests
 
 # Coverage & Gap Analysis
 npm run test:coverage   # Unit tests with v8 coverage report
@@ -435,8 +434,8 @@ Before committing any code changes, ALL of the following MUST pass:
 
 ### Phase Exit Gates
 - **Phase 0**: Contracts published, Storybook renders, CI green
-- **Phase 1**: Chromatic interactions pass, parsing unit tests
-- **Phase 2**: Visual baselines stable, cell mapping tests
+- **Phase 1**: Storybook interactions pass, parsing unit tests
+- **Phase 2**: Storybook renders all components, cell mapping tests
 - **Phase 3**: A11y checks pass, event emission verified
 - **Phase 4**: Session switch tests, expiry unit tests
 - **Phase 5**: E2E file:// saves/reloads, CSV validation

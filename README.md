@@ -20,7 +20,7 @@ BrowserTest is an interactive quiz and analysis platform designed for offline us
 - **Framework:** Lit 3 (Web Components)
 - **Build:** Vite + TypeScript
 - **Storage:** IndexedDB (primary), sessionStorage (session cache)
-- **Testing:** Vitest (unit), Playwright (E2E), Storybook + Chromatic (visual regression)
+- **Testing:** Vitest (unit + integration), Playwright (E2E), Storybook (component development)
 - **Target:** Chromium ≥96, Firefox ≥102, offline-capable
 
 ## Prerequisites
@@ -101,10 +101,10 @@ npm run test:e2e:debug   # Debug mode with Playwright Inspector
 
 **No manual Storybook management required** - just run `npm run test:e2e`.
 
-### Visual Regression Tests
+### Storybook
 ```bash
 npm run storybook        # Start Storybook for local development
-npm run chromatic        # Run visual regression tests (requires API token)
+npm run build-storybook  # Verify every story compiles (also a CI gate)
 ```
 
 ### All Tests

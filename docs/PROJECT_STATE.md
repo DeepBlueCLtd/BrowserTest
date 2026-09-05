@@ -231,7 +231,7 @@ Ranked by risk. Effort: S (< half a day), M (1–2 days), L (more).
 | 3 | Re-enable the E2E job in `ci.yml` (body is already written; add `--ci` to the Storybook command) | 105 passing tests currently guard nothing on PRs | H | S | Done: E2E job restored as a default/encrypted matrix |
 | 4 | Make coverage a real gate or delete the thresholds: run `test:coverage:*` in CI with thresholds set to today's numbers, ratchet up | Thresholds that never run and would fail are worse than none | M | S | Done: CI runs the coverage configs; thresholds set to measured levels as a ratchet |
 | 5 | Resolve the duplicate instructor-hash id (`#instructor.password.hash` vs `#qd-instructor-hash`) to one reader | Toolbar unlock cannot work in DITA output; two code paths for one secret | M | S | Done: both paths use `instructor-auth.ts` and `#qd-instructor-hash`; `instructor-password.ts` removed |
-| 6 | Confirm `CHROMATIC_PROJECT_TOKEN` exists; capture a fresh baseline after #1 | Visual regression has had no baseline since before the refactor | M | S | **Owner action**: confirm the secret exists in GitHub; CI now reports when it is absent |
+| 6 | Confirm `CHROMATIC_PROJECT_TOKEN` exists; capture a fresh baseline after #1 | Visual regression has had no baseline since before the refactor | M | S | **Will not do**: Chromatic dropped (account lapsed). Storybook build kept as a CI gate; no visual regression remains — see §9 |
 | 7 | Close spec 009: write `tests/e2e/encrypted-storage.spec.ts` or formally drop T034/T035/T038 | Only open tasks in the repo; encrypted mode is otherwise untested end-to-end in CI | M | M | Done: `tests/e2e/encrypted-storage.spec.ts` (3 tests); spec 009 tasks closed |
 | 8 | Re-baseline `Technical_Design.md` against §4, or retitle it "original design intent" and point readers to an as-built doc | 14 of 20 claims wrong; a formal review will read it as truth | M | M | Done: re-baselined in place, numbering kept |
 | 9 | Remove or wire the dead modules (`validation.ts`, `csv-export.ts`, `runtime-config.ts`, `qd-pin-create.ts`) | 900+ lines that mislead readers and skew coverage; `validation.ts` is the only path to author-error banners | M | S–M | Done: four modules and their tests removed |
@@ -273,6 +273,16 @@ none of which were in the original backlog:
   `contracts.ts` (`PIN_CONSTANTS.MAX_ATTEMPTS`) and is covered by new unit tests.
 - **Playwright's `reporter: 'html'` never exits locally**, because it serves the HTML report at
   the end of every run. Any scripted invocation hung. Now `[['list'], ['html', {open: 'never'}]]`.
+
+**Chromatic was then dropped entirely** (owner decision, September 2026: the account lapsed). The
+service, its two dev dependencies, `chromatic.config.json`, the npm script, the Storybook addon
+and `docs/CHROMATIC_SETUP.md` are removed. What it was actually catching in practice is kept and
+strengthened: CI builds Storybook as a hard gate, now on pull requests as well as `main`, so a
+story importing a deleted module fails before merge instead of silently breaking PR previews.
+Backlog item 6 is therefore closed as "will not do", and **the project now has no visual
+regression testing at all** — nothing compares rendered output between commits. Playwright
+screenshot assertions (`expect(page).toHaveScreenshot()`) are the natural replacement, using the
+E2E suite that already exists, if that coverage is wanted again.
 - `setDebugMode()` is now exported on `window.SonarQuiz` so debug logging can actually be enabled.
 
 Measured after this pass: unit 55 files / 876 tests, lines 69.4% (was 62.4%); integration 84 tests,
