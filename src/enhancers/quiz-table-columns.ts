@@ -12,6 +12,14 @@
 import { addClass, removeClass } from '../utils/dom-helpers.js';
 
 /**
+ * Original Detail-cell markup, keyed by cell, captured the first time the
+ * column is hidden. Lives in memory only so the content (MCQ options, numeric
+ * tolerances) is not readable via view-source once hidden; restored for
+ * instructors by {@link restoreDetailColumn}.
+ */
+const detailCellContent = new WeakMap<HTMLTableCellElement, string>();
+
+/**
  * Remove the colgroup element to allow automatic column sizing.
  *
  * Fixed column widths don't work well when columns are hidden or contain
@@ -72,7 +80,11 @@ export function showAnswerColumn(table: HTMLTableElement): void {
 }
 
 /**
- * Hide the detail column (index 2), which holds MCQ options / numeric tolerances.
+ * Hide the detail column (index 2), which holds MCQ options / numeric tolerances,
+ * and strip its content from the DOM (kept in memory for instructor reveal).
+ *
+ * Must be called AFTER the table has been parsed: the parser reads the Detail
+ * cells, and enhancement caches the parsed result so it never re-reads them.
  *
  * @param table - Quiz table element
  */
@@ -83,12 +95,43 @@ export function hideDetailColumn(table: HTMLTableElement): void {
     addClass(headerCells[2], 'qd-hidden');
   }
 
-  // Hide detail cells in all rows
+  // Hide detail cells in all rows and REMOVE content from DOM (security)
   const rows = table.querySelectorAll('tbody tr');
   rows.forEach((row) => {
     const cells = row.querySelectorAll('td');
-    if (cells[2]) {
-      addClass(cells[2], 'qd-hidden');
+    const cell = cells[2];
+    if (cell) {
+      addClass(cell, 'qd-hidden');
+      if (!detailCellContent.has(cell)) {
+        detailCellContent.set(cell, cell.innerHTML);
+      }
+      cell.textContent = '';
+    }
+  });
+}
+
+/**
+ * Show the detail column (index 2) again and restore its original content
+ * from memory. Used only on the instructor answer-reveal path.
+ *
+ * @param table - Quiz table element
+ */
+export function restoreDetailColumn(table: HTMLTableElement): void {
+  const headerCells = table.querySelectorAll('thead th, thead td');
+  if (headerCells[2]) {
+    removeClass(headerCells[2], 'qd-hidden');
+  }
+
+  const rows = table.querySelectorAll('tbody tr');
+  rows.forEach((row) => {
+    const cells = row.querySelectorAll('td');
+    const cell = cells[2];
+    if (cell) {
+      removeClass(cell, 'qd-hidden');
+      const original = detailCellContent.get(cell);
+      if (original !== undefined) {
+        cell.innerHTML = original;
+      }
     }
   });
 }

@@ -19,6 +19,7 @@ import { resetStudentPin } from '../services/pin-reset-service.js';
 import './qd-modal.js';
 import './qd-confirm-dialog.js';
 import './qd-student-table.js';
+import { escapeHtml } from '../utils/dom-helpers.js';
 
 @customElement('qd-pin-reset-dialog')
 export class QdPinResetDialog extends LitElement {
@@ -173,8 +174,10 @@ export class QdPinResetDialog extends LitElement {
 
   override render() {
     const student = this.confirmingStudent;
+    // Student name and service ID come from stored records: escape them before
+    // they reach qd-confirm-dialog, which renders the message with unsafeHTML.
     const confirmMessage = student
-      ? `Reset PIN for <strong>${student.name}</strong> (${student.serviceId})?<br><span style="font-size: 11px; color: #666;">They will need to create a new PIN on next login.</span>`
+      ? `Reset PIN for <strong>${escapeHtml(student.name)}</strong> (${escapeHtml(student.serviceId)})?<br><span style="font-size: 11px; color: #666;">They will need to create a new PIN on next login.</span>`
       : '';
 
     // Always render qd-modal so it can properly restore position when closing

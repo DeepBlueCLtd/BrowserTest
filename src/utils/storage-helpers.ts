@@ -114,10 +114,11 @@ export function hasItem(key: string): boolean {
 export function clearQuizData(): number {
   const keysToRemove: string[] = [];
 
-  // Find all keys with 'qd/' prefix
+  // Find all keys with 'qd/' prefix (session, cache, instructor flag)
+  // or 'qd:' prefix (PIN rate-limit state) — see STORAGE_KEYS in contracts.ts
   for (let i = 0; i < sessionStorage.length; i++) {
     const key = sessionStorage.key(i);
-    if (key && key.startsWith('qd/')) {
+    if (key && (key.startsWith('qd/') || key.startsWith('qd:'))) {
       keysToRemove.push(key);
     }
   }

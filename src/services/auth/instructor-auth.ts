@@ -11,6 +11,7 @@
  */
 
 import { CONFIG_IDS } from '../../config/dom-config-reader.js';
+import { constantTimeCompare } from '../../utils/security.js';
 
 /**
  * Hash a plaintext instructor password.
@@ -53,5 +54,5 @@ export async function verifyInstructorPassword(plain: string): Promise<boolean> 
     return false;
   }
   const actualHash = await hashPassword(plain);
-  return actualHash === expectedHash;
+  return constantTimeCompare(actualHash, expectedHash);
 }

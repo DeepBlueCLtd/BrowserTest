@@ -140,7 +140,24 @@ test.describe('Cohort Management Workflow', () => {
     // Wait for modal to close
     await expect(confirmInput).not.toBeVisible();
 
-    // Verify sessionStorage cleared (clearQuizData clears sessionStorage, not IndexedDB)
+    // Verify IndexedDB student records are gone (erase-all must clear persisted data too)
+    await expect(async () => {
+      const dataAfter = await page.evaluate(async () => {
+        return new Promise<unknown[]>((resolve) => {
+          const request = indexedDB.open('BrowserTestDB');
+          request.onsuccess = () => {
+            const db = request.result;
+            const tx = db.transaction('students', 'readonly');
+            const store = tx.objectStore('students');
+            const getRequest = store.getAll();
+            getRequest.onsuccess = () => resolve(getRequest.result as unknown[]);
+          };
+        });
+      });
+      expect(dataAfter).toEqual([]);
+    }).toPass();
+
+    // Verify sessionStorage cleared
     const sessionData = await page.evaluate(() => sessionStorage.getItem('qd/session'));
     expect(sessionData).toBeNull();
 
@@ -373,7 +390,24 @@ test.describe('Cohort Management Workflow', () => {
     // Wait for modal to close
     await expect(confirmInput).not.toBeVisible();
 
-    // Verify sessionStorage cleared (clearQuizData clears sessionStorage, not IndexedDB)
+    // Verify IndexedDB student records are gone (erase-all must clear persisted data too)
+    await expect(async () => {
+      const dataAfter = await page.evaluate(async () => {
+        return new Promise<unknown[]>((resolve) => {
+          const request = indexedDB.open('BrowserTestDB');
+          request.onsuccess = () => {
+            const db = request.result;
+            const tx = db.transaction('students', 'readonly');
+            const store = tx.objectStore('students');
+            const getRequest = store.getAll();
+            getRequest.onsuccess = () => resolve(getRequest.result as unknown[]);
+          };
+        });
+      });
+      expect(dataAfter).toEqual([]);
+    }).toPass();
+
+    // Verify sessionStorage cleared
     const sessionData = await page.evaluate(() => sessionStorage.getItem('qd/session'));
     expect(sessionData).toBeNull();
 

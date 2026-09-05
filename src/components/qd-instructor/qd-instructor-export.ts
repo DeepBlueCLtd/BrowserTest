@@ -25,7 +25,15 @@ export class QdInstructorExport extends LitElement {
   students: StudentRecord[] = [];
 
   private escapeCSVField(field: string | number | boolean): string {
-    const str = String(field);
+    let str = String(field);
+
+    // Formula injection: a field beginning with = + - @ or a control character is
+    // executed as a formula by Excel/Sheets. Student names and free-text answers are
+    // untrusted, so prefix a single quote to force text interpretation.
+    if (/^[=+\-@\t\r]/.test(str)) {
+      str = `'${str}`;
+    }
+
     // If field contains comma, quote, or newline, wrap in quotes and escape quotes
     if (str.includes(',') || str.includes('"') || str.includes('\n')) {
       return `"${str.replace(/"/g, '""')}"`;
