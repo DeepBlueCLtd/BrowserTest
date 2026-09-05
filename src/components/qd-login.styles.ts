@@ -24,7 +24,10 @@ export const loginStyles = css`
       background: #fff;
       border: 1px solid #ddd;
       border-radius: 4px;
-      max-width: 480px;
+      /* Wide enough to keep every control on one row, including the PIN field
+         with its "PIN (4 digits)" placeholder. The surrounding header has
+         ample horizontal space; this panel was the constraint, not the page. */
+      max-width: 560px;
     }
 
     .title {
@@ -52,13 +55,11 @@ export const loginStyles = css`
     }
 
     input.pin-input {
-      /* Kept narrow deliberately: the header bar has only a few pixels of
-         slack at 1280px, and a wider field wraps the Instructor button onto a
-         second row. The "4 digits" rule is carried by the hint message and the
-         field's title/aria-label instead. */
-      width: 45px;
-      min-width: 45px;
-      max-width: 45px;
+      /* Sized to show the "PIN (4 digits)" placeholder in full, so the field
+         states its own rule rather than reading as an unexplained box. */
+      width: 88px;
+      min-width: 88px;
+      max-width: 88px;
       text-align: center;
       letter-spacing: 1px;
     }

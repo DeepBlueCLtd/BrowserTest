@@ -15,6 +15,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { submitStudentLogin } from './helpers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -74,7 +75,7 @@ async function loginStudent(page: Page): Promise<void> {
   await loginForm.locator('input[name="name"]').fill(STUDENT.name);
   await loginForm.locator('input[name="serviceId"]').fill(STUDENT.serviceId);
   await loginForm.locator('input[name="pin"]').fill(STUDENT.pin);
-  await loginForm.locator('button[type="submit"]').click();
+  await submitStudentLogin(loginForm);
   await closePinConfirmationDialog(page);
 }
 

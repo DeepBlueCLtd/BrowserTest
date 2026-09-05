@@ -196,6 +196,19 @@ exceptions, verified by grep:
   to any field starting with `=`, `+`, `-`, `@`, tab or CR so a student name or free-text answer
   cannot become a live formula when the instructor opens the CSV in Excel or Sheets.
 
+### Account enumeration
+
+The login form asks storage whether a service ID already has an account, so it
+can offer "Create" rather than a "Login" that cannot succeed
+(`AuthService.isRegistered`). That answer is visible to anyone at the keyboard:
+typing a service ID reveals whether it is registered for the current release.
+
+This is accepted. The tool is an offline, single-machine classroom aid with no
+accounts worth enumerating remotely, and the alternative — leaving a first-time
+user staring at a disabled button — was a real usability failure. Anyone who can
+type a service ID into the form can already open DevTools and read the whole
+IndexedDB database, so the lookup discloses nothing that was otherwise protected.
+
 ## 9. Explicitly out of scope
 
 - No network, no server, no accounts: nothing here authenticates a person, only a tab.

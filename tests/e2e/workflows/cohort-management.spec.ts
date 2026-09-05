@@ -10,6 +10,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { submitStudentLogin } from '../helpers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -66,7 +67,7 @@ test.describe('Cohort Management Workflow', () => {
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('input[name="pin"]').fill('1234');
-    await login.locator('button[type="submit"]').click();
+    await submitStudentLogin(login);
     await closePinConfirmationDialog(page);
     await expect(page.locator('qd-status')).toBeVisible();
 
@@ -181,7 +182,7 @@ test.describe('Cohort Management Workflow', () => {
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('input[name="pin"]').fill('1234');
-    await login.locator('button[type="submit"]').click();
+    await submitStudentLogin(login);
     await closePinConfirmationDialog(page);
     await expect(page.locator('qd-status')).toBeVisible();
 
@@ -277,7 +278,7 @@ test.describe('Cohort Management Workflow', () => {
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('input[name="pin"]').fill('1234');
-    await login.locator('button[type="submit"]').click();
+    await submitStudentLogin(login);
     await closePinConfirmationDialog(page);
     await expect(page.locator('qd-status')).toBeVisible();
 
@@ -318,7 +319,7 @@ test.describe('Cohort Management Workflow', () => {
     await login.locator('input[name="serviceId"]').fill('TEST002');
     await login.locator('input[name="name"]').fill('Jane Smith');
     await login.locator('input[name="pin"]').fill('1234');
-    await login.locator('button[type="submit"]').click();
+    await submitStudentLogin(login);
     await closePinConfirmationDialog(page);
     await expect(page.locator('qd-status')).toBeVisible();
 
@@ -431,7 +432,7 @@ test.describe('Cohort Management Workflow', () => {
     await login.locator('input[name="serviceId"]').fill('TEST001');
     await login.locator('input[name="name"]').fill('John Doe');
     await login.locator('input[name="pin"]').fill('1234');
-    await login.locator('button[type="submit"]').click();
+    await submitStudentLogin(login);
     await closePinConfirmationDialog(page);
     await expect(page.locator('qd-status')).toBeVisible();
 

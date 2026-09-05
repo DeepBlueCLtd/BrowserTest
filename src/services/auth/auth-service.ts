@@ -107,6 +107,38 @@ export class AuthService {
   }
 
   /**
+   * Whether a service ID already has an account with a usable PIN.
+   *
+   * Used by the login form to label its submit button "Login" or "Create", so
+   * a first-time user is told they are about to create an account rather than
+   * guessing why their credentials are not accepted. Accounts are keyed on
+   * `{release, serviceId}`, so the name is not part of this check.
+   *
+   * Never throws: any storage problem resolves to `null` ("unknown"), leaving
+   * the form to fall back to its neutral label rather than blocking the user.
+   *
+   * @param serviceId - Service ID being entered
+   * @param release - Release the account would belong to
+   * @param dbName - IndexedDB database name from page config
+   * @returns true when a PIN-bearing record exists, false when it does not,
+   *   null when the lookup could not be completed
+   */
+  async isRegistered(serviceId: string, release: string, dbName: string): Promise<boolean | null> {
+    try {
+      const storage = getStorageAdapter(dbName);
+      await storage.init();
+      const existing = await storage.getStudent(release, serviceId);
+      if (!existing) {
+        return false;
+      }
+      // A record awaiting PIN setup still needs the create-and-confirm flow
+      return hasPinSet(existing) && !needsMigration(existing);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Shared login implementation for both the initial and post-migration paths.
    */
   private async runLogin(input: StudentLoginInput, opts: RunOptions): Promise<LoginResult> {

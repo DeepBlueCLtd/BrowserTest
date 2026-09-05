@@ -56,6 +56,40 @@ async function seedStudent(overrides: Partial<StudentRecord> = {}): Promise<void
 }
 
 describe('AuthService', () => {
+  describe('isRegistered', () => {
+    it('returns false for a service ID with no record', async () => {
+      const service = new AuthService();
+
+      const result = await service.isRegistered('NOBODY01', RELEASE, DB_NAME);
+
+      expect(result).toBe(false);
+    });
+
+    it('returns true once an account with a PIN exists', async () => {
+      const service = new AuthService();
+      await service.loginStudent({
+        serviceId: 'REG001',
+        name: 'Registered Student',
+        pin: '1234',
+        release: RELEASE,
+        dbName: DB_NAME,
+      });
+
+      const result = await service.isRegistered('REG001', RELEASE, DB_NAME);
+
+      expect(result).toBe(true);
+    });
+
+    it('reports unknown rather than throwing when storage is unusable', async () => {
+      const service = new AuthService();
+
+      // An empty database name cannot open a store
+      const result = await service.isRegistered('REG001', RELEASE, '');
+
+      expect(result).toBeNull();
+    });
+  });
+
   let auth: AuthService;
 
   beforeEach(() => {

@@ -14,6 +14,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { submitStudentLogin } from '../helpers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -145,7 +146,7 @@ test.describe('Instructor Dynamic Answer Reveal', () => {
     await loginForm.locator('input[name="serviceId"]').fill('DYN001');
     await loginForm.locator('input[name="name"]').fill('Dynamic Test Student');
     await loginForm.locator('input[name="pin"]').fill('1234');
-    await loginForm.locator('button[type="submit"]').click();
+    await submitStudentLogin(loginForm);
 
     // Close PIN confirmation dialog if it appears
     await page.waitForTimeout(200);

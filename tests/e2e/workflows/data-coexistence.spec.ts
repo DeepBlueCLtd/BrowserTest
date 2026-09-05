@@ -11,6 +11,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { submitStudentLogin } from '../helpers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -58,7 +59,7 @@ test.describe('Data Coexistence', () => {
     await login.locator('input[name="serviceId"]').fill('COEX01');
     await login.locator('input[name="name"]').fill('Test User');
     await login.locator('input[name="pin"]').fill('1234');
-    await login.locator('button[type="submit"]').click();
+    await submitStudentLogin(login);
     await expect(page.locator('qd-status')).toBeVisible();
   });
 
@@ -295,7 +296,7 @@ test.describe('Data Coexistence', () => {
     await login.locator('input[name="serviceId"]').fill('COEX02');
     await login.locator('input[name="name"]').fill('Second User');
     await login.locator('input[name="pin"]').fill('1234');
-    await login.locator('button[type="submit"]').click();
+    await submitStudentLogin(login);
     await expect(page.locator('qd-status')).toBeVisible();
 
     // Navigate to coexistence page
@@ -324,7 +325,7 @@ test.describe('Data Coexistence', () => {
     await login2.locator('input[name="serviceId"]').fill('COEX01');
     await login2.locator('input[name="name"]').fill('Test User');
     await login2.locator('input[name="pin"]').fill('1234');
-    await login2.locator('button[type="submit"]').click();
+    await submitStudentLogin(login2);
     await expect(page.locator('qd-status')).toBeVisible();
 
     await page.goto(`file://${demoPath}/${COEXISTENCE_PAGE}`);
