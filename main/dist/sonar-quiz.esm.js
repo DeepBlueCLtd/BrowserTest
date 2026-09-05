@@ -3247,7 +3247,10 @@ const loginStyles = i$4`
       background: #fff;
       border: 1px solid #ddd;
       border-radius: 4px;
-      max-width: 480px;
+      /* Wide enough to keep every control on one row, including the PIN field
+         with its "PIN (4 digits)" placeholder. The surrounding header has
+         ample horizontal space; this panel was the constraint, not the page. */
+      max-width: 560px;
     }
 
     .title {
@@ -3275,13 +3278,11 @@ const loginStyles = i$4`
     }
 
     input.pin-input {
-      /* Kept narrow deliberately: the header bar has only a few pixels of
-         slack at 1280px, and a wider field wraps the Instructor button onto a
-         second row. The "4 digits" rule is carried by the hint message and the
-         field's title/aria-label instead. */
-      width: 45px;
-      min-width: 45px;
-      max-width: 45px;
+      /* Sized to show the "PIN (4 digits)" placeholder in full, so the field
+         states its own rule rather than reading as an unexplained box. */
+      width: 88px;
+      min-width: 88px;
+      max-width: 88px;
       text-align: center;
       letter-spacing: 1px;
     }
@@ -3623,6 +3624,36 @@ class AuthService {
       errorMessage: "Login failed after migration. Please try again.",
       errorLabel: "Post-migration login error:"
     });
+  }
+  /**
+   * Whether a service ID already has an account with a usable PIN.
+   *
+   * Used by the login form to label its submit button "Login" or "Create", so
+   * a first-time user is told they are about to create an account rather than
+   * guessing why their credentials are not accepted. Accounts are keyed on
+   * `{release, serviceId}`, so the name is not part of this check.
+   *
+   * Never throws: any storage problem resolves to `null` ("unknown"), leaving
+   * the form to fall back to its neutral label rather than blocking the user.
+   *
+   * @param serviceId - Service ID being entered
+   * @param release - Release the account would belong to
+   * @param dbName - IndexedDB database name from page config
+   * @returns true when a PIN-bearing record exists, false when it does not,
+   *   null when the lookup could not be completed
+   */
+  async isRegistered(serviceId, release, dbName) {
+    try {
+      const storage = getStorageAdapter(dbName);
+      await storage.init();
+      const existing = await storage.getStudent(release, serviceId);
+      if (!existing) {
+        return false;
+      }
+      return hasPinSet(existing) && !needsMigration(existing);
+    } catch {
+      return null;
+    }
   }
   /**
    * Shared login implementation for both the initial and post-migration paths.
@@ -5659,6 +5690,8 @@ let QdLogin = class extends i$1 {
     this.pin = "";
     this.lockoutUntil = 0;
     this.showPinConfirmation = false;
+    this.isRegistered = null;
+    this.pendingPin = "";
     this.helpOpen = false;
     this.showMigrationDialog = false;
     this.migrationError = null;
@@ -5676,6 +5709,8 @@ let QdLogin = class extends i$1 {
       this.lockoutUntil = 0;
       this.showPinConfirmation = false;
       this.helpOpen = false;
+      this.isRegistered = null;
+      this.pendingPin = "";
       this.updateVisibility();
     };
     this.handleLockoutExpired = () => {
@@ -5715,6 +5750,7 @@ let QdLogin = class extends i$1 {
   }
   disconnectedCallback() {
     super.disconnectedCallback();
+    window.clearTimeout(this.registrationTimer);
     document.removeEventListener("qd:logout", this.handleLogoutEvent);
     document.removeEventListener("qd:login", this.handleLoginEvent);
   }
@@ -5764,8 +5800,7 @@ let QdLogin = class extends i$1 {
             type="password"
             name="pin"
             class="pin-input"
-            placeholder="PIN"
-            title="4-digit PIN"
+            placeholder=${this.pendingPin ? "Re-enter PIN" : "PIN (4 digits)"}
             inputmode="numeric"
             pattern="[0-9]*"
             maxlength="4"
@@ -5781,7 +5816,7 @@ let QdLogin = class extends i$1 {
             class="login-btn"
             ?disabled=${this.isSubmitting || !this.isValid() || this.isLockedOut()}
           >
-            Login
+            ${this.submitLabel}
           </button>
           <qd-instructor-login ?disabled=${this.isSubmitting}></qd-instructor-login>
           ${this.errorMessage ? x`<div class="error-message">${this.errorMessage}</div>` : this.validationHint ? x`<div class="hint-message" role="status">${this.validationHint}</div>` : ""}
@@ -5824,6 +5859,49 @@ let QdLogin = class extends i$1 {
   handleServiceIdInput(e2) {
     this.serviceId = e2.target.value;
     this.errorMessage = "";
+    this.pendingPin = "";
+    this.scheduleRegistrationCheck();
+  }
+  /**
+   * Debounced lookup of whether the entered service ID already has an account,
+   * used to label the submit button "Login" or "Create".
+   */
+  scheduleRegistrationCheck() {
+    window.clearTimeout(this.registrationTimer);
+    this.isRegistered = null;
+    const serviceId = this.serviceId.trim();
+    if (!/^[a-zA-Z0-9]{2,10}$/.test(serviceId)) {
+      return;
+    }
+    this.registrationTimer = window.setTimeout(() => {
+      void this.checkRegistration(serviceId);
+    }, 300);
+  }
+  /** Resolve {@link isRegistered} for one service ID, ignoring stale answers. */
+  async checkRegistration(serviceId) {
+    let known = null;
+    try {
+      const release = readRelease();
+      known = release ? await this.authService.isRegistered(serviceId, release, readDbName()) : null;
+    } catch {
+      known = null;
+    }
+    if (serviceId === this.serviceId.trim()) {
+      this.isRegistered = known;
+    }
+  }
+  /**
+   * Label for the submit button.
+   *
+   * A first-time user sees "Create" rather than a "Login" that cannot succeed,
+   * and "Confirm" while re-entering their new PIN. Unknown registration falls
+   * back to "Login".
+   */
+  get submitLabel() {
+    if (this.pendingPin) {
+      return "Confirm";
+    }
+    return this.isRegistered === false ? "Create" : "Login";
   }
   handlePinInput(e2) {
     this.pin = sanitizePinInput(e2.target.value);
@@ -5846,6 +5924,9 @@ let QdLogin = class extends i$1 {
    *   untouched or valid
    */
   get validationHint() {
+    if (this.pendingPin) {
+      return "Re-enter your PIN to confirm";
+    }
     if (!this.name && !this.serviceId && !this.pin) {
       return "";
     }
@@ -5859,6 +5940,23 @@ let QdLogin = class extends i$1 {
     e2.preventDefault();
     if (!this.isValid()) {
       this.errorMessage = "Please enter name, service ID, and 4-digit PIN";
+      return;
+    }
+    if (this.isRegistered === null && !this.pendingPin) {
+      await this.checkRegistration(this.serviceId.trim());
+    }
+    if (this.pendingPin) {
+      if (this.pin !== this.pendingPin) {
+        this.pendingPin = "";
+        this.pin = "";
+        this.errorMessage = "PINs did not match. Please enter your PIN again.";
+        return;
+      }
+      this.pendingPin = "";
+    } else if (this.isRegistered === false) {
+      this.pendingPin = this.pin;
+      this.pin = "";
+      this.errorMessage = "";
       return;
     }
     this.isSubmitting = true;
@@ -5974,6 +6072,12 @@ __decorateClass$9([
 __decorateClass$9([
   r()
 ], QdLogin.prototype, "showPinConfirmation", 2);
+__decorateClass$9([
+  r()
+], QdLogin.prototype, "isRegistered", 2);
+__decorateClass$9([
+  r()
+], QdLogin.prototype, "pendingPin", 2);
 __decorateClass$9([
   r()
 ], QdLogin.prototype, "helpOpen", 2);
