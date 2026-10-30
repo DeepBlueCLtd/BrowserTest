@@ -18,7 +18,7 @@ import type {
 } from '../types/contracts.js';
 import { getStorageAdapter } from './storage/indexeddb.js';
 import { buildCacheFromRecord } from './session-cache.js';
-import { calculateCompletionState } from './state-calculator.js';
+import { calculatePageState } from './state-calculator.js';
 import { recalculateTotalsFromPages } from '../utils/calculation-helpers.js';
 import { setJSON } from '../utils/storage-helpers.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
@@ -177,8 +177,9 @@ export class StorageService {
     }
     pageData.lastAttempted = now;
 
-    // Recalculate state
-    pageData.state = calculateCompletionState(pageData.answers, totalQuestions);
+    // Recalculate state from the quiz and any analysis entries on the page
+    pageData.totalQuestions = totalQuestions;
+    pageData.state = calculatePageState(pageData);
 
     // Update record
     return {
@@ -210,6 +211,7 @@ export class StorageService {
     tableId: string,
     cellKey: CellKey,
     content: string,
+    details: { totalCells?: number; label?: string } = {},
   ): StudentRecord {
     // Get or create page data
     const pageData: PageData = record.pages[pageId] || {
@@ -223,8 +225,14 @@ export class StorageService {
       cells: {},
     };
 
-    // Update cell content
+    // Update cell content, plus what is needed to judge and report it (ANA-03, ANA-04)
     analysisData.cells[cellKey] = content;
+    if (details.totalCells !== undefined) {
+      analysisData.totalCells = details.totalCells;
+    }
+    if (details.label) {
+      analysisData.labels = { ...analysisData.labels, [cellKey]: details.label };
+    }
 
     // Update timestamps
     const now = new Date().toISOString();
@@ -233,8 +241,10 @@ export class StorageService {
     }
     analysisData.lastEdited = now;
 
-    // Store analysis data back in the page and record
+    // Store analysis data back in the page and record; analysis text now
+    // counts towards the page state, so its badge is not left red
     pageData.analysis = analysisData;
+    pageData.state = calculatePageState(pageData);
     record.pages[pageId] = pageData;
     record.updated = now;
 

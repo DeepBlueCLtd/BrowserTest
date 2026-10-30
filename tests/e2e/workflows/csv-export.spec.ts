@@ -11,7 +11,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { submitStudentLogin } from '../helpers.js';
+import { submitStudentLogin, CSV_HEADER } from '../helpers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -207,9 +207,8 @@ test.describe('CSV Data Export', () => {
 
     // Verify header row
     const lines = csvContent.split('\n');
-    expect(lines[0]).toBe(
-      'Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp',
-    );
+    // The original eight columns stay first; new ones are appended (SRD 013 ANA-02)
+    expect(lines[0]).toBe(CSV_HEADER);
   });
 
   test('should include student answer data in CSV', async ({ page }) => {

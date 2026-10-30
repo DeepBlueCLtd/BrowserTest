@@ -13,7 +13,8 @@
 
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import type { StudentRecord } from '../types/contracts.js';
+import type { StudentRecord, AnalysisData } from '../types/contracts.js';
+import { countFilledCells } from '../services/state-calculator.js';
 import './qd-modal.js';
 
 interface StudentSummary {
@@ -132,6 +133,14 @@ export class QdScoresModal extends LitElement {
             color: #721c24;
             border: 1px solid #f5c6cb;
           }
+          .scores-content .analysis-badge {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            background: #e8eaf6;
+            color: #283593;
+          }
+
           .scores-content .no-answers {
             color: #999;
             font-style: italic;
@@ -188,6 +197,11 @@ export class QdScoresModal extends LitElement {
                       <div class="page-row">
                         <span class="page-name">${pageId}</span>
                         <div class="page-answers">
+                          ${pageData.analysis
+                            ? html`<span class="analysis-badge"
+                                >${this.analysisSummary(pageData.analysis)}</span
+                              >`
+                            : ''}
                           ${pageData.answers.map(
                             (answer, idx) => html`
                               <span
@@ -206,6 +220,17 @@ export class QdScoresModal extends LitElement {
         </td>
       </tr>
     `;
+  }
+
+  /**
+   * "2 of 6 cells" for a page's analysis table, so analysis work shows in the
+   * scores view (SRD 013 ANA-05). Older records lack the cell count.
+   */
+  private analysisSummary(analysis: AnalysisData): string {
+    const filled = countFilledCells(analysis);
+    return analysis.totalCells !== undefined
+      ? `Analysis: ${filled} of ${analysis.totalCells} cells`
+      : `Analysis: ${filled} cell${filled === 1 ? '' : 's'}`;
   }
 
   private getScoreClass(summary: StudentSummary): string {

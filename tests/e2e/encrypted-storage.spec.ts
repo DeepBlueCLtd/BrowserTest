@@ -15,7 +15,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { submitStudentLogin } from './helpers.js';
+import { submitStudentLogin, CSV_HEADER } from './helpers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -268,9 +268,7 @@ test.describe('Encrypted Storage (ENCRYPT_STORAGE=true)', () => {
     const csvContent = Buffer.concat(chunks).toString('utf-8');
 
     // Header row is intact
-    expect(csvContent.split('\n')[0]).toBe(
-      'Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp',
-    );
+    expect(csvContent.split('\n')[0]).toBe(CSV_HEADER);
 
     // Student identity and answers are plain text, one row per answer
     expect(csvContent).toContain(STUDENT.serviceId);

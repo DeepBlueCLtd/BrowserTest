@@ -4,6 +4,14 @@
 
 import type { Locator } from '@playwright/test';
 
+/**
+ * Header row of the instructor CSV export. The first eight columns are the
+ * original layout; SRD 013 appends the rest so existing spreadsheets still
+ * line up.
+ */
+export const CSV_HEADER =
+  'Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp,Kind';
+
 /** Milliseconds to wait for the login form to reach a settled state. */
 const SETTLE_MS = 3000;
 

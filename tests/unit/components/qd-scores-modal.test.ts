@@ -341,3 +341,38 @@ describe('qd-scores-modal', () => {
     });
   });
 });
+
+describe('qd-scores-modal analysis summary (SRD 013 ANA-05)', () => {
+  afterEach(() => {
+    document.querySelectorAll('qd-scores-modal, body > qd-modal').forEach((el) => el.remove());
+  });
+
+  it('shows how many analysis cells a student has filled on each page', async () => {
+    const el = document.createElement('qd-scores-modal');
+    el.students = [
+      {
+        schema: 3,
+        docId: '',
+        release: 'R1',
+        serviceId: '30012345',
+        name: 'Jo',
+        attempted: 0,
+        correct: 0,
+        updated: '',
+        pages: {
+          'analysis-tactical': {
+            state: 'incomplete',
+            answers: [],
+            analysis: { tableId: 't', cells: { a: 'x', b: 'y', c: '' }, totalCells: 6 },
+          },
+        },
+      },
+    ];
+    document.body.appendChild(el);
+    el.open = true;
+    await el.updateComplete;
+    await new Promise((r) => requestAnimationFrame(r));
+    const text = document.body.textContent ?? '';
+    expect(text).toContain('Analysis: 2 of 6 cells');
+  });
+});

@@ -6,6 +6,7 @@
 import { LitElement, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { sharedStyles } from './shared-styles.js';
+import { countFilledCells } from '../../services/state-calculator.js';
 import type { StudentRecord } from '../../types/contracts.js';
 
 /**
@@ -41,36 +42,67 @@ export class QdInstructorExport extends LitElement {
     return str;
   }
 
-  private generateCSV(): string {
+  /**
+   * Build the CSV.
+   *
+   * The first eight columns keep their original order so existing
+   * spreadsheets still line up; new columns are appended (SRD 013 ANA-02).
+   * Analysis entries get one row each, with the row label (or the cell key
+   * when no label was stored) in the Question Index column, an empty Success
+   * and the table's last-edited time (SRD 013 ANA-01).
+   */
+  generateCSV(): string {
     const rows: string[] = [];
 
     // Header row
-    rows.push('Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp');
+    rows.push('Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp,Kind');
 
     // Data rows
     for (const student of this.students) {
+      const who = [student.serviceId, student.name, student.release];
       for (const [pageId, pageData] of Object.entries(student.pages)) {
         const answers = pageData.answers || [];
         answers.forEach((answer, index) => {
           if (answer) {
             rows.push(
-              [
-                this.escapeCSVField(student.serviceId),
-                this.escapeCSVField(student.name),
-                this.escapeCSVField(student.release),
-                this.escapeCSVField(pageId),
-                this.escapeCSVField(index),
-                this.escapeCSVField(answer.answer),
-                this.escapeCSVField(answer.success),
-                this.escapeCSVField(answer.timestamp),
-              ].join(','),
+              this.csvRow([
+                ...who,
+                pageId,
+                index,
+                answer.answer,
+                answer.success,
+                answer.timestamp,
+                'quiz',
+              ]),
             );
           }
         });
+
+        const analysis = pageData.analysis;
+        if (analysis) {
+          for (const [cellKey, text] of Object.entries(analysis.cells)) {
+            if (text.trim() === '') continue;
+            rows.push(
+              this.csvRow([
+                ...who,
+                pageId,
+                analysis.labels?.[cellKey] ?? cellKey,
+                text,
+                '',
+                analysis.lastEdited ?? '',
+                'analysis',
+              ]),
+            );
+          }
+        }
       }
     }
 
     return rows.join('\n');
+  }
+
+  private csvRow(fields: (string | number | boolean)[]): string {
+    return fields.map((field) => this.escapeCSVField(field)).join(',');
   }
 
   private handleExport = (): void => {
@@ -98,8 +130,14 @@ export class QdInstructorExport extends LitElement {
 
   override render() {
     // Check if any student has answered at least one question (FR-006)
+    // Analysis entries count as data too (SRD 013 ANA-01)
     const hasData =
-      this.students.length > 0 && this.students.some((student) => student.attempted > 0);
+      this.students.length > 0 &&
+      this.students.some(
+        (student) =>
+          student.attempted > 0 ||
+          Object.values(student.pages).some((page) => countFilledCells(page.analysis) > 0),
+      );
 
     const tooltip = hasData
       ? `Export ${this.students.length} student${this.students.length === 1 ? '' : 's'} to CSV`

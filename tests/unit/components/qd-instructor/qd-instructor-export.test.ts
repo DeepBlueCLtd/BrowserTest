@@ -181,4 +181,74 @@ describe('qd-instructor-export', () => {
       expect(button?.getAttribute('title')).toBe('Export 2 students to CSV');
     });
   });
+
+  describe('analysis entries (SRD 013 ANA-01, ANA-02)', () => {
+    const student = (): StudentRecord => ({
+      schema: 3,
+      docId: '',
+      serviceId: '30012345',
+      name: 'Jo Bloggs',
+      release: 'R1',
+      attempted: 0,
+      correct: 0,
+      updated: '2026-10-30T00:00:00Z',
+      pages: {
+        'analysis-tactical': {
+          state: 'incomplete',
+          answers: [],
+          analysis: {
+            tableId: 't1',
+            cells: {
+              'R0C1#f:aaa': 'High, contact bearing 045',
+              'R1C1#f:bbb': '',
+              'R2C1#f:ccc': '=1+1',
+            },
+            labels: { 'R0C1#f:aaa': 'Threat Assessment' },
+            lastEdited: '2026-10-30T10:00:00Z',
+            totalCells: 6,
+          },
+        },
+      },
+    });
+
+    it('appends a Kind column, keeping the original columns in place', () => {
+      const header = element.generateCSV().split('\n')[0];
+      expect(header).toBe(
+        'Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp,Kind',
+      );
+    });
+
+    it('exports one row per filled analysis cell, labelled by its row', () => {
+      element.students = [student()];
+      const lines = element.generateCSV().split('\n');
+      expect(lines).toContain(
+        '30012345,Jo Bloggs,R1,analysis-tactical,Threat Assessment,"High, contact bearing 045",,2026-10-30T10:00:00Z,analysis',
+      );
+      // Empty cells are skipped; a cell with no stored label falls back to its key
+      expect(lines.filter((l) => l.endsWith(',analysis'))).toHaveLength(2);
+      expect(lines.some((l) => l.includes('R2C1#f:ccc'))).toBe(true);
+    });
+
+    it('neutralises formulas in analysis text', () => {
+      element.students = [student()];
+      expect(element.generateCSV()).toContain(",'=1+1,");
+    });
+
+    it('marks quiz rows as quiz', () => {
+      const s = student();
+      s.pages['quiz-mcq'] = {
+        state: 'incomplete',
+        answers: [{ answer: '2', success: false, timestamp: 't' }],
+      };
+      element.students = [s];
+      expect(element.generateCSV()).toContain('quiz-mcq,0,2,false,t,quiz');
+    });
+
+    it('enables export when only analysis work exists', async () => {
+      element.students = [student()];
+      await element.updateComplete;
+      const button = element.shadowRoot!.querySelector('button')!;
+      expect(button.disabled).toBe(false);
+    });
+  });
 });

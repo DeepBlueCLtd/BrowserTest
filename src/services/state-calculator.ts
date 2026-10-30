@@ -9,7 +9,7 @@
  * - complete: All answered AND all correct
  */
 
-import type { AnswerRecord, CompletionState } from '../types/contracts.js';
+import type { AnswerRecord, AnalysisData, CompletionState } from '../types/contracts.js';
 
 /**
  * Calculate the completion state for a page
@@ -120,4 +120,54 @@ export function calculateSuccessPercentage(
 
   const correct = countCorrectAnswers(answers);
   return Math.round((correct / totalQuestions) * 100);
+}
+
+/**
+ * Count the analysis cells that hold text.
+ *
+ * @param analysis - Analysis data for a page
+ * @returns Number of non-empty cells
+ */
+export function countFilledCells(analysis: AnalysisData | undefined): number {
+  if (!analysis) {
+    return 0;
+  }
+  return Object.values(analysis.cells).filter((text) => text.trim() !== '').length;
+}
+
+/**
+ * Completion state for a page with a quiz, an analysis table, or both
+ * (SRD 013 ANA-04).
+ *
+ * - unstarted: no quiz answer and no analysis text
+ * - complete: every quiz question answered correctly (when the page has a
+ *   quiz) and every analysis cell filled (when it has an analysis table)
+ * - incomplete: anything in between
+ *
+ * Analysis entries count as starting a page, so writing an analysis no
+ * longer leaves its page badge red.
+ *
+ * @param page - Page answers, question count and analysis data
+ * @returns Completion state
+ */
+export function calculatePageState(page: {
+  answers: AnswerRecord[];
+  totalQuestions?: number;
+  analysis?: AnalysisData;
+}): CompletionState {
+  const totalQuestions = page.totalQuestions ?? 0;
+  const answered = page.answers.filter((a) => a.answer.trim() !== '');
+  const filled = countFilledCells(page.analysis);
+
+  if (answered.length === 0 && filled === 0) {
+    return 'unstarted';
+  }
+
+  const quizComplete =
+    totalQuestions === 0 || calculateCompletionState(page.answers, totalQuestions) === 'complete';
+  const analysisComplete =
+    !page.analysis ||
+    (page.analysis.totalCells !== undefined && filled >= page.analysis.totalCells);
+
+  return quizComplete && analysisComplete ? 'complete' : 'incomplete';
 }

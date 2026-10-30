@@ -81,6 +81,10 @@ export interface AnalysisData {
   firstEdited?: string;
   /** Last edit timestamp (ISO 8601) */
   lastEdited?: string;
+  /** Number of editable cells in the table, so completeness can be judged (v3) */
+  totalCells?: number;
+  /** Row label of each edited cell, e.g. "Threat Assessment" (v3; SRD 013 ANA-03) */
+  labels?: Record<CellKey, string>;
 }
 
 // ============================================================================
@@ -99,6 +103,8 @@ export interface PageData {
   lastAttempted?: string;
   /** Analysis table data if present */
   analysis?: AnalysisData;
+  /** Number of quiz questions on the page when last answered (v3) */
+  totalQuestions?: number;
 }
 
 // ============================================================================
