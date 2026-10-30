@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | Draft for owner review |
+| Status | Owner questions resolved 2026-10-30; ready for planning |
 | Date | 2026-10-30 |
 | Baseline | `main` at `85a7203` (bundle 39.77 KB gz, schema v2, DB v3) |
 | Parent requirements | [`System_Requirements.md`](../../System_Requirements.md) |
@@ -92,12 +92,12 @@ Each item was reproduced in headless Chromium against `dita-demo/` built from th
 | SEC-01 | Instructor mode MUST be granted only after the runtime has checked, in the current page load, a secret that hashes to the configured `#qd-instructor-hash`. A value that can be written without knowing the password, such as a constant flag in sessionStorage, MUST NOT grant instructor mode. | MUST | T | R0 |
 | SEC-02 | If stored instructor state fails the SEC-01 check on page load, the runtime MUST clear it and show the student login form. | MUST | T | R0 |
 | SEC-03 | "Erase All Data" and "Reset PIN" MUST ask for the instructor password at the moment of the action, checked against `#qd-instructor-hash` and subject to the existing instructor rate limiter. The typed "DELETE ALL DATA" confirmation stays. | MUST | T | R0 |
-| SEC-04 | "Export CSV" SHOULD also ask for the password, because the export holds every student's name and answers. | SHOULD | T | R0 |
+| SEC-04 | *Withdrawn (owner, Q3).* Export CSV does not ask for the password again. It relies on SEC-01 to keep students out of instructor mode. | — | — | R0 |
 | SEC-05 | The login form and the instructor panel MUST never render at the same time. | MUST | T | R0 |
 | SEC-06 | Student PINs MUST be stored as PBKDF2-SHA-256 (WebCrypto) with a random 16-byte salt per student. The iteration count MUST make one derivation take at least 100 ms on the reference classroom machine, and MUST be stored with the hash. | MUST | T | R0b |
 | SEC-07 | Records with a legacy unsalted `pinHash` MUST still verify. On the next successful login the PIN MUST be re-derived under SEC-06 and the legacy hash removed. | MUST | T | R0b |
 | SEC-08 | Release builds (`release.yml`, `build:dita`) MUST enable storage obfuscation (`ENCRYPT_STORAGE=true`). Existing plain data MUST migrate through the existing migration dialog on first load. | MUST | T, I | R0b |
-| SEC-09 | The student idle timeout MUST be reduced from 30 minutes to a default of 10 minutes (see Q1). | MUST | T | R0b |
+| SEC-09 | The student idle timeout MUST be reduced from 30 minutes to 10 minutes (owner, Q1). | MUST | T | R0b |
 | SEC-10 | When a session ends through the idle timeout, the UI MUST say so ("Your session ended after 10 minutes without activity. Log in again to continue.") rather than silently showing the login form. | MUST | T | R0b |
 | SEC-11 | The runtime SHOULD accept a full-length (64-hex) instructor hash as well as the 12-hex form, so publications can opt into a stronger hash. | SHOULD | T | §2.3 |
 | SEC-12 | `docs/SECURITY.md` §3 (instructor password), §4 (student PIN), §6 (obfuscation), §7 (sessions and erase) and §10 (known limitations) MUST be updated to describe the new behaviour and its remaining limits. | MUST | I | — |
@@ -119,7 +119,7 @@ configured hash. The plan must weigh this against prompting for the password on 
 | A11Y-03 | Interactive analysis cells MUST have `role="textbox"`, `aria-multiline="true"` and an accessible name taken from the row header cell. | MUST | T | R4 |
 | A11Y-04 | An automated axe-core check in the E2E suite MUST report zero critical and zero serious WCAG 2.1 A/AA violations on the quiz, numeric, analysis and index pages, logged out, as a student and as an instructor. axe-core is a dev dependency only. | MUST | T | R4 |
 | UX-01 | All dialogs MUST render with their intended styles when `qd-modal` is moved to `document.body`. A dialog MUST NOT render a button with an empty label. | MUST | T | R5 |
-| UX-02 | The "PIN Stored" dialog SHOULD be removed. The PIN confirmation step already tells the student what happened (see Q4). | SHOULD | T | R5 |
+| UX-02 | The "PIN Stored" dialog MUST be removed. The PIN confirmation step and the status panel already tell the student the PIN was accepted (owner, Q4). | MUST | T | R5 |
 | UX-03 | Numeric answers MUST be validated before saving: an optional sign, digits and an optional decimal point. Invalid input MUST NOT be saved or counted, and MUST show an inline message ("Enter a number, for example 1500"). The input SHOULD use `inputmode="decimal"`. | MUST | T | R6 |
 | UX-04 | When a quiz table becomes interactive, the student input column header MUST read "Your answer", whatever the author's header says. The author's header MUST be restored in instructor reveal. | MUST | T | R6 |
 | UX-05 | When no one is logged in, each `qd-quiz` table MUST be preceded by a notice: "Log in at the top of the page to answer these questions." | MUST | T | R8 |
@@ -146,7 +146,7 @@ configured hash. The plan must weigh this against prompting for the password on 
 | ANS-10 | A repo script SHOULD check a published output folder and fail if any plaintext answer from the source DITA appears in an HTML or JS file. | SHOULD | T | R9 |
 | ANS-11 | `CLAUDE.md` (Constitution VIII and the Quiz Tables section) MUST stop claiming that answer removal "prevents view-source inspection". It and `docs/SECURITY.md` §5 MUST describe the encoding and its limit: obfuscation with the key in the page. | MUST | I | R9 |
 
-**Dependency.** ANS-01 to ANS-07 change the Oxygen template. `dita-demo/` must then be regenerated
+**Dependency.** ANS-01 to ANS-07 change the Oxygen template. The owner rebuilds in Oxygen (Q7), so the WP3 pull request MUST include a rebuild checklist. `dita-demo/` must then be regenerated
 in Oxygen and committed (`npm run update-dita-demo`). This cannot be done in CI.
 
 ### WP4 — Analysis capture
@@ -156,14 +156,14 @@ in Oxygen and committed (`npm run update-dita-demo`). This cannot be done in CI.
 | ANA-01 | The CSV export MUST include one row per non-empty analysis cell. It uses the existing columns. Question Index holds the row label, or the cell key if no label is stored. Answer holds the cell text, Success is empty, and Timestamp is the table's `lastEdited`. | MUST | T | R3 |
 | ANA-02 | The CSV MUST gain a final column, `Kind`, with the value `quiz` or `analysis`. Existing columns MUST keep their order and position, so current consumers keep working. | MUST | T | R3 |
 | ANA-03 | When a cell is saved, its row label (the row header text) SHOULD be stored alongside its content, so exports and instructor views can name it. This is an optional field on `AnalysisData`. | SHOULD | T | R3 |
-| ANA-04 | A page with at least one non-empty analysis cell MUST NOT have the state `unstarted`. It is `complete` when every interactive cell is non-empty and any quiz on the page is complete. Otherwise it is `incomplete`. See Q5. | MUST | T | R3 |
+| ANA-04 | A page with at least one non-empty analysis cell MUST NOT have the state `unstarted`. It is `complete` when every interactive cell is non-empty and any quiz on the page is complete. Otherwise it is `incomplete` (owner, Q5). | MUST | T | R3 |
 | ANA-05 | The instructor scores view MUST show, per student and page, how many analysis cells are filled out of how many exist (for example "2 of 6 cells"). | MUST | T | R3 |
 | ANA-06 | Analysis cells MUST NOT count as quiz questions in any answered, correct or total figure. | MUST | T | R2 |
 
 ### WP5 — Scoring
 
 Retries stay allowed. The original spec frames quizzes as self-assessment (`specs/000` user story 1),
-and this SRD keeps that, subject to Q2. The change is to what gets recorded and shown.
+and the owner confirmed it (Q2). The change is to what gets recorded and shown.
 
 | ID | Requirement | Pri | Ver | Ref |
 |---|---|---|---|---|
@@ -214,17 +214,17 @@ stamps `schema: 3`. PIN upgrade happens lazily under SEC-07. No IndexedDB store 
 - WP3 adds a manual step: rebuild in Oxygen, run the ANS-10 leak check on the output, and commit the
   regenerated `dita-demo/`.
 
-## 8. Open questions for the owner
+## 8. Owner answers (2026-10-30)
 
-| # | Question | Default if unanswered |
-|---|---|---|
-| Q1 | What idle timeout suits a class sharing one machine? | 10 minutes |
-| Q2 | Should retries stay unlimited, with first-attempt results recorded, or should an answer lock once given? | Unlimited retries, both recorded |
-| Q3 | Should Export CSV need the password again (SEC-04)? | Yes |
-| Q4 | Can the "PIN Stored" dialog go (UX-02)? | Remove it |
-| Q5 | Is "every interactive cell filled" the right test for a complete analysis page (ANA-04)? | Yes |
-| Q6 | Does anything downstream read the CSV, and will appended columns break it? | Append is safe |
-| Q7 | Who rebuilds `dita-demo/` in Oxygen after the WP3 template changes? | The owner |
+| # | Question | Answer | Effect |
+|---|---|---|---|
+| Q1 | What idle timeout suits a class sharing one machine? | 10 minutes | SEC-09 fixed at 10 minutes |
+| Q2 | Unlimited retries, lock after first answer, or hidden feedback? | Unlimited retries, with attempts and first-attempt correctness recorded | WP5 as written |
+| Q3 | Should Export CSV need the password again? | No, export freely | SEC-04 withdrawn |
+| Q4 | Can the "PIN Stored" dialog go? | Remove it | UX-02 raised to MUST |
+| Q5 | When is an analysis page complete? | When every interactive cell is filled and any quiz on the page is complete | ANA-04 as written |
+| Q6 | Does anything downstream read the CSV? | Nothing automated; people open it in a spreadsheet | ANA-02 and SCO-06 append safely |
+| Q7 | Who rebuilds `dita-demo/` in Oxygen? | The owner | WP3 ships a rebuild checklist |
 
 ## 9. Traceability
 
