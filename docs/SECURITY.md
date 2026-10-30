@@ -45,7 +45,8 @@ Live path: `src/components/qd-instructor-login.ts` → `src/services/auth/instru
 
 - The plaintext is hashed with `crypto.subtle.digest('SHA-256')`, hex-encoded, and **truncated
   to the first 12 hex characters** (48 bits) so authors can paste it into an Oxygen dialog
-  (`hashPassword`).
+  (`hashPassword`). Since SRD 013 (SEC-11) a publication may instead configure the full
+  64-hex digest (`hashPasswordFull`), which `verifyInstructorPassword` then compares in full.
 - The expected value is the text of `#qd-instructor-hash`, read at login time
   (`getExpectedInstructorHash`). If the span is missing or empty, instructor login is refused.
 - Comparison uses the HMAC-based `constantTimeCompare` from `src/utils/security.ts`
@@ -53,11 +54,24 @@ Live path: `src/components/qd-instructor-login.ts` → `src/services/auth/instru
 - Failed attempts are rate limited. Both instructor paths use a `RateLimiter` with the same
   allowance as the student PIN (`PIN_CONSTANTS.MAX_ATTEMPTS`): two wrong passwords are free, the
   third starts an exponential lockout of 2/4/8/16/30 s. A correct password resets the counter.
-- On success it creates a session with `serviceId: 'INSTRUCTOR'` and writes
-  `sessionStorage['qd/instructor'] = 'true'` (`STORAGE_KEYS.INSTRUCTOR`). Every later check of
-  "is this an instructor?" reads that one string (`src/utils/session-state.ts`,
-  `src/init/bootstrap.ts` line 218). Setting it by hand in DevTools grants instructor mode
-  without a password.
+- On success it creates a session with `serviceId: 'INSTRUCTOR'` and stores **the password the
+  instructor typed** in `sessionStorage['qd/instructor']` (`startInstructorSession` in
+  `src/services/auth/instructor-session.ts`). On every page load, bootstrap calls
+  `restoreInstructorSession()`, which re-hashes the stored value and compares it with
+  `#qd-instructor-hash` before any component asks `isInstructor()`. A value that does not verify
+  is removed, along with any instructor `qd/session` (SRD 013 SEC-01, SEC-02).
+- Until October 2026 the stored value was the string `'true'`, and a logged-out student could set
+  it from DevTools, get the toolbar and answer key, and erase every student record. The review
+  reproduced this; `tests/unit/services/auth/instructor-session.test.ts` and
+  `tests/unit/init/bootstrap.test.ts` now start from that reproduction.
+- **Trade-off:** while an instructor is logged in, their password sits in that tab's
+  sessionStorage, readable in DevTools by anyone at the keyboard. It is cleared on logout, on the
+  10-minute idle timeout and when the tab closes. Instructors should log out before leaving the
+  machine. Forging the value without the password needs a preimage of the configured hash.
+- **Destructive actions ask again** (SEC-03). "Erase All Data" and "Reset PIN" each need the
+  instructor password typed at that moment, checked against `#qd-instructor-hash` (not against
+  the stored value) and rate limited with the same policy (`confirmInstructorPassword`). Export
+  CSV deliberately does not ask again (owner decision, SRD 013 Q3).
 
 A second entry point exists: `src/components/qd-instructor/qd-instructor-unlock.ts`, the
 toolbar unlock form. It now verifies through the same `instructor-auth.ts` helpers and the same
@@ -76,10 +90,17 @@ Spec: `specs/004-student-pin-auth/spec.md`. Code: `src/services/auth/auth-servic
 `src/types/contracts.ts` (`PIN_CONSTANTS`).
 
 - PIN is exactly 4 digits (`PIN_LENGTH: 4`, `validatePinFormat`).
-- Stored as the full SHA-256 hex digest of the digits (`hashPin`), **unsalted**, in
-  `StudentRecord.pinHash` in IndexedDB. There are only 10,000 possible inputs, so any PIN hash
-  read from IndexedDB can be reversed by hashing 0000–9999. The hash prevents shoulder-reading
-  of the PIN in DevTools; it does not resist an offline guess.
+- Stored (since SRD 013 SEC-06) as PBKDF2-SHA-256 with a random 16-byte salt per student and
+  600,000 iterations (`createPinCredential`), in `StudentRecord.pinHash` with `pinSalt`,
+  `pinIterations` and `pinKdf: 'pbkdf2-sha256'`. One derivation takes roughly 130 ms in
+  Chromium on a fast machine, so trying all 10,000 PINs for one student takes on the order of
+  20 minutes rather than milliseconds, and the salt prevents one table covering every student.
+  **This raises the effort; it does not make a 4-digit PIN secret** from someone holding the
+  database.
+- Records written before SRD 013 hold an unsalted SHA-256 digest. They still verify
+  (`verifyStoredPin`), and the first successful login replaces the digest with a salted one and
+  stamps the record schema 3 (SEC-07). `needsMigration()` compares with `PIN_SCHEMA_VERSION`
+  (2), so the schema bump never sends PIN-bearing records back through PIN setup.
 - Verification uses a constant-time XOR compare over the two hex strings
   (`pin-service.ts` `constantTimeCompare`).
 - Lockout (`rate-limiter.ts`): `MAX_ATTEMPTS: 3`, then `LOCKOUT_MS: 30 * 1000` (30 s). Attempt
@@ -140,8 +161,10 @@ Spec: `specs/009-encrypt-stored-data/spec.md`. Code: `src/services/storage/obfus
   decode every record in one line of JavaScript.
 - Switch: `ENCRYPT_STORAGE` is a **build-time** constant injected by Vite
   (`vite.config.ts` `define: { __ENCRYPT_STORAGE__ }` from the `ENCRYPT_STORAGE=true` env var;
-  `npm run build:encrypted`). Default is `false`, i.e. plain JSON in IndexedDB. It cannot be
-  changed per deployment without rebuilding.
+  `npm run build:encrypted`). The source default is `false`, but since SRD 013 (SEC-08) the
+  builds that ship are obfuscated: `npm run build:dita` (the bundle copied into the Oxygen
+  template) and the `release.yml` asset. `npm run build:dita:plain` is for development and the
+  plain-storage E2E job. It cannot be changed per deployment without rebuilding.
 - Scope: only values in the `students` object store go through `encodeForStore` /
   `decodeStoredValue`. `auditLog` entries (service ID, timestamps) are always stored plain.
   The `backups` store would also be plain, but `StorageService.backup()` has no callers, so it
@@ -162,11 +185,15 @@ this page.
   (`src/services/storage/idb-connection.ts`, `DB_VERSION = 3`). The database name comes from
   `#qd-db-name` and is required. Isolation between releases is by key prefix inside one
   database, not by browser origin; any script that can open the database sees all releases.
-- **Session**: `SESSION_TIMEOUT_MS = 30 * 60 * 1000` (`src/types/contracts.ts`), extended on
-  activity by `SessionService.updateActivity` (`src/services/session.ts`). Logout removes
-  `qd/session`, `qd/state`, `qd/instructor`, and `qd/instructor/showAnswers` from sessionStorage.
+- **Session**: `SESSION_TIMEOUT_MS = 10 * 60 * 1000` (`src/types/contracts.ts`; 30 minutes
+  until SRD 013 SEC-09, shortened because students share one machine), extended on activity by
+  `SessionService.updateActivity` (`src/services/session.ts`). The timer now also starts for a
+  login made on the current page. Expiry writes `qd:session-expired`, fires a
+  `qd:session-expired` event and logs out; the login form then says the session ended (SEC-10).
+  Logout removes `qd/session`, `qd/state`, `qd/instructor`, and `qd/instructor/showAnswers` from
+  sessionStorage.
 - **Erase all**: `src/components/qd-instructor/qd-instructor-manage.ts` requires the
-  instructor to type `DELETE ALL DATA`, then calls `StorageService.clearAll()` →
+  instructor to type `DELETE ALL DATA` and to re-enter the instructor password (SEC-03), then calls `StorageService.clearAll()` →
   `IndexedDBStorageAdapter.clearAll` (`src/services/storage/indexeddb.ts` line 215), which
   clears all three object stores in one read-write transaction, and then `clearQuizData()`
   (`src/utils/storage-helpers.ts`), which removes every sessionStorage key beginning with
@@ -212,8 +239,8 @@ IndexedDB database, so the lookup discloses nothing that was otherwise protected
 ## 9. Explicitly out of scope
 
 - No network, no server, no accounts: nothing here authenticates a person, only a tab.
-- No real cryptography at rest: SHA-256 is used for the two hashes; there is no encryption,
-  no salting, no key management. `crypto.subtle` is used only for `digest`.
+- No real cryptography at rest: SHA-256 is used for the instructor hash and PBKDF2 for PIN
+  verifiers; there is no encryption and no key management.
 - No integrity protection: IndexedDB and sessionStorage values can be edited freely; the only
   check is that obfuscated JSON still parses.
 - No cross-tab messaging, no BroadcastChannel, no `.env` files, no build-time secrets. The
@@ -222,18 +249,22 @@ IndexedDB database, so the lookup discloses nothing that was otherwise protected
 
 ## 10. Known limitations
 
-1. Instructor gate is `sessionStorage['qd/instructor'] === 'true'`; anyone can set it.
-2. Instructor password: 48-bit truncated hash, printed in page source. Comparison is now
-   constant-time and attempts are rate limited, but a 48-bit hash in public HTML is brute-forcible
-   offline; treat the password as a speed bump, not a secret.
-3. Student PIN hashes are unsalted SHA-256 of a 4-digit number — reversible from IndexedDB in
-   milliseconds. Lockout state is per tab and resets on reload of sessionStorage.
+1. The instructor session stores the instructor's password in that tab's sessionStorage while
+   they are logged in (§3). Anyone at the keyboard of an unattended instructor tab can read it.
+2. Instructor password: by default a 48-bit truncated hash, printed in page source. Comparison
+   is constant-time and attempts are rate limited, but a 48-bit hash in public HTML is
+   brute-forcible offline; treat the password as a speed bump, not a secret. A publication can
+   configure the full 64-hex hash instead.
+3. Student PINs are 4 digits. PBKDF2 with a per-student salt slows an offline guess to minutes
+   per student, but cannot prevent it. Legacy unsalted hashes remain until each student next
+   logs in. Lockout state is per tab and resets on reload of sessionStorage.
 4. Service IDs are self-asserted; the first person to log in with an ID owns it, including
    after an instructor reset.
 5. All answers are in the published HTML on disk (§5); DOM blanking only defeats
    "inspect element after load", not a text editor or a disabled-JavaScript reader.
-6. Storage "encryption" is XOR with a key derived from the visible page title (§6) and is off
-   by default. Audit-log entries are never obfuscated.
+6. Storage "encryption" is XOR with a key derived from the visible page title (§6). It is on in
+   shipped builds since SRD 013 but off in plain development builds. Audit-log entries are never
+   obfuscated.
 7. `qd-confirm-dialog` still renders its message with `unsafeHTML`; the two known callers now
    escape their inputs, but the component itself is unsafe by default for future callers.
 8. `ENCRYPT_STORAGE` is fixed at build time; a deployment cannot switch it without a rebuild
@@ -241,7 +272,10 @@ IndexedDB database, so the lookup discloses nothing that was otherwise protected
 
 ## 11. Tests that cover this page
 
-`tests/unit/instructor-auth.test.ts`, `tests/unit/services/auth/pin-service.test.ts`,
+`tests/unit/instructor-auth.test.ts`, `tests/unit/services/auth/instructor-session.test.ts`,
+`tests/unit/components/qd-pin-reset-dialog.test.ts`,
+`tests/unit/components/qd-instructor/qd-instructor-manage.test.ts`,
+`tests/unit/services/auth/pin-service.test.ts`, `tests/unit/services/storage/migration.test.ts`,
 `tests/unit/services/auth/rate-limiter.test.ts`, `tests/unit/auth-service.test.ts`,
 `tests/unit/services/storage/obfuscation.test.ts`,
 `tests/unit/services/storage/obfuscation-migration.test.ts`,

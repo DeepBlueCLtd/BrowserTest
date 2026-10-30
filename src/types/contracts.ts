@@ -126,9 +126,19 @@ export interface StudentRecord {
   /** Page data by page ID */
   pages: Record<PageId, PageData>;
 
-  // PIN Authentication (v2)
-  /** SHA-256 hash of 4-digit PIN */
+  // PIN Authentication (v2, salted KDF in v3)
+  /**
+   * PIN verifier: hex PBKDF2-SHA-256 output when `pinKdf` is set (v3), or a
+   * legacy unsalted SHA-256 hex digest (v2) until the next successful login
+   * upgrades it
+   */
   pinHash?: string;
+  /** Hex-encoded random salt for the PIN KDF (v3) */
+  pinSalt?: string;
+  /** PBKDF2 iteration count used for this record's PIN (v3) */
+  pinIterations?: number;
+  /** PIN key-derivation function; absent means legacy SHA-256 (v3) */
+  pinKdf?: 'pbkdf2-sha256';
   /** ISO 8601 timestamp when PIN was created */
   pinCreatedAt?: string;
   /** ISO 8601 timestamp when PIN was last reset */
@@ -353,11 +363,30 @@ export interface QuizEvents {
 // CONSTANTS
 // ============================================================================
 
-/** Current schema version */
-export const SCHEMA_VERSION = 2;
+/**
+ * Current schema version.
+ *
+ * v3 (SRD 013) adds only optional fields (salted PIN KDF, answer attempts,
+ * analysis labels), so v2 records stay valid and are stamped v3 lazily.
+ */
+export const SCHEMA_VERSION = 3;
 
-/** Session timeout in milliseconds (30 minutes) */
-export const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+/**
+ * First schema version that carries a student PIN.
+ *
+ * Records below this need the PIN-setup flow. Kept separate from
+ * {@link SCHEMA_VERSION} so later bumps never send PIN-bearing records
+ * back through PIN setup.
+ */
+export const PIN_SCHEMA_VERSION = 2;
+
+/**
+ * Session timeout in milliseconds (10 minutes; SRD 013 SEC-09).
+ *
+ * Students share one machine, so an abandoned session must expire before
+ * the next student is likely to sit down.
+ */
+export const SESSION_TIMEOUT_MS = 10 * 60 * 1000;
 
 /** Storage keys */
 export const STORAGE_KEYS = {
@@ -365,6 +394,8 @@ export const STORAGE_KEYS = {
   CACHE: 'qd/state',
   INSTRUCTOR: 'qd/instructor',
   PIN_ATTEMPTS: 'qd:pin-attempts',
+  /** Set when a session ends by idle timeout, so the login form can say so (SRD 013 SEC-10) */
+  SESSION_EXPIRED: 'qd:session-expired',
 } as const;
 
 /** PIN authentication constants */
@@ -375,6 +406,10 @@ export const PIN_CONSTANTS = {
   LOCKOUT_MS: 30 * 1000,
   /** PIN length (must be exactly 4 digits) */
   PIN_LENGTH: 4,
+  /** PBKDF2-SHA-256 iterations for new PIN verifiers (SRD 013 SEC-06) */
+  KDF_ITERATIONS: 600_000,
+  /** Random salt length in bytes for the PIN KDF */
+  SALT_BYTES: 16,
 } as const;
 
 /** CSS classes for DOM selection */

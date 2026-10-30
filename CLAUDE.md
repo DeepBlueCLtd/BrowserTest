@@ -28,7 +28,7 @@ User Input → DOM Handler → Service Layer → Storage Adapter
 - **IndexedDB**: Primary persistence with composite keys `qd/{release}/u{serviceId}`
   - Database name: `BrowserTest` (defined in `src/services/storage/indexeddb.ts`)
   - Object stores: `students`, `backups`, `auditLog` (DB version 3, see `src/services/storage/idb-connection.ts`)
-- **sessionStorage**: Active session + R/A/G cache (expires 30 min)
+- **sessionStorage**: Active session + R/A/G cache (expires after 10 min idle; SRD 013)
 - **No network**: All data remains local, no telemetry/CDN/remote config
 
 ### Component Layers
@@ -125,13 +125,14 @@ npm run analyze:e2e-gaps # E2E feature coverage report (docs/test-coverage-repor
 
 # Building
 npm run build           # Production build (IIFE + ESM)
-npm run build:dita      # Build + copy bundle to DITA directories
+npm run build:dita      # Build (storage obfuscated) + copy bundle to DITA directories
+npm run build:dita:plain # Same, with plain storage (development and plain-mode E2E)
 npm run update-dita-demo # Sync dita/out/oxygen → dita-demo/ (for PR previews)
 npm run lint            # TypeScript + ESLint checks
 npm run format:check    # Prettier formatting verification
 
 # Size verification
-npm run size-check      # Verify bundle <40KB min+gzip
+npm run size-check      # Verify bundle ≤100KB min+gzip
 ```
 
 ## GitHub Pages Deployment
@@ -245,7 +246,7 @@ npm run build
 - [ ] All tests passing (green)
 - [ ] Linter clean (zero errors)
 - [ ] Build successful
-- [ ] Bundle size within limits (<40KB gzipped)
+- [ ] Bundle size within limits (≤100KB gzipped)
 - [ ] Code committed with descriptive message
 
 ## Critical Constraints (Constitution)
@@ -271,13 +272,13 @@ npm run build
 - Each phase delivers independently testable value
 
 ### V. Performance Constraints
-- Bundle: ≤40KB min+gzip IIFE
+- Bundle: ≤100KB min+gzip IIFE (raised from 40KB by SRD 013 NFR-01: content runs from local disk; the ceiling remains to catch an accidentally bundled dependency)
 - Operations: <200ms save, <2s page load (50 questions)
 - Shadow DOM for isolation, no global CSS pollution
 
 ### VI. Data Isolation & Privacy
 - Composite keys: `qd/{release}/u{serviceId}`
-- 30-minute session timeout
+- 10-minute idle session timeout (SRD 013 SEC-09: students share one machine)
 - Complete data erasure capability for cohort reset
 
 ### VII. Zero Configuration Deployment
@@ -396,7 +397,7 @@ complete → All answered AND all correct
 ### Session Management
 - SessionData stored in sessionStorage with serviceId/release duplicated for quick access
 - SessionCache rebuilt from IndexedDB on login
-- Auto-logout after 30 minutes inactivity
+- Auto-logout after 10 minutes inactivity, with a notice on the login form
 
 ### TableId Generation
 Format: 16-character hash derived from table structure
@@ -428,7 +429,7 @@ Before committing any code changes, ALL of the following MUST pass:
 3. ✅ **Linting passes**: `npm run lint` (fix with `npm run lint:fix` if needed)
 4. ✅ **Formatting passes**: `npm run format:check` (fix with `npm run format` if needed)
 5. ✅ **Build succeeds**: `npm run build` (if modifying source files)
-6. ✅ **Bundle size**: Under 40KB min+gzip (verify with `npm run size-check` if needed)
+6. ✅ **Bundle size**: Under 100KB min+gzip (verify with `npm run size-check` if needed)
 
 **Rationale**: CI will fail if any of these checks fail. Running them locally before committing prevents failed CI builds and reduces feedback cycles.
 
@@ -534,13 +535,13 @@ function getStorageKey(release: ReleaseId, serviceId: ServiceId): string {
 - Both: Non-empty answer required
 
 ### Session Timeout
-30 minutes from lastActivity timestamp, checked on every user interaction
+10 minutes from lastActivity timestamp, checked on every user interaction
 
 ## Build Output
 
 - **IIFE**: `dist/sonar-quiz.iife.js` (global `window.SonarQuiz`, auto-init)
 - **ESM**: `dist/sonar-quiz.esm.js` (for integrators)
-- **Size limit**: ≤40KB min+gzip for IIFE
+- **Size limit**: ≤100KB min+gzip for IIFE
 - **Source maps**: Generated for debugging
 - **TypeScript definitions**: For ESM consumers
 

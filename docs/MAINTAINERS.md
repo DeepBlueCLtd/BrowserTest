@@ -54,7 +54,7 @@ The demo pages load `dist/sonar-quiz.iife.js` and provide the hidden config span
 | Unit + coverage | `npm run test:coverage:unit` | CI enforces thresholds in `vitest.config.ts` |
 | Integration + coverage | `npm run test:coverage:integration` | CI enforces thresholds in `vitest.integration.config.ts` |
 | Untested-file ratchet | `npm run test:gaps -- --max-gaps N` | CI (`N` set in `ci.yml`) |
-| Bundle size | `npm run build && npm run size-check` | CI, 40 KB gzip on the IIFE |
+| Bundle size | `npm run build && npm run size-check` | CI, 100 KB gzip on the IIFE (raised from 40 KB by SRD 013) |
 | E2E | `npm run test:e2e` and `npm run test:e2e:encrypted` | CI matrix |
 | Storybook build | `npm run build-storybook` | CI, on every push and PR |
 | Release | Tag `vX.Y.Z` on `main` | `release.yml` builds and publishes; see `docs/RELEASE.md`. Last release: `v0.2.0`, 2025-11-29. Bump `package.json` first — `VERSION` in the bundle is injected from it. |
@@ -64,10 +64,11 @@ level. When you add tests, raise them in the same PR so the improvement is locke
 
 **E2E locally.** Playwright starts Storybook as its web server. In some sandboxes the spawn
 fails with `spawn none ENOENT`; start Storybook yourself with
-`npx storybook dev -p 6006 --ci --no-open` and Playwright will reuse it. The encrypted variant
-needs Storybook started with `ENCRYPT_STORAGE=true` and the bundle built with
-`npm run build:dita:encrypted`; restore `dita-demo/` and `dita/template/` afterwards
-(`git checkout -- dita-demo dita/template`) so an encrypted bundle is not committed.
+`npx storybook dev -p 6006 --ci --no-open` and Playwright will reuse it. Since SRD 013,
+`npm run build:dita` produces the obfuscated bundle that releases and the Oxygen template use.
+The plain-storage E2E mode needs `npm run build:dita:plain`; the obfuscated mode needs
+Storybook started with `ENCRYPT_STORAGE=true` and `npm run test:e2e:encrypted`. Restore
+`dita-demo/` afterwards (`git checkout -- dita-demo`) so a locally built bundle is not committed.
 
 **Version stamp.** `VERSION` in the bundle comes from `package.json` at build time. Bump
 `package.json`, commit, tag; do not edit `src/index.ts`.
@@ -77,23 +78,24 @@ needs Storybook started with `ENCRYPT_STORAGE=true` and the bundle built with
 - **`window.SonarQuiz` has no `init()`.** Use `bootstrap(config)`; it is a guarded no-op after the first call. `cleanup()` tears down.
 - **Answers are removed from the DOM at load**, not just hidden. Instructor reveal restores them from in-memory metadata. If a parser change moves the Detail column, fix `quiz-table-columns.ts` in the same change.
 - **Obfuscation is not encryption.** The key is the release string, which is visible on the page. Say "obfuscation" in any user-facing text.
-- **Erase All Data** clears IndexedDB (three stores) and all `qd/*` and `qd:*` session keys. It does not prompt to export first.
-- **Two instructor unlock paths** (login-modal and toolbar) share one verifier. Both read `#qd-instructor-hash`.
-- **Session expiry is silent.** No event, no message; the login form simply returns.
+- **Erase All Data** clears IndexedDB (three stores) and all `qd/*` and `qd:*` session keys. It asks for the typed phrase *and* the instructor password (SRD 013 SEC-03). It does not prompt to export first.
+- **Instructor mode is verified on every page load.** `qd/instructor` holds the password the instructor typed, and `restoreInstructorSession()` re-checks it against `#qd-instructor-hash` during bootstrap. Writing `'true'` there by hand no longer works. Tests use `tests/helpers/instructor.ts`.
+- **Two instructor unlock paths** (login-modal and toolbar) share one verifier. Both read `#qd-instructor-hash`, which may be the 12-hex short form or the full 64-hex digest.
+- **Sessions expire after 10 minutes idle** (shared machine). Expiry sets `qd:session-expired`, fires a `qd:session-expired` event, and the login form explains what happened.
+- **`needsMigration()` compares with `PIN_SCHEMA_VERSION` (2), not `SCHEMA_VERSION`.** Comparing with the current schema would send every PIN-bearing record back through PIN setup after a bump, letting the next person choose someone else's PIN.
 - **Coverage is per suite.** Unit and integration produce separate reports; there is no merged figure.
 - **`analyze:e2e-gaps` only scans `tests/e2e/workflows/`** and uses a hard-coded feature list. Treat its "100% covered" as a floor.
 - **Instructor password lockout.** Two wrong passwords are free; the third starts a 2/4/8/16/30 s backoff, reset by a correct password. Tests that retry immediately after a deliberate failure must account for this.
 - **`qd-confirm-dialog` renders its message with `unsafeHTML`.** Escape anything user-supplied with `escapeHtml()` before passing it in.
-- **Bundle headroom is 0.90 KB.** Run `npm run size-check` early, not at the end of a feature.
+- **The bundle ceiling is 100 KB gzip** (raised from 40 KB by SRD 013). It exists to catch an accidentally bundled dependency, not to ration features.
 
 ## 6. Known issues and deferred work
 
 Tracked in `docs/PROJECT_STATE.md` §8. At the time of writing the open items are: **no visual
 regression testing** (Chromatic was dropped in September 2026; CI proves stories compile but
 nothing compares rendered output — Playwright screenshot assertions would be the replacement);
-no runtime validation banner for authoring errors; no `qd:storage-error` / `qd:session-expired`
-events; no cross-tab sync; `backups` store never written; formal WCAG audit not done; ESM bundle
-unbudgeted; under 1 KB of IIFE headroom.
+no runtime validation banner for authoring errors; no `qd:storage-error` event; no cross-tab sync; `backups` store never written; formal WCAG audit not done; ESM bundle
+unbudgeted.
 
 ## 7. Adding a feature
 

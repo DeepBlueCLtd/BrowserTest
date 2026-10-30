@@ -5,8 +5,9 @@
 import { LitElement, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { sharedStyles } from './shared-styles.js';
-import { RateLimiter, constantTimeCompare } from '../../utils/security.js';
-import { getExpectedInstructorHash, hashPassword } from '../../services/auth/instructor-auth.js';
+import { RateLimiter } from '../../utils/security.js';
+import { getExpectedInstructorHash } from '../../services/auth/instructor-auth.js';
+import { startInstructorSession } from '../../services/auth/instructor-session.js';
 import { PIN_CONSTANTS } from '../../types/contracts.js';
 import { dispatchEventOn } from '../../utils/event-helpers.js';
 
@@ -72,10 +73,9 @@ export class QdInstructorUnlock extends LitElement {
       if (!expectedHash) {
         throw new Error('Instructor password hash not configured');
       }
-      const actualHash = await hashPassword(this.password);
-
-      // Constant-time comparison
-      const valid = await constantTimeCompare(actualHash, expectedHash);
+      // Verifies against the configured hash and stores the secret that later
+      // page loads re-check (SRD 013 SEC-01)
+      const valid = await startInstructorSession(this.password);
 
       if (valid) {
         // Success - reset limiter and emit event

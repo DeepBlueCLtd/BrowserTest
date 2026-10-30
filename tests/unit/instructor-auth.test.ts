@@ -8,6 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   hashPassword,
+  hashPasswordFull,
   getExpectedInstructorHash,
   verifyInstructorPassword,
 } from '../../src/services/auth/instructor-auth.js';
@@ -79,5 +80,40 @@ describe('instructor-auth', () => {
       setConfiguredHash(null);
       expect(await verifyInstructorPassword('anything')).toBe(false);
     });
+  });
+});
+
+describe('full-length instructor hash (SRD 013 SEC-11)', () => {
+  afterEach(() => {
+    document.getElementById(CONFIG_IDS.instructorHash)?.remove();
+  });
+
+  function configure(value: string): void {
+    const span = document.createElement('span');
+    span.id = CONFIG_IDS.instructorHash;
+    span.textContent = value;
+    document.body.appendChild(span);
+  }
+
+  it('hashPasswordFull returns the 64-hex SHA-256 digest', async () => {
+    const full = await hashPasswordFull('secret');
+    expect(full).toMatch(/^[0-9a-f]{64}$/);
+    expect(full.startsWith('2bb80d537b1d')).toBe(true);
+  });
+
+  it('accepts the right password against a 64-hex configured hash', async () => {
+    configure(await hashPasswordFull('secret'));
+    expect(await verifyInstructorPassword('secret')).toBe(true);
+    expect(await verifyInstructorPassword('Secret')).toBe(false);
+  });
+
+  it('accepts an upper-case configured hash', async () => {
+    configure((await hashPasswordFull('secret')).toUpperCase());
+    expect(await verifyInstructorPassword('secret')).toBe(true);
+  });
+
+  it('still accepts the 12-hex form', async () => {
+    configure('2bb80d537b1d');
+    expect(await verifyInstructorPassword('secret')).toBe(true);
   });
 });

@@ -18,7 +18,8 @@ const __dirname = path.dirname(__filename);
 const demoPath = path.resolve(__dirname, '../../../dita-demo');
 
 // 30 minutes in milliseconds
-const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+// 10 minutes since SRD 013 SEC-09 (students share one machine)
+const SESSION_TIMEOUT_MS = 10 * 60 * 1000;
 
 interface SessionShape {
   serviceId: string;
@@ -88,7 +89,7 @@ test.describe('Session Timeout Management', () => {
     expect(session!.lastActivity).toBeTruthy();
     expect(session!.loginTime).toBeTruthy();
 
-    // Verify expiry is ~30 minutes from now
+    // Verify expiry is ~10 minutes from now
     const expiresAt = new Date(session!.expiresAt).getTime();
     const loginTime = new Date(session!.loginTime).getTime();
     const expectedExpiry = loginTime + SESSION_TIMEOUT_MS;
@@ -275,8 +276,8 @@ test.describe('Session Timeout Management', () => {
     // Verify instructor panel visible (instructor mode activated)
     await expect(page.getByText('View All Scores')).toBeVisible();
 
-    // Verify instructor state is stored (via qd/instructor key)
+    // The tab stores the verified secret, not a forgeable 'true' flag (SRD 013 SEC-01)
     const instructorState = await page.evaluate(() => sessionStorage.getItem('qd/instructor'));
-    expect(instructorState).toBe('true');
+    expect(instructorState).toBe(TEST_PASSWORD);
   });
 });

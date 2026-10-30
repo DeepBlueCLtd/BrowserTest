@@ -20,6 +20,7 @@ import { Debouncer } from '../utils/debouncer.js';
 import { addClass, removeClass } from '../utils/dom-helpers.js';
 import { getJSON, setJSON, INSTRUCTOR_SHOW_ANSWERS_KEY } from '../utils/storage-helpers.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
+import { isInstructor } from '../utils/session-state.js';
 import { info, error as logError } from '../utils/logger.js';
 import {
   removeColgroup,
@@ -290,9 +291,9 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
   document.addEventListener('qd:instructor-hide-answers', hideAnswersHandler);
 
   // Check if instructor mode with toggle already enabled
-  const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
+  const instructorActive = isInstructor();
   const showAnswers = sessionStorage.getItem(INSTRUCTOR_SHOW_ANSWERS_KEY) === 'true';
-  if (isInstructor && showAnswers) {
+  if (instructorActive && showAnswers) {
     void showStudentAnswersForTable(table, metadata);
   }
 

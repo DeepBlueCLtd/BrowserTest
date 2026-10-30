@@ -120,6 +120,16 @@ export const loginStyles = css`
       border-left: 3px solid #9aa0a6;
     }
 
+    .notice-message {
+      color: #0b4f8a;
+      font-size: 11px;
+      margin: 0 0 6px;
+      padding: 4px 8px;
+      background: #e8f1fb;
+      border-radius: 3px;
+      border-left: 3px solid #1d6fb8;
+    }
+
     .error-message {
       width: 100%;
       color: #d32f2f;

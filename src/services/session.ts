@@ -10,6 +10,7 @@ import { STORAGE_KEYS, SESSION_TIMEOUT_MS } from '../types/contracts.js';
 import { info, warn, error } from '../utils/logger.js';
 import { INSTRUCTOR_SHOW_ANSWERS_KEY } from '../utils/storage-helpers.js';
 import { isSessionExpired } from '../utils/calculation-helpers.js';
+import { endInstructorSession } from './auth/instructor-session.js';
 
 /**
  * Session Service for managing user sessions
@@ -111,7 +112,7 @@ export class SessionService {
     const session = this.getSession();
     sessionStorage.removeItem(STORAGE_KEYS.SESSION);
     sessionStorage.removeItem(STORAGE_KEYS.CACHE);
-    sessionStorage.removeItem(STORAGE_KEYS.INSTRUCTOR);
+    endInstructorSession();
 
     // Clear instructor-specific state (FR-001)
     sessionStorage.removeItem(INSTRUCTOR_SHOW_ANSWERS_KEY);

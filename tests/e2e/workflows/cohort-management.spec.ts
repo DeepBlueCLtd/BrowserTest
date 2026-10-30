@@ -131,6 +131,8 @@ test.describe('Cohort Management Workflow', () => {
     const confirmInput = page.locator('.qd-manage-modal-overlay input[type="text"]');
     await expect(confirmInput).toBeVisible();
     await confirmInput.fill('DELETE ALL DATA');
+    // Erase needs the instructor password again (SRD 013 SEC-03)
+    await page.locator('.qd-manage-modal-overlay input[type="password"]').fill(TEST_PASSWORD);
 
     // Click confirm button
     const confirmButton = page
@@ -381,6 +383,8 @@ test.describe('Cohort Management Workflow', () => {
     const confirmInput = page.locator('.qd-manage-modal-overlay input[type="text"]');
     await expect(confirmInput).toBeVisible();
     await confirmInput.fill('DELETE ALL DATA');
+    // Erase needs the instructor password again (SRD 013 SEC-03)
+    await page.locator('.qd-manage-modal-overlay input[type="password"]').fill(TEST_PASSWORD);
 
     // Click confirm button
     const confirmButton = page
@@ -480,6 +484,8 @@ test.describe('Cohort Management Workflow', () => {
     const confirmInput = page.locator('.qd-manage-modal-overlay input[type="text"]');
     await expect(confirmInput).toBeVisible();
     await confirmInput.fill('DELETE ALL DATA');
+    // Erase needs the instructor password again (SRD 013 SEC-03)
+    await page.locator('.qd-manage-modal-overlay input[type="password"]').fill(TEST_PASSWORD);
 
     // Click confirm button
     const confirmButton = page

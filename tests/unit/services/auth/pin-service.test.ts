@@ -10,7 +10,11 @@ import {
   verifyPin,
   validatePinFormat,
   validatePinConfirmation,
+  createPinCredential,
+  derivePinHash,
+  verifyStoredPin,
 } from '../../../../src/services/auth/pin-service.js';
+import { PIN_CONSTANTS } from '../../../../src/types/contracts.js';
 
 describe('PIN Service', () => {
   describe('validatePinFormat', () => {
@@ -196,5 +200,66 @@ describe('PIN Service', () => {
         }
       }
     });
+  });
+});
+
+describe('Salted PIN verifiers (SRD 013 SEC-06, SEC-07)', () => {
+  // A low iteration count keeps these tests fast; production uses PIN_CONSTANTS.KDF_ITERATIONS
+  const FAST = 1000;
+
+  it('createPinCredential uses PBKDF2 with a random salt per call', async () => {
+    const a = await createPinCredential('1234', FAST);
+    const b = await createPinCredential('1234', FAST);
+    expect(a.pinKdf).toBe('pbkdf2-sha256');
+    expect(a.pinIterations).toBe(FAST);
+    expect(a.pinSalt).toMatch(/^[0-9a-f]{32}$/);
+    expect(a.pinHash).toMatch(/^[0-9a-f]{64}$/);
+    // Same PIN, different salt, different verifier: no shared lookup table
+    expect(a.pinSalt).not.toBe(b.pinSalt);
+    expect(a.pinHash).not.toBe(b.pinHash);
+  });
+
+  it('defaults to the policy iteration count', async () => {
+    const cred = await createPinCredential('1234');
+    expect(cred.pinIterations).toBe(PIN_CONSTANTS.KDF_ITERATIONS);
+    expect(PIN_CONSTANTS.KDF_ITERATIONS).toBeGreaterThanOrEqual(600_000);
+  });
+
+  it('never stores the plain SHA-256 of the PIN', async () => {
+    const cred = await createPinCredential('1234', FAST);
+    expect(cred.pinHash).not.toBe(await hashPin('1234'));
+  });
+
+  it('derivePinHash is deterministic for the same PIN, salt and iterations', async () => {
+    const salt = '00112233445566778899aabbccddeeff';
+    expect(await derivePinHash('4321', salt, FAST)).toBe(await derivePinHash('4321', salt, FAST));
+    expect(await derivePinHash('4321', salt, FAST)).not.toBe(
+      await derivePinHash('4322', salt, FAST),
+    );
+  });
+
+  it('verifyStoredPin accepts the right PIN and rejects a wrong one for salted records', async () => {
+    const cred = await createPinCredential('2468', FAST);
+    expect(await verifyStoredPin('2468', cred)).toEqual({ valid: true });
+    expect(await verifyStoredPin('2469', cred)).toEqual({ valid: false });
+  });
+
+  it('verifyStoredPin verifies a legacy SHA-256 record and offers a salted upgrade', async () => {
+    const legacy = { pinHash: await hashPin('1357') };
+    const ok = await verifyStoredPin('1357', legacy);
+    expect(ok.valid).toBe(true);
+    expect(ok.upgrade?.pinKdf).toBe('pbkdf2-sha256');
+    // The upgrade verifies the same PIN
+    expect((await verifyStoredPin('1357', ok.upgrade!)).valid).toBe(true);
+  });
+
+  it('verifyStoredPin offers no upgrade when a legacy PIN is wrong', async () => {
+    const legacy = { pinHash: await hashPin('1357') };
+    expect(await verifyStoredPin('0000', legacy)).toEqual({ valid: false });
+  });
+
+  it('verifyStoredPin rejects a record with no PIN', async () => {
+    expect(await verifyStoredPin('1234', { pinHash: '' })).toEqual({ valid: false });
+    expect(await verifyStoredPin('1234', {})).toEqual({ valid: false });
   });
 });

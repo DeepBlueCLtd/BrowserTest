@@ -45,7 +45,8 @@ jobs:
           node-version: '22'
           cache: 'npm'
       - run: npm ci
-      - run: npm run build
+      # Released bundles obfuscate stored data (SRD 013 SEC-08)
+      - run: npm run build:encrypted
       - name: Check bundle size
         run: npm run size-check
       - name: Upload build artifacts

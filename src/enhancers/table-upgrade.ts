@@ -10,7 +10,7 @@ import { enhanceQuizTable, getQuizTableMetadata } from './quiz-table.js';
 import { enhanceAnalysisTable } from './analysis-table.js';
 import { revealInstructorAnswers } from './instructor-answer-reveal.js';
 import { getPageIdFromUrl } from '../utils/page-id.js';
-import { STORAGE_KEYS } from '../types/contracts.js';
+import { isInstructor } from '../utils/session-state.js';
 import { info } from '../utils/logger.js';
 
 /**
@@ -27,8 +27,8 @@ export function upgradeTablesAfterLogin(): void {
     return;
   }
 
-  const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
-  if (isInstructor) {
+  const instructorActive = isInstructor();
+  if (instructorActive) {
     revealTablesForInstructor(pageId);
     return;
   }

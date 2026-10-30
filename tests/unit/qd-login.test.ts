@@ -7,6 +7,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { QdLogin } from '../../src/components/qd-login.js';
 import '../../src/components/qd-login.js';
+import { STORAGE_KEYS } from '../../src/types/contracts.js';
+import { loginInstructorForTest, resetInstructorForTest } from '../helpers/instructor.js';
 
 describe('QdLogin Component', () => {
   let element: QdLogin;
@@ -455,5 +457,62 @@ describe('QdLogin Component', () => {
 
       expect(loginBtn.disabled).toBe(false);
     });
+  });
+});
+
+describe('QdLogin on a shared machine (SRD 013)', () => {
+  afterEach(() => {
+    document.querySelectorAll('qd-login').forEach((el) => el.remove());
+    sessionStorage.clear();
+  });
+
+  it('explains a timed-out session once, then forgets it (SEC-10)', async () => {
+    sessionStorage.setItem(STORAGE_KEYS.SESSION_EXPIRED, new Date().toISOString());
+    const el = document.createElement('qd-login');
+    document.body.appendChild(el);
+    await el.updateComplete;
+
+    const notice = el.shadowRoot!.querySelector('.notice-message');
+    expect(notice?.textContent).toContain('Your session ended after 10 minutes without activity');
+    expect(notice?.getAttribute('role')).toBe('status');
+    expect(sessionStorage.getItem(STORAGE_KEYS.SESSION_EXPIRED)).toBeNull();
+  });
+
+  it('shows the notice when a session expires while the page is open', async () => {
+    const el = document.createElement('qd-login');
+    document.body.appendChild(el);
+    await el.updateComplete;
+    expect(el.shadowRoot!.querySelector('.notice-message')).toBeNull();
+
+    sessionStorage.setItem(STORAGE_KEYS.SESSION_EXPIRED, new Date().toISOString());
+    document.dispatchEvent(new CustomEvent('qd:logout'));
+    await el.updateComplete;
+
+    expect(el.shadowRoot!.querySelector('.notice-message')).not.toBeNull();
+  });
+
+  it('shows no notice after an ordinary logout', async () => {
+    const el = document.createElement('qd-login');
+    document.body.appendChild(el);
+    document.dispatchEvent(new CustomEvent('qd:logout'));
+    await el.updateComplete;
+    expect(el.shadowRoot!.querySelector('.notice-message')).toBeNull();
+  });
+
+  it('stays hidden for a verified instructor session (SEC-05)', async () => {
+    await loginInstructorForTest();
+    const el = document.createElement('qd-login');
+    document.body.appendChild(el);
+    await el.updateComplete;
+    expect(el.hasAttribute('data-show')).toBe(false);
+    resetInstructorForTest();
+  });
+
+  it('stays visible when someone forges the instructor flag (SEC-05)', async () => {
+    sessionStorage.setItem(STORAGE_KEYS.INSTRUCTOR, 'true');
+    const el = document.createElement('qd-login');
+    document.body.appendChild(el);
+    await el.updateComplete;
+    expect(el.hasAttribute('data-show')).toBe(true);
   });
 });

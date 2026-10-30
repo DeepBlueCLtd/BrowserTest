@@ -11,14 +11,12 @@
 
 import { LitElement, html, css } from 'lit';
 import { customElement, state, property } from 'lit/decorators.js';
-import { STORAGE_KEYS, PIN_CONSTANTS } from '../types/contracts.js';
+import { PIN_CONSTANTS } from '../types/contracts.js';
 import { SessionService } from '../services/session.js';
 import { readRelease } from '../config/dom-config-reader.js';
 import { RateLimiter } from '../utils/security.js';
-import {
-  getExpectedInstructorHash,
-  verifyInstructorPassword,
-} from '../services/auth/instructor-auth.js';
+import { getExpectedInstructorHash } from '../services/auth/instructor-auth.js';
+import { startInstructorSession } from '../services/auth/instructor-session.js';
 import './qd-password-modal.js';
 
 /**
@@ -112,7 +110,9 @@ export class QdInstructorLogin extends LitElement {
     }
 
     try {
-      if (!(await verifyInstructorPassword(password))) {
+      // Verifies the password and stores the secret that later page loads
+      // re-check (SRD 013 SEC-01)
+      if (!(await startInstructorSession(password))) {
         this.rateLimiter.recordFailure();
         this.error = 'Incorrect password';
         return;
@@ -123,7 +123,6 @@ export class QdInstructorLogin extends LitElement {
 
       const sessionService = new SessionService();
       sessionService.createSession('INSTRUCTOR', 'Instructor', release || '');
-      sessionStorage.setItem(STORAGE_KEYS.INSTRUCTOR, 'true');
 
       this.dispatchEvent(
         new CustomEvent('qd:login', {

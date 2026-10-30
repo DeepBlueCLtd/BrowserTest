@@ -13,7 +13,8 @@
 import { LitElement, html } from 'lit';
 import { customElement, state, property } from 'lit/decorators.js';
 import { loginStyles } from './qd-login.styles.js';
-import { hasActiveSession } from '../utils/session-state.js';
+import { hasActiveSession, isInstructor } from '../utils/session-state.js';
+import { STORAGE_KEYS, SESSION_TIMEOUT_MS } from '../types/contracts.js';
 import { validateStudentForm, sanitizePinInput } from '../utils/validation-helpers.js';
 import { SessionService } from '../services/session.js';
 import { readRelease, readDbName } from '../config/dom-config-reader.js';
@@ -67,6 +68,8 @@ export class QdLogin extends LitElement {
   @state() private pendingPin = '';
   /** Whether the help popup is open */
   @state() private helpOpen = false;
+  /** Why the student was logged out, shown above the form (SRD 013 SEC-10) */
+  @state() private sessionNotice = '';
   /** Whether the migration dialog is shown */
   @state() private showMigrationDialog = false;
   /** Storage format error that triggered the migration dialog */
@@ -91,6 +94,7 @@ export class QdLogin extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this.updateVisibility();
+    this.takeSessionExpiredNotice();
     document.addEventListener('qd:logout', this.handleLogoutEvent);
     // Instructor login is emitted by the child <qd-instructor-login>; hide on it.
     document.addEventListener('qd:login', this.handleLoginEvent);
@@ -105,17 +109,35 @@ export class QdLogin extends LitElement {
 
   /** Hide the form whenever a login succeeds (student or instructor). */
   private handleLoginEvent = (): void => {
+    this.sessionNotice = '';
     this.updateVisibility();
   };
+
+  /**
+   * Show, once, why the last session ended if it timed out. The marker is
+   * written by the session coordinator before it clears the session.
+   */
+  private takeSessionExpiredNotice(): void {
+    if (sessionStorage.getItem(STORAGE_KEYS.SESSION_EXPIRED) === null) {
+      return;
+    }
+    sessionStorage.removeItem(STORAGE_KEYS.SESSION_EXPIRED);
+    const minutes = Math.round(SESSION_TIMEOUT_MS / 60000);
+    this.sessionNotice = `Your session ended after ${minutes} minutes without activity. Log in again to continue.`;
+  }
 
   /** Lifecycle: signal readiness once the shadow DOM is rendered. */
   firstUpdated() {
     this.setAttribute('data-ready', '');
   }
 
-  /** Show the form only when NOT logged in. */
+  /**
+   * Show the form only when nobody is logged in. An instructor session hides
+   * it too, so the form and the instructor panel never render together
+   * (SRD 013 SEC-05).
+   */
   private updateVisibility(): void {
-    this.toggleAttribute('data-show', !hasActiveSession());
+    this.toggleAttribute('data-show', !hasActiveSession() && !isInstructor());
   }
 
   /** On logout, reset state and show the login form again. */
@@ -130,6 +152,7 @@ export class QdLogin extends LitElement {
     this.helpOpen = false;
     this.isRegistered = null;
     this.pendingPin = '';
+    this.takeSessionExpiredNotice();
     this.updateVisibility();
   };
 
@@ -152,6 +175,9 @@ export class QdLogin extends LitElement {
           <qd-help-trigger panelType="login" @qd:help-open=${this.handleHelpOpen}></qd-help-trigger>
         </div>
 
+        ${this.sessionNotice
+          ? html`<div class="notice-message" role="status">${this.sessionNotice}</div>`
+          : ''}
         <form class="login-form" @submit=${(e: Event) => this.handleStudentLogin(e)}>
           <input
             type="text"
