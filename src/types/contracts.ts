@@ -51,6 +51,14 @@ export interface AnswerRecord {
   success: boolean;
   /** Timestamp when answer was submitted (ISO 8601) */
   timestamp: string;
+  /**
+   * Answers the student committed for this question: an MCQ choice, or a
+   * numeric value when the field lost focus (v3; SRD 013 SCO-01). 0 while a
+   * first value is still being typed. Absent on records written before v3.
+   */
+  attempts?: number;
+  /** Whether the first committed answer was correct (v3; absent before v3) */
+  firstSuccess?: boolean;
 }
 
 /** Quiz question definition */

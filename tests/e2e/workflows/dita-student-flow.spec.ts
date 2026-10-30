@@ -90,8 +90,8 @@ test.describe('DITA Student Flow', () => {
     await expect(loginForm).not.toBeVisible();
 
     // Verify status shows initial progress (0 correct)
-    await expect(statusPanel.locator('.progress-text')).toContainText('0/');
-    await expect(statusPanel.locator('.progress-text')).toContainText('Correct');
+    await expect(statusPanel.locator('.progress-text')).toContainText('0 answered');
+    await expect(statusPanel.locator('.progress-text')).toContainText('correct');
 
     // Verify status indicator is red (no progress)
     const indicator = statusPanel.locator('.status-indicator');
@@ -216,7 +216,7 @@ test.describe('DITA Student Flow', () => {
     // Verify session persists and progress updated
     await expect(statusPanel).toBeVisible();
     const progressText = await statusPanel.locator('.progress-text').textContent();
-    expect(progressText).toMatch(/\d+\/\d+/); // Should show "X/Y Correct"
+    expect(progressText).toMatch(/\d+ (of \d+ )?answered · \d+ correct/); // "N answered · M correct"
   });
 
   test('Flow: Progress tracking and badge updates', async ({ page }) => {
@@ -355,7 +355,7 @@ test.describe('DITA Student Flow', () => {
     await statusPanel.waitFor();
 
     // Verify new session created (progress starts at 0)
-    await expect(statusPanel.locator('.progress-text')).toContainText('0/');
+    await expect(statusPanel.locator('.progress-text')).toContainText('0 answered');
 
     // Navigate to quiz page
     await page.click('a.quizPageBtn[href*="quiz-mcq"]');

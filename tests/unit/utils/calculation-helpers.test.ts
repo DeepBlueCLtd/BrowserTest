@@ -6,7 +6,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  calculateStatusIndicator,
+  calculateProgressIndicator,
+  formatProgress,
   calculatePercentage,
   recalculateTotalsFromPages,
   isSessionExpired,
@@ -15,33 +16,31 @@ import {
 import type { PageData, PageId } from '../../../src/types/contracts';
 
 describe('calculation-helpers', () => {
-  describe('calculateStatusIndicator', () => {
-    it('returns green when all correct', () => {
-      expect(calculateStatusIndicator(10, 10)).toBe('green');
+  describe('calculateProgressIndicator (SRD 013 SCO-02, SCO-03)', () => {
+    it('is red until something is answered', () => {
+      expect(calculateProgressIndicator(0, 0, 40)).toBe('red');
+      expect(calculateProgressIndicator(0, 0)).toBe('red');
     });
 
-    it('returns red when none correct', () => {
-      expect(calculateStatusIndicator(10, 0)).toBe('red');
+    it('is green only when the known total is all correct', () => {
+      expect(calculateProgressIndicator(40, 40, 40)).toBe('green');
+      expect(calculateProgressIndicator(40, 39, 40)).toBe('amber');
     });
 
-    it('returns amber when some correct', () => {
-      expect(calculateStatusIndicator(10, 5)).toBe('amber');
+    it('stays amber when the total is unknown, however many are correct', () => {
+      // One right answer used to show green and 100%
+      expect(calculateProgressIndicator(1, 1)).toBe('amber');
     });
 
-    it('returns amber for partial progress', () => {
-      expect(calculateStatusIndicator(10, 7)).toBe('amber');
+    it('is amber when answers are started but wrong', () => {
+      expect(calculateProgressIndicator(3, 0, 40)).toBe('amber');
     });
+  });
 
-    it('returns red when total is 0', () => {
-      expect(calculateStatusIndicator(0, 0)).toBe('red');
-    });
-
-    it('handles single question all correct', () => {
-      expect(calculateStatusIndicator(1, 1)).toBe('green');
-    });
-
-    it('handles single question incorrect', () => {
-      expect(calculateStatusIndicator(1, 0)).toBe('red');
+  describe('formatProgress', () => {
+    it('states answered and correct separately, with the total when known', () => {
+      expect(formatProgress(12, 9, 40)).toBe('12 of 40 answered · 9 correct');
+      expect(formatProgress(12, 9)).toBe('12 answered · 9 correct');
     });
   });
 

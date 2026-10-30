@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ScoresService } from '../../../src/services/scores-service.js';
+import { ScoresService, summariseFirstAttempts } from '../../../src/services/scores-service.js';
 import type { StudentRecord } from '../../../src/types/contracts.js';
 
 describe('ScoresService', () => {
@@ -310,6 +310,37 @@ describe('ScoresService', () => {
       // Both are 80%, original order should be maintained
       expect(sorted[0]!.name).toBe('Student A');
       expect(sorted[1]!.name).toBe('Student B');
+    });
+  });
+});
+
+describe('summariseFirstAttempts (SRD 013 SCO-04)', () => {
+  it('counts tracked, right-first-time and untracked answers', () => {
+    const student = {
+      schema: 3,
+      docId: '',
+      release: 'R',
+      serviceId: 'S',
+      name: 'N',
+      attempted: 4,
+      correct: 3,
+      updated: '',
+      pages: {
+        p: {
+          state: 'incomplete' as const,
+          answers: [
+            { answer: '1', success: true, timestamp: '', attempts: 1, firstSuccess: true },
+            { answer: '2', success: true, timestamp: '', attempts: 2, firstSuccess: false },
+            { answer: '3', success: false, timestamp: '' },
+            { answer: '', success: false, timestamp: '' },
+          ],
+        },
+      },
+    };
+    expect(summariseFirstAttempts(student)).toEqual({
+      tracked: 2,
+      correctFirstTime: 1,
+      untracked: 1,
     });
   });
 });

@@ -272,7 +272,9 @@ test.describe('Progress Tracking Workflow', () => {
 
     // Wait for status to update then verify progress is displayed
     // The status panel shows "X/Y Correct" format
-    await expect(statusPanel).toContainText(/\d+\/\d+\s*Correct/i, { timeout: 2000 });
+    await expect(statusPanel).toContainText(/\d+ (of \d+ )?answered · \d+ correct/, {
+      timeout: 2000,
+    });
   });
 
   test('should handle logout correctly', async ({ page }) => {

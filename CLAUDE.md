@@ -62,7 +62,7 @@ Compact login interface with modal for instructor access:
 After successful login, ONE of these panels is displayed:
 
 **Student Status Panel** (`<qd-student-status>`):
-- Quiz progress display (R/A/G badges, answered/correct counts, percentage)
+- Quiz progress display: "12 of 40 answered · 9 correct" ("of 40" only when `#qd-question-total` is stamped), with an R/A/G dot that turns green only when the known total is all correct (SRD 013 SCO-02/03)
 - Logout button
 - Updates in real-time via session cache
 
@@ -81,7 +81,7 @@ Consolidated control center with:
 
 #### **Scores Modal** (`<qd-scores-modal>`)
 Modal overlay (Esc to close) showing:
-- Student list with totals (attempted, correct, percentage)
+- Student list with Answered ("of N" when the total is known), Correct with "% of answered", and Right first time; per-question badges show "(n tries)" (SRD 013 SCO-04)
 - Per-student expandable breakdown showing per-page answers
 - Close button
 
@@ -290,6 +290,7 @@ npm run build
   - `#qd-db-name`: IndexedDB database name (**REQUIRED** - no default, throws error if missing/empty)
   - `#qd-instructor-hash`: SHA-256 hash of instructor password, 12 or 64 hex characters (optional)
   - `#qd-answer-key`: key for answers encoded at publish time (13 capital letters; emitted by `customHeader.xsl`)
+  - `#qd-question-total`: publication question total; emitted empty by `customHeader.xsl`, stamped by `npm run finalise:output`
 - Debug logging controlled by `setDebugMode()` in `src/utils/logger.ts` (off by default; no `data-qd-debug` attribute is read)
 - No setup, no manual config, no network dependencies
 
@@ -352,6 +353,8 @@ interface AnswerRecord {
   answer: string;     // User's answer
   success: boolean;   // Correctness
   timestamp: string;  // ISO 8601 (MANDATORY)
+  attempts?: number;  // v3: committed answers (MCQ choice, numeric on blur); absent before v3
+  firstSuccess?: boolean; // v3: whether the first committed answer was right
 }
 
 interface StudentRecord {

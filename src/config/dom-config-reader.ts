@@ -63,7 +63,24 @@ export const CONFIG_IDS = {
   dbName: 'qd-db-name',
   /** Key for quiz answers encoded at publish time (SRD 013 ANS-06) */
   answerKey: 'qd-answer-key',
+  /** Number of quiz questions in the whole publication (SRD 013 SCO-05) */
+  questionTotal: 'qd-question-total',
 } as const;
+
+/**
+ * Read the publication's total quiz-question count from `#qd-question-total`,
+ * stamped by `scripts/finalise-output.js` after publishing (SRD 013 SCO-05).
+ *
+ * @returns The count, or undefined when absent, empty or not a positive integer
+ */
+export function readQuestionTotal(): number | undefined {
+  const text = document.getElementById(CONFIG_IDS.questionTotal)?.textContent?.trim() ?? '';
+  if (!/^\d+$/.test(text)) {
+    return undefined;
+  }
+  const total = Number(text);
+  return total > 0 ? total : undefined;
+}
 
 /**
  * Read a configuration value from a hidden DOM element

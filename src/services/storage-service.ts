@@ -49,6 +49,53 @@ export function createEmptyStudentRecord(session: SessionData): StudentRecord {
 }
 
 /**
+ * Carry attempt tracking from the previous answer to a new one
+ * (SRD 013 SCO-01, SCO-07).
+ *
+ * - A commit (an MCQ choice, or a numeric value when its field loses focus)
+ *   counts one attempt; the first commit also fixes `firstSuccess`.
+ * - A provisional save (a numeric value while typing) keeps the counts, so
+ *   typing "1500" slowly is not four attempts.
+ * - An answer written before v3 has no counts; its history is unknown, so it
+ *   stays without them and displays as "–".
+ *
+ * @param previous - Stored answer for the question, if any
+ * @param next - New answer (answer, success, timestamp)
+ * @param commit - Whether this save is a committed answer
+ * @returns The answer to store
+ */
+export function withAttempts(
+  previous: AnswerRecord | undefined,
+  next: AnswerRecord,
+  commit: boolean,
+): AnswerRecord {
+  const { answer, success, timestamp } = next;
+  const previouslyAnswered = previous !== undefined && previous.answer.trim() !== '';
+
+  // Answered before v3: history unknown, so record no counts
+  if (previouslyAnswered && previous.attempts === undefined) {
+    return { answer, success, timestamp };
+  }
+
+  const priorAttempts = previous?.attempts ?? 0;
+  if (!commit || answer.trim() === '') {
+    return previous?.firstSuccess === undefined
+      ? { answer, success, timestamp, attempts: priorAttempts }
+      : {
+          answer,
+          success,
+          timestamp,
+          attempts: priorAttempts,
+          firstSuccess: previous.firstSuccess,
+        };
+  }
+
+  const attempts = priorAttempts + 1;
+  const firstSuccess = attempts === 1 ? success : (previous?.firstSuccess ?? success);
+  return { answer, success, timestamp, attempts, firstSuccess };
+}
+
+/**
  * Storage Service for managing student records
  */
 export class StorageService {
@@ -149,6 +196,7 @@ export class StorageService {
     questionIndex: number,
     answer: AnswerRecord,
     totalQuestions: number,
+    options: { commit?: boolean } = {},
   ): StudentRecord {
     // Get or create page data
     const existingPage = record.pages[pageId];
@@ -167,8 +215,13 @@ export class StorageService {
     }
 
     // Update answer at index (FR-015: overwrites previous answer for re-submissions)
-    // Only the most recent answer is stored, with updated timestamp
-    pageData.answers[questionIndex] = answer;
+    // The most recent answer is stored, plus how many answers were committed
+    // and whether the first was right (SRD 013 SCO-01)
+    pageData.answers[questionIndex] = withAttempts(
+      pageData.answers[questionIndex],
+      answer,
+      options.commit === true,
+    );
 
     // Update timestamps
     const now = new Date().toISOString();

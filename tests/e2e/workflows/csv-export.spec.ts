@@ -104,7 +104,7 @@ test.describe('CSV Data Export', () => {
     await firstInput.selectOption({ index: 1 });
 
     // Wait for save
-    await expect(page.locator('qd-status')).toContainText(/1\/\d+ Correct/);
+    await expect(page.locator('qd-status')).toContainText(/· 1 correct/);
 
     // Go back and logout
     await page.goto(`file://${demoPath}/page-index.html`);
@@ -161,7 +161,7 @@ test.describe('CSV Data Export', () => {
     const quizTable = page.locator('table.qd-quiz');
     const firstInput = quizTable.locator('.qd-quiz-input').first();
     await firstInput.selectOption({ index: 1 });
-    await expect(page.locator('qd-status')).toContainText(/1\/\d+ Correct/);
+    await expect(page.locator('qd-status')).toContainText(/· 1 correct/);
 
     // Logout and login as instructor
     await page.goto(`file://${demoPath}/page-index.html`);
@@ -227,7 +227,7 @@ test.describe('CSV Data Export', () => {
     const quizTable = page.locator('table.qd-quiz');
     const firstInput = quizTable.locator('.qd-quiz-input').first();
     await firstInput.selectOption({ index: 1 });
-    await expect(page.locator('qd-status')).toContainText(/1\/\d+ Correct/);
+    await expect(page.locator('qd-status')).toContainText(/· 1 correct/);
 
     // Logout and switch to instructor
     await page.goto(`file://${demoPath}/page-index.html`);
@@ -306,7 +306,7 @@ test.describe('CSV Data Export', () => {
     const quizTable = page.locator('table.qd-quiz');
     const firstInput = quizTable.locator('.qd-quiz-input').first();
     await firstInput.selectOption({ index: 1 });
-    await expect(page.locator('qd-status')).toContainText(/1\/\d+ Correct/);
+    await expect(page.locator('qd-status')).toContainText(/· 1 correct/);
 
     // Logout and switch to instructor
     await page.goto(`file://${demoPath}/page-index.html`);

@@ -57,9 +57,10 @@ result snippets showed answers. After every rebuild, run the checklist below.
 
 1. `npm run build:dita` (obfuscated-storage bundle into `template/resources/`).
 2. Publish in Oxygen with the `f13ldMan-CSA` template.
-3. `npm run check:answer-leak -- dita/out/oxygen` must report no plaintext answers and no
-   search index. If it reports the index, delete `oxygen-webhelp/app/search/index/` from the
-   output before distributing it.
+3. `npm run finalise:output -- dita/out/oxygen`. It writes the publication's question total
+   into every page (so students see "12 of 40 answered"), deletes the search index, and fails if
+   any page still holds a plaintext answer. Do not distribute output that fails this step.
+   `npm run check:answer-leak -- <folder>` runs the leak check alone.
 4. Open a quiz page as a student and as an instructor and check answers still validate.
 5. `npm run update-dita-demo`, then commit `dita-demo/`.
 

@@ -10,7 +10,7 @@ import type { Locator } from '@playwright/test';
  * line up.
  */
 export const CSV_HEADER =
-  'Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp,Kind';
+  'Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp,Kind,Attempts,First Attempt Correct';
 
 /** Milliseconds to wait for the login form to reach a settled state. */
 const SETTLE_MS = 3000;

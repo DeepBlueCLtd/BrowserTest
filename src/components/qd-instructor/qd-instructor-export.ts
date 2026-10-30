@@ -55,7 +55,9 @@ export class QdInstructorExport extends LitElement {
     const rows: string[] = [];
 
     // Header row
-    rows.push('Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp,Kind');
+    rows.push(
+      'Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp,Kind,Attempts,First Attempt Correct',
+    );
 
     // Data rows
     for (const student of this.students) {
@@ -73,6 +75,9 @@ export class QdInstructorExport extends LitElement {
                 answer.success,
                 answer.timestamp,
                 'quiz',
+                // Empty for answers from before attempts were tracked (SCO-06, SCO-07)
+                answer.attempts ?? '',
+                answer.firstSuccess ?? '',
               ]),
             );
           }
@@ -91,6 +96,8 @@ export class QdInstructorExport extends LitElement {
                 '',
                 analysis.lastEdited ?? '',
                 'analysis',
+                '',
+                '',
               ]),
             );
           }

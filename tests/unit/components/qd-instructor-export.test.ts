@@ -250,7 +250,7 @@ describe('qd-instructor-export - Export Button State (FR-006)', () => {
       const lines = csv.split('\n');
       // New columns are appended after the original eight (SRD 013 ANA-02)
       expect(lines[0]).toBe(
-        'Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp,Kind',
+        'Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp,Kind,Attempts,First Attempt Correct',
       );
     });
 

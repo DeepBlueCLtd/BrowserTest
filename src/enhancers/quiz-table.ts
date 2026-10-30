@@ -305,9 +305,9 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
     }
 
     if (input instanceof HTMLSelectElement) {
-      // MCQ: save on change
+      // MCQ: each choice is a committed answer
       input.addEventListener('change', () => {
-        handleAnswerInput(table, metadata, index, input.value);
+        handleAnswerInput(table, metadata, index, input.value, true);
       });
       return;
     }
@@ -331,6 +331,14 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
       const value = input.value.trim();
       if (value !== '' && !isNumericAnswer(value)) {
         showInputError(answerCell, input, NUMERIC_INPUT_ERROR);
+      }
+    });
+    // Leaving a changed field commits the number as an attempt (SCO-01).
+    // Typing saves along the way without counting each keystroke.
+    input.addEventListener('change', () => {
+      const value = input.value.trim();
+      if (isNumericAnswer(value)) {
+        handleAnswerInput(table, metadata, index, input.value, true);
       }
     });
   });

@@ -63,10 +63,9 @@ describe('QdStatus Component', () => {
       element.requestUpdate();
       await element.updateComplete;
 
-      // Check that totals are displayed in "X/Y Correct (Z%)" format
+      // Answered and correct are shown separately (SRD 013 SCO-02)
       const shadow = element.shadowRoot;
-      expect(shadow?.textContent).toContain('8/10 Correct');
-      expect(shadow?.textContent).toContain('80%');
+      expect(shadow?.textContent).toContain('10 answered · 8 correct');
       // Check username display
       expect(shadow?.textContent).toContain('MAYO');
       expect(shadow?.textContent).toContain('**2344');
@@ -94,7 +93,7 @@ describe('QdStatus Component', () => {
       expect(shadow?.textContent).toContain('Test progress:');
     });
 
-    it('should calculate and display percentage', async () => {
+    it('should show answered and correct from stored answers, not registered questions', async () => {
       const cache: SessionCache = {
         totals: { total: 10, answered: 10, correct: 8 },
         pages: {},
@@ -109,7 +108,28 @@ describe('QdStatus Component', () => {
       await element.updateComplete;
 
       const shadow = element.shadowRoot;
-      expect(shadow?.textContent).toContain('80%');
+      // The registered-question figure (total) no longer drives the panel, so
+      // it cannot change with the page being viewed
+      const progress = shadow?.querySelector('.progress-text')?.textContent?.trim();
+      expect(progress).toBe('10 answered · 8 correct');
+    });
+
+    it('shows the publication total when the page has one (SRD 013 SCO-03)', async () => {
+      const span = document.createElement('span');
+      span.id = 'qd-question-total';
+      span.textContent = '40';
+      document.body.appendChild(span);
+      setJSON(STORAGE_KEYS.CACHE, {
+        totals: { total: 13, answered: 12, correct: 9 },
+        pages: {},
+      } satisfies SessionCache);
+
+      document.dispatchEvent(new CustomEvent('qd:state-changed'));
+      element.requestUpdate();
+      await element.updateComplete;
+
+      expect(element.shadowRoot?.textContent).toContain('12 of 40 answered · 9 correct');
+      span.remove();
     });
 
     it('should display 0% when no questions answered', async () => {

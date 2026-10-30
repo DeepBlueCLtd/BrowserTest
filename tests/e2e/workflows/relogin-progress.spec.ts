@@ -93,12 +93,12 @@ test.describe('Re-login Progress Display', () => {
 
     const statusPanel = page.locator('qd-status');
     const progressBefore = await statusPanel.locator('.progress-text').textContent();
-    // Should show some progress (e.g., "0/1 Correct" or "1/1 Correct")
-    expect(progressBefore).toMatch(/\d+\/\d+/);
+    // Should show some progress (e.g., "1 answered · 0 correct")
+    expect(progressBefore).toMatch(/\d+ (of \d+ )?answered · \d+ correct/);
 
     // Extract the attempted count before logout
-    const matchBefore = progressBefore?.match(/(\d+)\/(\d+)/);
-    const attemptedBefore = matchBefore?.[2] ? parseInt(matchBefore[2], 10) : 0;
+    const matchBefore = progressBefore?.match(/(\d+) (?:of \d+ )?answered/);
+    const attemptedBefore = matchBefore?.[1] ? parseInt(matchBefore[1], 10) : 0;
     expect(attemptedBefore).toBeGreaterThan(0);
 
     // Step 4: Logout
@@ -115,8 +115,8 @@ test.describe('Re-login Progress Display', () => {
     const progressAfter = await statusPanel.locator('.progress-text').textContent();
 
     // Extract attempted count after re-login
-    const matchAfter = progressAfter?.match(/(\d+)\/(\d+)/);
-    const attemptedAfter = matchAfter?.[2] ? parseInt(matchAfter[2], 10) : 0;
+    const matchAfter = progressAfter?.match(/(\d+) (?:of \d+ )?answered/);
+    const attemptedAfter = matchAfter?.[1] ? parseInt(matchAfter[1], 10) : 0;
 
     // BUG: This assertion should pass but currently fails
     // The progress should be the same as before logout (1 question attempted)
@@ -155,8 +155,8 @@ test.describe('Re-login Progress Display', () => {
     // After refresh, progress should show correctly
     const statusPanel = page.locator('qd-status');
     const progressText = await statusPanel.locator('.progress-text').textContent();
-    const match = progressText?.match(/(\d+)\/(\d+)/);
-    const attempted = match?.[2] ? parseInt(match[2], 10) : 0;
+    const match = progressText?.match(/(\d+) (?:of \d+ )?answered/);
+    const attempted = match?.[1] ? parseInt(match[1], 10) : 0;
 
     // This should pass - after refresh the progress displays correctly
     expect(attempted).toBeGreaterThan(0);

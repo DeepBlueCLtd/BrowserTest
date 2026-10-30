@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { StorageService } from '../../../src/services/storage-service.js';
+import { StorageService, withAttempts } from '../../../src/services/storage-service.js';
 import { buildCacheFromRecord } from '../../../src/services/session-cache.js';
 import type { StudentRecord } from '../../../src/types/contracts.js';
 
@@ -72,5 +72,52 @@ describe('StorageService record updates', () => {
     });
     const cache = buildCacheFromRecord(record);
     expect(cache.totals).toEqual({ total: 0, answered: 0, correct: 0 });
+  });
+});
+
+describe('attempt tracking (SRD 013 SCO-01, SCO-07)', () => {
+  const ans = (answer: string, success: boolean) => ({ answer, success, timestamp: 't' });
+
+  it('counts committed answers and keeps the first result', () => {
+    let a = withAttempts(undefined, ans('2', false), true);
+    expect(a).toMatchObject({ attempts: 1, firstSuccess: false });
+    a = withAttempts(a, ans('3', true), true);
+    expect(a).toMatchObject({ answer: '3', success: true, attempts: 2, firstSuccess: false });
+  });
+
+  it('does not count provisional saves while a number is typed', () => {
+    let a = withAttempts(undefined, ans('1', false), false);
+    a = withAttempts(a, ans('15', false), false);
+    a = withAttempts(a, ans('1500', true), false);
+    expect(a.attempts).toBe(0);
+    expect(a.firstSuccess).toBeUndefined();
+    a = withAttempts(a, ans('1500', true), true);
+    expect(a).toMatchObject({ attempts: 1, firstSuccess: true });
+  });
+
+  it('keeps counts through provisional saves after a commit', () => {
+    let a = withAttempts(undefined, ans('1500', true), true);
+    a = withAttempts(a, ans('16', false), false);
+    expect(a).toMatchObject({ answer: '16', attempts: 1, firstSuccess: true });
+  });
+
+  it('leaves answers from before v3 untracked rather than guessing', () => {
+    const legacy = ans('2', false);
+    const a = withAttempts(legacy, ans('3', true), true);
+    expect(a.attempts).toBeUndefined();
+    expect(a.firstSuccess).toBeUndefined();
+  });
+
+  it('treats a padded placeholder as unanswered', () => {
+    const a = withAttempts(ans('', false), ans('1', true), true);
+    expect(a).toMatchObject({ attempts: 1, firstSuccess: true });
+  });
+
+  it('is applied by updateRecordWithAnswer for commits only', () => {
+    let r = service.updateRecordWithAnswer(empty(), 'q', 0, ans('2', false), 1, { commit: true });
+    r = service.updateRecordWithAnswer(r, 'q', 0, ans('1', true), 1, { commit: true });
+    expect(r.pages['q']!.answers[0]).toMatchObject({ attempts: 2, firstSuccess: false });
+    r = service.updateRecordWithAnswer(r, 'q', 0, ans('1', true), 1);
+    expect(r.pages['q']!.answers[0]!.attempts).toBe(2);
   });
 });

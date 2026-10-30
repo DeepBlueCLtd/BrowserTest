@@ -206,12 +206,53 @@ describe('qd-scores-modal', () => {
   });
 
   describe('score column', () => {
-    it('shows combined score format', async () => {
+    it('shows answered and correct separately, stating the percentage base (SRD 013 SCO-04)', async () => {
       const students = [createStudent({ attempted: 10, correct: 8 })];
       await createModal({ open: true, students });
 
       const content = getModalContent();
-      expect(content).toContain('8/10 (80%)');
+      expect(content).toContain('8 (80% of answered)');
+      expect(content).not.toContain('8/10');
+    });
+
+    it('shows right-first-time counts, and – when no attempts are tracked', async () => {
+      const tracked = createStudent({
+        name: 'Tracked',
+        attempted: 3,
+        correct: 3,
+        pages: {
+          'quiz-mcq': {
+            state: 'complete',
+            answers: [
+              { answer: '1', success: true, timestamp: '', attempts: 1, firstSuccess: true },
+              { answer: '3', success: true, timestamp: '', attempts: 3, firstSuccess: false },
+              { answer: '2', success: true, timestamp: '' },
+            ],
+          },
+        },
+      });
+      const legacy = createStudent({
+        name: 'Legacy',
+        attempted: 1,
+        correct: 1,
+        pages: {
+          'quiz-mcq': {
+            state: 'incomplete',
+            answers: [{ answer: '1', success: true, timestamp: '' }],
+          },
+        },
+      });
+      await createModal({ open: true, students: [tracked, legacy] });
+
+      const rows = Array.from(queryAllModalContent('tbody tr.student-row') ?? []).map(
+        (r) => r.textContent ?? '',
+      );
+      const trackedRow = rows.find((r) => r.includes('Tracked'))!;
+      expect(trackedRow).toContain('1 of 2');
+      expect(trackedRow).toContain('1 older answer –');
+      expect(trackedRow).toContain('(3 tries)');
+      const legacyRow = rows.find((r) => r.includes('Legacy'))!;
+      expect(legacyRow).toMatch(/\s–\s/);
     });
 
     it('highlights perfect scores', async () => {

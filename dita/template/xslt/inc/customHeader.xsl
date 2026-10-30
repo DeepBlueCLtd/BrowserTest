@@ -37,6 +37,9 @@
             <span id="qd-db-name" style="display:none;">
                 <xsl:value-of select="oxyf:getParameter('qd-db-name')"/>
             </span>
+            <!-- Publication question total, stamped after publishing by
+                 scripts/finalise-output.js (SRD 013 SCO-05) -->
+            <span id="qd-question-total" style="display:none;"></span>
             <!-- Key the runtime uses to decode quiz answers (quizAnswerEncoding.xsl) -->
             <span id="qd-answer-key" style="display:none;">
                 <xsl:value-of select="qd:answer-key()"/>

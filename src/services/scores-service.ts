@@ -20,6 +20,40 @@ export interface PageSummary {
   percentage: number;
 }
 
+/** Right-first-time figures for one student (SRD 013 SCO-04). */
+export interface FirstAttemptSummary {
+  /** Answered questions whose attempts are tracked (answered since v3) */
+  tracked: number;
+  /** Tracked questions answered correctly at the first attempt */
+  correctFirstTime: number;
+  /** Answered questions from before v3, whose first attempt is unknown */
+  untracked: number;
+}
+
+/**
+ * Count right-first-time answers across a student's pages.
+ *
+ * @param student - Student record
+ * @returns Tracked, correct-first-time and untracked counts
+ */
+export function summariseFirstAttempts(student: StudentRecord): FirstAttemptSummary {
+  let tracked = 0;
+  let correctFirstTime = 0;
+  let untracked = 0;
+  for (const page of Object.values(student.pages)) {
+    for (const answer of page.answers ?? []) {
+      if (!answer || answer.answer.trim() === '') continue;
+      if (answer.firstSuccess === undefined) {
+        untracked++;
+      } else {
+        tracked++;
+        if (answer.firstSuccess) correctFirstTime++;
+      }
+    }
+  }
+  return { tracked, correctFirstTime, untracked };
+}
+
 /**
  * Service for calculating student scores and summaries
  */

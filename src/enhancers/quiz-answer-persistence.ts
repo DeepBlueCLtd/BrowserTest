@@ -30,6 +30,7 @@ export function handleAnswerInput(
   metadata: QuizTableMetadata,
   questionIndex: number,
   answer: string,
+  commit = false,
 ): void {
   const { debouncer, pageId, parsed } = metadata;
 
@@ -42,11 +43,12 @@ export function handleAnswerInput(
     return;
   }
 
-  // Debounce the save operation (200ms delay)
+  // Debounce the save operation (200ms delay). A commit shares the key, so
+  // it supersedes a provisional save still waiting.
   debouncer.debounce(
     `save-answer-${questionIndex}`,
     () => {
-      void saveAnswer(table, metadata, questionIndex, answer);
+      void saveAnswer(table, metadata, questionIndex, answer, commit);
     },
     200,
   );
@@ -65,6 +67,7 @@ export async function saveAnswer(
   metadata: QuizTableMetadata,
   questionIndex: number,
   answer: string,
+  commit = false,
 ): Promise<void> {
   const { pageId, parsed, inputs } = metadata;
 
@@ -112,6 +115,7 @@ export async function saveAnswer(
     questionIndex,
     answerRecord,
     totalQuestions,
+    { commit },
   );
 
   // Persist, refresh cache, apply validation styling, then emit events

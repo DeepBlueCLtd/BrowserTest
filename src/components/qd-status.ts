@@ -19,7 +19,8 @@ import { STORAGE_KEYS } from '../types/contracts.js';
 import type { SessionCache, SessionData } from '../types/contracts.js';
 import { getJSON } from '../utils/storage-helpers.js';
 import { isStudentLoggedIn } from '../utils/session-state.js';
-import { calculateStatusIndicator, calculatePercentage } from '../utils/calculation-helpers.js';
+import { calculateProgressIndicator, formatProgress } from '../utils/calculation-helpers.js';
+import { readQuestionTotal } from '../config/dom-config-reader.js';
 import { SessionService } from '../services/session.js';
 import './qd-build-info.js';
 import './qd-help-trigger.js';
@@ -32,10 +33,12 @@ import { getHelpContent } from '../config/help-content.js';
 @customElement('qd-status')
 export class QdStatus extends LitElement {
   /**
-   * Total questions registered
+   * Questions answered, from the stored record. Unlike the old "registered
+   * questions" figure it does not change with the page being viewed
+   * (SRD 013 SCO-02).
    */
   @state()
-  private total = 0;
+  private answered = 0;
 
   /**
    * Total correct answers
@@ -44,10 +47,10 @@ export class QdStatus extends LitElement {
   private correct = 0;
 
   /**
-   * Success percentage
+   * Publication question total from #qd-question-total, when known (SCO-03)
    */
   @state()
-  private percentage = 0;
+  private questionTotal: number | undefined = undefined;
 
   /**
    * Overall status indicator color
@@ -209,7 +212,7 @@ export class QdStatus extends LitElement {
         <div class="bottom-row">
           <div class="status-indicator ${this.statusColor}"></div>
           <div class="progress-text">
-            ${this.correct}/${this.total} Correct (${this.percentage}%)
+            ${formatProgress(this.answered, this.correct, this.questionTotal)}
           </div>
         </div>
       </div>
@@ -236,29 +239,11 @@ export class QdStatus extends LitElement {
       this.serviceId = '';
     }
 
+    this.questionTotal = readQuestionTotal();
     const cache = getJSON<SessionCache>(STORAGE_KEYS.CACHE);
-    if (!cache) {
-      this.total = 0;
-      this.correct = 0;
-      this.percentage = 0;
-      this.statusColor = 'red';
-      return;
-    }
-
-    this.total = cache.totals.total;
-    this.correct = cache.totals.correct;
-    this.percentage = calculatePercentage(cache.totals.correct, cache.totals.total);
-    this.statusColor = this.calculateStatusColor(cache.totals.total, cache.totals.correct);
-  }
-
-  /**
-   * Calculate status indicator color using calculation helper
-   * Red: No questions registered or no answers
-   * Green: All questions answered correctly
-   * Amber: Some answered but not all correct
-   */
-  private calculateStatusColor(total: number, correct: number): 'red' | 'amber' | 'green' {
-    return calculateStatusIndicator(total, correct);
+    this.answered = cache?.totals.answered ?? 0;
+    this.correct = cache?.totals.correct ?? 0;
+    this.statusColor = calculateProgressIndicator(this.answered, this.correct, this.questionTotal);
   }
 
   /**
