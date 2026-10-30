@@ -299,7 +299,38 @@ describe('QdLogin Component', () => {
       nameInput.dispatchEvent(new Event('input'));
       await element.updateComplete;
 
-      expect(hintText()).toBe('Service ID required');
+      // Every outstanding problem, not just the first (SRD 013 UX-10)
+      expect(hintText()).toBe('Service ID required · PIN required');
+    });
+
+    it('marks only touched fields invalid (SRD 013 UX-10)', async () => {
+      const input = (name: string) =>
+        element.shadowRoot?.querySelector(`input[name="${name}"]`) as HTMLInputElement;
+      input('serviceId').value = 'x';
+      input('serviceId').dispatchEvent(new Event('input'));
+      await element.updateComplete;
+
+      expect(input('serviceId').getAttribute('aria-invalid')).toBe('true');
+      // Name and PIN are also missing but untouched: listed in the hint, not marked
+      expect(input('name').getAttribute('aria-invalid')).toBe('false');
+      expect(input('pin').getAttribute('aria-invalid')).toBe('false');
+      expect(hintText()).toBe(
+        'Name required · Service ID must be 2-10 alphanumeric characters · PIN required',
+      );
+    });
+
+    it('marks a field invalid once the student leaves it empty', async () => {
+      const name = element.shadowRoot?.querySelector('input[name="name"]') as HTMLInputElement;
+      name.dispatchEvent(new Event('blur'));
+      await element.updateComplete;
+      expect(name.getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('labels every field for screen readers', () => {
+      for (const field of ['name', 'serviceId', 'pin']) {
+        const input = element.shadowRoot?.querySelector(`input[name="${field}"]`);
+        expect(input?.getAttribute('aria-label')).toBeTruthy();
+      }
     });
 
     it('should name the PIN length rule when the PIN is too short', async () => {

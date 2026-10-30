@@ -88,4 +88,28 @@ export function injectComponents(config: ComponentInjectorConfig = {}): void {
 
   // Always inject instructor component (hidden until unlocked)
   injectInstructorComponent(statusPanelContainer);
+
+  markPanelHost(statusPanelContainer);
+}
+
+/** Class on the element that hosts the panels. */
+export const PANEL_HOST_CLASS = 'qd-panel-host';
+/** Class on the host's parent, so narrow screens can give the host its own row. */
+export const PANEL_HOST_PARENT_CLASS = 'qd-panel-host-parent';
+
+/**
+ * Tag the panel container and its parent so the global stylesheet can move
+ * the panels onto their own full-width header row on narrow screens. Oxygen's
+ * header row does not wrap, so at 768 px the panel ran off the right edge and
+ * hid Logout (SRD 013 UX-06).
+ *
+ * @param containerSelector - Selector for the panel container
+ */
+function markPanelHost(containerSelector: string): void {
+  const container = document.querySelector(containerSelector);
+  if (!container) {
+    return;
+  }
+  container.classList.add(PANEL_HOST_CLASS);
+  container.parentElement?.classList.add(PANEL_HOST_PARENT_CLASS);
 }

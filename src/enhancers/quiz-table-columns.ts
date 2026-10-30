@@ -135,3 +135,78 @@ export function restoreDetailColumn(table: HTMLTableElement): void {
     }
   });
 }
+
+/** Author's original Answer-column header text, kept so instructors see it. */
+const authorAnswerHeader = new WeakMap<HTMLTableElement, string>();
+
+/** Header shown over the student's input column (SRD 013 UX-04). */
+export const STUDENT_ANSWER_HEADER = 'Your answer';
+
+/**
+ * Label the Answer column "Your answer" while it holds the student's input.
+ *
+ * Authors often head the column with the answer key's name ("Correct Value"),
+ * which reads wrongly above a student's input box.
+ *
+ * @param table - Quiz table element
+ */
+export function setStudentAnswerHeader(table: HTMLTableElement): void {
+  const header = table.querySelectorAll('thead th, thead td')[1];
+  if (!header) {
+    return;
+  }
+  if (!authorAnswerHeader.has(table)) {
+    authorAnswerHeader.set(table, header.textContent ?? '');
+  }
+  header.textContent = STUDENT_ANSWER_HEADER;
+}
+
+/**
+ * Restore the author's Answer-column header (instructor reveal).
+ *
+ * @param table - Quiz table element
+ */
+export function restoreAnswerHeader(table: HTMLTableElement): void {
+  const original = authorAnswerHeader.get(table);
+  const header = table.querySelectorAll('thead th, thead td')[1];
+  if (header && original !== undefined) {
+    header.textContent = original;
+  }
+}
+
+/** Text of the prompt shown above quiz tables while nobody is logged in. */
+export const LOGIN_NOTICE_TEXT = 'Log in at the top of the page to answer these questions.';
+
+/** Notice elements, keyed by the table they precede. */
+const loginNotices = new WeakMap<HTMLTableElement, HTMLElement>();
+
+/**
+ * Show or hide the "log in to answer" prompt above a quiz table
+ * (SRD 013 UX-05). Without it, a logged-out quiz page shows a bare list of
+ * questions that reads as broken content.
+ *
+ * @param table - Quiz table element
+ * @param visible - Whether the prompt should show
+ */
+export function setLoginNotice(table: HTMLTableElement, visible: boolean): void {
+  let notice = loginNotices.get(table);
+  if (!visible) {
+    notice?.remove();
+    return;
+  }
+  if (!notice) {
+    notice = document.createElement('p');
+    notice.className = 'qd-login-notice';
+    notice.setAttribute('role', 'note');
+    notice.textContent = LOGIN_NOTICE_TEXT;
+    loginNotices.set(table, notice);
+  }
+  // DITA wraps simple tables in a container; put the notice before that
+  const anchor =
+    table.parentElement?.classList.contains('simpletable-container') === true
+      ? table.parentElement
+      : table;
+  if (!notice.isConnected) {
+    anchor.parentNode?.insertBefore(notice, anchor);
+  }
+}

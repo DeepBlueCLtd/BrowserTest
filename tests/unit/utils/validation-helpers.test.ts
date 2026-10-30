@@ -9,6 +9,9 @@ import {
   validateStudentForm,
   sanitizePinInput,
   validatePinMatch,
+  isNumericAnswer,
+  hasNonNumericCharacters,
+  validateStudentFields,
 } from '../../../src/utils/validation-helpers';
 
 describe('validation-helpers', () => {
@@ -137,5 +140,32 @@ describe('validation-helpers', () => {
     it('is case-sensitive for alphanumeric PINs', () => {
       expect(validatePinMatch('abcd', 'ABCD')).toBe(false);
     });
+  });
+});
+
+describe('numeric answers and per-field errors (SRD 013)', () => {
+  it('isNumericAnswer accepts complete numbers only', () => {
+    for (const ok of ['0', '1500', '-5', '+5', '2.5', '.5', '5.']) {
+      expect(isNumericAnswer(ok)).toBe(true);
+    }
+    for (const bad of ['', '-', '.', 'abc', '1-2', '1.2.3', '1 500', '1e3']) {
+      expect(isNumericAnswer(bad)).toBe(false);
+    }
+  });
+
+  it('hasNonNumericCharacters flags letters but not partial numbers', () => {
+    expect(hasNonNumericCharacters('abc')).toBe(true);
+    expect(hasNonNumericCharacters('1e3')).toBe(true);
+    expect(hasNonNumericCharacters('-')).toBe(false);
+    expect(hasNonNumericCharacters('1.')).toBe(false);
+  });
+
+  it('validateStudentFields reports each invalid field', () => {
+    expect(validateStudentFields('', 'x', '12')).toEqual({
+      name: 'Name required',
+      serviceId: 'Service ID must be 2-10 alphanumeric characters',
+      pin: 'PIN must be exactly 4 digits',
+    });
+    expect(validateStudentFields('Jo', '30012345', '1234')).toEqual({});
   });
 });

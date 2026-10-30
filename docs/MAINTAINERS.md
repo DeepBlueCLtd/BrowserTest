@@ -94,7 +94,7 @@ Storybook started with `ENCRYPT_STORAGE=true` and `npm run test:e2e:encrypted`. 
 Tracked in `docs/PROJECT_STATE.md` §8. At the time of writing the open items are: **no visual
 regression testing** (Chromatic was dropped in September 2026; CI proves stories compile but
 nothing compares rendered output — Playwright screenshot assertions would be the replacement);
-no runtime validation banner for authoring errors; no `qd:storage-error` event; no cross-tab sync; `backups` store never written; formal WCAG audit not done; ESM bundle
+no runtime validation banner for authoring errors; no `qd:storage-error` event; no cross-tab sync; `backups` store never written; no formal WCAG audit (an automated axe-core check of the demo pages runs in E2E since SRD 013, `tests/e2e/accessibility.spec.ts`); ESM bundle
 unbudgeted.
 
 ## 7. Adding a feature

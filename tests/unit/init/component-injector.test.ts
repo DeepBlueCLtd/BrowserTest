@@ -17,6 +17,8 @@ import {
   injectLoginComponent,
   injectStatusComponent,
   injectInstructorComponent,
+  PANEL_HOST_CLASS,
+  PANEL_HOST_PARENT_CLASS,
 } from '../../../src/init/component-injector.js';
 
 function addContainer(className: string): HTMLElement {
@@ -154,6 +156,22 @@ describe('component-injector', () => {
       expect(container.querySelectorAll('qd-login')).toHaveLength(2);
       expect(container.querySelectorAll('qd-status')).toHaveLength(2);
       expect(container.querySelectorAll('qd-instructor')).toHaveLength(2);
+    });
+  });
+
+  describe('narrow screens (SRD 013 UX-06)', () => {
+    it('marks the panel container and its parent so the panels can take their own row', () => {
+      const parent = document.createElement('div');
+      const container = document.createElement('div');
+      container.className = 'qd-test-host';
+      parent.appendChild(container);
+      document.body.appendChild(parent);
+
+      injectComponents({ statusPanelContainer: '.qd-test-host' });
+
+      expect(container.classList.contains(PANEL_HOST_CLASS)).toBe(true);
+      expect(parent.classList.contains(PANEL_HOST_PARENT_CLASS)).toBe(true);
+      parent.remove();
     });
   });
 });

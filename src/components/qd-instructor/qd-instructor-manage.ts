@@ -175,7 +175,7 @@ export class QdInstructorManage extends LitElement {
     return html`
       <button
         @click=${this.handleClearRequest}
-        class="danger compact"
+        class="danger outline-danger compact"
         title="Clear all student quiz data and progress"
       >
         Erase All Data

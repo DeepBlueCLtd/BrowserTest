@@ -109,6 +109,19 @@ export const loginStyles = css`
       background: #5a6268;
     }
 
+    /*
+     * Reserve the message row so typing does not make the header grow and
+     * shrink (SRD 013 UX-11)
+     */
+    .message-slot {
+      width: 100%;
+      min-height: 22px;
+    }
+
+    input[aria-invalid='true'] {
+      border-color: #d32f2f;
+    }
+
     .hint-message {
       width: 100%;
       color: #555;

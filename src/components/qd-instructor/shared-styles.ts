@@ -93,15 +93,16 @@ export const sharedStyles = css`
     font-size: 13px;
   }
 
+  /* #0062cc keeps white text above WCAG AA 4.5:1 (#007bff was 3.98:1; SRD 013 A11Y-04) */
   button.primary {
-    background: #007bff;
+    background: #0062cc;
     color: white;
-    border-color: #007bff;
+    border-color: #0062cc;
   }
 
   button.primary:hover {
-    background: #0056b3;
-    border-color: #0056b3;
+    background: #004c9e;
+    border-color: #004c9e;
   }
 
   button.secondary {
@@ -124,6 +125,31 @@ export const sharedStyles = css`
   button.danger:hover {
     background: #c82333;
     border-color: #c82333;
+  }
+
+  /*
+   * Destructive actions sit apart from routine ones and stay quiet until used
+   * (SRD 013 UX-08): an outline on the dark toolbar, filled only on hover.
+   */
+  .danger-zone {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 12px;
+    margin-left: 4px;
+    border-left: 1px solid rgba(255, 255, 255, 0.35);
+  }
+
+  button.outline-danger {
+    background: transparent;
+    color: #ffcdd2;
+    border-color: #e57373;
+  }
+
+  button.outline-danger:hover {
+    background: #c62828;
+    color: white;
+    border-color: #c62828;
   }
 
   button.logout {

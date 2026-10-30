@@ -21,7 +21,10 @@ async function waitForBootstrap(page: Page): Promise<void> {
 }
 
 async function loginInstructor(page: Page): Promise<void> {
-  await page.locator('qd-login button').filter({ hasText: /instructor/i }).click();
+  await page
+    .locator('qd-login button')
+    .filter({ hasText: /instructor/i })
+    .click();
   const password = page.locator('qd-modal[open] input[type="password"]');
   await expect(password).toBeVisible();
   await password.fill(TEST_PASSWORD);
@@ -65,10 +68,16 @@ test.describe('Shared machine (SRD 013)', () => {
 
   test('Erase All Data refuses a wrong password (SEC-03)', async ({ page }) => {
     await loginInstructor(page);
-    await page.locator('button').filter({ hasText: /erase.*data/i }).click();
+    await page
+      .locator('button')
+      .filter({ hasText: /erase.*data/i })
+      .click();
     await page.locator('.qd-manage-modal-overlay input[type="text"]').fill('DELETE ALL DATA');
     await page.locator('.qd-manage-modal-overlay input[type="password"]').fill('wrong');
-    await page.locator('.qd-manage-modal-overlay button').filter({ hasText: /delete/i }).click();
+    await page
+      .locator('.qd-manage-modal-overlay button')
+      .filter({ hasText: /delete/i })
+      .click();
 
     await expect(page.locator('.qd-manage-modal-overlay [role="alert"]')).toHaveText(
       'Incorrect instructor password',
