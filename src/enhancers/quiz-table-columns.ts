@@ -10,6 +10,7 @@
  */
 
 import { addClass, removeClass } from '../utils/dom-helpers.js';
+import { decodeAnswer, isEncodedAnswer, readAnswerKey } from '../services/answer-encoding.js';
 
 /**
  * Original Detail-cell markup, keyed by cell, captured the first time the
@@ -131,6 +132,14 @@ export function restoreDetailColumn(table: HTMLTableElement): void {
       const original = detailCellContent.get(cell);
       if (original !== undefined) {
         cell.innerHTML = original;
+      }
+      // A tolerance encoded at publish time is shown decoded (SRD 013 WP3)
+      if (isEncodedAnswer(cell.textContent ?? '')) {
+        try {
+          cell.textContent = decodeAnswer(cell.textContent ?? '', readAnswerKey());
+        } catch {
+          // Leave it encoded; the table would not have been enhanced without a key
+        }
       }
     }
   });

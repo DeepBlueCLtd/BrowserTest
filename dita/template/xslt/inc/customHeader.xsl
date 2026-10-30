@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:toc="http://www.oxygenxml.com/ns/webhelp/toc" xmlns:index="http://www.oxygenxml.com/ns/webhelp/index" xmlns:oxygen="http://www.oxygenxml.com/functions" xmlns:d="http://docbook.org/ns/docbook" xmlns:whc="http://www.oxygenxml.com/webhelp/components" xmlns="http://www.w3.org/1999/xhtml" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:oxyf="http://www.oxygenxml.com/functions" exclude-result-prefixes="#all" version="2.0">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:toc="http://www.oxygenxml.com/ns/webhelp/toc" xmlns:index="http://www.oxygenxml.com/ns/webhelp/index" xmlns:oxygen="http://www.oxygenxml.com/functions" xmlns:d="http://docbook.org/ns/docbook" xmlns:whc="http://www.oxygenxml.com/webhelp/components" xmlns="http://www.w3.org/1999/xhtml" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:oxyf="http://www.oxygenxml.com/functions" xmlns:qd="http://deepbluec.com/ns/sonar-quiz" exclude-result-prefixes="#all" version="2.0">
 
 
     <xsl:template match="*:header[contains(@class, 'wh_header_protection')]" mode="copy_template">
@@ -36,6 +36,10 @@
             </span>
             <span id="qd-db-name" style="display:none;">
                 <xsl:value-of select="oxyf:getParameter('qd-db-name')"/>
+            </span>
+            <!-- Key the runtime uses to decode quiz answers (quizAnswerEncoding.xsl) -->
+            <span id="qd-answer-key" style="display:none;">
+                <xsl:value-of select="qd:answer-key()"/>
             </span>
         </xsl:copy>
     </xsl:template>

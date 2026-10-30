@@ -15,6 +15,7 @@
 
 import type { ParsedQuizTable, PageId, SessionData, SessionCache } from '../types/contracts.js';
 import { parseQuizTable } from '../services/quiz-parser.js';
+import { readAnswerKey, tableNeedsMissingKey } from '../services/answer-encoding.js';
 import { registerPageQuestions } from '../services/session-cache.js';
 import { Debouncer } from '../utils/debouncer.js';
 import { addClass, removeClass } from '../utils/dom-helpers.js';
@@ -110,8 +111,18 @@ export function enhanceQuizTable(
       return true;
     }
   } else {
+    // Encoded answers with no usable key: leave the table as published rather
+    // than show garbled answers (SRD 013 ANS-09)
+    const answerKey = readAnswerKey();
+    if (tableNeedsMissingKey(table, answerKey)) {
+      logError(
+        'Quiz table has encoded answers but #qd-answer-key is missing or invalid; table not enhanced',
+      );
+      return false;
+    }
+
     // Parse the table (first enhancement)
-    parsed = parseQuizTable(table);
+    parsed = parseQuizTable(table, answerKey);
 
     // Check for parsing errors
     if (parsed.errors && parsed.errors.length > 0) {

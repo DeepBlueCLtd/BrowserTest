@@ -140,9 +140,23 @@ Instructor reveal (`src/enhancers/instructor-answer-reveal.ts`) is the single pl
 `correctAnswer` back into the DOM; it runs on `qd:login` with `role: 'instructor'` and on page
 load when `qd/instructor` is `'true'`.
 
-What the blanking does **not** do: the published `.html` files on disk contain every answer in
-plain text. A student who opens the file in a text editor, disables JavaScript, or breaks on
-`parseQuizTable` in the debugger reads them. Layer 2 defeats "inspect element after load" only.
+4. **Encoding at publish time** (SRD 013 WP3, October 2026). Until then the published `.html`
+   files held every answer in plain text, and WebHelp's full-text search showed them: searching
+   "beam width" returned the snippet "…sonar? 15 2", the answer and its tolerance.
+   `dita/template/xslt/inc/quizAnswerEncoding.xsl` now writes each Answer cell, and each Detail
+   cell holding only a numeric tolerance, as `qd1:` plus a letter substitution keyed by the
+   `qd-answer-key` publishing parameter (13 capital letters; a default applies if unset). The
+   build stops on an answer it cannot encode. `customHeader.xsl` publishes the key in
+   `#qd-answer-key`; `src/services/answer-encoding.ts` decodes, and a table with encoded values
+   but no usable key is left un-enhanced. Plain tables from older publications still work.
+   MCQ option lists stay plain, since students see them anyway.
+5. **Search removed.** The template no longer renders a search box or search results.
+   `npm run check:answer-leak -- <output>` fails on any plaintext answer and on a leftover
+   `oxygen-webhelp/app/search/index/`, which `npm run update-dita-demo` also deletes.
+
+What this does **not** do: the key is in every page, so a student who reads the bundle or the
+XSL can decode answers by hand, and a debugger on `parseQuizTable` sees them decoded. The
+encoding stops a student reading answers at a glance in view-source or a text editor.
 
 ## 6. Stored-data obfuscation
 
@@ -260,8 +274,9 @@ IndexedDB database, so the lookup discloses nothing that was otherwise protected
    logs in. Lockout state is per tab and resets on reload of sessionStorage.
 4. Service IDs are self-asserted; the first person to log in with an ID owns it, including
    after an instructor reset.
-5. All answers are in the published HTML on disk (§5); DOM blanking only defeats
-   "inspect element after load", not a text editor or a disabled-JavaScript reader.
+5. Answers in the published HTML are encoded with a key that is also in the page (§5). This
+   stops reading at a glance, not a student who decodes by hand. Output published before the
+   October 2026 template still holds plain answers and a search index until it is rebuilt.
 6. Storage "encryption" is XOR with a key derived from the visible page title (§6). It is on in
    shipped builds since SRD 013 but off in plain development builds. Audit-log entries are never
    obfuscated.

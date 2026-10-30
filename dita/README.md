@@ -34,12 +34,34 @@ When publishing with Oxygen, ensure these parameters are set in your transformat
 
 ### Required Parameters
 
-- **`instructor.password.hash`** - 12-character hash of instructor password
-  - **Default Value**: `5e884898da28`
-  - **Description**: Default hash for password "password" (change for production)
-  - **Generate Custom Hash**: Open `generate-password-hash.html` in a browser, enter your password, copy the 12-char hash
-  - **How to set**: In Oxygen transformation scenario → Parameters tab → Add parameter
-  - **Purpose**: XSL template injects this into a hidden span for instructor authentication
+These are set in the transformation scenario of `dita/DITA_project_CSA.xpr` and read by
+`template/xslt/inc/customHeader.xsl`, which writes each into a hidden span the runtime reads.
+
+- **`qd-db-name`** - IndexedDB database name (required by the runtime).
+- **`qd-instructor-hash`** - Instructor password hash: the first 12 hex characters of its
+  SHA-256 (or the full 64). Generate it with `generate-password-hash.html`.
+- **`qd-status-container`**, **`qd-title-selector`** - Optional selectors; empty means the defaults.
+- **`qd-answer-key`** - Key used to encode quiz answers in the published HTML (SRD 013): 13
+  different capital letters, for example `KXMQBRTLHZWDP`. Empty means the built-in default.
+  Set a different key per publication.
+
+### Quiz answers are encoded at publish time
+
+`template/xslt/inc/quizAnswerEncoding.xsl` rewrites the Answer cell of every `qd-quiz` simple
+table, and a Detail cell holding only a numeric tolerance, as `qd1:` plus a letter substitution.
+The build stops if an answer contains anything but digits, a sign and a decimal point. Authors
+still write plain answers in DITA. Full-text search is removed from the template because its
+result snippets showed answers. After every rebuild, run the checklist below.
+
+### Rebuild checklist (owner, after template changes)
+
+1. `npm run build:dita` (obfuscated-storage bundle into `template/resources/`).
+2. Publish in Oxygen with the `f13ldMan-CSA` template.
+3. `npm run check:answer-leak -- dita/out/oxygen` must report no plaintext answers and no
+   search index. If it reports the index, delete `oxygen-webhelp/app/search/index/` from the
+   output before distributing it.
+4. Open a quiz page as a student and as an instructor and check answers still validate.
+5. `npm run update-dita-demo`, then commit `dita-demo/`.
 
 ### Optional Parameters
 

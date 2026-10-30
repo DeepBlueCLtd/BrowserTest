@@ -61,6 +61,8 @@ export const CONFIG_IDS = {
   titleSelector: 'qd-title-selector',
   instructorHash: 'qd-instructor-hash',
   dbName: 'qd-db-name',
+  /** Key for quiz answers encoded at publish time (SRD 013 ANS-06) */
+  answerKey: 'qd-answer-key',
 } as const;
 
 /**

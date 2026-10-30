@@ -4,6 +4,8 @@
     <xsl:import href="inc/customHeader.xsl"/>
     <xsl:import href="inc/customFooter.xsl"/>
     <xsl:import href="inc/customSearch.xsl"/>
+    <!-- Encode quiz answers in the published HTML (SRD 013 WP3) -->
+    <xsl:import href="inc/quizAnswerEncoding.xsl"/>
     
     <xsl:template match="whc:page_libraries[@page]" mode="copy_template">
         <xsl:param name="template_base_uri" tunnel="yes"/>

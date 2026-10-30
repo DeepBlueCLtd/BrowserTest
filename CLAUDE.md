@@ -88,7 +88,7 @@ Modal overlay (Esc to close) showing:
 #### **Table Enhancement**
 **Quiz Tables** (`qd-quiz` class):
 - **SECURITY**: Immediately extract and remove answer column from DOM on load
-- Correct answers stored in memory only (prevents view-source inspection)
+- Correct answers stored in memory only (defeats inspect-element after load; the published HTML holds them `qd1:`-encoded, see Constitution VIII)
 - Render MCQ radio buttons or numeric input fields
 - Submit answers, validate against in-memory answers
 - Save to IndexedDB via storage adapter
@@ -288,7 +288,8 @@ npm run build
   - `#qd-status-container`: CSS selector for status panel (default: `.wh_top_menu_and_indexterms_link`)
   - `#qd-title-selector`: CSS selector for publication title/Release ID (default: `.wh_publication_title .title`)
   - `#qd-db-name`: IndexedDB database name (**REQUIRED** - no default, throws error if missing/empty)
-  - `#qd-instructor-hash`: SHA-256 hash of instructor password (optional)
+  - `#qd-instructor-hash`: SHA-256 hash of instructor password, 12 or 64 hex characters (optional)
+  - `#qd-answer-key`: key for answers encoded at publish time (13 capital letters; emitted by `customHeader.xsl`)
 - Debug logging controlled by `setDebugMode()` in `src/utils/logger.ts` (off by default; no `data-qd-debug` attribute is read)
 - No setup, no manual config, no network dependencies
 
@@ -319,8 +320,14 @@ npm run build
 ### VIII. Answer Security
 - **CRITICAL**: Quiz answers MUST be removed from DOM immediately on component load
 - Correct answers extracted, stored in memory (JavaScript closure), never exposed in DOM
-- This prevents students from viewing page source or using DevTools to see answers
-- Implementation order: Parse → Store in memory → Remove from DOM → Render controls
+- Removal from the DOM defeats DevTools "inspect element" after load. It does **not** protect
+  the published file: view-source, a text editor or a search index read the HTML as published.
+- So answers are **encoded at publish time** (SRD 013 WP3): `dita/template/xslt/inc/quizAnswerEncoding.xsl`
+  writes each Answer cell, and each numeric tolerance, as `qd1:` + a keyed letter substitution;
+  the runtime decodes with `#qd-answer-key` (`src/services/answer-encoding.ts`). This is
+  obfuscation (the key is in the page): it stops answers being read at a glance, nothing more.
+- Full-text search is removed from the template, because its result snippets showed answers.
+- Implementation order: Parse (decoding if encoded) → Store in memory → Remove from DOM → Render controls
 - Validation performed against in-memory answers only
 
 ## Frozen Contracts (src/types/contracts.ts)

@@ -16988,6 +16988,29 @@ self::image[empty(parent::imagemap)] or oxy:current-selected-element()[self::ima
                                         </ditaParameter>
                                         <ditaParameter>
                                             <field name="name">
+                                                <String>qd-answer-key</String>
+                                            </field>
+                                            <field name="description">
+                                                <String>Key for encoding quiz answers in the published HTML: 13 different capital letters A-Z. Empty uses the built-in default. Set a different key per publication.</String>
+                                            </field>
+                                            <field name="value">
+                                                <String>KXMQBRTLHZWDP</String>
+                                            </field>
+                                            <field name="defaultValue">
+                                                <null/>
+                                            </field>
+                                            <field name="type">
+                                                <Integer>5</Integer>
+                                            </field>
+                                            <field name="possibleValues">
+                                                <null/>
+                                            </field>
+                                            <field name="possibleValuesDescriptions">
+                                                <null/>
+                                            </field>
+                                        </ditaParameter>
+                                        <ditaParameter>
+                                            <field name="name">
                                                 <String>qd-instructor-hash</String>
                                             </field>
                                             <field name="description">
