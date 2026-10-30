@@ -121,7 +121,7 @@ async function answerFirstQuestion(
 
   // Status panel updates after the answer has been persisted to IndexedDB
   await expect(page.locator('qd-status')).toContainText(
-    new RegExp(`${expectedCorrect}/\\d+ Correct`),
+    new RegExp(`answered · ${expectedCorrect} correct`),
   );
 }
 
@@ -231,8 +231,8 @@ test.describe('Encrypted Storage (ENCRYPT_STORAGE=true)', () => {
     await expect(scoresModal).toContainText(STUDENT.name);
     await expect(scoresModal).toContainText(STUDENT.serviceId);
 
-    // Correct/attempted counts: 1 MCQ + 1 numeric, both correct
-    await expect(scoresModal).toContainText(/2\/2\s*\(100%\)/);
+    // Correct of answered: 1 MCQ + 1 numeric, both correct (SRD 013 SCO-04 format)
+    await expect(scoresModal).toContainText('2 (100% of answered)');
 
     // Per-page answers are readable
     await expect(scoresModal).toContainText('quiz-mcq');

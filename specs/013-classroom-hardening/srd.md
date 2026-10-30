@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | Owner questions resolved 2026-10-30; ready for planning |
+| Status | Implemented 2026-10-30 (WP1–WP5, one PR); see §10 for deviations. WP3 output awaits an Oxygen rebuild |
 | Date | 2026-10-30 |
 | Baseline | `main` at `85a7203` (bundle 39.77 KB gz, schema v2, DB v3) |
 | Parent requirements | [`System_Requirements.md`](../../System_Requirements.md) |
@@ -141,7 +141,7 @@ configured hash. The plan must weigh this against prompting for the password on 
 | ANS-05 | The encoding MUST be a keyed substitution that maps every character of the answer alphabet (digits, `-`, `+`, `.`) to a letter, so that encoded values do not read as numbers. ROT13 MUST NOT be used, because it leaves digits unchanged. | MUST | T | R9 |
 | ANS-06 | The key MUST be a publishing-template parameter (`qd.answer.key`) and MUST reach the runtime through a new hidden config span, `#qd-answer-key`. | MUST | T, I | — |
 | ANS-07 | An answer containing characters outside the alphabet SHOULD stop the build with an `xsl:message` naming the topic, rather than publishing it partly in plain text. | SHOULD | I | — |
-| ANS-08 | Encoded tables MUST carry `data-qd-enc="1"`. The runtime MUST decode marked tables before parsing and MUST parse unmarked tables as today, so older publications keep working. | MUST | T | — |
+| ANS-08 | Encoded values MUST be marked. *As built: each value carries a `qd1:` prefix rather than the table a `data-qd-enc` attribute (see §10).* The runtime MUST decode marked values before parsing and MUST parse unmarked tables as today, so older publications keep working. | MUST | T | — |
 | ANS-09 | If a table is marked encoded but no key is present, or the version is unknown, the runtime MUST leave that table un-enhanced and log an error. It MUST NOT display undecoded values as answers. | MUST | T | — |
 | ANS-10 | A repo script SHOULD check a published output folder and fail if any plaintext answer from the source DITA appears in an HTML or JS file. | SHOULD | T | R9 |
 | ANS-11 | `CLAUDE.md` (Constitution VIII and the Quiz Tables section) MUST stop claiming that answer removal "prevents view-source inspection". It and `docs/SECURITY.md` §5 MUST describe the encoding and its limit: obfuscation with the key in the page. | MUST | I | R9 |
@@ -242,3 +242,22 @@ stamps `schema: 3`. PIN upgrade happens lazily under SEC-07. No IndexedDB store 
 | 09 Polish items | UX-07 – UX-11, ANS-11 |
 | Search leak and answers in HTML | ANS-01 – ANS-10 |
 | Bundle ceiling | NFR-01 |
+
+## 10. Implementation notes (2026-10-30)
+
+All five work packages were implemented in one pull request on the session's single branch, one
+commit per work package, rather than one PR each. Deviations and additions:
+
+| Item | As built | Why |
+|---|---|---|
+| ANS-08 marker | A `qd1:` prefix on each encoded value, not a `data-qd-enc` table attribute | The XSL only rewrites text nodes, so DITA-OT's own table rendering is untouched. The prefix also versions the encoding. |
+| ANS-03 | `npm run update-dita-demo` and `npm run finalise:output` delete the search index; the leak check fails if one remains | WebHelp has no documented switch to stop building it |
+| SCO-05 | `customHeader.xsl` emits `#qd-question-total` empty; `npm run finalise:output -- <output>` counts quiz rows across all pages and stamps the total after publishing | A per-topic XSL pass cannot see the whole publication. The script also runs the leak check, so it is one step in `dita/README.md`'s rebuild checklist |
+| SCO-01 commit rule | MCQ choices commit; numeric values commit when the field loses focus. Typing saves without counting | Otherwise typing "1500" slowly counted four attempts, the first wrong |
+| Contract additions beyond §6 | `PageData.totalQuestions` and `AnalysisData.totalCells` (optional) | Needed to judge page completeness for ANA-04 |
+| SEC-08 | `build:dita` is now the obfuscated build; `build:dita:plain` added for development and the plain E2E job | `build:dita` is the path into the Oxygen template |
+| UX-01 | Confirm-dialog body styled inline | `qd-modal` moves itself to `<body>`, which strips shadow-scoped styles from slotted content |
+| A11Y-04 finding | Primary toolbar button darkened to `#0062cc` | axe found 3.98:1 contrast on `#007bff` |
+| Known gap (ANA-04) | A page whose quiz is complete but whose analysis table has never been touched shows green | No analysis data exists until the first entry, so the cell count is unknown |
+| Verification without Oxygen | The encoding XSL was run with the xslt3 processor against a DITA quiz topic; runtime decoding is covered by integration tests on encoded tables | Oxygen is not available in CI or the build session; the owner's rebuild (Q7) is the real check |
+

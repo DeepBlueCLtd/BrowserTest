@@ -48,7 +48,7 @@ jobs:
           flags: integration
       # Structural gap check: fails if the number of source files without a test grows.
       - name: Test-gap ratchet
-        run: npm run test:gaps -- --max-gaps 25
+        run: npm run test:gaps -- --max-gaps 23
 
   build:
     name: Build & Bundle Size Check
