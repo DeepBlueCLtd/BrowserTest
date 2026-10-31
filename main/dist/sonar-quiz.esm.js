@@ -2948,6 +2948,7 @@ function resetQuizTableToNonInteractive(table) {
   hideAnswerColumn(table);
   hideDetailColumn(table);
   removeClass(table, "qd-quiz-interactive");
+  setLoginNotice(table, true);
   info("Quiz table reset to non-interactive mode");
 }
 function hashString(input, length = 16) {
@@ -3979,6 +3980,8 @@ const loginStyles = i$4`
 
     .hint-message {
       width: 100%;
+      /* Padding inside the 100% width, so long messages stay in the panel */
+      box-sizing: border-box;
       color: #555;
       font-size: 11px;
       margin-top: 3px;
@@ -4000,6 +4003,8 @@ const loginStyles = i$4`
 
     .error-message {
       width: 100%;
+      /* Padding inside the 100% width, so long messages stay in the panel */
+      box-sizing: border-box;
       color: #d32f2f;
       font-size: 11px;
       margin-top: 3px;
@@ -4011,6 +4016,8 @@ const loginStyles = i$4`
 
     .lockout-message {
       width: 100%;
+      /* Padding inside the 100% width, so long messages stay in the panel */
+      box-sizing: border-box;
       color: #f57c00;
       font-size: 11px;
       margin-top: 3px;
@@ -7224,14 +7231,18 @@ let QdScoresModal = class extends i$1 {
                                 >${this.analysisSummary(pageData.analysis)}</span
                               >` : ""}
                           ${pageData.answers.map(
-        (answer, idx) => x`
-                              <span
-                                class="answer-badge ${answer?.success ? "correct" : "incorrect"}"
-                              >
-                                Q${idx + 1}:
-                                ${answer?.answer ?? "—"}${answer?.attempts && answer.attempts > 1 ? ` (${answer.attempts} tries)` : ""}
-                              </span>
-                            `
+        (answer, idx) => (
+          // Skipped questions are padded with empty
+          // placeholders; they are not wrong answers
+          !answer || answer.answer.trim() === "" ? "" : x`
+                                  <span
+                                    class="answer-badge ${answer?.success ? "correct" : "incorrect"}"
+                                  >
+                                    Q${idx + 1}:
+                                    ${answer?.answer ?? "—"}${answer?.attempts && answer.attempts > 1 ? ` (${answer.attempts} tries)` : ""}
+                                  </span>
+                                `
+        )
       )}
                         </div>
                       </div>
@@ -7412,7 +7423,7 @@ let QdInstructorExport = class extends i$1 {
       for (const [pageId, pageData] of Object.entries(student.pages)) {
         const answers = pageData.answers || [];
         answers.forEach((answer, index) => {
-          if (answer) {
+          if (answer && answer.answer.trim() !== "") {
             rows.push(
               this.csvRow([
                 ...who,
