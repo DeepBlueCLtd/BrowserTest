@@ -286,3 +286,35 @@ describe('qd-instructor-export attempts (SRD 013 SCO-06, SCO-07)', () => {
     el.remove();
   });
 });
+
+describe('qd-instructor-export skipped questions', () => {
+  it('exports no rows for padded placeholders of skipped questions', async () => {
+    const el = document.createElement('qd-instructor-export');
+    document.body.appendChild(el);
+    el.students = [
+      {
+        schema: 3,
+        docId: '',
+        serviceId: 'S1',
+        name: 'Al',
+        release: 'R1',
+        attempted: 1,
+        correct: 1,
+        updated: '',
+        pages: {
+          'quiz-numeric': {
+            state: 'incomplete',
+            answers: [
+              { answer: '', success: false, timestamp: 't0' },
+              { answer: '1500', success: true, timestamp: 't1', attempts: 1, firstSuccess: true },
+            ],
+          },
+        },
+      },
+    ];
+    await el.updateComplete;
+    const rows = el.generateCSV().split('\n').slice(1);
+    expect(rows).toEqual(['S1,Al,R1,quiz-numeric,1,1500,true,t1,quiz,1,true']);
+    el.remove();
+  });
+});

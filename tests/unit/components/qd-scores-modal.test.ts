@@ -417,3 +417,45 @@ describe('qd-scores-modal analysis summary (SRD 013 ANA-05)', () => {
     expect(text).toContain('Analysis: 2 of 6 cells');
   });
 });
+
+describe('qd-scores-modal unanswered questions', () => {
+  afterEach(() => {
+    document.querySelectorAll('qd-scores-modal, body > qd-modal').forEach((el) => el.remove());
+  });
+
+  it('shows no badge for questions skipped before a later one was answered', async () => {
+    // Answering Q3 first pads Q1 and Q2 with empty placeholders; they are not
+    // wrong answers and must not show as red "Q1:" badges (found in the walkthrough)
+    const el = document.createElement('qd-scores-modal');
+    el.students = [
+      {
+        schema: 3,
+        docId: '',
+        release: 'R1',
+        serviceId: '30012345',
+        name: 'Jo',
+        attempted: 1,
+        correct: 1,
+        updated: '',
+        pages: {
+          'quiz-numeric': {
+            state: 'incomplete',
+            answers: [
+              { answer: '', success: false, timestamp: '' },
+              { answer: '', success: false, timestamp: '' },
+              { answer: '1500', success: true, timestamp: '', attempts: 1, firstSuccess: true },
+            ],
+          },
+        },
+      },
+    ];
+    document.body.appendChild(el);
+    el.open = true;
+    await el.updateComplete;
+    await new Promise((r) => requestAnimationFrame(r));
+    const badges = Array.from(document.querySelectorAll('qd-modal[open] .answer-badge')).map((b) =>
+      b.textContent?.replace(/\s+/g, ' ').trim(),
+    );
+    expect(badges).toEqual(['Q3: 1500']);
+  });
+});

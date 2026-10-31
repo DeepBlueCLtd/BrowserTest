@@ -208,17 +208,24 @@ export class QdScoresModal extends LitElement {
                                 >${this.analysisSummary(pageData.analysis)}</span
                               >`
                             : ''}
-                          ${pageData.answers.map(
-                            (answer, idx) => html`
-                              <span
-                                class="answer-badge ${answer?.success ? 'correct' : 'incorrect'}"
-                              >
-                                Q${idx + 1}:
-                                ${answer?.answer ?? '—'}${answer?.attempts && answer.attempts > 1
-                                  ? ` (${answer.attempts} tries)`
-                                  : ''}
-                              </span>
-                            `,
+                          ${pageData.answers.map((answer, idx) =>
+                            // Skipped questions are padded with empty
+                            // placeholders; they are not wrong answers
+                            !answer || answer.answer.trim() === ''
+                              ? ''
+                              : html`
+                                  <span
+                                    class="answer-badge ${answer?.success
+                                      ? 'correct'
+                                      : 'incorrect'}"
+                                  >
+                                    Q${idx + 1}:
+                                    ${answer?.answer ?? '—'}${answer?.attempts &&
+                                    answer.attempts > 1
+                                      ? ` (${answer.attempts} tries)`
+                                      : ''}
+                                  </span>
+                                `,
                           )}
                         </div>
                       </div>

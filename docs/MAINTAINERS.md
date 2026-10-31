@@ -60,6 +60,7 @@ The demo pages load `dist/sonar-quiz.iife.js` and provide the hidden config span
 | Published output | `npm run check:answer-leak -- dita/out/oxygen` | Manual, developer only: fails on plaintext answers before `update-dita-demo` |
 | E2E | `npm run test:e2e` and `npm run test:e2e:encrypted` | CI matrix |
 | Storybook build | `npm run build-storybook` | CI, on every push and PR |
+| Walkthrough slides | `npm run build:dita:plain && npm run walkthrough:capture` | Manual: re-captures the screenshots in `docs/walkthrough/img/`. Pages and PR previews publish `docs/walkthrough/` at `/main/walkthrough/` and `/pr-<n>/walkthrough/` |
 | Release | Tag `vX.Y.Z` on `main` | `release.yml` builds and publishes; see `docs/RELEASE.md`. Last release: `v0.2.0`, 2025-11-29. Bump `package.json` first — `VERSION` in the bundle is injected from it. |
 
 **Raising the ratchets.** The coverage thresholds and `--max-gaps` value are set to the measured

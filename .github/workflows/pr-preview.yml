@@ -54,6 +54,11 @@ jobs:
             echo "⚠️ Warning: dita-demo not found, skipping DITA deployment"
           fi
 
+          # Slide walkthrough of the application
+          mkdir -p _site/pr-${PR_NUMBER}/walkthrough
+          cp -r docs/walkthrough/* _site/pr-${PR_NUMBER}/walkthrough/
+          echo "✅ Walkthrough copied to _site/pr-${PR_NUMBER}/walkthrough/"
+
           # Copy Storybook build to PR directory
           if [ -d "storybook-static" ]; then
             mkdir -p _site/pr-${PR_NUMBER}/storybook

@@ -12,7 +12,11 @@ vi.mock('../../../src/enhancers/quiz-answer-persistence.js', async (importOrigin
   return { ...actual, handleAnswerInput: handleAnswerInputMock };
 });
 
-import { enhanceQuizTable, getQuizTableMetadata } from '../../../src/enhancers/quiz-table.js';
+import {
+  enhanceQuizTable,
+  getQuizTableMetadata,
+  resetQuizTableToNonInteractive,
+} from '../../../src/enhancers/quiz-table.js';
 import { revealInstructorAnswers } from '../../../src/enhancers/instructor-answer-reveal.js';
 import {
   applyValidationStyling,
@@ -103,6 +107,17 @@ describe('quiz table accessibility and usability', () => {
       document.dispatchEvent(new CustomEvent('qd:logout'));
       expect(document.querySelector('.qd-login-notice')).not.toBeNull();
       getQuizTableMetadata(table)?.cleanupInstructorListeners?.();
+    });
+
+    it('shows the prompt after logout when the coordinator resets the table', () => {
+      // On logout the event coordinator resets tables, which removes the
+      // table's own logout listener before it can run (found in the walkthrough)
+      const table = numericTable();
+      enhanceQuizTable(table, { interactive: false });
+      startSession();
+      enhanceQuizTable(table, { interactive: true, pageId: 'quiz-numeric' });
+      resetQuizTableToNonInteractive(table);
+      expect(document.querySelector('.qd-login-notice')?.textContent).toBe(LOGIN_NOTICE_TEXT);
     });
 
     it('removes the prompt and restores the author header for instructors (UX-04)', () => {

@@ -38,6 +38,7 @@
     "size-check": "node scripts/check-bundle-size.js",
     "check:answer-leak": "node scripts/check-answer-leak.js",
     "package:template": "bash scripts/package-template.sh",
+    "walkthrough:capture": "node scripts/capture-walkthrough.mjs",
     "test:coverage": "vitest run --coverage",
     "test:coverage:unit": "vitest run --coverage",
     "test:coverage:integration": "vitest run --config vitest.integration.config.ts --coverage",

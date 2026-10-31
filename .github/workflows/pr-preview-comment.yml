@@ -29,6 +29,7 @@ jobs:
             **📋 Live PR Preview Links:**
             - 🌐 [DITA WebHelp Preview](https://${owner}.github.io/${repo}/pr-${prNumber}/)
             - 📚 [Storybook Preview](https://${owner}.github.io/${repo}/pr-${prNumber}/storybook/)
+            - 🎞️ [Walkthrough slides](https://${owner}.github.io/${repo}/pr-${prNumber}/walkthrough/)
 
             **ℹ️ About PR Previews:**
             - Preview deploys automatically when you push commits to this PR
@@ -40,6 +41,7 @@ jobs:
             - 🏠 [Quiz Index (Home)](https://${owner}.github.io/${repo}/main/quiz-index.html)
             - 📝 [Quiz Examples](https://${owner}.github.io/${repo}/main/quiz-examples.html)
             - 📊 [Analysis Examples](https://${owner}.github.io/${repo}/main/analysis-examples.html)
+            - 🎞️ [Walkthrough slides](https://${owner}.github.io/${repo}/main/walkthrough/)
 
             **🧪 Testing Locally:**
             \`\`\`bash
