@@ -469,5 +469,9 @@ export function resetQuizTableToNonInteractive(table: HTMLTableElement): void {
   // Remove interactive class
   removeClass(table, 'qd-quiz-interactive');
 
+  // Nobody is logged in now. The table's own logout listener, which would
+  // show the prompt, was removed above before it could run (UX-05)
+  setLoginNotice(table, true);
+
   info('Quiz table reset to non-interactive mode');
 }

@@ -124,6 +124,8 @@ export const loginStyles = css`
 
     .hint-message {
       width: 100%;
+      /* Padding inside the 100% width, so long messages stay in the panel */
+      box-sizing: border-box;
       color: #555;
       font-size: 11px;
       margin-top: 3px;
@@ -145,6 +147,8 @@ export const loginStyles = css`
 
     .error-message {
       width: 100%;
+      /* Padding inside the 100% width, so long messages stay in the panel */
+      box-sizing: border-box;
       color: #d32f2f;
       font-size: 11px;
       margin-top: 3px;
@@ -156,6 +160,8 @@ export const loginStyles = css`
 
     .lockout-message {
       width: 100%;
+      /* Padding inside the 100% width, so long messages stay in the panel */
+      box-sizing: border-box;
       color: #f57c00;
       font-size: 11px;
       margin-top: 3px;

@@ -65,7 +65,8 @@ export class QdInstructorExport extends LitElement {
       for (const [pageId, pageData] of Object.entries(student.pages)) {
         const answers = pageData.answers || [];
         answers.forEach((answer, index) => {
-          if (answer) {
+          // Skipped questions are padded with empty placeholders; not answers
+          if (answer && answer.answer.trim() !== '') {
             rows.push(
               this.csvRow([
                 ...who,
