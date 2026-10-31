@@ -44,6 +44,9 @@ jobs:
             exit 1
           fi
           cp -r dist _site/
+          # Slide walkthrough of the application, served at main/walkthrough/
+          mkdir -p _site/walkthrough
+          cp -r docs/walkthrough/* _site/walkthrough/
 
       - name: Checkout gh-pages branch
         uses: actions/checkout@v4
