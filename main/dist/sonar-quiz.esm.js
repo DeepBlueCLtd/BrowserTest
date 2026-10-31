@@ -66,7 +66,128 @@ function warn(message, data) {
     console.warn(`[WARN] ${message}`);
   }
 }
-function parseQuizTable(table) {
+const DEFAULT_CONFIG = {
+  statusPanelContainer: ".wh_top_menu_and_indexterms_link",
+  titleSelector: ".wh_publication_title .title",
+  instructorHash: ""
+};
+const CONFIG_IDS = {
+  statusPanelContainer: "qd-status-container",
+  titleSelector: "qd-title-selector",
+  instructorHash: "qd-instructor-hash",
+  dbName: "qd-db-name",
+  /** Key for quiz answers encoded at publish time (SRD 013 ANS-06) */
+  answerKey: "qd-answer-key",
+  /** Number of quiz questions in the whole publication (SRD 013 SCO-05) */
+  questionTotal: "qd-question-total"
+};
+function readQuestionTotal() {
+  const text = document.getElementById(CONFIG_IDS.questionTotal)?.textContent?.trim() ?? "";
+  if (!/^\d+$/.test(text)) {
+    return void 0;
+  }
+  const total = Number(text);
+  return total > 0 ? total : void 0;
+}
+function readConfigElement(elementId, defaultValue) {
+  const element = document.querySelector(`#${elementId}`);
+  if (!element) {
+    return defaultValue;
+  }
+  const value = element.textContent?.trim() || "";
+  if (value === "") {
+    warn(`Config element #${elementId} found but empty, using default: "${defaultValue}"`);
+    return defaultValue;
+  }
+  info(`Config read from #${elementId}: "${value}"`);
+  return value;
+}
+function readRequiredConfigElement(elementId) {
+  const element = document.querySelector(`#${elementId}`);
+  if (!element) {
+    const msg = `FATAL: Required config element #${elementId} not found in DOM. Processing stopped.`;
+    console.error(msg);
+    throw new Error(msg);
+  }
+  const value = element.textContent?.trim() || "";
+  if (value === "") {
+    const msg = `FATAL: Required config element #${elementId} is empty. Processing stopped.`;
+    console.error(msg);
+    throw new Error(msg);
+  }
+  info(`Required config read from #${elementId}: "${value}"`);
+  return value;
+}
+function readDOMConfig() {
+  info("Reading configuration from DOM...");
+  const dbName = readRequiredConfigElement(CONFIG_IDS.dbName);
+  const config = {
+    statusPanelContainer: readConfigElement(
+      CONFIG_IDS.statusPanelContainer,
+      DEFAULT_CONFIG.statusPanelContainer
+    ),
+    titleSelector: readConfigElement(CONFIG_IDS.titleSelector, DEFAULT_CONFIG.titleSelector),
+    instructorHash: readConfigElement(CONFIG_IDS.instructorHash, DEFAULT_CONFIG.instructorHash),
+    dbName
+  };
+  info("Configuration loaded:", config);
+  return config;
+}
+function readTitleSelector() {
+  return readConfigElement(CONFIG_IDS.titleSelector, DEFAULT_CONFIG.titleSelector);
+}
+function readDbName() {
+  const element = document.querySelector(`#${CONFIG_IDS.dbName}`);
+  return element?.textContent?.trim() || "";
+}
+function readRelease() {
+  const titleElement = document.querySelector(readTitleSelector());
+  return titleElement?.textContent?.trim() || "";
+}
+const ANSWER_ALPHABET = "0123456789-+.";
+const ENCODED_PREFIX = "qd1:";
+function isEncodedAnswer(text) {
+  return text.trim().startsWith(ENCODED_PREFIX);
+}
+function isValidAnswerKey(key) {
+  return /^[A-Z]{13}$/.test(key) && new Set(key).size === ANSWER_ALPHABET.length;
+}
+function readAnswerKey() {
+  return document.getElementById(CONFIG_IDS.answerKey)?.textContent?.trim() ?? "";
+}
+class AnswerDecodeError extends Error {
+}
+function decodeAnswer(text, key) {
+  const value = text.trim();
+  if (!value.startsWith(ENCODED_PREFIX)) {
+    return value;
+  }
+  if (!isValidAnswerKey(key)) {
+    throw new AnswerDecodeError(
+      "Encoded quiz answer found but #qd-answer-key is missing or invalid"
+    );
+  }
+  let plain = "";
+  for (const ch of value.slice(ENCODED_PREFIX.length)) {
+    const index = key.indexOf(ch);
+    if (index < 0) {
+      throw new AnswerDecodeError(
+        `Encoded quiz answer contains "${ch}", which the key does not map`
+      );
+    }
+    plain += ANSWER_ALPHABET[index];
+  }
+  return plain;
+}
+function tableNeedsMissingKey(table, key) {
+  if (isValidAnswerKey(key)) {
+    return false;
+  }
+  return Array.from(table.querySelectorAll("tbody td")).some(
+    (cell) => isEncodedAnswer(cell.textContent ?? "")
+  );
+}
+function parseQuizTable(table, answerKey = "") {
   const errors = [];
   const questions = [];
   if (!table.classList.contains("qd-quiz")) {
@@ -97,7 +218,13 @@ function parseQuizTable(table) {
       errors.push(`Row ${index + 1} has empty question text`);
       return;
     }
-    const correctAnswer = answerCell.textContent?.trim() || "";
+    let correctAnswer;
+    try {
+      correctAnswer = decodeAnswer(answerCell.textContent ?? "", answerKey);
+    } catch (err) {
+      errors.push(`Row ${index + 1}: ${err.message}`);
+      return;
+    }
     if (!correctAnswer) {
       errors.push(`Row ${index + 1} has empty answer`);
       return;
@@ -116,7 +243,13 @@ function parseQuizTable(table) {
         options
       });
     } else {
-      const toleranceText = detailCell.textContent?.trim() || "";
+      let toleranceText;
+      try {
+        toleranceText = decodeAnswer(detailCell.textContent ?? "", answerKey);
+      } catch (err) {
+        errors.push(`Row ${index + 1}: ${err.message}`);
+        return;
+      }
       const tolerance = parseFloat(toleranceText);
       if (isNaN(tolerance)) {
         errors.push(
@@ -368,20 +501,214 @@ function clearQuizData() {
   }
   return keysToRemove.length;
 }
-const SCHEMA_VERSION = 2;
-const SESSION_TIMEOUT_MS = 30 * 60 * 1e3;
+const SCHEMA_VERSION = 3;
+const PIN_SCHEMA_VERSION = 2;
+const SESSION_TIMEOUT_MS = 10 * 60 * 1e3;
 const STORAGE_KEYS = {
   SESSION: "qd/session",
   CACHE: "qd/state",
   INSTRUCTOR: "qd/instructor",
-  PIN_ATTEMPTS: "qd:pin-attempts"
+  PIN_ATTEMPTS: "qd:pin-attempts",
+  /** Set when a session ends by idle timeout, so the login form can say so (SRD 013 SEC-10) */
+  SESSION_EXPIRED: "qd:session-expired"
 };
 const PIN_CONSTANTS = {
   /** Maximum failed attempts before lockout */
   MAX_ATTEMPTS: 3,
   /** Lockout duration in milliseconds (30 seconds) */
-  LOCKOUT_MS: 30 * 1e3
+  LOCKOUT_MS: 30 * 1e3,
+  /** PBKDF2-SHA-256 iterations for new PIN verifiers (SRD 013 SEC-06) */
+  KDF_ITERATIONS: 6e5,
+  /** Random salt length in bytes for the PIN KDF */
+  SALT_BYTES: 16
 };
+class RateLimiter {
+  /**
+   * @param freeFailures - Number of failed attempts allowed before any lockout
+   *   is applied. 0 (the default) locks out from the first failure. Interactive
+   *   password prompts pass a small allowance so a single typo does not stall
+   *   the user, while still bounding brute-force attempts.
+   */
+  constructor(freeFailures = 0) {
+    this.freeFailures = freeFailures;
+    this.failureCount = 0;
+    this.lockoutUntil = null;
+  }
+  /**
+   * Attempt an action (e.g., login attempt)
+   *
+   * @returns true if action is allowed, false if rate limited
+   */
+  attempt() {
+    if (this.lockoutUntil && Date.now() < this.lockoutUntil) {
+      return false;
+    }
+    if (this.lockoutUntil && Date.now() >= this.lockoutUntil) {
+      this.lockoutUntil = null;
+    }
+    return true;
+  }
+  /**
+   * Record a failed attempt and apply exponential backoff
+   *
+   * Delays: 2s, 4s, 8s, 16s, 30s (max), starting after any `freeFailures` allowance
+   */
+  recordFailure() {
+    this.failureCount++;
+    if (this.failureCount <= this.freeFailures) {
+      return;
+    }
+    const delays = [2e3, 4e3, 8e3, 16e3, 3e4];
+    const delayIndex = Math.min(this.failureCount - this.freeFailures - 1, delays.length - 1);
+    const delay = delays[delayIndex] ?? 3e4;
+    this.lockoutUntil = Date.now() + delay;
+  }
+  /**
+   * Reset the rate limiter after successful authentication
+   */
+  reset() {
+    this.failureCount = 0;
+    this.lockoutUntil = null;
+  }
+  /**
+   * Get remaining lockout time in seconds
+   *
+   * @returns Number of seconds until next attempt allowed, or 0 if not locked
+   */
+  getRemainingSeconds() {
+    if (!this.lockoutUntil) {
+      return 0;
+    }
+    const remaining = Math.max(0, this.lockoutUntil - Date.now());
+    return Math.ceil(remaining / 1e3);
+  }
+  /**
+   * Check if currently locked out
+   */
+  isLockedOut() {
+    return this.lockoutUntil !== null && Date.now() < this.lockoutUntil;
+  }
+}
+async function constantTimeCompare$1(a2, b2) {
+  if (a2.length !== b2.length) {
+    return false;
+  }
+  if (a2.length === 0) {
+    return true;
+  }
+  const encoder = new TextEncoder();
+  const aBuffer = encoder.encode(a2);
+  const bBuffer = encoder.encode(b2);
+  try {
+    const key = await crypto.subtle.importKey(
+      "raw",
+      aBuffer,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const signature = await crypto.subtle.sign("HMAC", key, bBuffer);
+    const expectedKey = await crypto.subtle.importKey(
+      "raw",
+      bBuffer,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const expectedSignature = await crypto.subtle.sign("HMAC", expectedKey, aBuffer);
+    if (signature.byteLength !== expectedSignature.byteLength) {
+      return false;
+    }
+    const sigView = new Uint8Array(signature);
+    const expView = new Uint8Array(expectedSignature);
+    let result = 0;
+    for (let i3 = 0; i3 < sigView.length; i3++) {
+      result |= (sigView[i3] ?? 0) ^ (expView[i3] ?? 0);
+    }
+    return result === 0;
+  } catch (error2) {
+    console.error("Constant-time comparison failed:", error2);
+    return false;
+  }
+}
+async function hashPasswordFull(plain) {
+  const data = new TextEncoder().encode(plain);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hashBuffer)).map((b2) => b2.toString(16).padStart(2, "0")).join("");
+}
+function getExpectedInstructorHash() {
+  const hashElement = document.getElementById(CONFIG_IDS.instructorHash);
+  return hashElement?.textContent?.trim() || "";
+}
+async function verifyInstructorPassword(plain) {
+  const expectedHash = getExpectedInstructorHash().toLowerCase();
+  if (!expectedHash) {
+    return false;
+  }
+  const fullHash = await hashPasswordFull(plain);
+  const actualHash = expectedHash.length === 64 ? fullHash : fullHash.substring(0, 12);
+  return constantTimeCompare$1(actualHash, expectedHash);
+}
+let verified = false;
+const reauthLimiter = new RateLimiter(PIN_CONSTANTS.MAX_ATTEMPTS - 1);
+async function confirmInstructorPassword(password) {
+  if (!reauthLimiter.attempt()) {
+    return { ok: false, reason: "locked", retryInSeconds: reauthLimiter.getRemainingSeconds() };
+  }
+  if (await verifyInstructorPassword(password)) {
+    reauthLimiter.reset();
+    return { ok: true };
+  }
+  reauthLimiter.recordFailure();
+  return { ok: false, reason: "incorrect" };
+}
+function reauthErrorMessage(result) {
+  return result.reason === "locked" ? `Too many attempts. Try again in ${result.retryInSeconds}s` : "Incorrect instructor password";
+}
+async function startInstructorSession(password) {
+  if (!await verifyInstructorPassword(password)) {
+    return false;
+  }
+  sessionStorage.setItem(STORAGE_KEYS.INSTRUCTOR, password);
+  verified = true;
+  return true;
+}
+async function restoreInstructorSession() {
+  verified = false;
+  const stored = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR);
+  if (stored === null) {
+    return false;
+  }
+  if (await verifyInstructorPassword(stored)) {
+    verified = true;
+    return true;
+  }
+  sessionStorage.removeItem(STORAGE_KEYS.INSTRUCTOR);
+  try {
+    const session = JSON.parse(sessionStorage.getItem(STORAGE_KEYS.SESSION) ?? "null");
+    if (session?.serviceId === "INSTRUCTOR") {
+      sessionStorage.removeItem(STORAGE_KEYS.SESSION);
+    }
+  } catch {
+  }
+  return false;
+}
+function isInstructorSessionActive() {
+  return verified && sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) !== null;
+}
+function endInstructorSession() {
+  verified = false;
+  sessionStorage.removeItem(STORAGE_KEYS.INSTRUCTOR);
+}
+function hasActiveSession() {
+  return getJSON(STORAGE_KEYS.SESSION) !== null;
+}
+function isInstructor() {
+  return isInstructorSessionActive();
+}
+function isStudentLoggedIn() {
+  return hasActiveSession() && !isInstructor();
+}
 const detailCellContent = /* @__PURE__ */ new WeakMap();
 function removeColgroup(table) {
   const colgroup = table.querySelector("colgroup");
@@ -449,8 +776,53 @@ function restoreDetailColumn(table) {
       if (original !== void 0) {
         cell.innerHTML = original;
       }
+      if (isEncodedAnswer(cell.textContent ?? "")) {
+        try {
+          cell.textContent = decodeAnswer(cell.textContent ?? "", readAnswerKey());
+        } catch {
+        }
+      }
     }
   });
+}
+const authorAnswerHeader = /* @__PURE__ */ new WeakMap();
+const STUDENT_ANSWER_HEADER = "Your answer";
+function setStudentAnswerHeader(table) {
+  const header = table.querySelectorAll("thead th, thead td")[1];
+  if (!header) {
+    return;
+  }
+  if (!authorAnswerHeader.has(table)) {
+    authorAnswerHeader.set(table, header.textContent ?? "");
+  }
+  header.textContent = STUDENT_ANSWER_HEADER;
+}
+function restoreAnswerHeader(table) {
+  const original = authorAnswerHeader.get(table);
+  const header = table.querySelectorAll("thead th, thead td")[1];
+  if (header && original !== void 0) {
+    header.textContent = original;
+  }
+}
+const LOGIN_NOTICE_TEXT = "Log in at the top of the page to answer these questions.";
+const loginNotices = /* @__PURE__ */ new WeakMap();
+function setLoginNotice(table, visible) {
+  let notice = loginNotices.get(table);
+  if (!visible) {
+    notice?.remove();
+    return;
+  }
+  if (!notice) {
+    notice = document.createElement("p");
+    notice.className = "qd-login-notice";
+    notice.setAttribute("role", "note");
+    notice.textContent = LOGIN_NOTICE_TEXT;
+    loginNotices.set(table, notice);
+  }
+  const anchor = table.parentElement?.classList.contains("simpletable-container") === true ? table.parentElement : table;
+  if (!notice.isConnected) {
+    anchor.parentNode?.insertBefore(notice, anchor);
+  }
 }
 function getQuestionInputSpec(question, existingAnswer) {
   if (question.kind === "mcq") {
@@ -686,7 +1058,7 @@ function toStorageError(error2, op) {
   }
   return new StorageError(`Failed during ${op}`, op, error2);
 }
-const ENCRYPT_STORAGE = false;
+const ENCRYPT_STORAGE = true;
 const OBFUSCATION_PREFIX = "OBF:";
 function deriveKey(releaseId) {
   if (!releaseId) {
@@ -769,17 +1141,29 @@ function isObfuscated(value) {
   return typeof value === "string" && value.startsWith(OBFUSCATION_PREFIX);
 }
 function encodeForStore(record) {
-  return record;
+  return encode(record, deriveKey(record.release));
 }
 function decodeStoredValue(rawValue, release, storageKey) {
   const storedIsObfuscated = isObfuscated(rawValue);
-  if (storedIsObfuscated) {
+  if (!storedIsObfuscated) {
     throw new StorageFormatError(
-      "Obfuscated data found with ENCRYPT_STORAGE disabled. Run migration to decrypt or re-enable encryption.",
-      "plain",
+      "Unobfuscated data found with ENCRYPT_STORAGE enabled. Run migration to encrypt existing data.",
       "obfuscated",
+      "plain",
       storageKey
     );
+  }
+  if (storedIsObfuscated) {
+    const obfKey = deriveKey(release);
+    try {
+      return decode(rawValue, obfKey);
+    } catch (error2) {
+      throw new StorageError(
+        "Failed to decode obfuscated data - data may be corrupted or tampered",
+        "getStudent",
+        error2 instanceof Error ? error2 : new Error(String(error2))
+      );
+    }
   }
   return rawValue;
 }
@@ -916,15 +1300,10 @@ class IndexedDBStorageAdapter {
    * @returns Array of student records (empty if none found)
    */
   async getStudentsByRelease(release) {
-    const db = this.ensureInitialized();
-    const all = await runTransaction(
-      db,
-      STORE_STUDENTS$1,
-      "readonly",
-      (store) => store.index("by-release").getAll(release),
-      "getStudentsByRelease"
-    );
-    return all || [];
+    this.ensureInitialized();
+    {
+      return this.getStudentsByReleaseEncrypted(release);
+    }
   }
   /**
    * Full-scan decode of all students for a release (encryption enabled).
@@ -1046,20 +1425,32 @@ function isPageComplete(answers, totalQuestions) {
 function isPageUnstarted(answers) {
   return answers.length === 0;
 }
-function calculateStatusIndicator(total, correct) {
-  if (total === 0 || correct === 0) {
-    return "red";
-  }
-  if (correct === total) {
-    return "green";
-  }
-  return "amber";
-}
-function calculatePercentage(correct, attempted) {
-  if (attempted === 0) {
+function countFilledCells(analysis) {
+  if (!analysis) {
     return 0;
   }
-  return Math.round(correct / attempted * 100);
+  return Object.values(analysis.cells).filter((text) => text.trim() !== "").length;
+}
+function calculatePageState(page) {
+  const totalQuestions = page.totalQuestions ?? 0;
+  const answered = page.answers.filter((a2) => a2.answer.trim() !== "");
+  const filled = countFilledCells(page.analysis);
+  if (answered.length === 0 && filled === 0) {
+    return "unstarted";
+  }
+  const quizComplete = totalQuestions === 0 || calculateCompletionState(page.answers, totalQuestions) === "complete";
+  const analysisComplete = !page.analysis || page.analysis.totalCells !== void 0 && filled >= page.analysis.totalCells;
+  return quizComplete && analysisComplete ? "complete" : "incomplete";
+}
+function calculateProgressIndicator(answered, correct, total) {
+  if (answered === 0) {
+    return "red";
+  }
+  return total !== void 0 && correct >= total ? "green" : "amber";
+}
+function formatProgress(answered, correct, total) {
+  const answeredText = total !== void 0 ? `${answered} of ${total} answered` : `${answered} answered`;
+  return `${answeredText} · ${correct} correct`;
 }
 function recalculateTotalsFromPages(pages) {
   let attempted = 0;
@@ -1094,6 +1485,26 @@ function createEmptyStudentRecord(session) {
     updated: (/* @__PURE__ */ new Date()).toISOString(),
     pages: {}
   };
+}
+function withAttempts(previous, next, commit) {
+  const { answer, success, timestamp } = next;
+  const previouslyAnswered = previous !== void 0 && previous.answer.trim() !== "";
+  if (previouslyAnswered && previous.attempts === void 0) {
+    return { answer, success, timestamp };
+  }
+  const priorAttempts = previous?.attempts ?? 0;
+  if (!commit || answer.trim() === "") {
+    return previous?.firstSuccess === void 0 ? { answer, success, timestamp, attempts: priorAttempts } : {
+      answer,
+      success,
+      timestamp,
+      attempts: priorAttempts,
+      firstSuccess: previous.firstSuccess
+    };
+  }
+  const attempts = priorAttempts + 1;
+  const firstSuccess = attempts === 1 ? success : previous?.firstSuccess ?? success;
+  return { answer, success, timestamp, attempts, firstSuccess };
 }
 class StorageService {
   /**
@@ -1171,7 +1582,7 @@ class StorageService {
    * @param totalQuestions - Total questions on the page
    * @returns Updated student record
    */
-  updateRecordWithAnswer(record, pageId, questionIndex, answer, totalQuestions) {
+  updateRecordWithAnswer(record, pageId, questionIndex, answer, totalQuestions, options = {}) {
     const existingPage = record.pages[pageId];
     const pageData = existingPage || {
       answers: [],
@@ -1184,13 +1595,18 @@ class StorageService {
         timestamp: (/* @__PURE__ */ new Date()).toISOString()
       });
     }
-    pageData.answers[questionIndex] = answer;
+    pageData.answers[questionIndex] = withAttempts(
+      pageData.answers[questionIndex],
+      answer,
+      options.commit === true
+    );
     const now = (/* @__PURE__ */ new Date()).toISOString();
     if (!pageData.firstAttempted) {
       pageData.firstAttempted = now;
     }
     pageData.lastAttempted = now;
-    pageData.state = calculateCompletionState(pageData.answers, totalQuestions);
+    pageData.totalQuestions = totalQuestions;
+    pageData.state = calculatePageState(pageData);
     return {
       ...record,
       pages: {
@@ -1213,7 +1629,7 @@ class StorageService {
    * @param content - New cell content
    * @returns The updated student record
    */
-  updateRecordWithAnalysis(record, pageId, tableId, cellKey, content) {
+  updateRecordWithAnalysis(record, pageId, tableId, cellKey, content, details = {}) {
     const pageData = record.pages[pageId] || {
       answers: [],
       state: "unstarted"
@@ -1223,12 +1639,19 @@ class StorageService {
       cells: {}
     };
     analysisData.cells[cellKey] = content;
+    if (details.totalCells !== void 0) {
+      analysisData.totalCells = details.totalCells;
+    }
+    if (details.label) {
+      analysisData.labels = { ...analysisData.labels, [cellKey]: details.label };
+    }
     const now = (/* @__PURE__ */ new Date()).toISOString();
     if (!analysisData.firstEdited) {
       analysisData.firstEdited = now;
     }
     analysisData.lastEdited = now;
     pageData.analysis = analysisData;
+    pageData.state = calculatePageState(pageData);
     record.pages[pageId] = pageData;
     record.updated = now;
     return record;
@@ -1358,7 +1781,31 @@ async function persistAndNotify(record, options) {
     emit(event.name, event.detail);
   }
 }
-function handleAnswerInput(table, metadata, questionIndex, answer) {
+const SR_ONLY_CLASS = "qd-sr-only";
+const LIVE_REGION_ID = "qd-live-region";
+let idCounter = 0;
+function ensureId(el, prefix) {
+  if (!el.id) {
+    idCounter++;
+    el.id = `${prefix}-${idCounter}`;
+  }
+  return el.id;
+}
+function announce(message) {
+  let region = document.getElementById(LIVE_REGION_ID);
+  if (!region) {
+    region = document.createElement("div");
+    region.id = LIVE_REGION_ID;
+    region.className = SR_ONLY_CLASS;
+    region.setAttribute("role", "status");
+    region.setAttribute("aria-live", "polite");
+    region.setAttribute("aria-atomic", "true");
+    document.body.appendChild(region);
+  }
+  region.textContent = "";
+  region.textContent = message;
+}
+function handleAnswerInput(table, metadata, questionIndex, answer, commit = false) {
   const { debouncer, pageId, parsed } = metadata;
   if (!debouncer || !pageId) {
     return;
@@ -1370,12 +1817,12 @@ function handleAnswerInput(table, metadata, questionIndex, answer) {
   debouncer.debounce(
     `save-answer-${questionIndex}`,
     () => {
-      void saveAnswer(table, metadata, questionIndex, answer);
+      void saveAnswer(table, metadata, questionIndex, answer, commit);
     },
     200
   );
 }
-async function saveAnswer(table, metadata, questionIndex, answer) {
+async function saveAnswer(table, metadata, questionIndex, answer, commit = false) {
   const { pageId, parsed, inputs } = metadata;
   if (!pageId || !inputs) {
     return;
@@ -1409,7 +1856,8 @@ async function saveAnswer(table, metadata, questionIndex, answer) {
     pageId,
     questionIndex,
     answerRecord,
-    totalQuestions
+    totalQuestions,
+    { commit }
   );
   const pageData = updatedRecord.pages[pageId];
   await persistAndNotify(updatedRecord, {
@@ -1419,6 +1867,7 @@ async function saveAnswer(table, metadata, questionIndex, answer) {
       if (answerCell) {
         applyValidationStyling(answerCell, success);
       }
+      announce(`Question ${questionIndex + 1}: ${success ? "correct" : "incorrect"}`);
     },
     events: [
       { name: "qd:answer-saved", detail: { pageId, answer: answerRecord } },
@@ -1432,7 +1881,97 @@ async function saveAnswer(table, metadata, questionIndex, answer) {
 function applyValidationStyling(cell, success) {
   removeClass(cell, "qd-answer-correct", "qd-answer-incorrect");
   addClass(cell, success ? "qd-answer-correct" : "qd-answer-incorrect");
+  let feedback = cell.querySelector(".qd-answer-feedback");
+  if (!feedback) {
+    feedback = document.createElement("span");
+    feedback.className = "qd-answer-feedback";
+    cell.appendChild(feedback);
+  }
+  feedback.replaceChildren();
+  const mark = document.createElement("span");
+  mark.setAttribute("aria-hidden", "true");
+  mark.textContent = success ? "✓ Correct" : "✗ Incorrect";
+  const text = document.createElement("span");
+  text.className = SR_ONLY_CLASS;
+  text.textContent = success ? "Correct" : "Incorrect";
+  feedback.append(mark, text);
+  const control = cell.querySelector("select, input");
+  if (control) {
+    control.setAttribute("aria-describedby", ensureId(feedback, "qd-feedback"));
+  }
 }
+function clearValidationFeedback(cell) {
+  removeClass(cell, "qd-answer-correct", "qd-answer-incorrect");
+  cell.querySelector(".qd-answer-feedback")?.remove();
+  cell.querySelector("select, input")?.removeAttribute("aria-describedby");
+}
+function showInputError(cell, input, message) {
+  let error2 = cell.querySelector(".qd-input-error");
+  if (!error2) {
+    error2 = document.createElement("span");
+    error2.className = "qd-input-error";
+    error2.setAttribute("role", "alert");
+    input.insertAdjacentElement("afterend", error2);
+  }
+  error2.textContent = message;
+  input.setAttribute("aria-invalid", "true");
+  input.setAttribute("aria-errormessage", ensureId(error2, "qd-input-error"));
+}
+function clearInputError(cell, input) {
+  cell.querySelector(".qd-input-error")?.remove();
+  input.removeAttribute("aria-invalid");
+  input.removeAttribute("aria-errormessage");
+}
+function validateStudentFields(name, serviceId, pin) {
+  const errors = {};
+  if (!name || name.trim() === "") {
+    errors.name = "Name required";
+  }
+  if (!serviceId) {
+    errors.serviceId = "Service ID required";
+  } else if (!/^[a-zA-Z0-9]{2,10}$/.test(serviceId)) {
+    errors.serviceId = "Service ID must be 2-10 alphanumeric characters";
+  }
+  if (!pin) {
+    errors.pin = "PIN required";
+  } else if (!/^\d{4}$/.test(pin)) {
+    errors.pin = "PIN must be exactly 4 digits";
+  }
+  return errors;
+}
+function validateStudentForm(name, serviceId, pin) {
+  const errors = [];
+  if (!name || name.trim() === "") {
+    errors.push("Name required");
+  }
+  if (!serviceId) {
+    errors.push("Service ID required");
+  } else {
+    const serviceIdRegex = /^[a-zA-Z0-9]{2,10}$/;
+    if (!serviceIdRegex.test(serviceId)) {
+      errors.push("Service ID must be 2-10 alphanumeric characters");
+    }
+  }
+  if (!pin) {
+    errors.push("PIN required");
+  } else {
+    const pinRegex = /^\d{4}$/;
+    if (!pinRegex.test(pin)) {
+      errors.push("PIN must be exactly 4 digits");
+    }
+  }
+  return errors;
+}
+function sanitizePinInput(input) {
+  return input.replace(/\D/g, "");
+}
+function isNumericAnswer(value) {
+  return /^[+-]?(\d+(\.\d*)?|\.\d+)$/.test(value);
+}
+function hasNonNumericCharacters(value) {
+  return /[^0-9+\-.\s]/.test(value);
+}
+const NUMERIC_INPUT_ERROR = "Enter a number, for example 1500";
 function formatDisplayTimestamp(date) {
   const month = date.toLocaleDateString("en-US", { month: "short" });
   const day = date.getDate();
@@ -2193,7 +2732,14 @@ function enhanceQuizTable(table, options) {
       return true;
     }
   } else {
-    parsed = parseQuizTable(table);
+    const answerKey = readAnswerKey();
+    if (tableNeedsMissingKey(table, answerKey)) {
+      error(
+        "Quiz table has encoded answers but #qd-answer-key is missing or invalid; table not enhanced"
+      );
+      return false;
+    }
+    parsed = parseQuizTable(table, answerKey);
     if (parsed.errors && parsed.errors.length > 0) {
       error("Quiz table has validation errors:", parsed.errors);
     }
@@ -2229,6 +2775,7 @@ function enhanceNonInteractive$1(table) {
   removeColgroup(table);
   hideAnswerColumn(table);
   hideDetailColumn(table);
+  setLoginNotice(table, true);
   addClass(table, "qd-quiz-non-interactive");
   info("Quiz table enhanced in non-interactive mode");
   return true;
@@ -2240,6 +2787,8 @@ function enhanceInteractive$1(table, metadata) {
     return false;
   }
   showAnswerColumn(table);
+  setStudentAnswerHeader(table);
+  setLoginNotice(table, false);
   hideDetailColumn(table);
   const session = getJSON(STORAGE_KEYS.SESSION);
   if (!session) {
@@ -2289,15 +2838,42 @@ function enhanceInteractive$1(table, metadata) {
     }
     const input = createQuestionInput(question, existingAnswer);
     inputs.push(input);
+    input.setAttribute("aria-labelledby", ensureId(questionCell, "qd-question"));
     removeClass(answerCell, "qd-answer-correct", "qd-answer-incorrect");
     answerCell.textContent = "";
     answerCell.appendChild(input);
     if (existingAnswer) {
       applyValidationStyling(answerCell, existingAnswer.success);
     }
-    const eventType = input.tagName === "SELECT" ? "change" : "input";
-    input.addEventListener(eventType, () => {
-      handleAnswerInput(table, metadata, index, input.value);
+    if (input instanceof HTMLSelectElement) {
+      input.addEventListener("change", () => {
+        handleAnswerInput(table, metadata, index, input.value, true);
+      });
+      return;
+    }
+    input.inputMode = "decimal";
+    input.addEventListener("input", () => {
+      const value = input.value.trim();
+      if (hasNonNumericCharacters(value)) {
+        showInputError(answerCell, input, NUMERIC_INPUT_ERROR);
+        return;
+      }
+      clearInputError(answerCell, input);
+      if (value === "" || isNumericAnswer(value)) {
+        handleAnswerInput(table, metadata, index, input.value);
+      }
+    });
+    input.addEventListener("blur", () => {
+      const value = input.value.trim();
+      if (value !== "" && !isNumericAnswer(value)) {
+        showInputError(answerCell, input, NUMERIC_INPUT_ERROR);
+      }
+    });
+    input.addEventListener("change", () => {
+      const value = input.value.trim();
+      if (isNumericAnswer(value)) {
+        handleAnswerInput(table, metadata, index, input.value, true);
+      }
     });
   });
   metadata.inputs = inputs;
@@ -2309,15 +2885,18 @@ function enhanceInteractive$1(table, metadata) {
   };
   document.addEventListener("qd:instructor-show-answers", showAnswersHandler);
   document.addEventListener("qd:instructor-hide-answers", hideAnswersHandler);
-  const isInstructor2 = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
+  const instructorActive = isInstructor();
   const showAnswers = sessionStorage.getItem(INSTRUCTOR_SHOW_ANSWERS_KEY) === "true";
-  if (isInstructor2 && showAnswers) {
+  if (instructorActive && showAnswers) {
     void showStudentAnswersForTable(table, metadata);
   }
   const resetUIState = () => {
-    const answerCells = table.querySelectorAll("td.qd-answer-correct, td.qd-answer-incorrect");
-    answerCells.forEach((cell) => {
-      removeClass(cell, "qd-answer-correct", "qd-answer-incorrect");
+    table.querySelectorAll("tbody tr").forEach((row) => {
+      const cell = row.querySelectorAll("td")[1];
+      if (!cell) return;
+      clearValidationFeedback(cell);
+      const control = cell.querySelector("select, input");
+      if (control) clearInputError(cell, control);
     });
     if (metadata.inputs) {
       for (const input of metadata.inputs) {
@@ -2332,10 +2911,12 @@ function enhanceInteractive$1(table, metadata) {
   };
   const logoutHandler = () => {
     resetUIState();
+    setLoginNotice(table, true);
     info("Cleared student UI state from quiz table on logout");
   };
   const loginHandler = () => {
     resetUIState();
+    setLoginNotice(table, false);
     info("Reset quiz table UI on login");
   };
   document.addEventListener("qd:logout", logoutHandler);
@@ -2434,15 +3015,22 @@ function handleCellEdit(metadata, cell, cellKey) {
     return;
   }
   const content = getTextContent(cell);
+  const label = cellLabel(cell);
   debouncer.debounce(
     `save-cell-${cellKey}`,
     () => {
-      void saveCellData(metadata, cellKey, content);
+      void saveCellData(metadata, cellKey, content, label);
     },
     500
   );
 }
-async function saveCellData(metadata, cellKey, content) {
+function cellLabel(cell) {
+  const labelId = cell.getAttribute("aria-labelledby");
+  const text = labelId ? document.getElementById(labelId)?.textContent : void 0;
+  const label = text?.replace(/\s+/g, " ").trim().replace(/:$/, "").trim();
+  return label || void 0;
+}
+async function saveCellData(metadata, cellKey, content, label) {
   const { pageId, parsed } = metadata;
   if (!pageId) {
     return;
@@ -2465,7 +3053,8 @@ async function saveCellData(metadata, cellKey, content) {
     pageId,
     parsed.tableId,
     cellKey,
-    content
+    content,
+    { totalCells: parsed.editableCells.length, label }
   );
   await persistAndNotify(updatedRecord, {
     events: [
@@ -2711,6 +3300,12 @@ function enhanceInteractive(table, metadata) {
     }
     cell.contentEditable = "true";
     addClass(cell, "qd-editable");
+    cell.setAttribute("role", "textbox");
+    cell.setAttribute("aria-multiline", "true");
+    const label = findCellLabel(cells, col);
+    if (label) {
+      cell.setAttribute("aria-labelledby", ensureId(label, "qd-analysis-label"));
+    }
     cell.addEventListener("input", () => {
       handleCellEdit(metadata, cell, key);
     });
@@ -2718,6 +3313,15 @@ function enhanceInteractive(table, metadata) {
   addClass(table, "qd-analysis-interactive");
   info(`Analysis table enhanced in interactive mode for page ${pageId}`);
   return true;
+}
+function findCellLabel(cells, col) {
+  for (let i3 = col - 1; i3 >= 0; i3--) {
+    const candidate = cells[i3];
+    if (candidate && !isCellEditable(candidate) && candidate.textContent?.trim()) {
+      return candidate;
+    }
+  }
+  return void 0;
 }
 function getAnalysisTableMetadata(table) {
   return tableMetadata.get(table);
@@ -2763,6 +3367,8 @@ function revealInstructorAnswers(table, metadata, options = {}) {
     }
   });
   restoreDetailColumn(table);
+  restoreAnswerHeader(table);
+  setLoginNotice(table, false);
   const showAnswersHandler = () => {
     void showStudentAnswersForTable(table, metadata);
   };
@@ -2787,8 +3393,8 @@ function upgradeTablesAfterLogin() {
     info("No pageId found, skipping table upgrade to interactive mode");
     return;
   }
-  const isInstructor2 = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
-  if (isInstructor2) {
+  const instructorActive = isInstructor();
+  if (instructorActive) {
     revealTablesForInstructor(pageId);
     return;
   }
@@ -3032,7 +3638,7 @@ class SessionService {
     const session = this.getSession();
     sessionStorage.removeItem(STORAGE_KEYS.SESSION);
     sessionStorage.removeItem(STORAGE_KEYS.CACHE);
-    sessionStorage.removeItem(STORAGE_KEYS.INSTRUCTOR);
+    endInstructorSession();
     sessionStorage.removeItem(INSTRUCTOR_SHOW_ANSWERS_KEY);
     if (session) {
       info(`Session cleared for ${session.serviceId}`);
@@ -3143,6 +3749,15 @@ class SessionService {
 }
 class SessionCoordinator {
   constructor() {
+    this.activityTrackingActive = false;
+    this.handleLogin = () => {
+      const session = this.sessionService.getSession();
+      if (!session) {
+        return;
+      }
+      this.scheduleExpiryCheck(session);
+      this.setupActivityTracking();
+    };
     this.sessionService = new SessionService();
   }
   /**
@@ -3157,7 +3772,7 @@ class SessionCoordinator {
       info(`Existing session loaded for ${session.serviceId}`);
       if (this.sessionService.isExpired()) {
         warn("Session expired, clearing");
-        this.sessionService.clearSession();
+        this.expireSession();
         return;
       }
       this.scheduleExpiryCheck(session);
@@ -3165,6 +3780,18 @@ class SessionCoordinator {
     } else {
       info("No existing session found");
     }
+    document.addEventListener("qd:login", this.handleLogin);
+  }
+  /**
+   * End a session that timed out, leaving a marker so the login form can
+   * explain why the student was logged out (SRD 013 SEC-10).
+   */
+  expireSession() {
+    sessionStorage.setItem(STORAGE_KEYS.SESSION_EXPIRED, (/* @__PURE__ */ new Date()).toISOString());
+    document.dispatchEvent(
+      new CustomEvent("qd:session-expired", { bubbles: true, composed: true })
+    );
+    this.sessionService.clearSession();
   }
   /**
    * Schedule expiry check based on session timeout
@@ -3177,18 +3804,22 @@ class SessionCoordinator {
     const expiresAt = new Date(session.expiresAt).getTime();
     const timeUntilExpiry = expiresAt - now;
     if (timeUntilExpiry <= 0) {
-      this.sessionService.clearSession();
+      this.expireSession();
       return;
     }
     this.expiryTimeoutId = window.setTimeout(() => {
       info("Session expired (timeout)");
-      this.sessionService.clearSession();
+      this.expireSession();
     }, timeUntilExpiry);
   }
   /**
    * Setup activity tracking to extend session on user interaction
    */
   setupActivityTracking() {
+    if (this.activityTrackingActive) {
+      return;
+    }
+    this.activityTrackingActive = true;
     const activityHandler = () => {
       const session = this.sessionService.getSession();
       if (!session) {
@@ -3221,6 +3852,7 @@ class SessionCoordinator {
     if (this.expiryTimeoutId !== void 0) {
       window.clearTimeout(this.expiryTimeoutId);
     }
+    document.removeEventListener("qd:login", this.handleLogin);
   }
   /**
    * Get the session service instance
@@ -3332,6 +3964,19 @@ const loginStyles = i$4`
       background: #5a6268;
     }
 
+    /*
+     * Reserve the message row so typing does not make the header grow and
+     * shrink (SRD 013 UX-11)
+     */
+    .message-slot {
+      width: 100%;
+      min-height: 22px;
+    }
+
+    input[aria-invalid='true'] {
+      border-color: #d32f2f;
+    }
+
     .hint-message {
       width: 100%;
       color: #555;
@@ -3341,6 +3986,16 @@ const loginStyles = i$4`
       background: #f1f3f4;
       border-radius: 3px;
       border-left: 3px solid #9aa0a6;
+    }
+
+    .notice-message {
+      color: #0b4f8a;
+      font-size: 11px;
+      margin: 0 0 6px;
+      padding: 4px 8px;
+      background: #e8f1fb;
+      border-radius: 3px;
+      border-left: 3px solid #1d6fb8;
     }
 
     .error-message {
@@ -3376,127 +4031,74 @@ const loginStyles = i$4`
         width: 100%;
       }
 `;
-function hasActiveSession() {
-  return getJSON(STORAGE_KEYS.SESSION) !== null;
-}
-function isInstructor() {
-  return sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
-}
-function isStudentLoggedIn() {
-  return hasActiveSession() && !isInstructor();
-}
-function validateStudentForm(name, serviceId, pin) {
-  const errors = [];
-  if (!name || name.trim() === "") {
-    errors.push("Name required");
-  }
-  if (!serviceId) {
-    errors.push("Service ID required");
-  } else {
-    const serviceIdRegex = /^[a-zA-Z0-9]{2,10}$/;
-    if (!serviceIdRegex.test(serviceId)) {
-      errors.push("Service ID must be 2-10 alphanumeric characters");
-    }
-  }
-  if (!pin) {
-    errors.push("PIN required");
-  } else {
-    const pinRegex = /^\d{4}$/;
-    if (!pinRegex.test(pin)) {
-      errors.push("PIN must be exactly 4 digits");
-    }
-  }
-  return errors;
-}
-function sanitizePinInput(input) {
-  return input.replace(/\D/g, "");
-}
-const DEFAULT_CONFIG = {
-  statusPanelContainer: ".wh_top_menu_and_indexterms_link",
-  titleSelector: ".wh_publication_title .title",
-  instructorHash: ""
-};
-const CONFIG_IDS = {
-  statusPanelContainer: "qd-status-container",
-  titleSelector: "qd-title-selector",
-  instructorHash: "qd-instructor-hash",
-  dbName: "qd-db-name"
-};
-function readConfigElement(elementId, defaultValue) {
-  const element = document.querySelector(`#${elementId}`);
-  if (!element) {
-    return defaultValue;
-  }
-  const value = element.textContent?.trim() || "";
-  if (value === "") {
-    warn(`Config element #${elementId} found but empty, using default: "${defaultValue}"`);
-    return defaultValue;
-  }
-  info(`Config read from #${elementId}: "${value}"`);
-  return value;
-}
-function readRequiredConfigElement(elementId) {
-  const element = document.querySelector(`#${elementId}`);
-  if (!element) {
-    const msg = `FATAL: Required config element #${elementId} not found in DOM. Processing stopped.`;
-    console.error(msg);
-    throw new Error(msg);
-  }
-  const value = element.textContent?.trim() || "";
-  if (value === "") {
-    const msg = `FATAL: Required config element #${elementId} is empty. Processing stopped.`;
-    console.error(msg);
-    throw new Error(msg);
-  }
-  info(`Required config read from #${elementId}: "${value}"`);
-  return value;
-}
-function readDOMConfig() {
-  info("Reading configuration from DOM...");
-  const dbName = readRequiredConfigElement(CONFIG_IDS.dbName);
-  const config = {
-    statusPanelContainer: readConfigElement(
-      CONFIG_IDS.statusPanelContainer,
-      DEFAULT_CONFIG.statusPanelContainer
-    ),
-    titleSelector: readConfigElement(CONFIG_IDS.titleSelector, DEFAULT_CONFIG.titleSelector),
-    instructorHash: readConfigElement(CONFIG_IDS.instructorHash, DEFAULT_CONFIG.instructorHash),
-    dbName
-  };
-  info("Configuration loaded:", config);
-  return config;
-}
-function readTitleSelector() {
-  return readConfigElement(CONFIG_IDS.titleSelector, DEFAULT_CONFIG.titleSelector);
-}
-function readDbName() {
-  const element = document.querySelector(`#${CONFIG_IDS.dbName}`);
-  return element?.textContent?.trim() || "";
-}
-function readRelease() {
-  const titleElement = document.querySelector(readTitleSelector());
-  return titleElement?.textContent?.trim() || "";
-}
 function needsMigration(record) {
-  return record.schema < SCHEMA_VERSION;
+  return record.schema < PIN_SCHEMA_VERSION;
 }
 function hasPinSet(record) {
   return Boolean(record.pinHash && record.pinHash.length > 0);
 }
-function completePinSetup(record, pinHash) {
+function completePinSetup(record, credential) {
   return {
     ...record,
     schema: SCHEMA_VERSION,
-    pinHash,
+    ...credential,
     pinCreatedAt: (/* @__PURE__ */ new Date()).toISOString()
   };
 }
+function upgradePinCredential(record, credential) {
+  return { ...record, schema: SCHEMA_VERSION, ...credential };
+}
 function resetPin(record) {
+  const { pinSalt: _salt, pinIterations: _iterations, pinKdf: _kdf, ...rest } = record;
   return {
-    ...record,
+    ...rest,
     pinHash: "",
     pinResetAt: (/* @__PURE__ */ new Date()).toISOString()
   };
+}
+function toHex(bytes) {
+  return Array.from(bytes).map((b2) => b2.toString(16).padStart(2, "0")).join("");
+}
+function fromHex(hex) {
+  const out = new Uint8Array(new ArrayBuffer(hex.length / 2));
+  for (let i3 = 0; i3 < out.length; i3++) {
+    out[i3] = parseInt(hex.substring(i3 * 2, i3 * 2 + 2), 16);
+  }
+  return out;
+}
+async function derivePinHash(pin, saltHex, iterations) {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, [
+    "deriveBits"
+  ]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: "SHA-256", salt: fromHex(saltHex), iterations },
+    key,
+    256
+  );
+  return toHex(new Uint8Array(bits));
+}
+async function createPinCredential(pin, iterations = PIN_CONSTANTS.KDF_ITERATIONS) {
+  const salt = toHex(crypto.getRandomValues(new Uint8Array(PIN_CONSTANTS.SALT_BYTES)));
+  return {
+    pinHash: await derivePinHash(pin, salt, iterations),
+    pinSalt: salt,
+    pinIterations: iterations,
+    pinKdf: "pbkdf2-sha256"
+  };
+}
+async function verifyStoredPin(pin, record) {
+  const stored = record.pinHash ?? "";
+  if (!stored) {
+    return { valid: false };
+  }
+  if (record.pinKdf === "pbkdf2-sha256" && record.pinSalt && record.pinIterations) {
+    const derived = await derivePinHash(pin, record.pinSalt, record.pinIterations);
+    return { valid: constantTimeCompare(derived, stored) };
+  }
+  if (!await verifyPin(pin, stored)) {
+    return { valid: false };
+  }
+  return { valid: true, upgrade: await createPinCredential(pin) };
 }
 async function hashPin(pin) {
   const encoder = new TextEncoder();
@@ -3507,9 +4109,9 @@ async function hashPin(pin) {
 }
 async function verifyPin(pin, storedHash) {
   const inputHash = await hashPin(pin);
-  return constantTimeCompare$1(inputHash, storedHash);
+  return constantTimeCompare(inputHash, storedHash);
 }
-function constantTimeCompare$1(a2, b2) {
+function constantTimeCompare(a2, b2) {
   if (a2.length !== b2.length) {
     return false;
   }
@@ -3672,13 +4274,13 @@ class AuthService {
       const existingStudent = await storage.getStudent(release, serviceId);
       if (existingStudent) {
         if (needsMigration(existingStudent) || !hasPinSet(existingStudent)) {
-          const pinHash2 = await hashPin(pin);
-          const updatedStudent = completePinSetup(existingStudent, pinHash2);
+          const credential2 = await createPinCredential(pin);
+          const updatedStudent = completePinSetup(existingStudent, credential2);
           await storage.saveStudent(updatedStudent);
           return { kind: "pin-created", serviceId, name, release };
         }
-        const isValid = await verifyPin(pin, existingStudent.pinHash || "");
-        if (!isValid) {
+        const check = await verifyStoredPin(pin, existingStudent);
+        if (!check.valid) {
           const state2 = recordFailedAttempt(serviceId);
           if (state2.lockoutUntil) {
             const lockoutMs = new Date(state2.lockoutUntil).getTime() - Date.now();
@@ -3687,9 +4289,12 @@ class AuthService {
           return { kind: "bad-pin", remaining: getRemainingAttempts(serviceId) };
         }
         clearAttemptState(serviceId);
+        if (check.upgrade) {
+          await storage.saveStudent(upgradePinCredential(existingStudent, check.upgrade));
+        }
         return { kind: "pin-verified", serviceId, name, release };
       }
-      const pinHash = await hashPin(pin);
+      const credential = await createPinCredential(pin);
       const newStudent = {
         schema: SCHEMA_VERSION,
         docId: "",
@@ -3700,7 +4305,7 @@ class AuthService {
         correct: 0,
         updated: (/* @__PURE__ */ new Date()).toISOString(),
         pages: {},
-        pinHash,
+        ...credential,
         pinCreatedAt: (/* @__PURE__ */ new Date()).toISOString()
       };
       await storage.saveStudent(newStudent);
@@ -3724,7 +4329,7 @@ var __decorateClass$j = (decorators, target, key, kind) => {
 };
 let QdBuildInfo = class extends i$1 {
   render() {
-    const buildDate = "30/Oct/2026";
+    const buildDate = "31/Oct/2026";
     return x`
       <span class="info-icon" tabindex="0" role="button" aria-label="Build information">i</span>
       <div class="tooltip" role="tooltip">
@@ -3811,134 +4416,6 @@ QdBuildInfo.styles = i$4`
 QdBuildInfo = __decorateClass$j([
   t$1("qd-build-info")
 ], QdBuildInfo);
-class RateLimiter {
-  /**
-   * @param freeFailures - Number of failed attempts allowed before any lockout
-   *   is applied. 0 (the default) locks out from the first failure. Interactive
-   *   password prompts pass a small allowance so a single typo does not stall
-   *   the user, while still bounding brute-force attempts.
-   */
-  constructor(freeFailures = 0) {
-    this.freeFailures = freeFailures;
-    this.failureCount = 0;
-    this.lockoutUntil = null;
-  }
-  /**
-   * Attempt an action (e.g., login attempt)
-   *
-   * @returns true if action is allowed, false if rate limited
-   */
-  attempt() {
-    if (this.lockoutUntil && Date.now() < this.lockoutUntil) {
-      return false;
-    }
-    if (this.lockoutUntil && Date.now() >= this.lockoutUntil) {
-      this.lockoutUntil = null;
-    }
-    return true;
-  }
-  /**
-   * Record a failed attempt and apply exponential backoff
-   *
-   * Delays: 2s, 4s, 8s, 16s, 30s (max), starting after any `freeFailures` allowance
-   */
-  recordFailure() {
-    this.failureCount++;
-    if (this.failureCount <= this.freeFailures) {
-      return;
-    }
-    const delays = [2e3, 4e3, 8e3, 16e3, 3e4];
-    const delayIndex = Math.min(this.failureCount - this.freeFailures - 1, delays.length - 1);
-    const delay = delays[delayIndex] ?? 3e4;
-    this.lockoutUntil = Date.now() + delay;
-  }
-  /**
-   * Reset the rate limiter after successful authentication
-   */
-  reset() {
-    this.failureCount = 0;
-    this.lockoutUntil = null;
-  }
-  /**
-   * Get remaining lockout time in seconds
-   *
-   * @returns Number of seconds until next attempt allowed, or 0 if not locked
-   */
-  getRemainingSeconds() {
-    if (!this.lockoutUntil) {
-      return 0;
-    }
-    const remaining = Math.max(0, this.lockoutUntil - Date.now());
-    return Math.ceil(remaining / 1e3);
-  }
-  /**
-   * Check if currently locked out
-   */
-  isLockedOut() {
-    return this.lockoutUntil !== null && Date.now() < this.lockoutUntil;
-  }
-}
-async function constantTimeCompare(a2, b2) {
-  if (a2.length !== b2.length) {
-    return false;
-  }
-  if (a2.length === 0) {
-    return true;
-  }
-  const encoder = new TextEncoder();
-  const aBuffer = encoder.encode(a2);
-  const bBuffer = encoder.encode(b2);
-  try {
-    const key = await crypto.subtle.importKey(
-      "raw",
-      aBuffer,
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"]
-    );
-    const signature = await crypto.subtle.sign("HMAC", key, bBuffer);
-    const expectedKey = await crypto.subtle.importKey(
-      "raw",
-      bBuffer,
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"]
-    );
-    const expectedSignature = await crypto.subtle.sign("HMAC", expectedKey, aBuffer);
-    if (signature.byteLength !== expectedSignature.byteLength) {
-      return false;
-    }
-    const sigView = new Uint8Array(signature);
-    const expView = new Uint8Array(expectedSignature);
-    let result = 0;
-    for (let i3 = 0; i3 < sigView.length; i3++) {
-      result |= (sigView[i3] ?? 0) ^ (expView[i3] ?? 0);
-    }
-    return result === 0;
-  } catch (error2) {
-    console.error("Constant-time comparison failed:", error2);
-    return false;
-  }
-}
-async function hashPassword(plain) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(plain);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b2) => b2.toString(16).padStart(2, "0")).join("").substring(0, 12);
-}
-function getExpectedInstructorHash() {
-  const hashElement = document.getElementById(CONFIG_IDS.instructorHash);
-  return hashElement?.textContent?.trim() || "";
-}
-async function verifyInstructorPassword(plain) {
-  const expectedHash = getExpectedInstructorHash();
-  if (!expectedHash) {
-    return false;
-  }
-  const actualHash = await hashPassword(plain);
-  return constantTimeCompare(actualHash, expectedHash);
-}
 var __defProp$h = Object.defineProperty;
 var __getOwnPropDesc$i = Object.getOwnPropertyDescriptor;
 var __decorateClass$i = (decorators, target, key, kind) => {
@@ -4503,7 +4980,7 @@ let QdInstructorLogin = class extends i$1 {
       return;
     }
     try {
-      if (!await verifyInstructorPassword(password)) {
+      if (!await startInstructorSession(password)) {
         this.rateLimiter.recordFailure();
         this.error = "Incorrect password";
         return;
@@ -4512,7 +4989,6 @@ let QdInstructorLogin = class extends i$1 {
       const release = readRelease();
       const sessionService = new SessionService();
       sessionService.createSession("INSTRUCTOR", "Instructor", release || "");
-      sessionStorage.setItem(STORAGE_KEYS.INSTRUCTOR, "true");
       this.dispatchEvent(
         new CustomEvent("qd:login", {
           detail: {
@@ -4652,49 +5128,6 @@ __decorateClass$f([
 QdLockoutBanner = __decorateClass$f([
   t$1("qd-lockout-banner")
 ], QdLockoutBanner);
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */
-const t = { CHILD: 2 }, e$1 = (t2) => (...e2) => ({ _$litDirective$: t2, values: e2 });
-class i2 {
-  constructor(t2) {
-  }
-  get _$AU() {
-    return this._$AM._$AU;
-  }
-  _$AT(t2, e2, i3) {
-    this._$Ct = t2, this._$AM = e2, this._$Ci = i3;
-  }
-  _$AS(t2, e2) {
-    return this.update(t2, e2);
-  }
-  update(t2, e2) {
-    return this.render(...e2);
-  }
-}
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */
-class e extends i2 {
-  constructor(i3) {
-    if (super(i3), this.it = E, i3.type !== t.CHILD) throw Error(this.constructor.directiveName + "() can only be used in child bindings");
-  }
-  render(r2) {
-    if (r2 === E || null == r2) return this._t = void 0, this.it = r2;
-    if (r2 === T) return r2;
-    if ("string" != typeof r2) throw Error(this.constructor.directiveName + "() called with a non-string value");
-    if (r2 === this.it) return this._t;
-    this.it = r2;
-    const s2 = [r2];
-    return s2.raw = s2, this._t = { _$litType$: this.constructor.resultType, strings: s2, values: [] };
-  }
-}
-e.directiveName = "unsafeHTML", e.resultType = 1;
-const o = e$1(e);
 var __defProp$d = Object.defineProperty;
 var __getOwnPropDesc$e = Object.getOwnPropertyDescriptor;
 var __decorateClass$e = (decorators, target, key, kind) => {
@@ -4703,169 +5136,6 @@ var __decorateClass$e = (decorators, target, key, kind) => {
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
   if (kind && result) __defProp$d(target, key, result);
-  return result;
-};
-let QdConfirmDialog = class extends i$1 {
-  constructor() {
-    super(...arguments);
-    this.open = false;
-    this.title = "Confirm";
-    this.message = "";
-    this.confirmText = "Confirm";
-    this.cancelText = "Cancel";
-    this.destructive = false;
-    this.handleModalClose = () => {
-      this.close();
-      this.dispatchEvent(
-        new CustomEvent("qd:cancel", {
-          bubbles: true,
-          composed: true
-        })
-      );
-    };
-    this.handleConfirm = () => {
-      this.close();
-      this.dispatchEvent(
-        new CustomEvent("qd:confirm", {
-          bubbles: true,
-          composed: true
-        })
-      );
-    };
-    this.handleCancel = () => {
-      this.close();
-      this.dispatchEvent(
-        new CustomEvent("qd:cancel", {
-          bubbles: true,
-          composed: true
-        })
-      );
-    };
-  }
-  /**
-   * Show the dialog
-   */
-  show() {
-    this.open = true;
-  }
-  /**
-   * Close the dialog
-   */
-  close() {
-    this.open = false;
-  }
-  render() {
-    return x`
-      <qd-modal .open=${this.open} @qd:modal-close=${this.handleModalClose}>
-        <span slot="header">${this.title}</span>
-
-        <div class="confirm-content">
-          <div class="message">${o(this.message)}</div>
-
-          <div class="button-row">
-            <button type="button" class="cancel-btn" @click=${this.handleCancel}>
-              ${this.cancelText}
-            </button>
-            <button
-              type="button"
-              class="confirm-btn ${this.destructive ? "destructive" : ""}"
-              @click=${this.handleConfirm}
-            >
-              ${this.confirmText}
-            </button>
-          </div>
-        </div>
-      </qd-modal>
-    `;
-  }
-};
-QdConfirmDialog.styles = i$4`
-    :host {
-      display: contents;
-    }
-
-    .confirm-content {
-      padding: 8px 0;
-    }
-
-    .message {
-      font-size: 14px;
-      color: #333;
-      line-height: 1.5;
-      margin-bottom: 24px;
-    }
-
-    .button-row {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-    }
-
-    button {
-      padding: 8px 16px;
-      border: none;
-      border-radius: 4px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-
-    .cancel-btn {
-      background: #e0e0e0;
-      color: #333;
-    }
-
-    .cancel-btn:hover {
-      background: #d0d0d0;
-    }
-
-    .confirm-btn {
-      background: #0066cc;
-      color: white;
-    }
-
-    .confirm-btn:hover {
-      background: #0052a3;
-    }
-
-    .confirm-btn.destructive {
-      background: #d32f2f;
-    }
-
-    .confirm-btn.destructive:hover {
-      background: #b71c1c;
-    }
-  `;
-__decorateClass$e([
-  n2({ type: Boolean, reflect: true })
-], QdConfirmDialog.prototype, "open", 2);
-__decorateClass$e([
-  n2({ type: String })
-], QdConfirmDialog.prototype, "title", 2);
-__decorateClass$e([
-  n2({ type: String })
-], QdConfirmDialog.prototype, "message", 2);
-__decorateClass$e([
-  n2({ type: String })
-], QdConfirmDialog.prototype, "confirmText", 2);
-__decorateClass$e([
-  n2({ type: String })
-], QdConfirmDialog.prototype, "cancelText", 2);
-__decorateClass$e([
-  n2({ type: Boolean })
-], QdConfirmDialog.prototype, "destructive", 2);
-QdConfirmDialog = __decorateClass$e([
-  t$1("qd-confirm-dialog")
-], QdConfirmDialog);
-var __defProp$c = Object.defineProperty;
-var __getOwnPropDesc$d = Object.getOwnPropertyDescriptor;
-var __decorateClass$d = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$d(target, key) : target;
-  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
-    if (decorator = decorators[i3])
-      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$c(target, key, result);
   return result;
 };
 let QdHelpTrigger = class extends i$1 {
@@ -4927,20 +5197,20 @@ QdHelpTrigger.styles = i$4`
       background: #004080;
     }
   `;
-__decorateClass$d([
+__decorateClass$e([
   n2({ type: String })
 ], QdHelpTrigger.prototype, "panelType", 2);
-QdHelpTrigger = __decorateClass$d([
+QdHelpTrigger = __decorateClass$e([
   t$1("qd-help-trigger")
 ], QdHelpTrigger);
-var __defProp$b = Object.defineProperty;
-var __getOwnPropDesc$c = Object.getOwnPropertyDescriptor;
-var __decorateClass$c = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$c(target, key) : target;
+var __defProp$c = Object.defineProperty;
+var __getOwnPropDesc$d = Object.getOwnPropertyDescriptor;
+var __decorateClass$d = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$d(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$b(target, key, result);
+  if (kind && result) __defProp$c(target, key, result);
   return result;
 };
 const HELP_POPUP_STYLES = `
@@ -5091,19 +5361,19 @@ let QdHelpPopup = class extends i$1 {
   }
 };
 QdHelpPopup.styleElement = null;
-__decorateClass$c([
+__decorateClass$d([
   n2({ type: Boolean, reflect: true })
 ], QdHelpPopup.prototype, "open", 2);
-__decorateClass$c([
+__decorateClass$d([
   n2({ type: String })
 ], QdHelpPopup.prototype, "title", 2);
-__decorateClass$c([
+__decorateClass$d([
   n2({ type: String })
 ], QdHelpPopup.prototype, "content", 2);
-__decorateClass$c([
+__decorateClass$d([
   r()
 ], QdHelpPopup.prototype, "_isOpen", 2);
-QdHelpPopup = __decorateClass$c([
+QdHelpPopup = __decorateClass$d([
   t$1("qd-help-popup")
 ], QdHelpPopup);
 const STORE_STUDENTS = "students";
@@ -5371,9 +5641,9 @@ const spinnerStyles = i$4`
     }
   }
 `;
-var __getOwnPropDesc$b = Object.getOwnPropertyDescriptor;
-var __decorateClass$b = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$b(target, key) : target;
+var __getOwnPropDesc$c = Object.getOwnPropertyDescriptor;
+var __decorateClass$c = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$c(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = decorator(result) || result;
@@ -5385,17 +5655,17 @@ let QdSpinner = class extends i$1 {
   }
 };
 QdSpinner.styles = [spinnerStyles];
-QdSpinner = __decorateClass$b([
+QdSpinner = __decorateClass$c([
   t$1("qd-spinner")
 ], QdSpinner);
-var __defProp$a = Object.defineProperty;
-var __getOwnPropDesc$a = Object.getOwnPropertyDescriptor;
-var __decorateClass$a = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$a(target, key) : target;
+var __defProp$b = Object.defineProperty;
+var __getOwnPropDesc$b = Object.getOwnPropertyDescriptor;
+var __decorateClass$b = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$b(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$a(target, key, result);
+  if (kind && result) __defProp$b(target, key, result);
   return result;
 };
 let QdMigrationDialog = class extends i$1 {
@@ -5619,37 +5889,37 @@ let QdMigrationDialog = class extends i$1 {
   }
 };
 QdMigrationDialog.styles = [migrationDialogStyles];
-__decorateClass$a([
+__decorateClass$b([
   n2({ type: Boolean, reflect: true })
 ], QdMigrationDialog.prototype, "open", 2);
-__decorateClass$a([
+__decorateClass$b([
   n2({ type: String })
 ], QdMigrationDialog.prototype, "expected", 2);
-__decorateClass$a([
+__decorateClass$b([
   n2({ type: String })
 ], QdMigrationDialog.prototype, "found", 2);
-__decorateClass$a([
+__decorateClass$b([
   n2({ type: String })
 ], QdMigrationDialog.prototype, "dbName", 2);
-__decorateClass$a([
+__decorateClass$b([
   n2({ type: String })
 ], QdMigrationDialog.prototype, "releaseId", 2);
-__decorateClass$a([
+__decorateClass$b([
   r()
 ], QdMigrationDialog.prototype, "dialogState", 2);
-__decorateClass$a([
+__decorateClass$b([
   r()
 ], QdMigrationDialog.prototype, "password", 2);
-__decorateClass$a([
+__decorateClass$b([
   r()
 ], QdMigrationDialog.prototype, "error", 2);
-__decorateClass$a([
+__decorateClass$b([
   r()
 ], QdMigrationDialog.prototype, "migrationResult", 2);
-__decorateClass$a([
+__decorateClass$b([
   e$2('input[type="password"]')
 ], QdMigrationDialog.prototype, "passwordInput", 2);
-QdMigrationDialog = __decorateClass$a([
+QdMigrationDialog = __decorateClass$b([
   t$1("qd-migration-dialog")
 ], QdMigrationDialog);
 const HELP_CONTENT = {
@@ -5659,7 +5929,8 @@ const HELP_CONTENT = {
   },
   status: {
     title: "Student View",
-    body: '<p>Page color coding:<ul><li><strong style="color:#4caf50">Green</strong>=All correct </li><li><strong style="color:#ff9800">Amber</strong>=Some answered </li><li><strong style="color:#d32f2f">Red</strong>=None yet</li></ul></p><p>You can view your overall progress at attempted questions in the <b>Test Progress</b> panel.</p>'
+    // Each colour has one meaning, matching the state calculator (SRD 013 UX-09)
+    body: '<p>Page badges in the contents:<ul><li><strong style="color:#2e7d32">Green</strong>: every question on the page answered correctly</li><li><strong style="color:#b26a00">Amber</strong>: started, with some questions unanswered or incorrect</li><li><strong style="color:#c62828">Red</strong>: not started</li></ul></p><p>On a quiz page, each answer shows <strong>✓ Correct</strong> or <strong>✗ Incorrect</strong>. You can change an answer at any time.</p><p>The <b>Test progress</b> panel counts the questions you have answered and how many are correct.</p>'
   },
   instructor: {
     title: "Instructor Tools",
@@ -5669,14 +5940,14 @@ const HELP_CONTENT = {
 function getHelpContent(panelType) {
   return HELP_CONTENT[panelType];
 }
-var __defProp$9 = Object.defineProperty;
-var __getOwnPropDesc$9 = Object.getOwnPropertyDescriptor;
-var __decorateClass$9 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$9(target, key) : target;
+var __defProp$a = Object.defineProperty;
+var __getOwnPropDesc$a = Object.getOwnPropertyDescriptor;
+var __decorateClass$a = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$a(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$9(target, key, result);
+  if (kind && result) __defProp$a(target, key, result);
   return result;
 };
 let QdLogin = class extends i$1 {
@@ -5689,15 +5960,17 @@ let QdLogin = class extends i$1 {
     this.isSubmitting = false;
     this.pin = "";
     this.lockoutUntil = 0;
-    this.showPinConfirmation = false;
+    this.touched = /* @__PURE__ */ new Set();
     this.isRegistered = null;
     this.pendingPin = "";
     this.helpOpen = false;
+    this.sessionNotice = "";
     this.showMigrationDialog = false;
     this.migrationError = null;
     this.pendingLoginData = null;
     this.authService = new AuthService();
     this.handleLoginEvent = () => {
+      this.sessionNotice = "";
       this.updateVisibility();
     };
     this.handleLogoutEvent = () => {
@@ -5707,10 +5980,11 @@ let QdLogin = class extends i$1 {
       this.isSubmitting = false;
       this.pin = "";
       this.lockoutUntil = 0;
-      this.showPinConfirmation = false;
+      this.touched = /* @__PURE__ */ new Set();
       this.helpOpen = false;
       this.isRegistered = null;
       this.pendingPin = "";
+      this.takeSessionExpiredNotice();
       this.updateVisibility();
     };
     this.handleLockoutExpired = () => {
@@ -5721,9 +5995,6 @@ let QdLogin = class extends i$1 {
     };
     this.handleHelpClose = () => {
       this.helpOpen = false;
-    };
-    this.handlePinConfirmationDismiss = () => {
-      this.showPinConfirmation = false;
     };
     this.handleMigrationComplete = () => {
       this.showMigrationDialog = false;
@@ -5745,6 +6016,7 @@ let QdLogin = class extends i$1 {
   connectedCallback() {
     super.connectedCallback();
     this.updateVisibility();
+    this.takeSessionExpiredNotice();
     document.addEventListener("qd:logout", this.handleLogoutEvent);
     document.addEventListener("qd:login", this.handleLoginEvent);
   }
@@ -5754,13 +6026,29 @@ let QdLogin = class extends i$1 {
     document.removeEventListener("qd:logout", this.handleLogoutEvent);
     document.removeEventListener("qd:login", this.handleLoginEvent);
   }
+  /**
+   * Show, once, why the last session ended if it timed out. The marker is
+   * written by the session coordinator before it clears the session.
+   */
+  takeSessionExpiredNotice() {
+    if (sessionStorage.getItem(STORAGE_KEYS.SESSION_EXPIRED) === null) {
+      return;
+    }
+    sessionStorage.removeItem(STORAGE_KEYS.SESSION_EXPIRED);
+    const minutes = Math.round(SESSION_TIMEOUT_MS / 6e4);
+    this.sessionNotice = `Your session ended after ${minutes} minutes without activity. Log in again to continue.`;
+  }
   /** Lifecycle: signal readiness once the shadow DOM is rendered. */
   firstUpdated() {
     this.setAttribute("data-ready", "");
   }
-  /** Show the form only when NOT logged in. */
+  /**
+   * Show the form only when nobody is logged in. An instructor session hides
+   * it too, so the form and the instructor panel never render together
+   * (SRD 013 SEC-05).
+   */
   updateVisibility() {
-    this.toggleAttribute("data-show", !hasActiveSession());
+    this.toggleAttribute("data-show", !hasActiveSession() && !isInstructor());
   }
   /** Whether the account is currently within its lockout window. */
   isLockedOut() {
@@ -5775,13 +6063,17 @@ let QdLogin = class extends i$1 {
           <qd-help-trigger panelType="login" @qd:help-open=${this.handleHelpOpen}></qd-help-trigger>
         </div>
 
+        ${this.sessionNotice ? x`<div class="notice-message" role="status">${this.sessionNotice}</div>` : ""}
         <form class="login-form" @submit=${(e2) => this.handleStudentLogin(e2)}>
           <input
             type="text"
             name="name"
             placeholder="Name (J Smith)"
+            aria-label="Name"
+            aria-invalid=${this.fieldErrors.name ? "true" : "false"}
             .value=${this.name}
             @input=${(e2) => this.handleNameInput(e2)}
+            @blur=${() => this.touch("name")}
             ?disabled=${this.isSubmitting}
             required
           />
@@ -5789,8 +6081,11 @@ let QdLogin = class extends i$1 {
             type="text"
             name="serviceId"
             placeholder="Service ID (30012345)"
+            aria-label="Service ID"
+            aria-invalid=${this.fieldErrors.serviceId ? "true" : "false"}
             .value=${this.serviceId}
             @input=${(e2) => this.handleServiceIdInput(e2)}
+            @blur=${() => this.touch("serviceId")}
             ?disabled=${this.isSubmitting}
             pattern="[A-Za-z0-9]{2,10}"
             title="2-10 alphanumeric characters"
@@ -5806,8 +6101,10 @@ let QdLogin = class extends i$1 {
             maxlength="4"
             autocomplete="off"
             aria-label="Enter your 4-digit PIN"
+            aria-invalid=${this.fieldErrors.pin ? "true" : "false"}
             .value=${this.pin}
             @input=${(e2) => this.handlePinInput(e2)}
+            @blur=${() => this.touch("pin")}
             ?disabled=${this.isSubmitting || this.isLockedOut()}
             required
           />
@@ -5819,22 +6116,15 @@ let QdLogin = class extends i$1 {
             ${this.submitLabel}
           </button>
           <qd-instructor-login ?disabled=${this.isSubmitting}></qd-instructor-login>
-          ${this.errorMessage ? x`<div class="error-message">${this.errorMessage}</div>` : this.validationHint ? x`<div class="hint-message" role="status">${this.validationHint}</div>` : ""}
+          <div class="message-slot">
+            ${this.errorMessage ? x`<div class="error-message" role="alert">${this.errorMessage}</div>` : this.validationHint ? x`<div class="hint-message" role="status">${this.validationHint}</div>` : ""}
+          </div>
           <qd-lockout-banner
             .untilMs=${this.lockoutUntil}
             @qd:lockout-expired=${this.handleLockoutExpired}
           ></qd-lockout-banner>
         </form>
       </div>
-      <qd-confirm-dialog
-        .open=${this.showPinConfirmation}
-        title="PIN Stored"
-        message="Your PIN has been saved. Use it with your name and service ID on future logins."
-        confirmText="OK"
-        cancelText=""
-        @qd:confirm=${this.handlePinConfirmationDismiss}
-        @qd:cancel=${this.handlePinConfirmationDismiss}
-      ></qd-confirm-dialog>
       <qd-help-popup
         .open=${this.helpOpen}
         .title=${getHelpContent("login").title}
@@ -5855,10 +6145,12 @@ let QdLogin = class extends i$1 {
   handleNameInput(e2) {
     this.name = e2.target.value;
     this.errorMessage = "";
+    this.touch("name");
   }
   handleServiceIdInput(e2) {
     this.serviceId = e2.target.value;
     this.errorMessage = "";
+    this.touch("serviceId");
     this.pendingPin = "";
     this.scheduleRegistrationCheck();
   }
@@ -5906,6 +6198,24 @@ let QdLogin = class extends i$1 {
   handlePinInput(e2) {
     this.pin = sanitizePinInput(e2.target.value);
     this.errorMessage = "";
+    this.touch("pin");
+  }
+  /** Mark a field as touched so its validation message may show. */
+  touch(field) {
+    if (!this.touched.has(field)) {
+      this.touched = /* @__PURE__ */ new Set([...this.touched, field]);
+    }
+  }
+  /** Validation messages for touched fields only. */
+  get fieldErrors() {
+    const all = validateStudentFields(this.name, this.serviceId, this.pin);
+    const shown = {};
+    for (const field of this.touched) {
+      if (all[field]) {
+        shown[field] = all[field];
+      }
+    }
+    return shown;
   }
   /** Whether the student form passes validation. */
   isValid() {
@@ -5930,7 +6240,7 @@ let QdLogin = class extends i$1 {
     if (!this.name && !this.serviceId && !this.pin) {
       return "";
     }
-    return validateStudentForm(this.name, this.serviceId, this.pin)[0] ?? "";
+    return Object.values(validateStudentFields(this.name, this.serviceId, this.pin)).join(" · ");
   }
   /**
    * Handle student login: validate, resolve release/db-name, delegate to
@@ -5939,6 +6249,7 @@ let QdLogin = class extends i$1 {
   async handleStudentLogin(e2) {
     e2.preventDefault();
     if (!this.isValid()) {
+      this.touched = /* @__PURE__ */ new Set(["name", "serviceId", "pin"]);
       this.errorMessage = "Please enter name, service ID, and 4-digit PIN";
       return;
     }
@@ -5986,7 +6297,6 @@ let QdLogin = class extends i$1 {
     switch (result.kind) {
       case "pin-created":
         this.dispatchPinEvent("qd:pin-created", result.serviceId);
-        this.showPinStoredConfirmation();
         this.completeLogin(result.serviceId, result.name, result.release);
         break;
       case "pin-verified":
@@ -6019,9 +6329,6 @@ let QdLogin = class extends i$1 {
       })
     );
   }
-  showPinStoredConfirmation() {
-    this.showPinConfirmation = true;
-  }
   /** Retry login after migration (skips the lockout pre-check). */
   async retryLoginAfterMigration(serviceId, name, release) {
     this.isSubmitting = true;
@@ -6048,67 +6355,70 @@ let QdLogin = class extends i$1 {
   }
 };
 QdLogin.styles = loginStyles;
-__decorateClass$9([
+__decorateClass$a([
   n2({ type: String })
 ], QdLogin.prototype, "title", 2);
-__decorateClass$9([
+__decorateClass$a([
   r()
 ], QdLogin.prototype, "name", 2);
-__decorateClass$9([
+__decorateClass$a([
   r()
 ], QdLogin.prototype, "serviceId", 2);
-__decorateClass$9([
+__decorateClass$a([
   r()
 ], QdLogin.prototype, "errorMessage", 2);
-__decorateClass$9([
+__decorateClass$a([
   r()
 ], QdLogin.prototype, "isSubmitting", 2);
-__decorateClass$9([
+__decorateClass$a([
   r()
 ], QdLogin.prototype, "pin", 2);
-__decorateClass$9([
+__decorateClass$a([
   r()
 ], QdLogin.prototype, "lockoutUntil", 2);
-__decorateClass$9([
+__decorateClass$a([
   r()
-], QdLogin.prototype, "showPinConfirmation", 2);
-__decorateClass$9([
+], QdLogin.prototype, "touched", 2);
+__decorateClass$a([
   r()
 ], QdLogin.prototype, "isRegistered", 2);
-__decorateClass$9([
+__decorateClass$a([
   r()
 ], QdLogin.prototype, "pendingPin", 2);
-__decorateClass$9([
+__decorateClass$a([
   r()
 ], QdLogin.prototype, "helpOpen", 2);
-__decorateClass$9([
+__decorateClass$a([
+  r()
+], QdLogin.prototype, "sessionNotice", 2);
+__decorateClass$a([
   r()
 ], QdLogin.prototype, "showMigrationDialog", 2);
-__decorateClass$9([
+__decorateClass$a([
   r()
 ], QdLogin.prototype, "migrationError", 2);
-__decorateClass$9([
+__decorateClass$a([
   r()
 ], QdLogin.prototype, "pendingLoginData", 2);
-QdLogin = __decorateClass$9([
+QdLogin = __decorateClass$a([
   t$1("qd-login")
 ], QdLogin);
-var __defProp$8 = Object.defineProperty;
-var __getOwnPropDesc$8 = Object.getOwnPropertyDescriptor;
-var __decorateClass$8 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$8(target, key) : target;
+var __defProp$9 = Object.defineProperty;
+var __getOwnPropDesc$9 = Object.getOwnPropertyDescriptor;
+var __decorateClass$9 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$9(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$8(target, key, result);
+  if (kind && result) __defProp$9(target, key, result);
   return result;
 };
 let QdStatus = class extends i$1 {
   constructor() {
     super(...arguments);
-    this.total = 0;
+    this.answered = 0;
     this.correct = 0;
-    this.percentage = 0;
+    this.questionTotal = void 0;
     this.statusColor = "red";
     this.name = "";
     this.serviceId = "";
@@ -6168,7 +6478,7 @@ let QdStatus = class extends i$1 {
         <div class="bottom-row">
           <div class="status-indicator ${this.statusColor}"></div>
           <div class="progress-text">
-            ${this.correct}/${this.total} Correct (${this.percentage}%)
+            ${formatProgress(this.answered, this.correct, this.questionTotal)}
           </div>
         </div>
       </div>
@@ -6192,27 +6502,11 @@ let QdStatus = class extends i$1 {
       this.name = "";
       this.serviceId = "";
     }
+    this.questionTotal = readQuestionTotal();
     const cache = getJSON(STORAGE_KEYS.CACHE);
-    if (!cache) {
-      this.total = 0;
-      this.correct = 0;
-      this.percentage = 0;
-      this.statusColor = "red";
-      return;
-    }
-    this.total = cache.totals.total;
-    this.correct = cache.totals.correct;
-    this.percentage = calculatePercentage(cache.totals.correct, cache.totals.total);
-    this.statusColor = this.calculateStatusColor(cache.totals.total, cache.totals.correct);
-  }
-  /**
-   * Calculate status indicator color using calculation helper
-   * Red: No questions registered or no answers
-   * Green: All questions answered correctly
-   * Amber: Some answered but not all correct
-   */
-  calculateStatusColor(total, correct) {
-    return calculateStatusIndicator(total, correct);
+    this.answered = cache?.totals.answered ?? 0;
+    this.correct = cache?.totals.correct ?? 0;
+    this.statusColor = calculateProgressIndicator(this.answered, this.correct, this.questionTotal);
   }
   /**
    * Update visibility based on session state
@@ -6333,28 +6627,28 @@ QdStatus.styles = i$4`
       background: #b71c1c;
     }
   `;
-__decorateClass$8([
+__decorateClass$9([
   r()
-], QdStatus.prototype, "total", 2);
-__decorateClass$8([
+], QdStatus.prototype, "answered", 2);
+__decorateClass$9([
   r()
 ], QdStatus.prototype, "correct", 2);
-__decorateClass$8([
+__decorateClass$9([
   r()
-], QdStatus.prototype, "percentage", 2);
-__decorateClass$8([
+], QdStatus.prototype, "questionTotal", 2);
+__decorateClass$9([
   r()
 ], QdStatus.prototype, "statusColor", 2);
-__decorateClass$8([
+__decorateClass$9([
   r()
 ], QdStatus.prototype, "name", 2);
-__decorateClass$8([
+__decorateClass$9([
   r()
 ], QdStatus.prototype, "serviceId", 2);
-__decorateClass$8([
+__decorateClass$9([
   r()
 ], QdStatus.prototype, "helpOpen", 2);
-QdStatus = __decorateClass$8([
+QdStatus = __decorateClass$9([
   t$1("qd-status")
 ], QdStatus);
 const sharedStyles = i$4`
@@ -6442,15 +6736,16 @@ const sharedStyles = i$4`
     font-size: 13px;
   }
 
+  /* #0062cc keeps white text above WCAG AA 4.5:1 (#007bff was 3.98:1; SRD 013 A11Y-04) */
   button.primary {
-    background: #007bff;
+    background: #0062cc;
     color: white;
-    border-color: #007bff;
+    border-color: #0062cc;
   }
 
   button.primary:hover {
-    background: #0056b3;
-    border-color: #0056b3;
+    background: #004c9e;
+    border-color: #004c9e;
   }
 
   button.secondary {
@@ -6473,6 +6768,31 @@ const sharedStyles = i$4`
   button.danger:hover {
     background: #c82333;
     border-color: #c82333;
+  }
+
+  /*
+   * Destructive actions sit apart from routine ones and stay quiet until used
+   * (SRD 013 UX-08): an outline on the dark toolbar, filled only on hover.
+   */
+  .danger-zone {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 12px;
+    margin-left: 4px;
+    border-left: 1px solid rgba(255, 255, 255, 0.35);
+  }
+
+  button.outline-danger {
+    background: transparent;
+    color: #ffcdd2;
+    border-color: #e57373;
+  }
+
+  button.outline-danger:hover {
+    background: #c62828;
+    color: white;
+    border-color: #c62828;
   }
 
   button.logout {
@@ -6600,14 +6920,14 @@ const sharedStyles = i$4`
     color: #000;
   }
 `;
-var __defProp$7 = Object.defineProperty;
-var __getOwnPropDesc$7 = Object.getOwnPropertyDescriptor;
-var __decorateClass$7 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$7(target, key) : target;
+var __defProp$8 = Object.defineProperty;
+var __getOwnPropDesc$8 = Object.getOwnPropertyDescriptor;
+var __decorateClass$8 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$8(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$7(target, key, result);
+  if (kind && result) __defProp$8(target, key, result);
   return result;
 };
 let QdInstructorUnlock = class extends i$1 {
@@ -6636,8 +6956,7 @@ let QdInstructorUnlock = class extends i$1 {
         if (!expectedHash) {
           throw new Error("Instructor password hash not configured");
         }
-        const actualHash = await hashPassword(this.password);
-        const valid = await constantTimeCompare(actualHash, expectedHash);
+        const valid = await startInstructorSession(this.password);
         if (valid) {
           this.rateLimiter.reset();
           this.password = "";
@@ -6709,26 +7028,43 @@ let QdInstructorUnlock = class extends i$1 {
   }
 };
 QdInstructorUnlock.styles = sharedStyles;
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdInstructorUnlock.prototype, "password", 2);
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdInstructorUnlock.prototype, "error", 2);
-__decorateClass$7([
+__decorateClass$8([
   r()
 ], QdInstructorUnlock.prototype, "remainingSeconds", 2);
-QdInstructorUnlock = __decorateClass$7([
+QdInstructorUnlock = __decorateClass$8([
   t$1("qd-instructor-unlock")
 ], QdInstructorUnlock);
-var __defProp$6 = Object.defineProperty;
-var __getOwnPropDesc$6 = Object.getOwnPropertyDescriptor;
-var __decorateClass$6 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$6(target, key) : target;
+function summariseFirstAttempts(student) {
+  let tracked = 0;
+  let correctFirstTime = 0;
+  let untracked = 0;
+  for (const page of Object.values(student.pages)) {
+    for (const answer of page.answers ?? []) {
+      if (!answer || answer.answer.trim() === "") continue;
+      if (answer.firstSuccess === void 0) {
+        untracked++;
+      } else {
+        tracked++;
+        if (answer.firstSuccess) correctFirstTime++;
+      }
+    }
+  }
+  return { tracked, correctFirstTime, untracked };
+}
+var __defProp$7 = Object.defineProperty;
+var __getOwnPropDesc$7 = Object.getOwnPropertyDescriptor;
+var __decorateClass$7 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$7(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$6(target, key, result);
+  if (kind && result) __defProp$7(target, key, result);
   return result;
 };
 let QdScoresModal = class extends i$1 {
@@ -6824,6 +7160,14 @@ let QdScoresModal = class extends i$1 {
             color: #721c24;
             border: 1px solid #f5c6cb;
           }
+          .scores-content .analysis-badge {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            background: #e8eaf6;
+            color: #283593;
+          }
+
           .scores-content .no-answers {
             color: #999;
             font-style: italic;
@@ -6844,7 +7188,9 @@ let QdScoresModal = class extends i$1 {
           <tr>
             <th>Student</th>
             <th>Service ID</th>
-            <th>Score</th>
+            <th>Answered</th>
+            <th>Correct</th>
+            <th>Right first time</th>
             <th>Answers</th>
           </tr>
         </thead>
@@ -6861,9 +7207,11 @@ let QdScoresModal = class extends i$1 {
       <tr class="student-row">
         <td>${summary.name}</td>
         <td>${summary.serviceId}</td>
+        <td>${this.answeredText(summary.attempted)}</td>
         <td class=${this.getScoreClass(summary)}>
-          ${summary.correct}/${summary.attempted} (${summary.percentage}%)
+          ${summary.attempted > 0 ? `${summary.correct} (${summary.percentage}% of answered)` : "0"}
         </td>
+        <td>${this.firstTimeText(student)}</td>
         <td>
           ${pages.length === 0 ? x`<span class="no-answers">—</span>` : x`
                 <div class="answers-cell">
@@ -6872,12 +7220,16 @@ let QdScoresModal = class extends i$1 {
                       <div class="page-row">
                         <span class="page-name">${pageId}</span>
                         <div class="page-answers">
+                          ${pageData.analysis ? x`<span class="analysis-badge"
+                                >${this.analysisSummary(pageData.analysis)}</span
+                              >` : ""}
                           ${pageData.answers.map(
         (answer, idx) => x`
                               <span
                                 class="answer-badge ${answer?.success ? "correct" : "incorrect"}"
                               >
-                                Q${idx + 1}: ${answer?.answer ?? "—"}
+                                Q${idx + 1}:
+                                ${answer?.answer ?? "—"}${answer?.attempts && answer.attempts > 1 ? ` (${answer.attempts} tries)` : ""}
                               </span>
                             `
       )}
@@ -6890,6 +7242,35 @@ let QdScoresModal = class extends i$1 {
         </td>
       </tr>
     `;
+  }
+  /**
+   * "2 of 6 cells" for a page's analysis table, so analysis work shows in the
+   * scores view (SRD 013 ANA-05). Older records lack the cell count.
+   */
+  analysisSummary(analysis) {
+    const filled = countFilledCells(analysis);
+    return analysis.totalCells !== void 0 ? `Analysis: ${filled} of ${analysis.totalCells} cells` : `Analysis: ${filled} cell${filled === 1 ? "" : "s"}`;
+  }
+  /**
+   * Questions answered, against the publication total when it is known
+   * (SRD 013 SCO-04). Scores used to divide by answered questions only, so
+   * one right answer read as 100%.
+   */
+  answeredText(answered) {
+    const total = readQuestionTotal();
+    return total !== void 0 ? `${answered} of ${total}` : String(answered);
+  }
+  /**
+   * Right-first-time count. Answers from before attempts were tracked show
+   * as unknown rather than guessed (SCO-04, SCO-07).
+   */
+  firstTimeText(student) {
+    const { tracked, correctFirstTime, untracked } = summariseFirstAttempts(student);
+    if (tracked === 0) {
+      return "–";
+    }
+    const text = `${correctFirstTime} of ${tracked}`;
+    return untracked > 0 ? `${text} (${untracked} older answer${untracked === 1 ? "" : "s"} –)` : text;
   }
   getScoreClass(summary) {
     if (summary.attempted === 0) return "";
@@ -6925,23 +7306,23 @@ QdScoresModal.styles = i$4`
       display: contents;
     }
   `;
-__decorateClass$6([
+__decorateClass$7([
   n2({ type: Boolean, reflect: true })
 ], QdScoresModal.prototype, "open", 2);
-__decorateClass$6([
+__decorateClass$7([
   n2({ type: Array })
 ], QdScoresModal.prototype, "students", 2);
-QdScoresModal = __decorateClass$6([
+QdScoresModal = __decorateClass$7([
   t$1("qd-scores-modal")
 ], QdScoresModal);
-var __defProp$5 = Object.defineProperty;
-var __getOwnPropDesc$5 = Object.getOwnPropertyDescriptor;
-var __decorateClass$5 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$5(target, key) : target;
+var __defProp$6 = Object.defineProperty;
+var __getOwnPropDesc$6 = Object.getOwnPropertyDescriptor;
+var __decorateClass$6 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$6(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$5(target, key, result);
+  if (kind && result) __defProp$6(target, key, result);
   return result;
 };
 let QdInstructorScores = class extends i$1 {
@@ -6964,23 +7345,23 @@ let QdInstructorScores = class extends i$1 {
   }
 };
 QdInstructorScores.styles = sharedStyles;
-__decorateClass$5([
+__decorateClass$6([
   n2({ type: Array })
 ], QdInstructorScores.prototype, "students", 2);
-__decorateClass$5([
+__decorateClass$6([
   n2({ type: Boolean })
 ], QdInstructorScores.prototype, "showModal", 2);
-QdInstructorScores = __decorateClass$5([
+QdInstructorScores = __decorateClass$6([
   t$1("qd-instructor-scores")
 ], QdInstructorScores);
-var __defProp$4 = Object.defineProperty;
-var __getOwnPropDesc$4 = Object.getOwnPropertyDescriptor;
-var __decorateClass$4 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$4(target, key) : target;
+var __defProp$5 = Object.defineProperty;
+var __getOwnPropDesc$5 = Object.getOwnPropertyDescriptor;
+var __decorateClass$5 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$5(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$4(target, key, result);
+  if (kind && result) __defProp$5(target, key, result);
   return result;
 };
 let QdInstructorExport = class extends i$1 {
@@ -7012,34 +7393,72 @@ let QdInstructorExport = class extends i$1 {
     }
     return str;
   }
+  /**
+   * Build the CSV.
+   *
+   * The first eight columns keep their original order so existing
+   * spreadsheets still line up; new columns are appended (SRD 013 ANA-02).
+   * Analysis entries get one row each, with the row label (or the cell key
+   * when no label was stored) in the Question Index column, an empty Success
+   * and the table's last-edited time (SRD 013 ANA-01).
+   */
   generateCSV() {
     const rows = [];
-    rows.push("Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp");
+    rows.push(
+      "Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp,Kind,Attempts,First Attempt Correct"
+    );
     for (const student of this.students) {
+      const who = [student.serviceId, student.name, student.release];
       for (const [pageId, pageData] of Object.entries(student.pages)) {
         const answers = pageData.answers || [];
         answers.forEach((answer, index) => {
           if (answer) {
             rows.push(
-              [
-                this.escapeCSVField(student.serviceId),
-                this.escapeCSVField(student.name),
-                this.escapeCSVField(student.release),
-                this.escapeCSVField(pageId),
-                this.escapeCSVField(index),
-                this.escapeCSVField(answer.answer),
-                this.escapeCSVField(answer.success),
-                this.escapeCSVField(answer.timestamp)
-              ].join(",")
+              this.csvRow([
+                ...who,
+                pageId,
+                index,
+                answer.answer,
+                answer.success,
+                answer.timestamp,
+                "quiz",
+                // Empty for answers from before attempts were tracked (SCO-06, SCO-07)
+                answer.attempts ?? "",
+                answer.firstSuccess ?? ""
+              ])
             );
           }
         });
+        const analysis = pageData.analysis;
+        if (analysis) {
+          for (const [cellKey, text] of Object.entries(analysis.cells)) {
+            if (text.trim() === "") continue;
+            rows.push(
+              this.csvRow([
+                ...who,
+                pageId,
+                analysis.labels?.[cellKey] ?? cellKey,
+                text,
+                "",
+                analysis.lastEdited ?? "",
+                "analysis",
+                "",
+                ""
+              ])
+            );
+          }
+        }
       }
     }
     return rows.join("\n");
   }
+  csvRow(fields) {
+    return fields.map((field) => this.escapeCSVField(field)).join(",");
+  }
   render() {
-    const hasData = this.students.length > 0 && this.students.some((student) => student.attempted > 0);
+    const hasData = this.students.length > 0 && this.students.some(
+      (student) => student.attempted > 0 || Object.values(student.pages).some((page) => countFilledCells(page.analysis) > 0)
+    );
     const tooltip = hasData ? `Export ${this.students.length} student${this.students.length === 1 ? "" : "s"} to CSV` : this.students.length > 0 ? "No answers to export (students have not answered any questions)" : "No data to export";
     return x`
       <button
@@ -7054,20 +7473,20 @@ let QdInstructorExport = class extends i$1 {
   }
 };
 QdInstructorExport.styles = sharedStyles;
-__decorateClass$4([
+__decorateClass$5([
   n2({ type: Array })
 ], QdInstructorExport.prototype, "students", 2);
-QdInstructorExport = __decorateClass$4([
+QdInstructorExport = __decorateClass$5([
   t$1("qd-instructor-export")
 ], QdInstructorExport);
-var __defProp$3 = Object.defineProperty;
-var __getOwnPropDesc$3 = Object.getOwnPropertyDescriptor;
-var __decorateClass$3 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$3(target, key) : target;
+var __defProp$4 = Object.defineProperty;
+var __getOwnPropDesc$4 = Object.getOwnPropertyDescriptor;
+var __decorateClass$4 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$4(target, key) : target;
   for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
     if (decorator = decorators[i3])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$3(target, key, result);
+  if (kind && result) __defProp$4(target, key, result);
   return result;
 };
 let QdInstructorManage = class extends i$1 {
@@ -7075,27 +7494,48 @@ let QdInstructorManage = class extends i$1 {
     super(...arguments);
     this.showConfirmDialog = false;
     this.confirmText = "";
+    this.password = "";
+    this.checking = false;
     this.error = "";
     this.success = "";
     this.modalContainer = null;
+    this.handleKeydown = (e2) => {
+      if (e2.key === "Escape" && this.showConfirmDialog) {
+        this.handleCancelClear();
+      }
+    };
     this.handleClearRequest = () => {
       this.showConfirmDialog = true;
       this.confirmText = "";
+      this.password = "";
       this.error = "";
       this.success = "";
     };
     this.handleCancelClear = () => {
       this.showConfirmDialog = false;
       this.confirmText = "";
+      this.password = "";
       this.error = "";
     };
     this.handleConfirmInput = (e2) => {
       const input = e2.target;
       this.confirmText = input.value;
     };
+    this.handlePasswordInput = (e2) => {
+      this.password = e2.target.value;
+      this.error = "";
+    };
     this.handleConfirmClear = async () => {
       if (this.confirmText !== "DELETE ALL DATA") {
         this.error = "Confirmation text does not match";
+        return;
+      }
+      this.checking = true;
+      const reauth = await confirmInstructorPassword(this.password);
+      this.checking = false;
+      if (!reauth.ok) {
+        this.error = reauthErrorMessage(reauth);
+        this.password = "";
         return;
       }
       try {
@@ -7105,6 +7545,7 @@ let QdInstructorManage = class extends i$1 {
         this.success = "All quiz data cleared successfully";
         this.showConfirmDialog = false;
         this.confirmText = "";
+        this.password = "";
         this.error = "";
         setTimeout(() => {
           this.success = "";
@@ -7117,17 +7558,21 @@ let QdInstructorManage = class extends i$1 {
   disconnectedCallback() {
     super.disconnectedCallback();
     this.removeModalFromBody();
+    document.removeEventListener("keydown", this.handleKeydown);
   }
   updated(changedProperties) {
     super.updated(changedProperties);
     if (changedProperties.has("showConfirmDialog")) {
       if (this.showConfirmDialog) {
         this.renderModalToBody();
+        document.addEventListener("keydown", this.handleKeydown);
+        this.modalContainer?.querySelector("input")?.focus();
       } else {
         this.removeModalFromBody();
+        document.removeEventListener("keydown", this.handleKeydown);
       }
     }
-    if (this.showConfirmDialog && (changedProperties.has("confirmText") || changedProperties.has("error"))) {
+    if (this.showConfirmDialog && (changedProperties.has("confirmText") || changedProperties.has("password") || changedProperties.has("checking") || changedProperties.has("error"))) {
       this.renderModalToBody();
     }
   }
@@ -7149,7 +7594,7 @@ let QdInstructorManage = class extends i$1 {
     return x`
       <button
         @click=${this.handleClearRequest}
-        class="danger compact"
+        class="danger outline-danger compact"
         title="Clear all student quiz data and progress"
       >
         Erase All Data
@@ -7165,7 +7610,7 @@ let QdInstructorManage = class extends i$1 {
     `;
   }
   renderConfirmDialog() {
-    const isValid = this.confirmText === "DELETE ALL DATA";
+    const isValid = this.confirmText === "DELETE ALL DATA" && this.password.length > 0 && !this.checking;
     return x`
       <div
         class="qd-manage-modal-overlay"
@@ -7175,16 +7620,23 @@ let QdInstructorManage = class extends i$1 {
     }}
       >
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="qd-erase-title"
           style="background: white; border-radius: 8px; padding: 24px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);"
           @click=${(e2) => e2.stopPropagation()}
         >
           <div
             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;"
           >
-            <h2 style="font-size: 18px; font-weight: 600; margin: 0; color: #000;">
+            <h2
+              id="qd-erase-title"
+              style="font-size: 18px; font-weight: 600; margin: 0; color: #000;"
+            >
               Confirm Data Deletion
             </h2>
             <button
+              aria-label="Close"
               style="padding: 4px 8px; border: none; background: transparent; font-size: 20px; cursor: pointer; color: #666;"
               @click=${this.handleCancelClear}
             >
@@ -7200,20 +7652,36 @@ let QdInstructorManage = class extends i$1 {
             This action cannot be undone. All students will need to start over.
           </p>
 
-          <p style="margin: 12px 0; color: #333;">
+          <label for="qd-erase-confirm" style="display: block; margin: 12px 0 0; color: #333;">
             Type <strong>DELETE ALL DATA</strong> to confirm:
-          </p>
+          </label>
 
           <input
+            id="qd-erase-confirm"
             type="text"
             .value=${this.confirmText}
             @input=${this.handleConfirmInput}
             placeholder="DELETE ALL DATA"
-            style="width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; margin: 16px 0; box-sizing: border-box;"
+            style="width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; margin: 8px 0 16px; box-sizing: border-box;"
             autocomplete="off"
           />
 
-          ${this.error ? x`<div style="color: #dc3545; font-size: 14px; margin: 8px 0;">${this.error}</div>` : ""}
+          <label for="qd-erase-password" style="display: block; margin: 0; color: #333;">
+            Instructor password:
+          </label>
+
+          <input
+            id="qd-erase-password"
+            type="password"
+            .value=${this.password}
+            @input=${this.handlePasswordInput}
+            style="width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; margin: 8px 0 16px; box-sizing: border-box;"
+            autocomplete="current-password"
+          />
+
+          ${this.error ? x`<div role="alert" style="color: #dc3545; font-size: 14px; margin: 8px 0;">
+                ${this.error}
+              </div>` : ""}
 
           <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px;">
             <button
@@ -7236,19 +7704,25 @@ let QdInstructorManage = class extends i$1 {
   }
 };
 QdInstructorManage.styles = sharedStyles;
-__decorateClass$3([
+__decorateClass$4([
   r()
 ], QdInstructorManage.prototype, "showConfirmDialog", 2);
-__decorateClass$3([
+__decorateClass$4([
   r()
 ], QdInstructorManage.prototype, "confirmText", 2);
-__decorateClass$3([
+__decorateClass$4([
+  r()
+], QdInstructorManage.prototype, "password", 2);
+__decorateClass$4([
+  r()
+], QdInstructorManage.prototype, "checking", 2);
+__decorateClass$4([
   r()
 ], QdInstructorManage.prototype, "error", 2);
-__decorateClass$3([
+__decorateClass$4([
   r()
 ], QdInstructorManage.prototype, "success", 2);
-QdInstructorManage = __decorateClass$3([
+QdInstructorManage = __decorateClass$4([
   t$1("qd-instructor-manage")
 ], QdInstructorManage);
 async function resetStudentPin(student) {
@@ -7278,6 +7752,217 @@ async function resetStudentPin(student) {
     return { ok: false, error: "Failed to reset PIN. Please try again." };
   }
 }
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+const t = { CHILD: 2 }, e$1 = (t2) => (...e2) => ({ _$litDirective$: t2, values: e2 });
+class i2 {
+  constructor(t2) {
+  }
+  get _$AU() {
+    return this._$AM._$AU;
+  }
+  _$AT(t2, e2, i3) {
+    this._$Ct = t2, this._$AM = e2, this._$Ci = i3;
+  }
+  _$AS(t2, e2) {
+    return this.update(t2, e2);
+  }
+  update(t2, e2) {
+    return this.render(...e2);
+  }
+}
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+class e extends i2 {
+  constructor(i3) {
+    if (super(i3), this.it = E, i3.type !== t.CHILD) throw Error(this.constructor.directiveName + "() can only be used in child bindings");
+  }
+  render(r2) {
+    if (r2 === E || null == r2) return this._t = void 0, this.it = r2;
+    if (r2 === T) return r2;
+    if ("string" != typeof r2) throw Error(this.constructor.directiveName + "() called with a non-string value");
+    if (r2 === this.it) return this._t;
+    this.it = r2;
+    const s2 = [r2];
+    return s2.raw = s2, this._t = { _$litType$: this.constructor.resultType, strings: s2, values: [] };
+  }
+}
+e.directiveName = "unsafeHTML", e.resultType = 1;
+const o = e$1(e);
+var __defProp$3 = Object.defineProperty;
+var __getOwnPropDesc$3 = Object.getOwnPropertyDescriptor;
+var __decorateClass$3 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$3(target, key) : target;
+  for (var i3 = decorators.length - 1, decorator; i3 >= 0; i3--)
+    if (decorator = decorators[i3])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result) __defProp$3(target, key, result);
+  return result;
+};
+const CONTENT_STYLES = {
+  content: "padding: 8px 0;",
+  message: "font-size: 14px; color: #333; line-height: 1.5; margin-bottom: 16px;",
+  label: "display: block; font-size: 13px; color: #333; margin: 0 0 4px;",
+  input: "width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; margin-bottom: 16px;",
+  row: "display: flex; gap: 8px; justify-content: flex-end;",
+  button: "padding: 8px 16px; border: none; border-radius: 4px; font-size: 13px; font-weight: 500; cursor: pointer;",
+  cancel: "background: #e0e0e0; color: #333;",
+  confirm: "background: #0066cc; color: white;",
+  destructive: "background: #d32f2f; color: white;",
+  disabled: "background: #ccc; color: white; cursor: not-allowed;"
+};
+let QdConfirmDialog = class extends i$1 {
+  constructor() {
+    super(...arguments);
+    this.open = false;
+    this.title = "Confirm";
+    this.message = "";
+    this.confirmText = "Confirm";
+    this.cancelText = "Cancel";
+    this.destructive = false;
+    this.requirePassword = false;
+    this.password = "";
+    this.handleModalClose = () => {
+      this.close();
+      this.dispatchEvent(
+        new CustomEvent("qd:cancel", {
+          bubbles: true,
+          composed: true
+        })
+      );
+    };
+    this.handleConfirm = () => {
+      if (this.requirePassword && !this.password) {
+        return;
+      }
+      const password = this.password;
+      this.password = "";
+      this.close();
+      this.dispatchEvent(
+        new CustomEvent("qd:confirm", {
+          detail: this.requirePassword ? { password } : void 0,
+          bubbles: true,
+          composed: true
+        })
+      );
+    };
+    this.handlePasswordInput = (e2) => {
+      this.password = e2.target.value;
+    };
+    this.handleCancel = () => {
+      this.password = "";
+      this.close();
+      this.dispatchEvent(
+        new CustomEvent("qd:cancel", {
+          bubbles: true,
+          composed: true
+        })
+      );
+    };
+  }
+  /**
+   * Show the dialog
+   */
+  show() {
+    this.open = true;
+  }
+  /**
+   * Close the dialog
+   */
+  close() {
+    this.open = false;
+  }
+  /** Confirm stays disabled until a required password has been typed. */
+  get confirmBlocked() {
+    return this.requirePassword && !this.password;
+  }
+  render() {
+    return x`
+      <qd-modal .open=${this.open} @qd:modal-close=${this.handleModalClose}>
+        <span slot="header">${this.title}</span>
+
+        <div class="confirm-content" style=${CONTENT_STYLES.content}>
+          <div class="message" style=${CONTENT_STYLES.message}>${o(this.message)}</div>
+
+          ${this.requirePassword ? x`<label
+                  class="password-label"
+                  for="qd-confirm-password"
+                  style=${CONTENT_STYLES.label}
+                  >Instructor password</label
+                >
+                <input
+                  id="qd-confirm-password"
+                  class="password-input"
+                  type="password"
+                  autocomplete="current-password"
+                  .value=${this.password}
+                  @input=${this.handlePasswordInput}
+                  @keydown=${(e2) => e2.key === "Enter" && this.handleConfirm()}
+                  style=${CONTENT_STYLES.input}
+                />` : E}
+
+          <div class="button-row" style=${CONTENT_STYLES.row}>
+            ${this.cancelText ? x`<button
+                  type="button"
+                  class="cancel-btn"
+                  style=${CONTENT_STYLES.button + CONTENT_STYLES.cancel}
+                  @click=${this.handleCancel}
+                >
+                  ${this.cancelText}
+                </button>` : E}
+            <button
+              type="button"
+              class="confirm-btn ${this.destructive ? "destructive" : ""}"
+              style=${CONTENT_STYLES.button + (this.confirmBlocked ? CONTENT_STYLES.disabled : this.destructive ? CONTENT_STYLES.destructive : CONTENT_STYLES.confirm)}
+              ?disabled=${this.confirmBlocked}
+              @click=${this.handleConfirm}
+            >
+              ${this.confirmText}
+            </button>
+          </div>
+        </div>
+      </qd-modal>
+    `;
+  }
+};
+QdConfirmDialog.styles = i$4`
+    :host {
+      display: contents;
+    }
+  `;
+__decorateClass$3([
+  n2({ type: Boolean, reflect: true })
+], QdConfirmDialog.prototype, "open", 2);
+__decorateClass$3([
+  n2({ type: String })
+], QdConfirmDialog.prototype, "title", 2);
+__decorateClass$3([
+  n2({ type: String })
+], QdConfirmDialog.prototype, "message", 2);
+__decorateClass$3([
+  n2({ type: String })
+], QdConfirmDialog.prototype, "confirmText", 2);
+__decorateClass$3([
+  n2({ type: String })
+], QdConfirmDialog.prototype, "cancelText", 2);
+__decorateClass$3([
+  n2({ type: Boolean })
+], QdConfirmDialog.prototype, "destructive", 2);
+__decorateClass$3([
+  n2({ type: Boolean })
+], QdConfirmDialog.prototype, "requirePassword", 2);
+__decorateClass$3([
+  r()
+], QdConfirmDialog.prototype, "password", 2);
+QdConfirmDialog = __decorateClass$3([
+  t$1("qd-confirm-dialog")
+], QdConfirmDialog);
 var __defProp$2 = Object.defineProperty;
 var __getOwnPropDesc$2 = Object.getOwnPropertyDescriptor;
 var __decorateClass$2 = (decorators, target, key, kind) => {
@@ -7474,10 +8159,12 @@ let QdPinResetDialog = class extends i$1 {
       this.confirmingStudent = student;
       this.confirmDialogOpen = true;
     };
-    this.handleConfirmReset = () => {
-      if (this.confirmingStudent) {
-        void this.executeReset(this.confirmingStudent);
+    this.handleConfirmReset = (e2) => {
+      const student = this.confirmingStudent;
+      if (!student) {
+        return;
       }
+      void this.verifyThenReset(student, e2.detail?.password ?? "");
     };
     this.handleCancelReset = () => {
       this.confirmDialogOpen = false;
@@ -7504,6 +8191,20 @@ let QdPinResetDialog = class extends i$1 {
    */
   show() {
     this.open = true;
+  }
+  /**
+   * Re-check the instructor password at the moment of the reset
+   * (SRD 013 SEC-03), then reset the PIN.
+   */
+  async verifyThenReset(student, password) {
+    const reauth = await confirmInstructorPassword(password);
+    if (!reauth.ok) {
+      this.confirmDialogOpen = false;
+      this.confirmingStudent = null;
+      this.errorMessage = `${reauthErrorMessage(reauth)}. The PIN was not reset.`;
+      return;
+    }
+    await this.executeReset(student);
   }
   async executeReset(student) {
     const result = await resetStudentPin(student);
@@ -7551,7 +8252,13 @@ let QdPinResetDialog = class extends i$1 {
                   @select=${(e2) => this.handleResetClick(e2.detail)}
                 ></qd-student-table>
 
-                ${this.errorMessage ? x`<div class="error-message">${this.errorMessage}</div>` : ""}
+                ${this.errorMessage ? x`<div
+                      class="error-message"
+                      role="alert"
+                      style="color: #d32f2f; font-size: 12px; margin-top: 8px; padding: 8px; background: #ffebee; border-radius: 4px;"
+                    >
+                      ${this.errorMessage}
+                    </div>` : ""}
               </div>
             ` : E}
       </qd-modal>
@@ -7563,6 +8270,7 @@ let QdPinResetDialog = class extends i$1 {
         confirmText="Reset PIN"
         cancelText="Cancel"
         destructive
+        requirePassword
         @qd:confirm=${this.handleConfirmReset}
         @qd:cancel=${this.handleCancelReset}
       ></qd-confirm-dialog>
@@ -7818,11 +8526,12 @@ let QdInstructor = class extends i$1 {
 
         <button @click=${this.handleViewScores} class="primary compact">View All Scores</button>
 
-        <button @click=${this.handleResetPins} class="secondary compact">Reset PINs</button>
-
         <qd-instructor-export .students=${this.students}></qd-instructor-export>
 
-        <qd-instructor-manage @qd:data-cleared=${this.handleDataCleared}></qd-instructor-manage>
+        <span class="danger-zone" role="group" aria-label="Actions that change student data">
+          <button @click=${this.handleResetPins} class="outline-danger compact">Reset PINs</button>
+          <qd-instructor-manage @qd:data-cleared=${this.handleDataCleared}></qd-instructor-manage>
+        </span>
 
         <button @click=${this.handleLogout} class="logout">Logout</button>
 
@@ -7924,6 +8633,17 @@ function injectComponents(config = {}) {
   injectLoginComponent(statusPanelContainer);
   injectStatusComponent(statusPanelContainer);
   injectInstructorComponent(statusPanelContainer);
+  markPanelHost(statusPanelContainer);
+}
+const PANEL_HOST_CLASS = "qd-panel-host";
+const PANEL_HOST_PARENT_CLASS = "qd-panel-host-parent";
+function markPanelHost(containerSelector) {
+  const container = document.querySelector(containerSelector);
+  if (!container) {
+    return;
+  }
+  container.classList.add(PANEL_HOST_CLASS);
+  container.parentElement?.classList.add(PANEL_HOST_PARENT_CLASS);
 }
 const BADGE_CLASSES = {
   red: "qd-badge-red",
@@ -7962,12 +8682,12 @@ function updateLinkBadge(link) {
 function updateAllBadges() {
   const links = document.querySelectorAll(".quizPageBtn");
   const cache = getJSON(STORAGE_KEYS.CACHE);
-  const isInstructor2 = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
-  if (!cache || isInstructor2) {
+  const instructorActive = isInstructor();
+  if (!cache || instructorActive) {
     links.forEach((link) => {
       clearBadges(link);
     });
-    if (isInstructor2) {
+    if (instructorActive) {
       info(`Removed badge styling from ${links.length} page links (instructor mode)`);
     } else {
       info(`Removed badge styling from ${links.length} page links (no session)`);
@@ -8047,6 +8767,19 @@ const GLOBAL_CSS = `
       font-size: inherit;
     }
 
+    /* Visually hidden text that screen readers still announce (SRD 013 A11Y-02) */
+    .qd-sr-only {
+      position: absolute !important;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
     /* Validation styling for answer cells */
     .qd-quiz-interactive .qd-answer-correct {
       background-color: #d4edda !important;
@@ -8056,6 +8789,69 @@ const GLOBAL_CSS = `
     .qd-quiz-interactive .qd-answer-incorrect {
       background-color: #f8d7da !important;
       border-color: #dc3545 !important;
+    }
+
+    /* Non-colour correctness cue: a mark plus hidden text (SRD 013 A11Y-02) */
+    .qd-answer-feedback {
+      display: inline-block;
+      margin-top: 4px;
+      font-size: 0.9em;
+      font-weight: 600;
+    }
+
+    .qd-answer-correct .qd-answer-feedback {
+      color: #1e7b34;
+    }
+
+    .qd-answer-incorrect .qd-answer-feedback {
+      color: #b02a37;
+    }
+
+    /* Invalid numeric input message (SRD 013 UX-03) */
+    .qd-input-error {
+      display: block;
+      margin-top: 4px;
+      font-size: 0.85em;
+      color: #b02a37;
+    }
+
+    .qd-quiz-interactive .qd-quiz-input[aria-invalid='true'] {
+      border-color: #b02a37;
+      outline-color: #b02a37;
+    }
+
+    /* Prompt shown above quiz tables while nobody is logged in (SRD 013 UX-05) */
+    .qd-login-notice {
+      margin: 0 0 8px;
+      padding: 6px 10px;
+      border-left: 3px solid #1d6fb8;
+      background: #e8f1fb;
+      color: #0b4f8a;
+      font-size: 0.9em;
+    }
+
+    /*
+     * Narrow screens: give the header's panel container its own full-width row
+     * so the login and status panels stay on screen (SRD 013 UX-06)
+     */
+    /* !important: Oxygen's c-no-wrap and Bootstrap's navbar-collapse rules
+       outrank a single class; these only touch elements we marked */
+    @media (max-width: 1000px) {
+      .qd-panel-host-parent {
+        flex-wrap: wrap !important;
+      }
+
+      .qd-panel-host-parent > .qd-panel-host {
+        flex: 1 1 100% !important;
+        max-width: 100% !important;
+        justify-content: flex-end;
+      }
+
+      .qd-panel-host qd-login,
+      .qd-panel-host qd-status,
+      .qd-panel-host qd-instructor {
+        max-width: 100%;
+      }
     }
 
     /* Home page badge styles (R/A/G indicators) */
@@ -8115,6 +8911,7 @@ async function bootstrap(config = {}) {
   }
   const storageService = getStorageService(config.dbName);
   await storageService.init();
+  await restoreInstructorSession();
   const eventCoordinator = new EventCoordinator();
   eventCoordinator.initialize();
   state.eventCoordinator = eventCoordinator;
@@ -8201,8 +8998,8 @@ function revealQuizAnswersForInstructor() {
   info(`Revealed answers for instructor on ${quizTables.length} quiz table(s)`);
 }
 async function checkExistingSessionAndUpgradeTables() {
-  const isInstructor2 = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === "true";
-  if (isInstructor2) {
+  const instructorActive = isInstructor();
+  if (instructorActive) {
     info("Instructor session detected, revealing answers in non-interactive tables");
     revealQuizAnswersForInstructor();
     return;
@@ -8268,7 +9065,7 @@ function isInitialized() {
   return state.initialized;
 }
 const VERSION = "0.2.0";
-const BUILD_DATE = "30/Oct/2026";
+const BUILD_DATE = "31/Oct/2026";
 if (typeof window !== "undefined") {
   const init = () => {
     info("Auto-initializing Sonar Quiz System");

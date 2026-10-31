@@ -3,6 +3,8 @@ declare interface AnalysisData {
     cells: Record<CellKey, string>;
     firstEdited?: string;
     lastEdited?: string;
+    totalCells?: number;
+    labels?: Record<CellKey, string>;
 }
 
 declare interface AnalysisTableMetadata {
@@ -17,6 +19,8 @@ export declare interface AnswerRecord {
     answer: string;
     success: boolean;
     timestamp: string;
+    attempts?: number;
+    firstSuccess?: boolean;
 }
 
 export declare function bootstrap(config?: BootstrapConfig): Promise<void>;
@@ -142,6 +146,7 @@ export declare interface PageData {
     firstAttempted?: string;
     lastAttempted?: string;
     analysis?: AnalysisData;
+    totalQuestions?: number;
 }
 
 export declare type PageId = string;
@@ -165,7 +170,7 @@ export declare interface ParsedQuizTable {
     errors?: string[];
 }
 
-export declare function parseQuizTable(table: HTMLTableElement): ParsedQuizTable;
+export declare function parseQuizTable(table: HTMLTableElement, answerKey?: string): ParsedQuizTable;
 
 export declare type QuestionKind = 'mcq' | 'numeric';
 
@@ -188,7 +193,7 @@ declare interface QuizTableMetadata {
 
 export declare type ReleaseId = string;
 
-export declare const SCHEMA_VERSION = 2;
+export declare const SCHEMA_VERSION = 3;
 
 export declare type ServiceId = string;
 
@@ -223,6 +228,7 @@ export declare const STORAGE_KEYS: {
     readonly CACHE: "qd/state";
     readonly INSTRUCTOR: "qd/instructor";
     readonly PIN_ATTEMPTS: "qd:pin-attempts";
+    readonly SESSION_EXPIRED: "qd:session-expired";
 };
 
 export declare interface StudentRecord {
@@ -236,6 +242,9 @@ export declare interface StudentRecord {
     updated: string;
     pages: Record<PageId, PageData>;
     pinHash?: string;
+    pinSalt?: string;
+    pinIterations?: number;
+    pinKdf?: 'pbkdf2-sha256';
     pinCreatedAt?: string;
     pinResetAt?: string;
 }
