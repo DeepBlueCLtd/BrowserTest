@@ -150,9 +150,10 @@ load when `qd/instructor` is `'true'`.
    `#qd-answer-key`; `src/services/answer-encoding.ts` decodes, and a table with encoded values
    but no usable key is left un-enhanced. Plain tables from older publications still work.
    MCQ option lists stay plain, since students see them anyway.
-5. **Search removed.** The template no longer renders a search box or search results.
-   `npm run check:answer-leak -- <output>` fails on any plaintext answer and on a leftover
-   `oxygen-webhelp/app/search/index/`, which `npm run update-dita-demo` also deletes.
+5. **Search removed.** The template no longer renders a search box or search results. WebHelp
+   still builds `oxygen-webhelp/app/search/index/`, but from the published pages, so it holds
+   only encoded answers. `npm run check:answer-leak -- <output>` (a developer check; authors
+   cannot run commands) fails on any plaintext answer and notes a leftover index.
 
 What this does **not** do: the key is in every page, so a student who reads the bundle or the
 XSL can decode answers by hand, and a debugger on `parseQuizTable` sees them decoded. The

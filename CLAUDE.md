@@ -290,7 +290,7 @@ npm run build
   - `#qd-db-name`: IndexedDB database name (**REQUIRED** - no default, throws error if missing/empty)
   - `#qd-instructor-hash`: SHA-256 hash of instructor password, 12 or 64 hex characters (optional)
   - `#qd-answer-key`: key for answers encoded at publish time (13 capital letters; emitted by `customHeader.xsl`)
-  - `#qd-question-total`: publication question total; emitted empty by `customHeader.xsl`, stamped by `npm run finalise:output`
+  - `#qd-question-total`: publication question total, counted during the publish by `quizQuestionTotal.xsl` (empty if the map is unavailable; `qd-question-total` scenario parameter overrides)
 - Debug logging controlled by `setDebugMode()` in `src/utils/logger.ts` (off by default; no `data-qd-debug` attribute is read)
 - No setup, no manual config, no network dependencies
 

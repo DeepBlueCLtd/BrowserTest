@@ -68,6 +68,16 @@ jobs:
         with:
           name: dist
           path: dist/
+      # The zip a content author uses in Oxygen without a command line
+      # (SRD 013). Built on every PR so a change can be tried in Oxygen
+      # before it is released.
+      - name: Package Oxygen template
+        run: npm run package:template -- ci-${{ github.run_number }}
+      - name: Upload Oxygen template
+        uses: actions/upload-artifact@v4
+        with:
+          name: oxygen-template
+          path: dist/oxygen-template-*.zip
 
   e2e:
     name: E2E Tests (${{ matrix.mode }})

@@ -69,7 +69,7 @@ export const CONFIG_IDS = {
 
 /**
  * Read the publication's total quiz-question count from `#qd-question-total`,
- * stamped by `scripts/finalise-output.js` after publishing (SRD 013 SCO-05).
+ * counted during the Oxygen publish by `quizQuestionTotal.xsl` (SRD 013 SCO-05).
  *
  * @returns The count, or undefined when absent, empty or not a positive integer
  */

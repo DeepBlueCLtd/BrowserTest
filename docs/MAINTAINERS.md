@@ -56,7 +56,8 @@ The demo pages load `dist/sonar-quiz.iife.js` and provide the hidden config span
 | Untested-file ratchet | `npm run test:gaps -- --max-gaps N` | CI (`N` set in `ci.yml`) |
 | Bundle size | `npm run build && npm run size-check` | CI, 100 KB gzip on the IIFE (raised from 40 KB by SRD 013) |
 | Accessibility | `tests/e2e/accessibility.spec.ts` (axe-core, WCAG 2.1 A/AA) | CI, part of E2E |
-| Published output | `npm run finalise:output -- dita/out/oxygen` | Manual, after each Oxygen build: stamps the question total, deletes the search index, fails on plaintext answers (`dita/README.md` checklist) |
+| Oxygen template zip | `npm run package:template` | CI artifact on every PR; attached to each release. Content authors cannot run npm, so this zip is how they get the template with the script inside (`dita/README.md`) |
+| Published output | `npm run check:answer-leak -- dita/out/oxygen` | Manual, developer only: fails on plaintext answers before `update-dita-demo` |
 | E2E | `npm run test:e2e` and `npm run test:e2e:encrypted` | CI matrix |
 | Storybook build | `npm run build-storybook` | CI, on every push and PR |
 | Release | Tag `vX.Y.Z` on `main` | `release.yml` builds and publishes; see `docs/RELEASE.md`. Last release: `v0.2.0`, 2025-11-29. Bump `package.json` first — `VERSION` in the bundle is injected from it. |
