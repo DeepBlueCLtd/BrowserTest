@@ -14,6 +14,8 @@ import {
   isPageUnstarted,
   countCorrectAnswers,
   calculateSuccessPercentage,
+  calculatePageState,
+  countFilledCells,
 } from '../../../src/services/state-calculator.js';
 import type { AnswerRecord } from '../../../src/types/contracts.js';
 
@@ -175,5 +177,62 @@ describe('calculateSuccessPercentage()', () => {
 
   it('rounds .5 up (1 of 8 → 13)', () => {
     expect(calculateSuccessPercentage([correct()], 8)).toBe(13);
+  });
+});
+
+describe('calculatePageState with analysis tables (SRD 013 ANA-04)', () => {
+  const analysis = (cells: Record<string, string>, totalCells?: number) => ({
+    tableId: 't',
+    cells,
+    totalCells,
+  });
+  const right = { answer: '1', success: true, timestamp: 't' };
+  const wrong = { answer: '2', success: false, timestamp: 't' };
+
+  it('is unstarted with no answers and no analysis text', () => {
+    expect(calculatePageState({ answers: [], analysis: analysis({ a: ' ' }, 2) })).toBe(
+      'unstarted',
+    );
+  });
+
+  it('is incomplete, not unstarted, once any analysis cell has text', () => {
+    expect(calculatePageState({ answers: [], analysis: analysis({ a: 'High' }, 6) })).toBe(
+      'incomplete',
+    );
+  });
+
+  it('is complete when every analysis cell is filled and there is no quiz', () => {
+    expect(calculatePageState({ answers: [], analysis: analysis({ a: 'x', b: 'y' }, 2) })).toBe(
+      'complete',
+    );
+  });
+
+  it('needs both a complete quiz and a full analysis table', () => {
+    const page = { answers: [right, right], totalQuestions: 2 };
+    expect(calculatePageState({ ...page, analysis: analysis({ a: 'x' }, 2) })).toBe('incomplete');
+    expect(calculatePageState({ ...page, analysis: analysis({ a: 'x', b: 'y' }, 2) })).toBe(
+      'complete',
+    );
+    expect(
+      calculatePageState({
+        answers: [right, wrong],
+        totalQuestions: 2,
+        analysis: analysis({ a: 'x', b: 'y' }, 2),
+      }),
+    ).toBe('incomplete');
+  });
+
+  it('treats an older record without a cell count as incomplete', () => {
+    expect(calculatePageState({ answers: [], analysis: analysis({ a: 'x' }) })).toBe('incomplete');
+  });
+
+  it('matches calculateCompletionState for quiz-only pages', () => {
+    expect(calculatePageState({ answers: [right], totalQuestions: 1 })).toBe('complete');
+    expect(calculatePageState({ answers: [wrong], totalQuestions: 1 })).toBe('incomplete');
+  });
+
+  it('countFilledCells ignores blank cells', () => {
+    expect(countFilledCells(analysis({ a: 'x', b: '  ', c: '' }))).toBe(1);
+    expect(countFilledCells(undefined)).toBe(0);
   });
 });

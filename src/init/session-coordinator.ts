@@ -6,6 +6,7 @@
 import { SessionService } from '../services/session.js';
 import { info, warn } from '../utils/logger.js';
 import type { SessionData } from '../types/contracts.js';
+import { STORAGE_KEYS } from '../types/contracts.js';
 
 /**
  * Session coordinator for managing session lifecycle
@@ -13,6 +14,7 @@ import type { SessionData } from '../types/contracts.js';
 export class SessionCoordinator {
   private sessionService: SessionService;
   private expiryTimeoutId?: number;
+  private activityTrackingActive = false;
 
   constructor() {
     this.sessionService = new SessionService();
@@ -33,7 +35,7 @@ export class SessionCoordinator {
       // Check if session is expired
       if (this.sessionService.isExpired()) {
         warn('Session expired, clearing');
-        this.sessionService.clearSession();
+        this.expireSession();
         return;
       }
 
@@ -45,6 +47,32 @@ export class SessionCoordinator {
     } else {
       info('No existing session found');
     }
+
+    // A login on this page starts a session that the checks above never saw,
+    // so start the timer and activity tracking for it too
+    document.addEventListener('qd:login', this.handleLogin);
+  }
+
+  /** Start expiry and activity tracking for a session created on this page. */
+  private handleLogin = (): void => {
+    const session = this.sessionService.getSession();
+    if (!session) {
+      return;
+    }
+    this.scheduleExpiryCheck(session);
+    this.setupActivityTracking();
+  };
+
+  /**
+   * End a session that timed out, leaving a marker so the login form can
+   * explain why the student was logged out (SRD 013 SEC-10).
+   */
+  private expireSession(): void {
+    sessionStorage.setItem(STORAGE_KEYS.SESSION_EXPIRED, new Date().toISOString());
+    document.dispatchEvent(
+      new CustomEvent('qd:session-expired', { bubbles: true, composed: true }),
+    );
+    this.sessionService.clearSession();
   }
 
   /**
@@ -63,14 +91,14 @@ export class SessionCoordinator {
 
     if (timeUntilExpiry <= 0) {
       // Session already expired
-      this.sessionService.clearSession();
+      this.expireSession();
       return;
     }
 
     // Schedule expiry
     this.expiryTimeoutId = window.setTimeout(() => {
       info('Session expired (timeout)');
-      this.sessionService.clearSession();
+      this.expireSession();
     }, timeUntilExpiry);
   }
 
@@ -78,6 +106,10 @@ export class SessionCoordinator {
    * Setup activity tracking to extend session on user interaction
    */
   private setupActivityTracking(): void {
+    if (this.activityTrackingActive) {
+      return;
+    }
+    this.activityTrackingActive = true;
     const activityHandler = (): void => {
       const session = this.sessionService.getSession();
       if (!session) {
@@ -121,6 +153,7 @@ export class SessionCoordinator {
     if (this.expiryTimeoutId !== undefined) {
       window.clearTimeout(this.expiryTimeoutId);
     }
+    document.removeEventListener('qd:login', this.handleLogin);
   }
 
   /**

@@ -16,20 +16,40 @@ import type { PageData, PageId } from '../types/contracts';
 export type StatusIndicator = 'red' | 'amber' | 'green';
 
 /**
- * Calculates R/A/G status indicator from quiz totals.
+ * Overall progress colour from stored answers (SRD 013 SCO-02, SCO-03).
  *
- * @param total - Total number of questions
- * @param correct - Number of correct answers
- * @returns 'green' if all correct, 'red' if none, 'amber' otherwise
+ * Red until something is answered. Green only when the publication's total
+ * is known and every question is answered correctly; with no known total
+ * there is no way to say the student has finished, so it stays amber.
+ *
+ * @param answered - Questions answered
+ * @param correct - Questions answered correctly
+ * @param total - Publication question total, when known
+ * @returns Indicator colour
  */
-export function calculateStatusIndicator(total: number, correct: number): StatusIndicator {
-  if (total === 0 || correct === 0) {
+export function calculateProgressIndicator(
+  answered: number,
+  correct: number,
+  total?: number,
+): StatusIndicator {
+  if (answered === 0) {
     return 'red';
   }
-  if (correct === total) {
-    return 'green';
-  }
-  return 'amber';
+  return total !== undefined && correct >= total ? 'green' : 'amber';
+}
+
+/**
+ * One-line progress summary for the student panel (SRD 013 SCO-02, SCO-03).
+ *
+ * @param answered - Questions answered
+ * @param correct - Questions answered correctly
+ * @param total - Publication question total, when known
+ * @returns e.g. "12 of 40 answered · 9 correct", or "12 answered · 9 correct"
+ */
+export function formatProgress(answered: number, correct: number, total?: number): string {
+  const answeredText =
+    total !== undefined ? `${answered} of ${total} answered` : `${answered} answered`;
+  return `${answeredText} · ${correct} correct`;
 }
 
 /**

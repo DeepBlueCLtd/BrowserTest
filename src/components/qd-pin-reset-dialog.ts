@@ -20,6 +20,10 @@ import './qd-modal.js';
 import './qd-confirm-dialog.js';
 import './qd-student-table.js';
 import { escapeHtml } from '../utils/dom-helpers.js';
+import {
+  confirmInstructorPassword,
+  reauthErrorMessage,
+} from '../services/auth/instructor-session.js';
 
 @customElement('qd-pin-reset-dialog')
 export class QdPinResetDialog extends LitElement {
@@ -124,11 +128,28 @@ export class QdPinResetDialog extends LitElement {
   /**
    * Handle confirm button click in confirmation dialog
    */
-  private handleConfirmReset = (): void => {
-    if (this.confirmingStudent) {
-      void this.executeReset(this.confirmingStudent);
+  private handleConfirmReset = (e: CustomEvent<{ password?: string } | undefined>): void => {
+    const student = this.confirmingStudent;
+    if (!student) {
+      return;
     }
+    void this.verifyThenReset(student, e.detail?.password ?? '');
   };
+
+  /**
+   * Re-check the instructor password at the moment of the reset
+   * (SRD 013 SEC-03), then reset the PIN.
+   */
+  private async verifyThenReset(student: StudentRecord, password: string): Promise<void> {
+    const reauth = await confirmInstructorPassword(password);
+    if (!reauth.ok) {
+      this.confirmDialogOpen = false;
+      this.confirmingStudent = null;
+      this.errorMessage = `${reauthErrorMessage(reauth)}. The PIN was not reset.`;
+      return;
+    }
+    await this.executeReset(student);
+  }
 
   /**
    * Handle cancel button click in confirmation dialog
@@ -198,7 +219,13 @@ export class QdPinResetDialog extends LitElement {
                 ></qd-student-table>
 
                 ${this.errorMessage
-                  ? html`<div class="error-message">${this.errorMessage}</div>`
+                  ? html`<div
+                      class="error-message"
+                      role="alert"
+                      style="color: #d32f2f; font-size: 12px; margin-top: 8px; padding: 8px; background: #ffebee; border-radius: 4px;"
+                    >
+                      ${this.errorMessage}
+                    </div>`
                   : ''}
               </div>
             `
@@ -212,6 +239,7 @@ export class QdPinResetDialog extends LitElement {
         confirmText="Reset PIN"
         cancelText="Cancel"
         destructive
+        requirePassword
         @qd:confirm=${this.handleConfirmReset}
         @qd:cancel=${this.handleCancelReset}
       ></qd-confirm-dialog>

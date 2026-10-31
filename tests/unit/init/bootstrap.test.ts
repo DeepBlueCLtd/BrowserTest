@@ -63,6 +63,11 @@ import {
   getSessionCoordinator,
 } from '../../../src/init/bootstrap.js';
 import { EventCoordinator } from '../../../src/init/event-coordinator.js';
+import {
+  storeInstructorSecretForNextPage,
+  configureInstructorHash,
+  resetInstructorForTest,
+} from '../../helpers/instructor.js';
 import { SessionCoordinator } from '../../../src/init/session-coordinator.js';
 
 const DB_NAME = 'unit-bootstrap-db';
@@ -117,6 +122,7 @@ describe('bootstrap', () => {
       cleanup();
     }
     vi.restoreAllMocks();
+    resetInstructorForTest();
     sessionStorage.clear();
     document.body.innerHTML = '';
     document.getElementById('qd-global-styles')?.remove();
@@ -452,7 +458,7 @@ describe('bootstrap', () => {
 
   describe('instructor session', () => {
     it('reveals quiz answers instead of loading a student record', async () => {
-      sessionStorage.setItem(STORAGE_KEYS.INSTRUCTOR, 'true');
+      await storeInstructorSecretForNextPage();
       storeSession();
       window.history.pushState({}, '', '/gram-2.html');
       const quiz = addTable('qd-quiz');
@@ -474,7 +480,7 @@ describe('bootstrap', () => {
     });
 
     it('skips tables without parsed metadata', async () => {
-      sessionStorage.setItem(STORAGE_KEYS.INSTRUCTOR, 'true');
+      await storeInstructorSecretForNextPage();
       addTable('qd-quiz');
       mocks.getQuizTableMetadata.mockReturnValue(undefined);
 
@@ -484,12 +490,25 @@ describe('bootstrap', () => {
     });
 
     it('does nothing when the page has no quiz tables', async () => {
-      sessionStorage.setItem(STORAGE_KEYS.INSTRUCTOR, 'true');
+      await storeInstructorSecretForNextPage();
 
       await bootstrap({ dbName: DB_NAME });
 
       expect(mocks.getQuizTableMetadata).not.toHaveBeenCalled();
       expect(mocks.revealInstructorAnswers).not.toHaveBeenCalled();
+    });
+
+    it('ignores a hand-written "true" flag and clears it (SRD 013 SEC-01, SEC-02)', async () => {
+      // Review reproduction: a logged-out student sets the flag from DevTools
+      await configureInstructorHash();
+      sessionStorage.setItem(STORAGE_KEYS.INSTRUCTOR, 'true');
+      addTable('qd-quiz');
+      mocks.getQuizTableMetadata.mockReturnValue({ pageId: '', questions: [] });
+
+      await bootstrap({ dbName: DB_NAME });
+
+      expect(mocks.revealInstructorAnswers).not.toHaveBeenCalled();
+      expect(sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR)).toBeNull();
     });
 
     it('reveals answers dynamically on a qd:login event with role=instructor', async () => {

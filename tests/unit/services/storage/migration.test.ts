@@ -11,9 +11,18 @@ import {
   migrateToV2,
   completePinSetup,
   resetPin,
+  upgradePinCredential,
 } from '../../../../src/services/storage/migration.js';
 import type { StudentRecord } from '../../../../src/types/contracts.js';
-import { SCHEMA_VERSION } from '../../../../src/types/contracts.js';
+import { SCHEMA_VERSION, PIN_SCHEMA_VERSION } from '../../../../src/types/contracts.js';
+import type { PinCredential } from '../../../../src/services/auth/pin-service.js';
+
+const CREDENTIAL: PinCredential = {
+  pinHash: 'derivedHashHex',
+  pinSalt: '00112233445566778899aabbccddeeff',
+  pinIterations: 600000,
+  pinKdf: 'pbkdf2-sha256',
+};
 
 describe('Migration Service', () => {
   const createV1Student = (): StudentRecord => ({
@@ -107,17 +116,19 @@ describe('Migration Service', () => {
   });
 
   describe('completePinSetup', () => {
-    it('should set pinHash', () => {
+    it('should store the salted credential', () => {
       const student = createV1Student();
-      const pinHash = 'newHashValue';
-      const result = completePinSetup(student, pinHash);
-      expect(result.pinHash).toBe(pinHash);
+      const result = completePinSetup(student, CREDENTIAL);
+      expect(result.pinHash).toBe(CREDENTIAL.pinHash);
+      expect(result.pinSalt).toBe(CREDENTIAL.pinSalt);
+      expect(result.pinIterations).toBe(CREDENTIAL.pinIterations);
+      expect(result.pinKdf).toBe('pbkdf2-sha256');
     });
 
     it('should set pinCreatedAt to current timestamp', () => {
       const student = createV1Student();
       const before = new Date().toISOString();
-      const result = completePinSetup(student, 'hash');
+      const result = completePinSetup(student, CREDENTIAL);
       const after = new Date().toISOString();
 
       expect(result.pinCreatedAt).toBeDefined();
@@ -127,13 +138,13 @@ describe('Migration Service', () => {
 
     it('should update schema to current version', () => {
       const student = createV1Student();
-      const result = completePinSetup(student, 'hash');
+      const result = completePinSetup(student, CREDENTIAL);
       expect(result.schema).toBe(SCHEMA_VERSION);
     });
 
     it('should preserve existing data', () => {
       const student = createV1Student();
-      const result = completePinSetup(student, 'hash');
+      const result = completePinSetup(student, CREDENTIAL);
 
       expect(result.serviceId).toBe(student.serviceId);
       expect(result.attempted).toBe(student.attempted);
@@ -141,7 +152,42 @@ describe('Migration Service', () => {
     });
   });
 
+  describe('schema v3 (SRD 013)', () => {
+    it('does not send a v2 record with a PIN back through PIN setup', () => {
+      // Regression guard: a schema bump must not let the next person to log in
+      // choose a new PIN for an existing account
+      const v2: StudentRecord = { ...createV2Student(), schema: PIN_SCHEMA_VERSION };
+      expect(SCHEMA_VERSION).toBeGreaterThan(PIN_SCHEMA_VERSION);
+      expect(needsMigration(v2)).toBe(false);
+    });
+
+    it('leaves a v2 record unchanged in migrateToV2', () => {
+      const v2: StudentRecord = { ...createV2Student(), schema: PIN_SCHEMA_VERSION };
+      expect(migrateToV2(v2)).toBe(v2);
+    });
+
+    it('upgradePinCredential replaces a legacy verifier and stamps the current schema', () => {
+      const v2: StudentRecord = { ...createV2Student(), schema: PIN_SCHEMA_VERSION };
+      const result = upgradePinCredential(v2, CREDENTIAL);
+      expect(result.schema).toBe(SCHEMA_VERSION);
+      expect(result.pinHash).toBe(CREDENTIAL.pinHash);
+      expect(result.pinSalt).toBe(CREDENTIAL.pinSalt);
+      expect(result.pinKdf).toBe('pbkdf2-sha256');
+      expect(result.pinCreatedAt).toBe(v2.pinCreatedAt);
+      expect(result.pages).toEqual(v2.pages);
+    });
+  });
+
   describe('resetPin', () => {
+    it('should remove salted credential fields', () => {
+      const student = { ...createV2Student(), ...CREDENTIAL };
+      const result = resetPin(student);
+      expect(result.pinHash).toBe('');
+      expect(result.pinSalt).toBeUndefined();
+      expect(result.pinIterations).toBeUndefined();
+      expect(result.pinKdf).toBeUndefined();
+    });
+
     it('should clear pinHash', () => {
       const student = createV2Student();
       const result = resetPin(student);

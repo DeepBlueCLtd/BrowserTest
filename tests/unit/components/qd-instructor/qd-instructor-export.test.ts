@@ -181,4 +181,108 @@ describe('qd-instructor-export', () => {
       expect(button?.getAttribute('title')).toBe('Export 2 students to CSV');
     });
   });
+
+  describe('analysis entries (SRD 013 ANA-01, ANA-02)', () => {
+    const student = (): StudentRecord => ({
+      schema: 3,
+      docId: '',
+      serviceId: '30012345',
+      name: 'Jo Bloggs',
+      release: 'R1',
+      attempted: 0,
+      correct: 0,
+      updated: '2026-10-30T00:00:00Z',
+      pages: {
+        'analysis-tactical': {
+          state: 'incomplete',
+          answers: [],
+          analysis: {
+            tableId: 't1',
+            cells: {
+              'R0C1#f:aaa': 'High, contact bearing 045',
+              'R1C1#f:bbb': '',
+              'R2C1#f:ccc': '=1+1',
+            },
+            labels: { 'R0C1#f:aaa': 'Threat Assessment' },
+            lastEdited: '2026-10-30T10:00:00Z',
+            totalCells: 6,
+          },
+        },
+      },
+    });
+
+    it('appends a Kind column, keeping the original columns in place', () => {
+      const header = element.generateCSV().split('\n')[0];
+      expect(header).toBe(
+        'Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp,Kind,Attempts,First Attempt Correct',
+      );
+    });
+
+    it('exports one row per filled analysis cell, labelled by its row', () => {
+      element.students = [student()];
+      const lines = element.generateCSV().split('\n');
+      expect(lines).toContain(
+        '30012345,Jo Bloggs,R1,analysis-tactical,Threat Assessment,"High, contact bearing 045",,2026-10-30T10:00:00Z,analysis,,',
+      );
+      // Empty cells are skipped; a cell with no stored label falls back to its key
+      expect(lines.filter((l) => l.includes(',analysis,'))).toHaveLength(2);
+      expect(lines.some((l) => l.includes('R2C1#f:ccc'))).toBe(true);
+    });
+
+    it('neutralises formulas in analysis text', () => {
+      element.students = [student()];
+      expect(element.generateCSV()).toContain(",'=1+1,");
+    });
+
+    it('marks quiz rows as quiz', () => {
+      const s = student();
+      s.pages['quiz-mcq'] = {
+        state: 'incomplete',
+        answers: [{ answer: '2', success: false, timestamp: 't' }],
+      };
+      element.students = [s];
+      expect(element.generateCSV()).toContain('quiz-mcq,0,2,false,t,quiz,,');
+    });
+
+    it('enables export when only analysis work exists', async () => {
+      element.students = [student()];
+      await element.updateComplete;
+      const button = element.shadowRoot!.querySelector('button')!;
+      expect(button.disabled).toBe(false);
+    });
+  });
+});
+
+describe('qd-instructor-export attempts (SRD 013 SCO-06, SCO-07)', () => {
+  it('appends attempts and first-attempt correctness for quiz rows', async () => {
+    const el = document.createElement('qd-instructor-export');
+    document.body.appendChild(el);
+    el.students = [
+      {
+        schema: 3,
+        docId: '',
+        serviceId: 'S1',
+        name: 'Al',
+        release: 'R1',
+        attempted: 2,
+        correct: 2,
+        updated: '',
+        pages: {
+          'quiz-mcq': {
+            state: 'incomplete',
+            answers: [
+              { answer: '3', success: true, timestamp: 't1', attempts: 4, firstSuccess: false },
+              // Answered before v3: no attempt history
+              { answer: '1', success: true, timestamp: 't2' },
+            ],
+          },
+        },
+      },
+    ];
+    await el.updateComplete;
+    const lines = el.generateCSV().split('\n');
+    expect(lines).toContain('S1,Al,R1,quiz-mcq,0,3,true,t1,quiz,4,false');
+    expect(lines).toContain('S1,Al,R1,quiz-mcq,1,1,true,t2,quiz,,');
+    el.remove();
+  });
 });

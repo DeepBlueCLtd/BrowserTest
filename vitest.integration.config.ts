@@ -17,10 +17,10 @@ export default defineConfig({
       // Ratchet: set at the measured level (2026-09-05). Raise these when you add tests;
       // never lower them. Enforced in CI via test:coverage:* (see .github/workflows/ci.yml).
       thresholds: {
-        lines: 42,
-        functions: 43,
-        branches: 70,
-        statements: 42,
+        lines: 43,
+        functions: 44,
+        branches: 71,
+        statements: 43,
       },
     },
   },

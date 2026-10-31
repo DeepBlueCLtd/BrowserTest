@@ -17,7 +17,7 @@ import {
   hideStudentAnswersForTable,
 } from './quiz-instructor-overlay.js';
 import { INSTRUCTOR_SHOW_ANSWERS_KEY } from '../utils/storage-helpers.js';
-import { restoreDetailColumn } from './quiz-table-columns.js';
+import { restoreDetailColumn, restoreAnswerHeader, setLoginNotice } from './quiz-table-columns.js';
 
 /**
  * Options controlling reveal behavior. Defaults preserve the historical
@@ -65,6 +65,10 @@ export function revealInstructorAnswers(
 
   // Show the detail column (column 2) again and restore its content from memory
   restoreDetailColumn(table);
+
+  // Instructors see the author's own header and no "log in to answer" prompt
+  restoreAnswerHeader(table);
+  setLoginNotice(table, false);
 
   // Set up instructor toggle event listeners (since table is non-interactive)
   const showAnswersHandler = (): void => {

@@ -20,15 +20,22 @@ import { constantTimeCompare } from '../../utils/security.js';
  * @returns SHA-256 hex digest truncated to the first 12 characters
  */
 export async function hashPassword(plain: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(plain);
+  // First 12 characters keep the hash short enough for Oxygen dialogs
+  return (await hashPasswordFull(plain)).substring(0, 12);
+}
+
+/**
+ * Full-length SHA-256 hex digest of a plaintext instructor password.
+ *
+ * @param plain - Plaintext password
+ * @returns 64-character lowercase hex digest
+ */
+export async function hashPasswordFull(plain: string): Promise<string> {
+  const data = new TextEncoder().encode(plain);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  // Return first 12 characters for author-friendly Oxygen dialogs
-  return hashArray
+  return Array.from(new Uint8Array(hashBuffer))
     .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
-    .substring(0, 12);
+    .join('');
 }
 
 /**
@@ -49,10 +56,13 @@ export function getExpectedInstructorHash(): string {
  *   does not match or when no instructor hash is configured
  */
 export async function verifyInstructorPassword(plain: string): Promise<boolean> {
-  const expectedHash = getExpectedInstructorHash();
+  const expectedHash = getExpectedInstructorHash().toLowerCase();
   if (!expectedHash) {
     return false;
   }
-  const actualHash = await hashPassword(plain);
+  // A publication may configure the full 64-hex digest instead of the short
+  // 12-hex form, for a stronger check (SRD 013 SEC-11)
+  const fullHash = await hashPasswordFull(plain);
+  const actualHash = expectedHash.length === 64 ? fullHash : fullHash.substring(0, 12);
   return constantTimeCompare(actualHash, expectedHash);
 }

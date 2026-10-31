@@ -28,7 +28,7 @@ User Input → DOM Handler → Service Layer → Storage Adapter
 - **IndexedDB**: Primary persistence with composite keys `qd/{release}/u{serviceId}`
   - Database name: `BrowserTest` (defined in `src/services/storage/indexeddb.ts`)
   - Object stores: `students`, `backups`, `auditLog` (DB version 3, see `src/services/storage/idb-connection.ts`)
-- **sessionStorage**: Active session + R/A/G cache (expires 30 min)
+- **sessionStorage**: Active session + R/A/G cache (expires after 10 min idle; SRD 013)
 - **No network**: All data remains local, no telemetry/CDN/remote config
 
 ### Component Layers
@@ -62,7 +62,7 @@ Compact login interface with modal for instructor access:
 After successful login, ONE of these panels is displayed:
 
 **Student Status Panel** (`<qd-student-status>`):
-- Quiz progress display (R/A/G badges, answered/correct counts, percentage)
+- Quiz progress display: "12 of 40 answered · 9 correct" ("of 40" only when `#qd-question-total` is stamped), with an R/A/G dot that turns green only when the known total is all correct (SRD 013 SCO-02/03)
 - Logout button
 - Updates in real-time via session cache
 
@@ -81,14 +81,14 @@ Consolidated control center with:
 
 #### **Scores Modal** (`<qd-scores-modal>`)
 Modal overlay (Esc to close) showing:
-- Student list with totals (attempted, correct, percentage)
+- Student list with Answered ("of N" when the total is known), Correct with "% of answered", and Right first time; per-question badges show "(n tries)" (SRD 013 SCO-04)
 - Per-student expandable breakdown showing per-page answers
 - Close button
 
 #### **Table Enhancement**
 **Quiz Tables** (`qd-quiz` class):
 - **SECURITY**: Immediately extract and remove answer column from DOM on load
-- Correct answers stored in memory only (prevents view-source inspection)
+- Correct answers stored in memory only (defeats inspect-element after load; the published HTML holds them `qd1:`-encoded, see Constitution VIII)
 - Render MCQ radio buttons or numeric input fields
 - Submit answers, validate against in-memory answers
 - Save to IndexedDB via storage adapter
@@ -125,13 +125,14 @@ npm run analyze:e2e-gaps # E2E feature coverage report (docs/test-coverage-repor
 
 # Building
 npm run build           # Production build (IIFE + ESM)
-npm run build:dita      # Build + copy bundle to DITA directories
+npm run build:dita      # Build (storage obfuscated) + copy bundle to DITA directories
+npm run build:dita:plain # Same, with plain storage (development and plain-mode E2E)
 npm run update-dita-demo # Sync dita/out/oxygen → dita-demo/ (for PR previews)
 npm run lint            # TypeScript + ESLint checks
 npm run format:check    # Prettier formatting verification
 
 # Size verification
-npm run size-check      # Verify bundle <40KB min+gzip
+npm run size-check      # Verify bundle ≤100KB min+gzip
 ```
 
 ## GitHub Pages Deployment
@@ -245,7 +246,7 @@ npm run build
 - [ ] All tests passing (green)
 - [ ] Linter clean (zero errors)
 - [ ] Build successful
-- [ ] Bundle size within limits (<40KB gzipped)
+- [ ] Bundle size within limits (≤100KB gzipped)
 - [ ] Code committed with descriptive message
 
 ## Critical Constraints (Constitution)
@@ -271,13 +272,13 @@ npm run build
 - Each phase delivers independently testable value
 
 ### V. Performance Constraints
-- Bundle: ≤40KB min+gzip IIFE
+- Bundle: ≤100KB min+gzip IIFE (raised from 40KB by SRD 013 NFR-01: content runs from local disk; the ceiling remains to catch an accidentally bundled dependency)
 - Operations: <200ms save, <2s page load (50 questions)
 - Shadow DOM for isolation, no global CSS pollution
 
 ### VI. Data Isolation & Privacy
 - Composite keys: `qd/{release}/u{serviceId}`
-- 30-minute session timeout
+- 10-minute idle session timeout (SRD 013 SEC-09: students share one machine)
 - Complete data erasure capability for cohort reset
 
 ### VII. Zero Configuration Deployment
@@ -287,7 +288,9 @@ npm run build
   - `#qd-status-container`: CSS selector for status panel (default: `.wh_top_menu_and_indexterms_link`)
   - `#qd-title-selector`: CSS selector for publication title/Release ID (default: `.wh_publication_title .title`)
   - `#qd-db-name`: IndexedDB database name (**REQUIRED** - no default, throws error if missing/empty)
-  - `#qd-instructor-hash`: SHA-256 hash of instructor password (optional)
+  - `#qd-instructor-hash`: SHA-256 hash of instructor password, 12 or 64 hex characters (optional)
+  - `#qd-answer-key`: key for answers encoded at publish time (13 capital letters; emitted by `customHeader.xsl`)
+  - `#qd-question-total`: publication question total, counted during the publish by `quizQuestionTotal.xsl` (empty if the map is unavailable; `qd-question-total` scenario parameter overrides)
 - Debug logging controlled by `setDebugMode()` in `src/utils/logger.ts` (off by default; no `data-qd-debug` attribute is read)
 - No setup, no manual config, no network dependencies
 
@@ -318,8 +321,14 @@ npm run build
 ### VIII. Answer Security
 - **CRITICAL**: Quiz answers MUST be removed from DOM immediately on component load
 - Correct answers extracted, stored in memory (JavaScript closure), never exposed in DOM
-- This prevents students from viewing page source or using DevTools to see answers
-- Implementation order: Parse → Store in memory → Remove from DOM → Render controls
+- Removal from the DOM defeats DevTools "inspect element" after load. It does **not** protect
+  the published file: view-source, a text editor or a search index read the HTML as published.
+- So answers are **encoded at publish time** (SRD 013 WP3): `dita/template/xslt/inc/quizAnswerEncoding.xsl`
+  writes each Answer cell, and each numeric tolerance, as `qd1:` + a keyed letter substitution;
+  the runtime decodes with `#qd-answer-key` (`src/services/answer-encoding.ts`). This is
+  obfuscation (the key is in the page): it stops answers being read at a glance, nothing more.
+- Full-text search is removed from the template, because its result snippets showed answers.
+- Implementation order: Parse (decoding if encoded) → Store in memory → Remove from DOM → Render controls
 - Validation performed against in-memory answers only
 
 ## Frozen Contracts (src/types/contracts.ts)
@@ -344,6 +353,8 @@ interface AnswerRecord {
   answer: string;     // User's answer
   success: boolean;   // Correctness
   timestamp: string;  // ISO 8601 (MANDATORY)
+  attempts?: number;  // v3: committed answers (MCQ choice, numeric on blur); absent before v3
+  firstSuccess?: boolean; // v3: whether the first committed answer was right
 }
 
 interface StudentRecord {
@@ -396,7 +407,7 @@ complete → All answered AND all correct
 ### Session Management
 - SessionData stored in sessionStorage with serviceId/release duplicated for quick access
 - SessionCache rebuilt from IndexedDB on login
-- Auto-logout after 30 minutes inactivity
+- Auto-logout after 10 minutes inactivity, with a notice on the login form
 
 ### TableId Generation
 Format: 16-character hash derived from table structure
@@ -428,7 +439,7 @@ Before committing any code changes, ALL of the following MUST pass:
 3. ✅ **Linting passes**: `npm run lint` (fix with `npm run lint:fix` if needed)
 4. ✅ **Formatting passes**: `npm run format:check` (fix with `npm run format` if needed)
 5. ✅ **Build succeeds**: `npm run build` (if modifying source files)
-6. ✅ **Bundle size**: Under 40KB min+gzip (verify with `npm run size-check` if needed)
+6. ✅ **Bundle size**: Under 100KB min+gzip (verify with `npm run size-check` if needed)
 
 **Rationale**: CI will fail if any of these checks fail. Running them locally before committing prevents failed CI builds and reduces feedback cycles.
 
@@ -534,13 +545,13 @@ function getStorageKey(release: ReleaseId, serviceId: ServiceId): string {
 - Both: Non-empty answer required
 
 ### Session Timeout
-30 minutes from lastActivity timestamp, checked on every user interaction
+10 minutes from lastActivity timestamp, checked on every user interaction
 
 ## Build Output
 
 - **IIFE**: `dist/sonar-quiz.iife.js` (global `window.SonarQuiz`, auto-init)
 - **ESM**: `dist/sonar-quiz.esm.js` (for integrators)
-- **Size limit**: ≤40KB min+gzip for IIFE
+- **Size limit**: ≤100KB min+gzip for IIFE
 - **Source maps**: Generated for debugging
 - **TypeScript definitions**: For ESM consumers
 

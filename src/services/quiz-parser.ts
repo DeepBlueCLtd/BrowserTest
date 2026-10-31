@@ -11,14 +11,19 @@
  */
 
 import type { ParsedQuizTable, QuizQuestion } from '../types/contracts.js';
+import { decodeAnswer, AnswerDecodeError } from './answer-encoding.js';
 
 /**
  * Parse a quiz table and extract question data
  *
+ * Answer and tolerance values encoded at publish time (`qd1:` prefix) are
+ * decoded with `answerKey`; plain values are read as they are (SRD 013 WP3).
+ *
  * @param table - HTMLTableElement with class "qd-quiz"
+ * @param answerKey - Key from `#qd-answer-key`, needed only for encoded values
  * @returns ParsedQuizTable with questions and any validation errors
  */
-export function parseQuizTable(table: HTMLTableElement): ParsedQuizTable {
+export function parseQuizTable(table: HTMLTableElement, answerKey = ''): ParsedQuizTable {
   const errors: string[] = [];
   const questions: QuizQuestion[] = [];
 
@@ -63,8 +68,14 @@ export function parseQuizTable(table: HTMLTableElement): ParsedQuizTable {
       return;
     }
 
-    // Extract correct answer
-    const correctAnswer = answerCell.textContent?.trim() || '';
+    // Extract correct answer (decoded if encoded at publish time)
+    let correctAnswer: string;
+    try {
+      correctAnswer = decodeAnswer(answerCell.textContent ?? '', answerKey);
+    } catch (err) {
+      errors.push(`Row ${index + 1}: ${(err as AnswerDecodeError).message}`);
+      return;
+    }
     if (!correctAnswer) {
       errors.push(`Row ${index + 1} has empty answer`);
       return;
@@ -89,8 +100,14 @@ export function parseQuizTable(table: HTMLTableElement): ParsedQuizTable {
         options,
       });
     } else {
-      // Numeric question - extract tolerance
-      const toleranceText = detailCell.textContent?.trim() || '';
+      // Numeric question - extract tolerance (decoded if encoded at publish time)
+      let toleranceText: string;
+      try {
+        toleranceText = decodeAnswer(detailCell.textContent ?? '', answerKey);
+      } catch (err) {
+        errors.push(`Row ${index + 1}: ${(err as AnswerDecodeError).message}`);
+        return;
+      }
       const tolerance = parseFloat(toleranceText);
 
       if (isNaN(tolerance)) {

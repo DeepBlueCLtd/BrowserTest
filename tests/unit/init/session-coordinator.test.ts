@@ -294,3 +294,64 @@ describe('SessionCoordinator', () => {
     });
   });
 });
+
+describe('SessionCoordinator on a shared machine (SRD 013)', () => {
+  let coordinator: SessionCoordinator;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T10:00:00Z'));
+    sessionStorage.clear();
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    coordinator = new SessionCoordinator();
+  });
+
+  afterEach(() => {
+    coordinator.cleanup();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    sessionStorage.clear();
+  });
+
+  it('uses a 10-minute idle timeout (SEC-09)', () => {
+    expect(SESSION_TIMEOUT_MS).toBe(10 * 60 * 1000);
+  });
+
+  it('marks a timed-out session so the login form can explain it (SEC-10)', () => {
+    storeSession(30_000);
+    const expired = vi.fn();
+    document.addEventListener('qd:session-expired', expired);
+    coordinator.initialize();
+
+    vi.advanceTimersByTime(30_000);
+    document.removeEventListener('qd:session-expired', expired);
+
+    expect(expired).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem(STORAGE_KEYS.SESSION_EXPIRED)).not.toBeNull();
+    expect(readSession()).toBeNull();
+  });
+
+  it('marks a session that had already expired when the page loaded', () => {
+    storeSession(-1000);
+    coordinator.initialize();
+    expect(sessionStorage.getItem(STORAGE_KEYS.SESSION_EXPIRED)).not.toBeNull();
+  });
+
+  it('does not mark a normal logout', () => {
+    storeSession(60_000);
+    coordinator.initialize();
+    new SessionService().clearSession();
+    expect(sessionStorage.getItem(STORAGE_KEYS.SESSION_EXPIRED)).toBeNull();
+  });
+
+  it('starts the expiry timer for a login made on the current page', () => {
+    coordinator.initialize(); // no session yet
+    storeSession(SESSION_TIMEOUT_MS);
+    document.dispatchEvent(new CustomEvent('qd:login'));
+
+    vi.advanceTimersByTime(SESSION_TIMEOUT_MS);
+
+    expect(readSession()).toBeNull();
+    expect(sessionStorage.getItem(STORAGE_KEYS.SESSION_EXPIRED)).not.toBeNull();
+  });
+});

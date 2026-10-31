@@ -17,7 +17,7 @@
                     </button>
                 </div>
 
-                <whc:webhelp_search_input class="navbar-form wh_main_page_search search" role="form"/>
+                <!-- Full-text search removed (SRD 013 ANS-01): its result snippets showed quiz answers -->
                 <div class="wh_top_menu_and_indexterms_link collapse navbar-collapse" id="wh_top_menu_and_indexterms_link">
                     <whc:include_html href="${webhelp.fragment.before.top_menu}"/>
                     

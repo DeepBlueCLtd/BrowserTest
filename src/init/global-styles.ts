@@ -30,6 +30,19 @@ const GLOBAL_CSS = `
       font-size: inherit;
     }
 
+    /* Visually hidden text that screen readers still announce (SRD 013 A11Y-02) */
+    .qd-sr-only {
+      position: absolute !important;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
     /* Validation styling for answer cells */
     .qd-quiz-interactive .qd-answer-correct {
       background-color: #d4edda !important;
@@ -39,6 +52,69 @@ const GLOBAL_CSS = `
     .qd-quiz-interactive .qd-answer-incorrect {
       background-color: #f8d7da !important;
       border-color: #dc3545 !important;
+    }
+
+    /* Non-colour correctness cue: a mark plus hidden text (SRD 013 A11Y-02) */
+    .qd-answer-feedback {
+      display: inline-block;
+      margin-top: 4px;
+      font-size: 0.9em;
+      font-weight: 600;
+    }
+
+    .qd-answer-correct .qd-answer-feedback {
+      color: #1e7b34;
+    }
+
+    .qd-answer-incorrect .qd-answer-feedback {
+      color: #b02a37;
+    }
+
+    /* Invalid numeric input message (SRD 013 UX-03) */
+    .qd-input-error {
+      display: block;
+      margin-top: 4px;
+      font-size: 0.85em;
+      color: #b02a37;
+    }
+
+    .qd-quiz-interactive .qd-quiz-input[aria-invalid='true'] {
+      border-color: #b02a37;
+      outline-color: #b02a37;
+    }
+
+    /* Prompt shown above quiz tables while nobody is logged in (SRD 013 UX-05) */
+    .qd-login-notice {
+      margin: 0 0 8px;
+      padding: 6px 10px;
+      border-left: 3px solid #1d6fb8;
+      background: #e8f1fb;
+      color: #0b4f8a;
+      font-size: 0.9em;
+    }
+
+    /*
+     * Narrow screens: give the header's panel container its own full-width row
+     * so the login and status panels stay on screen (SRD 013 UX-06)
+     */
+    /* !important: Oxygen's c-no-wrap and Bootstrap's navbar-collapse rules
+       outrank a single class; these only touch elements we marked */
+    @media (max-width: 1000px) {
+      .qd-panel-host-parent {
+        flex-wrap: wrap !important;
+      }
+
+      .qd-panel-host-parent > .qd-panel-host {
+        flex: 1 1 100% !important;
+        max-width: 100% !important;
+        justify-content: flex-end;
+      }
+
+      .qd-panel-host qd-login,
+      .qd-panel-host qd-status,
+      .qd-panel-host qd-instructor {
+        max-width: 100%;
+      }
     }
 
     /* Home page badge styles (R/A/G indicators) */

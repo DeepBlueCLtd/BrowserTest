@@ -15,7 +15,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { submitStudentLogin } from './helpers.js';
+import { submitStudentLogin, CSV_HEADER } from './helpers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -121,7 +121,7 @@ async function answerFirstQuestion(
 
   // Status panel updates after the answer has been persisted to IndexedDB
   await expect(page.locator('qd-status')).toContainText(
-    new RegExp(`${expectedCorrect}/\\d+ Correct`),
+    new RegExp(`answered · ${expectedCorrect} correct`),
   );
 }
 
@@ -231,8 +231,8 @@ test.describe('Encrypted Storage (ENCRYPT_STORAGE=true)', () => {
     await expect(scoresModal).toContainText(STUDENT.name);
     await expect(scoresModal).toContainText(STUDENT.serviceId);
 
-    // Correct/attempted counts: 1 MCQ + 1 numeric, both correct
-    await expect(scoresModal).toContainText(/2\/2\s*\(100%\)/);
+    // Correct of answered: 1 MCQ + 1 numeric, both correct (SRD 013 SCO-04 format)
+    await expect(scoresModal).toContainText('2 (100% of answered)');
 
     // Per-page answers are readable
     await expect(scoresModal).toContainText('quiz-mcq');
@@ -268,9 +268,7 @@ test.describe('Encrypted Storage (ENCRYPT_STORAGE=true)', () => {
     const csvContent = Buffer.concat(chunks).toString('utf-8');
 
     // Header row is intact
-    expect(csvContent.split('\n')[0]).toBe(
-      'Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp',
-    );
+    expect(csvContent.split('\n')[0]).toBe(CSV_HEADER);
 
     // Student identity and answers are plain text, one row per answer
     expect(csvContent).toContain(STUDENT.serviceId);

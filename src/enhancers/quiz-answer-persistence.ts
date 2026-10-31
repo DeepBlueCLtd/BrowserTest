@@ -14,6 +14,7 @@ import { getStorageService } from '../services/storage-service.js';
 import { getJSON } from '../utils/storage-helpers.js';
 import { addClass, removeClass } from '../utils/dom-helpers.js';
 import { persistAndNotify } from './persist-and-notify.js';
+import { announce, ensureId, SR_ONLY_CLASS } from '../utils/a11y.js';
 import { info, error as logError, warn } from '../utils/logger.js';
 
 /**
@@ -29,6 +30,7 @@ export function handleAnswerInput(
   metadata: QuizTableMetadata,
   questionIndex: number,
   answer: string,
+  commit = false,
 ): void {
   const { debouncer, pageId, parsed } = metadata;
 
@@ -41,11 +43,12 @@ export function handleAnswerInput(
     return;
   }
 
-  // Debounce the save operation (200ms delay)
+  // Debounce the save operation (200ms delay). A commit shares the key, so
+  // it supersedes a provisional save still waiting.
   debouncer.debounce(
     `save-answer-${questionIndex}`,
     () => {
-      void saveAnswer(table, metadata, questionIndex, answer);
+      void saveAnswer(table, metadata, questionIndex, answer, commit);
     },
     200,
   );
@@ -64,6 +67,7 @@ export async function saveAnswer(
   metadata: QuizTableMetadata,
   questionIndex: number,
   answer: string,
+  commit = false,
 ): Promise<void> {
   const { pageId, parsed, inputs } = metadata;
 
@@ -111,6 +115,7 @@ export async function saveAnswer(
     questionIndex,
     answerRecord,
     totalQuestions,
+    { commit },
   );
 
   // Persist, refresh cache, apply validation styling, then emit events
@@ -122,6 +127,8 @@ export async function saveAnswer(
       if (answerCell) {
         applyValidationStyling(answerCell, success);
       }
+      // Say the result as well as colouring it (SRD 013 A11Y-02)
+      announce(`Question ${questionIndex + 1}: ${success ? 'correct' : 'incorrect'}`);
     },
     events: [
       { name: 'qd:answer-saved', detail: { pageId, answer: answerRecord } },
@@ -139,10 +146,78 @@ export async function saveAnswer(
 /**
  * Apply validation styling to an answer cell (DOM-only).
  *
+ * Colour alone fails WCAG 1.4.1, so the cell also gets a visible mark (✓ or
+ * ✗) with hidden "Correct"/"Incorrect" text, and the input is described by it
+ * (SRD 013 A11Y-02).
+ *
  * @param cell - Answer cell element
  * @param success - Whether the answer is correct
  */
 export function applyValidationStyling(cell: Element, success: boolean): void {
   removeClass(cell, 'qd-answer-correct', 'qd-answer-incorrect');
   addClass(cell, success ? 'qd-answer-correct' : 'qd-answer-incorrect');
+
+  let feedback = cell.querySelector<HTMLElement>('.qd-answer-feedback');
+  if (!feedback) {
+    feedback = document.createElement('span');
+    feedback.className = 'qd-answer-feedback';
+    cell.appendChild(feedback);
+  }
+  feedback.replaceChildren();
+  const mark = document.createElement('span');
+  mark.setAttribute('aria-hidden', 'true');
+  mark.textContent = success ? '✓ Correct' : '✗ Incorrect';
+  const text = document.createElement('span');
+  text.className = SR_ONLY_CLASS;
+  text.textContent = success ? 'Correct' : 'Incorrect';
+  feedback.append(mark, text);
+
+  const control = cell.querySelector('select, input');
+  if (control) {
+    control.setAttribute('aria-describedby', ensureId(feedback, 'qd-feedback'));
+  }
+}
+
+/**
+ * Remove correctness styling and the feedback mark from an answer cell.
+ *
+ * @param cell - Answer cell element
+ */
+export function clearValidationFeedback(cell: Element): void {
+  removeClass(cell, 'qd-answer-correct', 'qd-answer-incorrect');
+  cell.querySelector('.qd-answer-feedback')?.remove();
+  cell.querySelector('select, input')?.removeAttribute('aria-describedby');
+}
+
+/**
+ * Show an inline error under an answer input and mark it invalid
+ * (SRD 013 UX-03).
+ *
+ * @param cell - Answer cell element
+ * @param input - The input to mark
+ * @param message - Error text
+ */
+export function showInputError(cell: Element, input: HTMLElement, message: string): void {
+  let error = cell.querySelector<HTMLElement>('.qd-input-error');
+  if (!error) {
+    error = document.createElement('span');
+    error.className = 'qd-input-error';
+    error.setAttribute('role', 'alert');
+    input.insertAdjacentElement('afterend', error);
+  }
+  error.textContent = message;
+  input.setAttribute('aria-invalid', 'true');
+  input.setAttribute('aria-errormessage', ensureId(error, 'qd-input-error'));
+}
+
+/**
+ * Remove an inline input error.
+ *
+ * @param cell - Answer cell element
+ * @param input - The input to unmark
+ */
+export function clearInputError(cell: Element, input: HTMLElement): void {
+  cell.querySelector('.qd-input-error')?.remove();
+  input.removeAttribute('aria-invalid');
+  input.removeAttribute('aria-errormessage');
 }

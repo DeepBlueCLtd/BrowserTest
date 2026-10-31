@@ -9,6 +9,10 @@ import { sharedStyles } from './shared-styles.js';
 import { clearQuizData } from '../../utils/storage-helpers.js';
 import { getStorageService } from '../../services/storage-service.js';
 import { dispatchEventOn } from '../../utils/event-helpers.js';
+import {
+  confirmInstructorPassword,
+  reauthErrorMessage,
+} from '../../services/auth/instructor-session.js';
 
 /**
  * Data management controls for instructor
@@ -30,6 +34,14 @@ export class QdInstructorManage extends LitElement {
   @state()
   private confirmText = '';
 
+  /** Instructor password, re-entered for this action (SRD 013 SEC-03) */
+  @state()
+  private password = '';
+
+  /** Whether the password re-check is in progress */
+  @state()
+  private checking = false;
+
   @state()
   private error = '';
 
@@ -41,21 +53,35 @@ export class QdInstructorManage extends LitElement {
   override disconnectedCallback(): void {
     super.disconnectedCallback();
     this.removeModalFromBody();
+    document.removeEventListener('keydown', this.handleKeydown);
   }
+
+  /** Close the dialog on Escape, like the other dialogs (SRD 013 UX-07). */
+  private handleKeydown = (e: KeyboardEvent): void => {
+    if (e.key === 'Escape' && this.showConfirmDialog) {
+      this.handleCancelClear();
+    }
+  };
 
   override updated(changedProperties: Map<string, unknown>): void {
     super.updated(changedProperties);
     if (changedProperties.has('showConfirmDialog')) {
       if (this.showConfirmDialog) {
         this.renderModalToBody();
+        document.addEventListener('keydown', this.handleKeydown);
+        this.modalContainer?.querySelector<HTMLInputElement>('input')?.focus();
       } else {
         this.removeModalFromBody();
+        document.removeEventListener('keydown', this.handleKeydown);
       }
     }
-    // Re-render modal if confirmText or error changes while dialog is open
+    // Re-render the modal when its inputs or messages change while it is open
     if (
       this.showConfirmDialog &&
-      (changedProperties.has('confirmText') || changedProperties.has('error'))
+      (changedProperties.has('confirmText') ||
+        changedProperties.has('password') ||
+        changedProperties.has('checking') ||
+        changedProperties.has('error'))
     ) {
       this.renderModalToBody();
     }
@@ -80,6 +106,7 @@ export class QdInstructorManage extends LitElement {
   private handleClearRequest = (): void => {
     this.showConfirmDialog = true;
     this.confirmText = '';
+    this.password = '';
     this.error = '';
     this.success = '';
   };
@@ -87,6 +114,7 @@ export class QdInstructorManage extends LitElement {
   private handleCancelClear = (): void => {
     this.showConfirmDialog = false;
     this.confirmText = '';
+    this.password = '';
     this.error = '';
   };
 
@@ -95,10 +123,26 @@ export class QdInstructorManage extends LitElement {
     this.confirmText = input.value;
   };
 
+  private handlePasswordInput = (e: Event): void => {
+    this.password = (e.target as HTMLInputElement).value;
+    this.error = '';
+  };
+
   private handleConfirmClear = async (): Promise<void> => {
     // Require exact match
     if (this.confirmText !== 'DELETE ALL DATA') {
       this.error = 'Confirmation text does not match';
+      return;
+    }
+
+    // Re-enter the instructor password at the moment of the action, so a
+    // faked or abandoned instructor session cannot erase the class (SEC-03)
+    this.checking = true;
+    const reauth = await confirmInstructorPassword(this.password);
+    this.checking = false;
+    if (!reauth.ok) {
+      this.error = reauthErrorMessage(reauth);
+      this.password = '';
       return;
     }
 
@@ -115,6 +159,7 @@ export class QdInstructorManage extends LitElement {
       this.success = 'All quiz data cleared successfully';
       this.showConfirmDialog = false;
       this.confirmText = '';
+      this.password = '';
       this.error = '';
 
       // Clear success message after 3 seconds
@@ -130,7 +175,7 @@ export class QdInstructorManage extends LitElement {
     return html`
       <button
         @click=${this.handleClearRequest}
-        class="danger compact"
+        class="danger outline-danger compact"
         title="Clear all student quiz data and progress"
       >
         Erase All Data
@@ -149,7 +194,8 @@ export class QdInstructorManage extends LitElement {
   }
 
   private renderConfirmDialog() {
-    const isValid = this.confirmText === 'DELETE ALL DATA';
+    const isValid =
+      this.confirmText === 'DELETE ALL DATA' && this.password.length > 0 && !this.checking;
 
     return html`
       <div
@@ -160,16 +206,23 @@ export class QdInstructorManage extends LitElement {
         }}
       >
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="qd-erase-title"
           style="background: white; border-radius: 8px; padding: 24px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);"
           @click=${(e: Event) => e.stopPropagation()}
         >
           <div
             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;"
           >
-            <h2 style="font-size: 18px; font-weight: 600; margin: 0; color: #000;">
+            <h2
+              id="qd-erase-title"
+              style="font-size: 18px; font-weight: 600; margin: 0; color: #000;"
+            >
               Confirm Data Deletion
             </h2>
             <button
+              aria-label="Close"
               style="padding: 4px 8px; border: none; background: transparent; font-size: 20px; cursor: pointer; color: #666;"
               @click=${this.handleCancelClear}
             >
@@ -185,21 +238,37 @@ export class QdInstructorManage extends LitElement {
             This action cannot be undone. All students will need to start over.
           </p>
 
-          <p style="margin: 12px 0; color: #333;">
+          <label for="qd-erase-confirm" style="display: block; margin: 12px 0 0; color: #333;">
             Type <strong>DELETE ALL DATA</strong> to confirm:
-          </p>
+          </label>
 
           <input
+            id="qd-erase-confirm"
             type="text"
             .value=${this.confirmText}
             @input=${this.handleConfirmInput}
             placeholder="DELETE ALL DATA"
-            style="width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; margin: 16px 0; box-sizing: border-box;"
+            style="width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; margin: 8px 0 16px; box-sizing: border-box;"
             autocomplete="off"
           />
 
+          <label for="qd-erase-password" style="display: block; margin: 0; color: #333;">
+            Instructor password:
+          </label>
+
+          <input
+            id="qd-erase-password"
+            type="password"
+            .value=${this.password}
+            @input=${this.handlePasswordInput}
+            style="width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; margin: 8px 0 16px; box-sizing: border-box;"
+            autocomplete="current-password"
+          />
+
           ${this.error
-            ? html`<div style="color: #dc3545; font-size: 14px; margin: 8px 0;">${this.error}</div>`
+            ? html`<div role="alert" style="color: #dc3545; font-size: 14px; margin: 8px 0;">
+                ${this.error}
+              </div>`
             : ''}
 
           <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px;">
