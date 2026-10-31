@@ -31,6 +31,7 @@ import { getTableRows, getRowCells, addClass } from '../utils/dom-helpers.js';
 import { getJSON } from '../utils/storage-helpers.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
 import { info, error as logError } from '../utils/logger.js';
+import { ensureId } from '../utils/a11y.js';
 import { handleCellEdit } from './analysis-persistence.js';
 import {
   showStudentEntriesForTable,
@@ -221,6 +222,14 @@ function enhanceInteractive(table: HTMLTableElement, metadata: AnalysisTableMeta
     cell.contentEditable = 'true';
     addClass(cell, 'qd-editable');
 
+    // Expose it as a named text box (SRD 013 A11Y-03)
+    cell.setAttribute('role', 'textbox');
+    cell.setAttribute('aria-multiline', 'true');
+    const label = findCellLabel(cells, col);
+    if (label) {
+      cell.setAttribute('aria-labelledby', ensureId(label, 'qd-analysis-label'));
+    }
+
     // Setup auto-save on input
     cell.addEventListener('input', () => {
       handleCellEdit(metadata, cell, key);
@@ -234,6 +243,28 @@ function enhanceInteractive(table: HTMLTableElement, metadata: AnalysisTableMeta
   info(`Analysis table enhanced in interactive mode for page ${pageId}`);
 
   return true;
+}
+
+/**
+ * Find the cell that labels an editable analysis cell: the nearest
+ * non-editable cell to its left in the same row (the row header, as in
+ * "Threat Assessment:").
+ *
+ * @param cells - Cells of the row
+ * @param col - Column index of the editable cell
+ * @returns The labelling cell, or undefined when the row has none
+ */
+function findCellLabel(
+  cells: HTMLTableCellElement[],
+  col: number,
+): HTMLTableCellElement | undefined {
+  for (let i = col - 1; i >= 0; i--) {
+    const candidate = cells[i];
+    if (candidate && !isCellEditable(candidate) && candidate.textContent?.trim()) {
+      return candidate;
+    }
+  }
+  return undefined;
 }
 
 /**

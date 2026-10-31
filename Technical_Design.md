@@ -27,7 +27,7 @@
 
 ## 4. Packaging and Distribution
 - **Bundles:** IIFE `dist/sonar-quiz.iife.js` (global `window.SonarQuiz`, auto‑init) and ESM `dist/sonar-quiz.esm.js` with `index.d.ts`.
-- **Byte budget:** IIFE ≤ 40 KB min+gzip, enforced by `npm run size-check` in CI. Measured 37.6 KB at re‑baseline, so about 2.4 KB of headroom. The ESM build (~53 KB gzip) is **not budgeted**; it is for integrators who tree‑shake.
+- **Byte budget:** IIFE ≤ 100 KB min+gzip, enforced by `npm run size-check` in CI. Raised from 40 KB by SRD 013 (NFR-01) because content runs from local disk; the ceiling remains to catch an accidentally bundled dependency. The ESM build is **not budgeted**; it is for integrators who tree‑shake.
 - **Assets:** No external CSS or fonts.
 - **Release artifacts:** `release.yml` runs on a `v*` tag and attaches the built bundle to a GitHub Release (see `docs/RELEASE.md`). There is no CHANGELOG file; release notes are generated from commits.
 - **Version stamp:** `VERSION` is injected from `package.json` at build time (`__APP_VERSION__`), alongside `BUILD_DATE`, and shown by `<qd-build-info>`.
@@ -135,7 +135,7 @@ See `docs/SECURITY.md` for the full description and known limitations. In brief:
 - **Authoring drift:** Parser errors are logged, not surfaced on the page; authors need the console or the demo pages to notice.
 - **Quota issues:** Rare offline; erase‑all and CSV export exist but are independent actions.
 - **Multi‑tab conflicts:** No cross‑tab broadcast; the session cache is per tab and IndexedDB is last‑write‑wins.
-- **Bundle headroom:** ~2.4 KB under the 40 KB ceiling; new features will need to trim before they add.
+- **Bundle headroom:** the ceiling is 100 KB (SRD 013), so size no longer constrains features.
 
 ## 21. Acceptance Criteria (Technical)
 - Bundle meets the byte budget and loads via `file://`.

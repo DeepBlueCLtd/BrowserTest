@@ -23,7 +23,8 @@ export const HELP_CONTENT: Record<HelpPanelType, HelpContent> = {
 
   status: {
     title: 'Student View',
-    body: '<p>Page color coding:<ul><li><strong style="color:#4caf50">Green</strong>=All correct </li><li><strong style="color:#ff9800">Amber</strong>=Some answered </li><li><strong style="color:#d32f2f">Red</strong>=None yet</li></ul></p><p>You can view your overall progress at attempted questions in the <b>Test Progress</b> panel.</p>',
+    // Each colour has one meaning, matching the state calculator (SRD 013 UX-09)
+    body: '<p>Page badges in the contents:<ul><li><strong style="color:#2e7d32">Green</strong>: every question on the page answered correctly</li><li><strong style="color:#b26a00">Amber</strong>: started, with some questions unanswered or incorrect</li><li><strong style="color:#c62828">Red</strong>: not started</li></ul></p><p>On a quiz page, each answer shows <strong>✓ Correct</strong> or <strong>✗ Incorrect</strong>. You can change an answer at any time.</p><p>The <b>Test progress</b> panel counts the questions you have answered and how many are correct.</p>',
   },
 
   instructor: {

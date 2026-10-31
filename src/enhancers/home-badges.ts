@@ -20,6 +20,7 @@
 import type { PageId, SessionCache, CompletionState } from '../types/contracts.js';
 import { getJSON } from '../utils/storage-helpers.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
+import { isInstructor } from '../utils/session-state.js';
 import { info } from '../utils/logger.js';
 
 /**
@@ -103,14 +104,14 @@ function updateLinkBadge(link: HTMLElement): void {
 function updateAllBadges(): void {
   const links = document.querySelectorAll<HTMLElement>('.quizPageBtn');
   const cache = getJSON<SessionCache>(STORAGE_KEYS.CACHE);
-  const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
+  const instructorActive = isInstructor();
 
   // If instructor mode OR no cache, remove all badge styling
-  if (!cache || isInstructor) {
+  if (!cache || instructorActive) {
     links.forEach((link) => {
       clearBadges(link);
     });
-    if (isInstructor) {
+    if (instructorActive) {
       info(`Removed badge styling from ${links.length} page links (instructor mode)`);
     } else {
       info(`Removed badge styling from ${links.length} page links (no session)`);

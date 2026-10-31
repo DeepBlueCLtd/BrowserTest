@@ -76,23 +76,15 @@ test.describe('PIN Authentication', () => {
   });
 
   test.describe('T015 - New Student PIN Creation', () => {
-    test('should create PIN for new student and show confirmation', async ({ page }) => {
+    test('should create PIN for new student and log straight in', async ({ page }) => {
       // Fill login form with PIN
       await loginStudent(page, 'NEW001', 'New Student', '1234');
 
-      // Wait for confirmation modal
-      const confirmModal = page.locator('text=PIN Stored');
-      await expect(confirmModal).toBeVisible({ timeout: 2000 });
-
-      // Verify confirmation message
-      await expect(page.locator('text=Your PIN has been saved')).toBeVisible();
-
-      // Click OK to dismiss (faster than waiting for auto-close)
-      await page.locator('button:has-text("OK")').click();
-
-      // Verify logged in (status panel visible)
+      // Logged in with no extra "PIN Stored" dialog: the student has just
+      // confirmed the PIN (SRD 013 UX-02)
       const statusPanel = page.locator('qd-status');
       await expect(statusPanel).toBeVisible({ timeout: 2000 });
+      await expect(page.locator('text=PIN Stored')).toHaveCount(0);
     });
 
     test('should reject invalid PIN format', async ({ page }) => {
@@ -112,9 +104,8 @@ test.describe('PIN Authentication', () => {
       // Create new student
       await loginStudent(page, 'HASH01', 'Hash Test', '5678');
 
-      // Wait for confirmation and dismiss
-      await page.waitForSelector('text=PIN Stored', { timeout: 2000 });
-      await page.locator('button:has-text("OK")').click();
+      // Logged in once the PIN is stored
+      await expect(page.locator('qd-status')).toBeVisible({ timeout: 2000 });
 
       // Verify student is logged in (PIN was stored successfully)
       await expect(page.locator('qd-status')).toBeVisible({ timeout: 2000 });
@@ -128,8 +119,7 @@ test.describe('PIN Authentication', () => {
     test('should authenticate returning student with correct PIN', async ({ page }) => {
       // First login - create student
       await loginStudent(page, 'RET001', 'Returning Student', '4321');
-      await page.waitForSelector('text=PIN Stored', { timeout: 2000 });
-      await page.locator('button:has-text("OK")').click();
+      await expect(page.locator('qd-status')).toBeVisible({ timeout: 2000 });
 
       // Logout - pierce shadow DOM
       await page.locator('qd-status >> .logout-button').click();
@@ -147,8 +137,7 @@ test.describe('PIN Authentication', () => {
     test('should reject incorrect PIN', async ({ page }) => {
       // First login - create student
       await loginStudent(page, 'WRONG01', 'Wrong PIN Test', '1111');
-      await page.waitForSelector('text=PIN Stored', { timeout: 2000 });
-      await page.locator('button:has-text("OK")').click();
+      await expect(page.locator('qd-status')).toBeVisible({ timeout: 2000 });
 
       // Logout - pierce shadow DOM
       await page.locator('qd-status >> .logout-button').click();
@@ -165,8 +154,7 @@ test.describe('PIN Authentication', () => {
     test('should lock out after 3 failed attempts', async ({ page }) => {
       // Create student
       await loginStudent(page, 'LOCK01', 'Lockout Test', '2222');
-      await page.waitForSelector('text=PIN Stored', { timeout: 2000 });
-      await page.locator('button:has-text("OK")').click();
+      await expect(page.locator('qd-status')).toBeVisible({ timeout: 2000 });
 
       // Logout - pierce shadow DOM
       await page.locator('qd-status >> .logout-button').click();
@@ -294,14 +282,7 @@ test.describe('PIN Authentication', () => {
       // Login as the v1 student with a new PIN
       await loginStudent(page, 'V1USER', 'Legacy User', '7777');
 
-      // Should show confirmation (PIN created during migration)
-      const confirmModal = page.locator('text=PIN Stored');
-      await expect(confirmModal).toBeVisible({ timeout: 2000 });
-
-      // Click OK to dismiss
-      await page.locator('button:has-text("OK")').click();
-
-      // Verify logged in
+      // PIN created during migration; logged in with no extra dialog (SRD 013 UX-02)
       const statusPanel = page.locator('qd-status');
       await expect(statusPanel).toBeVisible({ timeout: 2000 });
 

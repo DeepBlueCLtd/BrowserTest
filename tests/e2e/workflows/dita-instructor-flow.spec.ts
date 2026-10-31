@@ -94,7 +94,7 @@ test.describe('DITA Instructor Flow', () => {
     await expect(statusPanel).toBeVisible({ timeout: 3000 });
 
     // Verify student status shows progress
-    await expect(statusPanel.locator('.progress-text')).toContainText('0/');
+    await expect(statusPanel.locator('.progress-text')).toContainText('0 answered');
 
     // Navigate to a quiz page
     await page.click('a.quizPageBtn[href*="quiz-mcq"]');
@@ -121,8 +121,10 @@ test.describe('DITA Instructor Flow', () => {
     await page.goto(`file://${ditaPath}/page-index.html`);
     await waitForBootstrap(page);
 
-    // Verify progress updated
-    await expect(statusPanel.locator('.progress-text')).toContainText(/1\//);
+    // Verify progress updated: one answered, and option 1 is correct for Q1
+    await expect(statusPanel.locator('.progress-text')).toContainText(
+      /1 (of \d+ )?answered · 1 correct/,
+    );
 
     // Logout
     const logoutButton = statusPanel.locator('.logout-button');
@@ -307,9 +309,9 @@ test.describe('DITA Instructor Flow', () => {
     await page.goto(`file://${ditaPath}/page-index.html`);
     await page.locator('qd-status').waitFor({ timeout: 3000 });
 
-    // Verify progress shows 2 questions answered (X/2 format)
+    // Verify progress shows 2 questions answered (SRD 013 SCO-02 format)
     const statusPanel = page.locator('qd-status');
-    await expect(statusPanel.locator('.progress-text')).toContainText(/\/2/);
+    await expect(statusPanel.locator('.progress-text')).toContainText(/\b2 (of \d+ )?answered/);
 
     // Refresh page (simulate browser restart)
     await page.reload();
@@ -317,6 +319,6 @@ test.describe('DITA Instructor Flow', () => {
 
     // Verify session restored from IndexedDB
     await expect(statusPanel).toBeVisible();
-    await expect(statusPanel.locator('.progress-text')).toContainText(/\/2/);
+    await expect(statusPanel.locator('.progress-text')).toContainText(/\b2 (of \d+ )?answered/);
   });
 });

@@ -42,7 +42,7 @@ Documents are published quarterly and used by individual students. Instructors c
 
 ### 4.1 Login and Session
 - On first access, prompt for *Name* and *Service ID*.
-- Session stored in `sessionStorage` for 30 minutes of inactivity.
+- Session stored in `sessionStorage` for 10 minutes of inactivity (SRD 013; was 30).
 - All user data stored by composite key:  
   `qd/{release}/u{serviceId}`.
 - On logout or expiry, both session data and cached page state are cleared.
@@ -186,7 +186,7 @@ Documents are published quarterly and used by individual students. Instructors c
 | Layer | Purpose | Lifetime |
 |--------|----------|-----------|
 | IndexedDB | Primary user data (answers, analysis) | Persistent |
-| sessionStorage | Page-state cache and user session | Until browser/tab close or 30 min idle |
+| sessionStorage | Page-state cache and user session | Until browser/tab close or 10 min idle |
 
 Backup/export options:
 - “Save Results” → CSV (per-answer or per-page)

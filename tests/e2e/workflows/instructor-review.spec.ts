@@ -112,7 +112,7 @@ test.describe('Instructor Review Workflow', () => {
     await firstInput.selectOption({ index: 1 });
 
     // Wait for save to complete - check UI shows correct count
-    await expect(page.locator('qd-status')).toContainText(/1\/\d+ Correct/);
+    await expect(page.locator('qd-status')).toContainText(/· 1 correct/);
 
     // Go back and unlock instructor
     await page.goto(`file://${demoPath}/page-index.html`);
@@ -162,7 +162,7 @@ test.describe('Instructor Review Workflow', () => {
     await firstInput.selectOption({ index: 1 });
 
     // Wait for save to complete - check UI shows correct count
-    await expect(page.locator('qd-status')).toContainText(/1\/\d+ Correct/);
+    await expect(page.locator('qd-status')).toContainText(/· 1 correct/);
 
     // Since we're on quiz page, need to go to index first
     await page.goto(`file://${demoPath}/page-index.html`);

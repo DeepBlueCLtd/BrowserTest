@@ -13,8 +13,14 @@
 import { LitElement, html } from 'lit';
 import { customElement, state, property } from 'lit/decorators.js';
 import { loginStyles } from './qd-login.styles.js';
-import { hasActiveSession } from '../utils/session-state.js';
-import { validateStudentForm, sanitizePinInput } from '../utils/validation-helpers.js';
+import { hasActiveSession, isInstructor } from '../utils/session-state.js';
+import { STORAGE_KEYS, SESSION_TIMEOUT_MS } from '../types/contracts.js';
+import {
+  validateStudentForm,
+  validateStudentFields,
+  sanitizePinInput,
+  type StudentFieldErrors,
+} from '../utils/validation-helpers.js';
 import { SessionService } from '../services/session.js';
 import { readRelease, readDbName } from '../config/dom-config-reader.js';
 import { AuthService } from '../services/auth/auth-service.js';
@@ -22,7 +28,6 @@ import type { LoginResult } from '../services/auth/auth-service.js';
 import './qd-build-info.js';
 import './qd-instructor-login.js';
 import './qd-lockout-banner.js';
-import './qd-confirm-dialog.js';
 import './qd-help-trigger.js';
 import './qd-help-popup.js';
 import './qd-migration-dialog.js';
@@ -56,8 +61,11 @@ export class QdLogin extends LitElement {
   @state() private pin = '';
   /** Epoch milliseconds when the current lockout ends (0 = not locked) */
   @state() private lockoutUntil = 0;
-  /** Whether the "PIN stored" confirmation is shown */
-  @state() private showPinConfirmation = false;
+  /**
+   * Fields the student has typed in or left, so validation only reports on
+   * fields they have touched (SRD 013 UX-10). Submitting touches all three.
+   */
+  @state() private touched: ReadonlySet<'name' | 'serviceId' | 'pin'> = new Set();
   /**
    * Whether the entered service ID already has an account.
    * `null` means not looked up yet, or the lookup failed.
@@ -67,6 +75,8 @@ export class QdLogin extends LitElement {
   @state() private pendingPin = '';
   /** Whether the help popup is open */
   @state() private helpOpen = false;
+  /** Why the student was logged out, shown above the form (SRD 013 SEC-10) */
+  @state() private sessionNotice = '';
   /** Whether the migration dialog is shown */
   @state() private showMigrationDialog = false;
   /** Storage format error that triggered the migration dialog */
@@ -91,6 +101,7 @@ export class QdLogin extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this.updateVisibility();
+    this.takeSessionExpiredNotice();
     document.addEventListener('qd:logout', this.handleLogoutEvent);
     // Instructor login is emitted by the child <qd-instructor-login>; hide on it.
     document.addEventListener('qd:login', this.handleLoginEvent);
@@ -105,17 +116,35 @@ export class QdLogin extends LitElement {
 
   /** Hide the form whenever a login succeeds (student or instructor). */
   private handleLoginEvent = (): void => {
+    this.sessionNotice = '';
     this.updateVisibility();
   };
+
+  /**
+   * Show, once, why the last session ended if it timed out. The marker is
+   * written by the session coordinator before it clears the session.
+   */
+  private takeSessionExpiredNotice(): void {
+    if (sessionStorage.getItem(STORAGE_KEYS.SESSION_EXPIRED) === null) {
+      return;
+    }
+    sessionStorage.removeItem(STORAGE_KEYS.SESSION_EXPIRED);
+    const minutes = Math.round(SESSION_TIMEOUT_MS / 60000);
+    this.sessionNotice = `Your session ended after ${minutes} minutes without activity. Log in again to continue.`;
+  }
 
   /** Lifecycle: signal readiness once the shadow DOM is rendered. */
   firstUpdated() {
     this.setAttribute('data-ready', '');
   }
 
-  /** Show the form only when NOT logged in. */
+  /**
+   * Show the form only when nobody is logged in. An instructor session hides
+   * it too, so the form and the instructor panel never render together
+   * (SRD 013 SEC-05).
+   */
   private updateVisibility(): void {
-    this.toggleAttribute('data-show', !hasActiveSession());
+    this.toggleAttribute('data-show', !hasActiveSession() && !isInstructor());
   }
 
   /** On logout, reset state and show the login form again. */
@@ -126,10 +155,11 @@ export class QdLogin extends LitElement {
     this.isSubmitting = false;
     this.pin = '';
     this.lockoutUntil = 0;
-    this.showPinConfirmation = false;
+    this.touched = new Set();
     this.helpOpen = false;
     this.isRegistered = null;
     this.pendingPin = '';
+    this.takeSessionExpiredNotice();
     this.updateVisibility();
   };
 
@@ -152,13 +182,19 @@ export class QdLogin extends LitElement {
           <qd-help-trigger panelType="login" @qd:help-open=${this.handleHelpOpen}></qd-help-trigger>
         </div>
 
+        ${this.sessionNotice
+          ? html`<div class="notice-message" role="status">${this.sessionNotice}</div>`
+          : ''}
         <form class="login-form" @submit=${(e: Event) => this.handleStudentLogin(e)}>
           <input
             type="text"
             name="name"
             placeholder="Name (J Smith)"
+            aria-label="Name"
+            aria-invalid=${this.fieldErrors.name ? 'true' : 'false'}
             .value=${this.name}
             @input=${(e: Event) => this.handleNameInput(e)}
+            @blur=${() => this.touch('name')}
             ?disabled=${this.isSubmitting}
             required
           />
@@ -166,8 +202,11 @@ export class QdLogin extends LitElement {
             type="text"
             name="serviceId"
             placeholder="Service ID (30012345)"
+            aria-label="Service ID"
+            aria-invalid=${this.fieldErrors.serviceId ? 'true' : 'false'}
             .value=${this.serviceId}
             @input=${(e: Event) => this.handleServiceIdInput(e)}
+            @blur=${() => this.touch('serviceId')}
             ?disabled=${this.isSubmitting}
             pattern="[A-Za-z0-9]{2,10}"
             title="2-10 alphanumeric characters"
@@ -183,8 +222,10 @@ export class QdLogin extends LitElement {
             maxlength="4"
             autocomplete="off"
             aria-label="Enter your 4-digit PIN"
+            aria-invalid=${this.fieldErrors.pin ? 'true' : 'false'}
             .value=${this.pin}
             @input=${(e: Event) => this.handlePinInput(e)}
+            @blur=${() => this.touch('pin')}
             ?disabled=${this.isSubmitting || this.isLockedOut()}
             required
           />
@@ -196,26 +237,19 @@ export class QdLogin extends LitElement {
             ${this.submitLabel}
           </button>
           <qd-instructor-login ?disabled=${this.isSubmitting}></qd-instructor-login>
-          ${this.errorMessage
-            ? html`<div class="error-message">${this.errorMessage}</div>`
-            : this.validationHint
-              ? html`<div class="hint-message" role="status">${this.validationHint}</div>`
-              : ''}
+          <div class="message-slot">
+            ${this.errorMessage
+              ? html`<div class="error-message" role="alert">${this.errorMessage}</div>`
+              : this.validationHint
+                ? html`<div class="hint-message" role="status">${this.validationHint}</div>`
+                : ''}
+          </div>
           <qd-lockout-banner
             .untilMs=${this.lockoutUntil}
             @qd:lockout-expired=${this.handleLockoutExpired}
           ></qd-lockout-banner>
         </form>
       </div>
-      <qd-confirm-dialog
-        .open=${this.showPinConfirmation}
-        title="PIN Stored"
-        message="Your PIN has been saved. Use it with your name and service ID on future logins."
-        confirmText="OK"
-        cancelText=""
-        @qd:confirm=${this.handlePinConfirmationDismiss}
-        @qd:cancel=${this.handlePinConfirmationDismiss}
-      ></qd-confirm-dialog>
       <qd-help-popup
         .open=${this.helpOpen}
         .title=${getHelpContent('login').title}
@@ -244,10 +278,12 @@ export class QdLogin extends LitElement {
   private handleNameInput(e: Event) {
     this.name = (e.target as HTMLInputElement).value;
     this.errorMessage = '';
+    this.touch('name');
   }
   private handleServiceIdInput(e: Event) {
     this.serviceId = (e.target as HTMLInputElement).value;
     this.errorMessage = '';
+    this.touch('serviceId');
     // The identity changed, so a PIN captured for the previous one is void
     this.pendingPin = '';
     this.scheduleRegistrationCheck();
@@ -305,6 +341,26 @@ export class QdLogin extends LitElement {
     // Filter to digits only using validation helper
     this.pin = sanitizePinInput((e.target as HTMLInputElement).value);
     this.errorMessage = '';
+    this.touch('pin');
+  }
+
+  /** Mark a field as touched so its validation message may show. */
+  private touch(field: 'name' | 'serviceId' | 'pin'): void {
+    if (!this.touched.has(field)) {
+      this.touched = new Set([...this.touched, field]);
+    }
+  }
+
+  /** Validation messages for touched fields only. */
+  private get fieldErrors(): StudentFieldErrors {
+    const all = validateStudentFields(this.name, this.serviceId, this.pin);
+    const shown: StudentFieldErrors = {};
+    for (const field of this.touched) {
+      if (all[field]) {
+        shown[field] = all[field];
+      }
+    }
+    return shown;
   }
 
   /** Whether the student form passes validation. */
@@ -331,7 +387,10 @@ export class QdLogin extends LitElement {
     if (!this.name && !this.serviceId && !this.pin) {
       return '';
     }
-    return validateStudentForm(this.name, this.serviceId, this.pin)[0] ?? '';
+    // Every outstanding problem at once, not just the first (UX-10), so the
+    // disabled Login button is always explained. Only touched fields are
+    // also marked invalid, so the student is not scolded field by field.
+    return Object.values(validateStudentFields(this.name, this.serviceId, this.pin)).join(' · ');
   }
 
   /**
@@ -342,6 +401,7 @@ export class QdLogin extends LitElement {
     e.preventDefault();
 
     if (!this.isValid()) {
+      this.touched = new Set(['name', 'serviceId', 'pin']);
       this.errorMessage = 'Please enter name, service ID, and 4-digit PIN';
       return;
     }
@@ -402,8 +462,9 @@ export class QdLogin extends LitElement {
   private applyLoginResult(result: LoginResult): void {
     switch (result.kind) {
       case 'pin-created':
+        // No "PIN stored" dialog: the student has just confirmed the PIN and
+        // the status panel shows they are in (SRD 013 UX-02)
         this.dispatchPinEvent('qd:pin-created', result.serviceId);
-        this.showPinStoredConfirmation();
         this.completeLogin(result.serviceId, result.name, result.release);
         break;
       case 'pin-verified':
@@ -439,13 +500,6 @@ export class QdLogin extends LitElement {
       }),
     );
   }
-
-  private showPinStoredConfirmation(): void {
-    this.showPinConfirmation = true;
-  }
-  private handlePinConfirmationDismiss = (): void => {
-    this.showPinConfirmation = false;
-  };
 
   /** On successful migration, retry login with the pending (validated) data. */
   private handleMigrationComplete = (): void => {

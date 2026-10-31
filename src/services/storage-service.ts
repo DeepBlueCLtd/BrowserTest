@@ -18,7 +18,7 @@ import type {
 } from '../types/contracts.js';
 import { getStorageAdapter } from './storage/indexeddb.js';
 import { buildCacheFromRecord } from './session-cache.js';
-import { calculateCompletionState } from './state-calculator.js';
+import { calculatePageState } from './state-calculator.js';
 import { recalculateTotalsFromPages } from '../utils/calculation-helpers.js';
 import { setJSON } from '../utils/storage-helpers.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
@@ -46,6 +46,53 @@ export function createEmptyStudentRecord(session: SessionData): StudentRecord {
     updated: new Date().toISOString(),
     pages: {},
   };
+}
+
+/**
+ * Carry attempt tracking from the previous answer to a new one
+ * (SRD 013 SCO-01, SCO-07).
+ *
+ * - A commit (an MCQ choice, or a numeric value when its field loses focus)
+ *   counts one attempt; the first commit also fixes `firstSuccess`.
+ * - A provisional save (a numeric value while typing) keeps the counts, so
+ *   typing "1500" slowly is not four attempts.
+ * - An answer written before v3 has no counts; its history is unknown, so it
+ *   stays without them and displays as "–".
+ *
+ * @param previous - Stored answer for the question, if any
+ * @param next - New answer (answer, success, timestamp)
+ * @param commit - Whether this save is a committed answer
+ * @returns The answer to store
+ */
+export function withAttempts(
+  previous: AnswerRecord | undefined,
+  next: AnswerRecord,
+  commit: boolean,
+): AnswerRecord {
+  const { answer, success, timestamp } = next;
+  const previouslyAnswered = previous !== undefined && previous.answer.trim() !== '';
+
+  // Answered before v3: history unknown, so record no counts
+  if (previouslyAnswered && previous.attempts === undefined) {
+    return { answer, success, timestamp };
+  }
+
+  const priorAttempts = previous?.attempts ?? 0;
+  if (!commit || answer.trim() === '') {
+    return previous?.firstSuccess === undefined
+      ? { answer, success, timestamp, attempts: priorAttempts }
+      : {
+          answer,
+          success,
+          timestamp,
+          attempts: priorAttempts,
+          firstSuccess: previous.firstSuccess,
+        };
+  }
+
+  const attempts = priorAttempts + 1;
+  const firstSuccess = attempts === 1 ? success : (previous?.firstSuccess ?? success);
+  return { answer, success, timestamp, attempts, firstSuccess };
 }
 
 /**
@@ -149,6 +196,7 @@ export class StorageService {
     questionIndex: number,
     answer: AnswerRecord,
     totalQuestions: number,
+    options: { commit?: boolean } = {},
   ): StudentRecord {
     // Get or create page data
     const existingPage = record.pages[pageId];
@@ -167,8 +215,13 @@ export class StorageService {
     }
 
     // Update answer at index (FR-015: overwrites previous answer for re-submissions)
-    // Only the most recent answer is stored, with updated timestamp
-    pageData.answers[questionIndex] = answer;
+    // The most recent answer is stored, plus how many answers were committed
+    // and whether the first was right (SRD 013 SCO-01)
+    pageData.answers[questionIndex] = withAttempts(
+      pageData.answers[questionIndex],
+      answer,
+      options.commit === true,
+    );
 
     // Update timestamps
     const now = new Date().toISOString();
@@ -177,8 +230,9 @@ export class StorageService {
     }
     pageData.lastAttempted = now;
 
-    // Recalculate state
-    pageData.state = calculateCompletionState(pageData.answers, totalQuestions);
+    // Recalculate state from the quiz and any analysis entries on the page
+    pageData.totalQuestions = totalQuestions;
+    pageData.state = calculatePageState(pageData);
 
     // Update record
     return {
@@ -210,6 +264,7 @@ export class StorageService {
     tableId: string,
     cellKey: CellKey,
     content: string,
+    details: { totalCells?: number; label?: string } = {},
   ): StudentRecord {
     // Get or create page data
     const pageData: PageData = record.pages[pageId] || {
@@ -223,8 +278,14 @@ export class StorageService {
       cells: {},
     };
 
-    // Update cell content
+    // Update cell content, plus what is needed to judge and report it (ANA-03, ANA-04)
     analysisData.cells[cellKey] = content;
+    if (details.totalCells !== undefined) {
+      analysisData.totalCells = details.totalCells;
+    }
+    if (details.label) {
+      analysisData.labels = { ...analysisData.labels, [cellKey]: details.label };
+    }
 
     // Update timestamps
     const now = new Date().toISOString();
@@ -233,8 +294,10 @@ export class StorageService {
     }
     analysisData.lastEdited = now;
 
-    // Store analysis data back in the page and record
+    // Store analysis data back in the page and record; analysis text now
+    // counts towards the page state, so its badge is not left red
     pageData.analysis = analysisData;
+    pageData.state = calculatePageState(pageData);
     record.pages[pageId] = pageData;
     record.updated = now;
 

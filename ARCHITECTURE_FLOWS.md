@@ -143,10 +143,10 @@ stateDiagram-v2
     NoSession --> LoginForm: No session found
     LoginForm --> ActiveSession: qd:login event
 
-    ActiveSession --> ActiveSession: User activity (30 min timeout)
+    ActiveSession --> ActiveSession: User activity (10 min timeout)
     ActiveSession --> Expiring: 25 minutes idle
     Expiring --> ActiveSession: User activity
-    Expiring --> Expired: 30 minutes reached
+    Expiring --> Expired: 10 minutes reached
 
     ActiveSession --> InstructorMode: qd:instructor-unlock
     InstructorMode --> ActiveSession: qd:instructor-lock

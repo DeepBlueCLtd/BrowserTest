@@ -308,11 +308,12 @@ export class QdInstructor extends LitElement {
 
         <button @click=${this.handleViewScores} class="primary compact">View All Scores</button>
 
-        <button @click=${this.handleResetPins} class="secondary compact">Reset PINs</button>
-
         <qd-instructor-export .students=${this.students}></qd-instructor-export>
 
-        <qd-instructor-manage @qd:data-cleared=${this.handleDataCleared}></qd-instructor-manage>
+        <span class="danger-zone" role="group" aria-label="Actions that change student data">
+          <button @click=${this.handleResetPins} class="outline-danger compact">Reset PINs</button>
+          <qd-instructor-manage @qd:data-cleared=${this.handleDataCleared}></qd-instructor-manage>
+        </span>
 
         <button @click=${this.handleLogout} class="logout">Logout</button>
 

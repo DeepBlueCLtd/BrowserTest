@@ -48,7 +48,7 @@ jobs:
           flags: integration
       # Structural gap check: fails if the number of source files without a test grows.
       - name: Test-gap ratchet
-        run: npm run test:gaps -- --max-gaps 25
+        run: npm run test:gaps -- --max-gaps 23
 
   build:
     name: Build & Bundle Size Check
@@ -68,6 +68,16 @@ jobs:
         with:
           name: dist
           path: dist/
+      # The zip a content author uses in Oxygen without a command line
+      # (SRD 013). Built on every PR so a change can be tried in Oxygen
+      # before it is released.
+      - name: Package Oxygen template
+        run: npm run package:template -- ci-${{ github.run_number }}
+      - name: Upload Oxygen template
+        uses: actions/upload-artifact@v4
+        with:
+          name: oxygen-template
+          path: dist/oxygen-template-*.zip
 
   e2e:
     name: E2E Tests (${{ matrix.mode }})
@@ -93,7 +103,9 @@ jobs:
       # and copy the bundle for the mode under test (the copy is not committed back).
       - name: Build bundle (default)
         if: matrix.mode == 'default'
-        run: npm run build:dita
+        # build:dita now produces the obfuscated release bundle (SRD 013 SEC-08),
+        # so the plain-storage E2E mode builds the plain variant explicitly
+        run: npm run build:dita:plain
       - name: Build bundle (encrypted)
         if: matrix.mode == 'encrypted'
         run: npm run build:dita:encrypted

@@ -15,20 +15,36 @@
 
 import type { ParsedQuizTable, PageId, SessionData, SessionCache } from '../types/contracts.js';
 import { parseQuizTable } from '../services/quiz-parser.js';
+import { readAnswerKey, tableNeedsMissingKey } from '../services/answer-encoding.js';
 import { registerPageQuestions } from '../services/session-cache.js';
 import { Debouncer } from '../utils/debouncer.js';
 import { addClass, removeClass } from '../utils/dom-helpers.js';
 import { getJSON, setJSON, INSTRUCTOR_SHOW_ANSWERS_KEY } from '../utils/storage-helpers.js';
 import { STORAGE_KEYS } from '../types/contracts.js';
+import { isInstructor } from '../utils/session-state.js';
 import { info, error as logError } from '../utils/logger.js';
 import {
   removeColgroup,
   hideAnswerColumn,
   showAnswerColumn,
   hideDetailColumn,
+  setStudentAnswerHeader,
+  setLoginNotice,
 } from './quiz-table-columns.js';
 import { createQuestionInput } from './quiz-input-factory.js';
-import { handleAnswerInput, applyValidationStyling } from './quiz-answer-persistence.js';
+import {
+  handleAnswerInput,
+  applyValidationStyling,
+  clearValidationFeedback,
+  showInputError,
+  clearInputError,
+} from './quiz-answer-persistence.js';
+import { ensureId } from '../utils/a11y.js';
+import {
+  isNumericAnswer,
+  hasNonNumericCharacters,
+  NUMERIC_INPUT_ERROR,
+} from '../utils/validation-helpers.js';
 import {
   showStudentAnswersForTable,
   hideStudentAnswersForTable,
@@ -95,8 +111,18 @@ export function enhanceQuizTable(
       return true;
     }
   } else {
+    // Encoded answers with no usable key: leave the table as published rather
+    // than show garbled answers (SRD 013 ANS-09)
+    const answerKey = readAnswerKey();
+    if (tableNeedsMissingKey(table, answerKey)) {
+      logError(
+        'Quiz table has encoded answers but #qd-answer-key is missing or invalid; table not enhanced',
+      );
+      return false;
+    }
+
     // Parse the table (first enhancement)
-    parsed = parseQuizTable(table);
+    parsed = parseQuizTable(table, answerKey);
 
     // Check for parsing errors
     if (parsed.errors && parsed.errors.length > 0) {
@@ -156,6 +182,10 @@ function enhanceNonInteractive(table: HTMLTableElement): boolean {
   hideAnswerColumn(table);
   hideDetailColumn(table);
 
+  // Tell a logged-out student why there is nothing to answer yet (UX-05);
+  // the instructor reveal and the interactive upgrade remove it again
+  setLoginNotice(table, true);
+
   addClass(table, 'qd-quiz-non-interactive');
   info('Quiz table enhanced in non-interactive mode');
 
@@ -182,6 +212,10 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
 
   // Show answer column (remove qd-hidden class from non-interactive mode)
   showAnswerColumn(table);
+
+  // The column now holds the student's input, whatever the author called it
+  setStudentAnswerHeader(table);
+  setLoginNotice(table, false);
 
   // Hide detail column in interactive mode
   // - MCQ options are now in the select dropdown
@@ -255,6 +289,9 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
     const input = createQuestionInput(question, existingAnswer);
     inputs.push(input);
 
+    // Name the control after its question for screen readers (A11Y-01)
+    input.setAttribute('aria-labelledby', ensureId(questionCell, 'qd-question'));
+
     // Clear answer cell styling from any previous user session
     removeClass(answerCell, 'qd-answer-correct', 'qd-answer-incorrect');
 
@@ -267,11 +304,42 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
       applyValidationStyling(answerCell, existingAnswer.success);
     }
 
-    // Setup auto-save on input change
-    // Use 'change' for select elements (MCQ), 'input' for text inputs (numeric)
-    const eventType = input.tagName === 'SELECT' ? 'change' : 'input';
-    input.addEventListener(eventType, () => {
-      handleAnswerInput(table, metadata, index, input.value);
+    if (input instanceof HTMLSelectElement) {
+      // MCQ: each choice is a committed answer
+      input.addEventListener('change', () => {
+        handleAnswerInput(table, metadata, index, input.value, true);
+      });
+      return;
+    }
+
+    // Numeric: only numbers are saved or counted (UX-03). Characters no
+    // number can contain are flagged at once; an incomplete number such as
+    // "-" is flagged when the field loses focus.
+    input.inputMode = 'decimal';
+    input.addEventListener('input', () => {
+      const value = input.value.trim();
+      if (hasNonNumericCharacters(value)) {
+        showInputError(answerCell, input, NUMERIC_INPUT_ERROR);
+        return;
+      }
+      clearInputError(answerCell, input);
+      if (value === '' || isNumericAnswer(value)) {
+        handleAnswerInput(table, metadata, index, input.value);
+      }
+    });
+    input.addEventListener('blur', () => {
+      const value = input.value.trim();
+      if (value !== '' && !isNumericAnswer(value)) {
+        showInputError(answerCell, input, NUMERIC_INPUT_ERROR);
+      }
+    });
+    // Leaving a changed field commits the number as an attempt (SCO-01).
+    // Typing saves along the way without counting each keystroke.
+    input.addEventListener('change', () => {
+      const value = input.value.trim();
+      if (isNumericAnswer(value)) {
+        handleAnswerInput(table, metadata, index, input.value, true);
+      }
     });
   });
 
@@ -290,18 +358,21 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
   document.addEventListener('qd:instructor-hide-answers', hideAnswersHandler);
 
   // Check if instructor mode with toggle already enabled
-  const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
+  const instructorActive = isInstructor();
   const showAnswers = sessionStorage.getItem(INSTRUCTOR_SHOW_ANSWERS_KEY) === 'true';
-  if (isInstructor && showAnswers) {
+  if (instructorActive && showAnswers) {
     void showStudentAnswersForTable(table, metadata);
   }
 
   // Reset UI state - used on both logout and login (new user)
   const resetUIState = () => {
-    // Clear student-specific color-coded feedback
-    const answerCells = table.querySelectorAll('td.qd-answer-correct, td.qd-answer-incorrect');
-    answerCells.forEach((cell) => {
-      removeClass(cell, 'qd-answer-correct', 'qd-answer-incorrect');
+    // Clear student-specific feedback: colour, marks and input errors
+    table.querySelectorAll('tbody tr').forEach((row) => {
+      const cell = row.querySelectorAll('td')[1];
+      if (!cell) return;
+      clearValidationFeedback(cell);
+      const control = cell.querySelector<HTMLElement>('select, input');
+      if (control) clearInputError(cell, control);
     });
 
     // Reset input values to default state
@@ -324,12 +395,15 @@ function enhanceInteractive(table: HTMLTableElement, metadata: QuizTableMetadata
   // Add logout listener to clear student-specific UI state (FR-001, FR-002)
   const logoutHandler = () => {
     resetUIState();
+    // Nobody is logged in now, so prompt again (UX-05)
+    setLoginNotice(table, true);
     info('Cleared student UI state from quiz table on logout');
   };
 
   // Add login listener to reset UI for new user (handles migration retry case)
   const loginHandler = () => {
     resetUIState();
+    setLoginNotice(table, false);
     info('Reset quiz table UI on login');
   };
 

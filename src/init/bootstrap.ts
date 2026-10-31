@@ -16,6 +16,8 @@ import { getJSON, setJSON } from '../utils/storage-helpers.js';
 import { getPageIdFromUrl } from '../utils/page-id.js';
 import { injectGlobalStyles } from './global-styles.js';
 import { STORAGE_KEYS, type SessionData, type SessionCache } from '../types/contracts.js';
+import { isInstructor } from '../utils/session-state.js';
+import { restoreInstructorSession } from '../services/auth/instructor-session.js';
 
 /**
  * Bootstrap configuration options
@@ -67,6 +69,10 @@ export async function bootstrap(config: BootstrapConfig = {}): Promise<void> {
   }
   const storageService = getStorageService(config.dbName);
   await storageService.init();
+
+  // 1b. Re-verify any stored instructor secret before components or enhancers
+  // ask whether this is an instructor (SRD 013 SEC-01, SEC-02)
+  await restoreInstructorSession();
 
   // 2. Initialize event coordinator
   const eventCoordinator = new EventCoordinator();
@@ -215,8 +221,8 @@ function revealQuizAnswersForInstructor(): void {
  */
 async function checkExistingSessionAndUpgradeTables(): Promise<void> {
   // Check if instructor mode FIRST - instructors don't need student session
-  const isInstructor = sessionStorage.getItem(STORAGE_KEYS.INSTRUCTOR) === 'true';
-  if (isInstructor) {
+  const instructorActive = isInstructor();
+  if (instructorActive) {
     info('Instructor session detected, revealing answers in non-interactive tables');
     revealQuizAnswersForInstructor();
     return;

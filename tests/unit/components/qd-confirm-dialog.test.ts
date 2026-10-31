@@ -368,3 +368,62 @@ describe('qd-confirm-dialog', () => {
     });
   });
 });
+
+describe('qd-confirm-dialog additions (SRD 013)', () => {
+  let container: HTMLElement;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+  });
+
+  afterEach(() => {
+    container.remove();
+    document.querySelectorAll('body > qd-modal').forEach((el) => el.remove());
+  });
+
+  async function open(props: Partial<QdConfirmDialog>): Promise<QdConfirmDialog> {
+    const el = document.createElement('qd-confirm-dialog');
+    Object.assign(el, props);
+    container.appendChild(el);
+    await el.updateComplete;
+    el.open = true;
+    await el.updateComplete;
+    await new Promise((r) => requestAnimationFrame(r));
+    return el;
+  }
+
+  const modal = () => document.querySelector('qd-modal[open]')!;
+
+  it('keeps its button styles after qd-modal moves to document.body (UX-01)', async () => {
+    await open({ destructive: true, confirmText: 'Reset PIN' });
+    const btn = modal().querySelector<HTMLButtonElement>('.confirm-btn')!;
+    // Styles are inline, so they apply outside this component's shadow root
+    expect(btn.getAttribute('style')).toContain('background: #d32f2f');
+    expect(btn.getAttribute('style')).toContain('border-radius');
+  });
+
+  it('renders no cancel button when cancelText is empty (UX-01)', async () => {
+    await open({ cancelText: '', confirmText: 'OK' });
+    expect(modal().querySelector('.cancel-btn')).toBeNull();
+    const labels = Array.from(modal().querySelectorAll('button')).map((b) => b.textContent?.trim());
+    expect(labels).not.toContain('');
+  });
+
+  it('asks for a password and sends it with qd:confirm (SEC-03)', async () => {
+    const el = await open({ requirePassword: true });
+    const input = modal().querySelector<HTMLInputElement>('input[type="password"]')!;
+    const confirm = modal().querySelector<HTMLButtonElement>('.confirm-btn')!;
+    expect(confirm.disabled).toBe(true);
+
+    input.value = 'secret';
+    input.dispatchEvent(new Event('input'));
+    await el.updateComplete;
+    expect(confirm.disabled).toBe(false);
+
+    const handler = vi.fn();
+    el.addEventListener('qd:confirm', handler);
+    confirm.click();
+    expect((handler.mock.calls[0]![0] as CustomEvent).detail).toEqual({ password: 'secret' });
+  });
+});

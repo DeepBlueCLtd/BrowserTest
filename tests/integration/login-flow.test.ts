@@ -9,7 +9,12 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { getStorageAdapter, resetStorageAdapter } from '../../src/services/storage/indexeddb.js';
-import { hashPin, verifyPin } from '../../src/services/auth/pin-service.js';
+import {
+  hashPin,
+  verifyPin,
+  createPinCredential,
+  verifyStoredPin,
+} from '../../src/services/auth/pin-service.js';
 import {
   completePinSetup,
   needsMigration,
@@ -257,12 +262,12 @@ describe('Login Flow with PIN Authentication', () => {
 
       // Complete PIN setup
       const pin = '9876';
-      const pinHash = await hashPin(pin);
-      const migrated = completePinSetup(v1Student, pinHash);
+      const credential = await createPinCredential(pin);
+      const migrated = completePinSetup(v1Student, credential);
 
       // Verify migration
       expect(migrated.schema).toBe(SCHEMA_VERSION);
-      expect(migrated.pinHash).toBe(pinHash);
+      expect(migrated.pinHash).toBe(credential.pinHash);
       expect(migrated.pinCreatedAt).toBeDefined();
 
       // Verify data preserved
@@ -372,14 +377,13 @@ describe('Login Flow with PIN Authentication', () => {
       await storage.saveStudent(resetStudent);
 
       // Set new PIN
-      const newPinHash = await hashPin(newPin);
-      const updatedStudent = completePinSetup(resetStudent, newPinHash);
+      const updatedStudent = completePinSetup(resetStudent, await createPinCredential(newPin));
       await storage.saveStudent(updatedStudent);
 
       // Verify new PIN works
       const retrieved = await storage.getStudent(release, serviceId);
-      expect(await verifyPin(newPin, retrieved!.pinHash!)).toBe(true);
-      expect(await verifyPin(oldPin, retrieved!.pinHash!)).toBe(false);
+      expect((await verifyStoredPin(newPin, retrieved!)).valid).toBe(true);
+      expect((await verifyStoredPin(oldPin, retrieved!)).valid).toBe(false);
       expect(retrieved?.attempted).toBe(5); // Data preserved
     });
   });

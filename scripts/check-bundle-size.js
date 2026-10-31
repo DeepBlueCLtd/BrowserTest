@@ -8,7 +8,10 @@ import { dirname, join } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const MAX_SIZE_KB = 40;
+// Raised from 40 KB (SRD 013 NFR-01): content runs from local disk, so size is
+// not a delivery constraint. A ceiling remains to catch an accidentally
+// bundled dependency.
+const MAX_SIZE_KB = 100;
 const IIFE_PATH = join(__dirname, '../dist/sonar-quiz.iife.js');
 
 try {

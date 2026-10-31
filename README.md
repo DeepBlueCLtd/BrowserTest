@@ -166,7 +166,7 @@ All eight phases are complete. Later work (specs 001–012 under `specs/`) added
 
 ## Architecture
 
-- **Runtime:** Single JavaScript bundle (IIFE ≤40 KB gzipped, enforced in CI) that progressively enhances DITA-published HTML
+- **Runtime:** Single JavaScript bundle (IIFE ≤100 KB gzipped, enforced in CI) that progressively enhances DITA-published HTML
 - **Pattern:** DOM upgrades for tables + Lit 3 custom elements for UI overlays
 - **Data flow:** User actions → sessionStorage cache → IndexedDB persistence
 - **Isolation:** Shadow DOM for components, scoped CSS for upgraded tables

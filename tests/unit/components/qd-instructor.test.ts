@@ -7,6 +7,7 @@ import '../../../src/components/qd-instructor/qd-instructor.js';
 import type { QdInstructor } from '../../../src/components/qd-instructor/qd-instructor.js';
 import { STORAGE_KEYS } from '../../../src/types/contracts.js';
 import type { SessionData } from '../../../src/types/contracts.js';
+import { loginInstructorForTest, resetInstructorForTest } from '../../helpers/instructor.js';
 
 describe('qd-instructor - Fresh Session Data Loading (FR-004)', () => {
   let element: QdInstructor;
@@ -28,6 +29,7 @@ describe('qd-instructor - Fresh Session Data Loading (FR-004)', () => {
   afterEach(() => {
     container.remove();
     sessionStorage.clear();
+    resetInstructorForTest();
   });
 
   it('should load data in fresh session when toggle is enabled', async () => {
@@ -42,7 +44,7 @@ describe('qd-instructor - Fresh Session Data Loading (FR-004)', () => {
       instructorUnlocked: true,
     };
     sessionStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(session));
-    sessionStorage.setItem(STORAGE_KEYS.INSTRUCTOR, 'true');
+    await loginInstructorForTest();
 
     // Verify toggle state is NOT set yet (fresh session)
     expect(sessionStorage.getItem('qd/instructor/showAnswers')).toBeNull();
@@ -92,7 +94,7 @@ describe('qd-instructor - Fresh Session Data Loading (FR-004)', () => {
       instructorUnlocked: true,
     };
     sessionStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(session));
-    sessionStorage.setItem(STORAGE_KEYS.INSTRUCTOR, 'true');
+    await loginInstructorForTest();
     sessionStorage.setItem('qd/instructor/showAnswers', 'true');
 
     // Create component - should restore state
@@ -120,7 +122,7 @@ describe('qd-instructor - Fresh Session Data Loading (FR-004)', () => {
       instructorUnlocked: true,
     };
     sessionStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(session));
-    sessionStorage.setItem(STORAGE_KEYS.INSTRUCTOR, 'true');
+    await loginInstructorForTest();
 
     // First page - enable toggle
     const page1Element = document.createElement('qd-instructor');
@@ -166,7 +168,7 @@ describe('qd-instructor - Fresh Session Data Loading (FR-004)', () => {
       instructorUnlocked: true,
     };
     sessionStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(session));
-    sessionStorage.setItem(STORAGE_KEYS.INSTRUCTOR, 'true');
+    await loginInstructorForTest();
     sessionStorage.setItem('qd/instructor/showAnswers', 'true');
 
     // Create component
@@ -197,7 +199,7 @@ describe('qd-instructor - Fresh Session Data Loading (FR-004)', () => {
       instructorUnlocked: true,
     };
     sessionStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(newSession));
-    sessionStorage.setItem(STORAGE_KEYS.INSTRUCTOR, 'true');
+    await loginInstructorForTest();
 
     const freshElement = document.createElement('qd-instructor');
     container.appendChild(freshElement);

@@ -34,15 +34,31 @@ export function handleCellEdit(
   }
 
   const content = getTextContent(cell);
+  const label = cellLabel(cell);
 
   // Debounce the save (500ms - longer than quiz for thoughtful editing)
   debouncer.debounce(
     `save-cell-${cellKey}`,
     () => {
-      void saveCellData(metadata, cellKey, content);
+      void saveCellData(metadata, cellKey, content, label);
     },
     500,
   );
+}
+
+/**
+ * Row label of an analysis cell, from the element that names it for screen
+ * readers (set by analysis-table.ts), without a trailing colon. Stored with
+ * the entry so exports can say which row it belongs to (SRD 013 ANA-03).
+ *
+ * @param cell - Editable analysis cell
+ * @returns The label, or undefined when the row has none
+ */
+export function cellLabel(cell: HTMLTableCellElement): string | undefined {
+  const labelId = cell.getAttribute('aria-labelledby');
+  const text = labelId ? document.getElementById(labelId)?.textContent : undefined;
+  const label = text?.replace(/\s+/g, ' ').trim().replace(/:$/, '').trim();
+  return label || undefined;
 }
 
 /**
@@ -56,6 +72,7 @@ export async function saveCellData(
   metadata: AnalysisTableMetadata,
   cellKey: CellKey,
   content: string,
+  label?: string,
 ): Promise<void> {
   const { pageId, parsed } = metadata;
 
@@ -87,6 +104,7 @@ export async function saveCellData(
     parsed.tableId,
     cellKey,
     content,
+    { totalCells: parsed.editableCells.length, label },
   );
 
   // Persist, refresh cache, and emit the saved event

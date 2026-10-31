@@ -5,6 +5,8 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { StudentRecord } from '../../../src/types/contracts.js';
+import { STORAGE_KEYS } from '../../../src/types/contracts.js';
+import { enhanceAnalysisTable } from '../../../src/enhancers/analysis-table.js';
 import { groupEntriesByCell, sortByTimestamp } from '../../../src/services/analysis-display.js';
 import { createStudentEntriesDisplay } from '../../../src/enhancers/analysis-instructor-overlay.js';
 
@@ -295,5 +297,42 @@ describe('Analysis Table Enhancer - Instructor View (FR-012, FR-013)', () => {
       expect(displayElement.shadowRoot?.querySelector('.qd-no-entries')).not.toBeNull();
       displayElement.remove();
     });
+  });
+});
+
+describe('analysis cells for screen readers (SRD 013 A11Y-03)', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+    sessionStorage.clear();
+  });
+
+  it('exposes editable cells as text boxes named by their row label', () => {
+    const table = document.createElement('table');
+    table.className = 'qd-analysis';
+    table.innerHTML = `<tbody>
+      <tr><td>Threat Assessment:</td><td class="interactive"></td></tr>
+      <tr><td>Justification:</td><td class="interactive"></td></tr>
+    </tbody>`;
+    document.body.appendChild(table);
+    sessionStorage.setItem(
+      STORAGE_KEYS.SESSION,
+      JSON.stringify({
+        serviceId: 'RN1',
+        name: 'A',
+        release: 'R',
+        loginTime: '',
+        lastActivity: '',
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        instructorUnlocked: false,
+      }),
+    );
+
+    enhanceAnalysisTable(table, { interactive: true, pageId: 'analysis-tactical' });
+
+    const cell = table.querySelector<HTMLTableCellElement>('td.interactive')!;
+    expect(cell.getAttribute('role')).toBe('textbox');
+    expect(cell.getAttribute('aria-multiline')).toBe('true');
+    const label = document.getElementById(cell.getAttribute('aria-labelledby')!);
+    expect(label?.textContent).toBe('Threat Assessment:');
   });
 });

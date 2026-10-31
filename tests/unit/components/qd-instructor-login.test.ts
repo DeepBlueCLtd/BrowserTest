@@ -7,6 +7,7 @@ import '../../../src/components/qd-instructor-login.js';
 import type { QdInstructorLogin } from '../../../src/components/qd-instructor-login.js';
 import { CONFIG_IDS } from '../../../src/config/dom-config-reader.js';
 import { hashPassword } from '../../../src/services/auth/instructor-auth.js';
+import { isInstructor } from '../../../src/utils/session-state.js';
 
 function setHash(value: string | null): void {
   document.getElementById(CONFIG_IDS.instructorHash)?.remove();
@@ -57,6 +58,8 @@ describe('qd-instructor-login', () => {
     document.removeEventListener('qd:login', collect);
 
     expect(roles).toContain('instructor');
-    expect(sessionStorage.getItem('qd/instructor')).toBe('true');
+    // The verified secret is stored, not a forgeable 'true' flag (SRD 013 SEC-01)
+    expect(sessionStorage.getItem('qd/instructor')).toBe('letmein');
+    expect(isInstructor()).toBe(true);
   });
 });

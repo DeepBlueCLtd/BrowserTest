@@ -16,8 +16,13 @@
 import { SCHEMA_VERSION } from '../../types/contracts.js';
 import type { StudentRecord } from '../../types/contracts.js';
 import { getStorageAdapter } from '../storage/indexeddb.js';
-import { needsMigration, hasPinSet, completePinSetup } from '../storage/migration.js';
-import { verifyPin, hashPin } from './pin-service.js';
+import {
+  needsMigration,
+  hasPinSet,
+  completePinSetup,
+  upgradePinCredential,
+} from '../storage/migration.js';
+import { createPinCredential, verifyStoredPin } from './pin-service.js';
 import {
   checkLockout,
   recordFailedAttempt,
@@ -159,15 +164,15 @@ export class AuthService {
       if (existingStudent) {
         // Existing student needing PIN setup (legacy schema or never set a PIN)
         if (needsMigration(existingStudent) || !hasPinSet(existingStudent)) {
-          const pinHash = await hashPin(pin);
-          const updatedStudent = completePinSetup(existingStudent, pinHash);
+          const credential = await createPinCredential(pin);
+          const updatedStudent = completePinSetup(existingStudent, credential);
           await storage.saveStudent(updatedStudent);
           return { kind: 'pin-created', serviceId, name, release };
         }
 
         // Existing student with a PIN — verify it
-        const isValid = await verifyPin(pin, existingStudent.pinHash || '');
-        if (!isValid) {
+        const check = await verifyStoredPin(pin, existingStudent);
+        if (!check.valid) {
           const state = recordFailedAttempt(serviceId);
           if (state.lockoutUntil) {
             const lockoutMs = new Date(state.lockoutUntil).getTime() - Date.now();
@@ -177,11 +182,15 @@ export class AuthService {
         }
 
         clearAttemptState(serviceId);
+        // Legacy unsalted hash: replace it now that we know the PIN (SEC-07)
+        if (check.upgrade) {
+          await storage.saveStudent(upgradePinCredential(existingStudent, check.upgrade));
+        }
         return { kind: 'pin-verified', serviceId, name, release };
       }
 
-      // New student — hash PIN and create record
-      const pinHash = await hashPin(pin);
+      // New student — derive a salted PIN verifier and create the record
+      const credential = await createPinCredential(pin);
       const newStudent: StudentRecord = {
         schema: SCHEMA_VERSION,
         docId: '',
@@ -192,7 +201,7 @@ export class AuthService {
         correct: 0,
         updated: new Date().toISOString(),
         pages: {},
-        pinHash,
+        ...credential,
         pinCreatedAt: new Date().toISOString(),
       };
       await storage.saveStudent(newStudent);

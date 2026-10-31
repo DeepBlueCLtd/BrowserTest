@@ -13,8 +13,11 @@
 
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import type { StudentRecord } from '../types/contracts.js';
+import type { StudentRecord, AnalysisData } from '../types/contracts.js';
+import { countFilledCells } from '../services/state-calculator.js';
 import './qd-modal.js';
+import { summariseFirstAttempts } from '../services/scores-service.js';
+import { readQuestionTotal } from '../config/dom-config-reader.js';
 
 interface StudentSummary {
   serviceId: string;
@@ -132,6 +135,14 @@ export class QdScoresModal extends LitElement {
             color: #721c24;
             border: 1px solid #f5c6cb;
           }
+          .scores-content .analysis-badge {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            background: #e8eaf6;
+            color: #283593;
+          }
+
           .scores-content .no-answers {
             color: #999;
             font-style: italic;
@@ -156,7 +167,9 @@ export class QdScoresModal extends LitElement {
           <tr>
             <th>Student</th>
             <th>Service ID</th>
-            <th>Score</th>
+            <th>Answered</th>
+            <th>Correct</th>
+            <th>Right first time</th>
             <th>Answers</th>
           </tr>
         </thead>
@@ -175,9 +188,11 @@ export class QdScoresModal extends LitElement {
       <tr class="student-row">
         <td>${summary.name}</td>
         <td>${summary.serviceId}</td>
+        <td>${this.answeredText(summary.attempted)}</td>
         <td class=${this.getScoreClass(summary)}>
-          ${summary.correct}/${summary.attempted} (${summary.percentage}%)
+          ${summary.attempted > 0 ? `${summary.correct} (${summary.percentage}% of answered)` : '0'}
         </td>
+        <td>${this.firstTimeText(student)}</td>
         <td>
           ${pages.length === 0
             ? html`<span class="no-answers">—</span>`
@@ -188,12 +203,20 @@ export class QdScoresModal extends LitElement {
                       <div class="page-row">
                         <span class="page-name">${pageId}</span>
                         <div class="page-answers">
+                          ${pageData.analysis
+                            ? html`<span class="analysis-badge"
+                                >${this.analysisSummary(pageData.analysis)}</span
+                              >`
+                            : ''}
                           ${pageData.answers.map(
                             (answer, idx) => html`
                               <span
                                 class="answer-badge ${answer?.success ? 'correct' : 'incorrect'}"
                               >
-                                Q${idx + 1}: ${answer?.answer ?? '—'}
+                                Q${idx + 1}:
+                                ${answer?.answer ?? '—'}${answer?.attempts && answer.attempts > 1
+                                  ? ` (${answer.attempts} tries)`
+                                  : ''}
                               </span>
                             `,
                           )}
@@ -206,6 +229,42 @@ export class QdScoresModal extends LitElement {
         </td>
       </tr>
     `;
+  }
+
+  /**
+   * "2 of 6 cells" for a page's analysis table, so analysis work shows in the
+   * scores view (SRD 013 ANA-05). Older records lack the cell count.
+   */
+  private analysisSummary(analysis: AnalysisData): string {
+    const filled = countFilledCells(analysis);
+    return analysis.totalCells !== undefined
+      ? `Analysis: ${filled} of ${analysis.totalCells} cells`
+      : `Analysis: ${filled} cell${filled === 1 ? '' : 's'}`;
+  }
+
+  /**
+   * Questions answered, against the publication total when it is known
+   * (SRD 013 SCO-04). Scores used to divide by answered questions only, so
+   * one right answer read as 100%.
+   */
+  private answeredText(answered: number): string {
+    const total = readQuestionTotal();
+    return total !== undefined ? `${answered} of ${total}` : String(answered);
+  }
+
+  /**
+   * Right-first-time count. Answers from before attempts were tracked show
+   * as unknown rather than guessed (SCO-04, SCO-07).
+   */
+  private firstTimeText(student: StudentRecord): string {
+    const { tracked, correctFirstTime, untracked } = summariseFirstAttempts(student);
+    if (tracked === 0) {
+      return '–';
+    }
+    const text = `${correctFirstTime} of ${tracked}`;
+    return untracked > 0
+      ? `${text} (${untracked} older answer${untracked === 1 ? '' : 's'} –)`
+      : text;
   }
 
   private getScoreClass(summary: StudentSummary): string {

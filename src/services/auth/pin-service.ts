@@ -6,6 +6,124 @@
  */
 
 import { PIN_CONSTANTS } from '../../types/contracts.js';
+import type { StudentRecord } from '../../types/contracts.js';
+
+/**
+ * Salted PIN verifier as stored on a student record (SRD 013 SEC-06).
+ */
+export interface PinCredential {
+  /** Hex PBKDF2-SHA-256 output (32 bytes) */
+  pinHash: string;
+  /** Hex random salt */
+  pinSalt: string;
+  /** Iteration count used */
+  pinIterations: number;
+  /** KDF identifier */
+  pinKdf: 'pbkdf2-sha256';
+}
+
+/** Result of checking a PIN against a stored record. */
+export interface StoredPinCheck {
+  /** Whether the PIN matched */
+  valid: boolean;
+  /** Present when the record held a legacy hash: the salted verifier to store instead */
+  upgrade?: PinCredential;
+}
+
+/** Hex-encode bytes. */
+function toHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/** Decode a hex string to bytes. */
+function fromHex(hex: string): Uint8Array<ArrayBuffer> {
+  const out = new Uint8Array(new ArrayBuffer(hex.length / 2));
+  for (let i = 0; i < out.length; i++) {
+    out[i] = parseInt(hex.substring(i * 2, i * 2 + 2), 16);
+  }
+  return out;
+}
+
+/**
+ * Derive a PIN verifier with PBKDF2-SHA-256.
+ *
+ * @param pin - 4-digit PIN
+ * @param saltHex - Hex-encoded salt
+ * @param iterations - PBKDF2 iteration count
+ * @returns Hex-encoded 32-byte derived key
+ */
+export async function derivePinHash(
+  pin: string,
+  saltHex: string,
+  iterations: number,
+): Promise<string> {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, [
+    'deriveBits',
+  ]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', hash: 'SHA-256', salt: fromHex(saltHex), iterations },
+    key,
+    256,
+  );
+  return toHex(new Uint8Array(bits));
+}
+
+/**
+ * Create a new salted verifier for a PIN.
+ *
+ * A 4-digit PIN has only 10,000 values, so this cannot make a PIN secret from
+ * someone holding the database. The per-student salt and iteration count turn
+ * a lookup that took milliseconds into minutes of work per PIN.
+ *
+ * @param pin - 4-digit PIN
+ * @param iterations - Iteration count (defaults to the current policy)
+ * @returns Credential fields to store on the student record
+ */
+export async function createPinCredential(
+  pin: string,
+  iterations: number = PIN_CONSTANTS.KDF_ITERATIONS,
+): Promise<PinCredential> {
+  const salt = toHex(crypto.getRandomValues(new Uint8Array(PIN_CONSTANTS.SALT_BYTES)));
+  return {
+    pinHash: await derivePinHash(pin, salt, iterations),
+    pinSalt: salt,
+    pinIterations: iterations,
+    pinKdf: 'pbkdf2-sha256',
+  };
+}
+
+/**
+ * Check a PIN against whatever verifier a student record holds.
+ *
+ * Salted records are checked with PBKDF2. Legacy records (unsalted SHA-256)
+ * still verify, and a match returns a salted replacement so the caller can
+ * upgrade the record (SRD 013 SEC-07).
+ *
+ * @param pin - PIN the student typed
+ * @param record - Stored PIN fields
+ * @returns Whether it matched, plus an upgrade credential for legacy records
+ */
+export async function verifyStoredPin(
+  pin: string,
+  record: Pick<StudentRecord, 'pinHash' | 'pinSalt' | 'pinIterations' | 'pinKdf'>,
+): Promise<StoredPinCheck> {
+  const stored = record.pinHash ?? '';
+  if (!stored) {
+    return { valid: false };
+  }
+
+  if (record.pinKdf === 'pbkdf2-sha256' && record.pinSalt && record.pinIterations) {
+    const derived = await derivePinHash(pin, record.pinSalt, record.pinIterations);
+    return { valid: constantTimeCompare(derived, stored) };
+  }
+
+  if (!(await verifyPin(pin, stored))) {
+    return { valid: false };
+  }
+  return { valid: true, upgrade: await createPinCredential(pin) };
+}
 
 /**
  * PIN validation result
@@ -16,7 +134,10 @@ export interface PinValidationResult {
 }
 
 /**
- * Hash a PIN using SHA-256
+ * Hash a PIN using unsalted SHA-256 (legacy v2 verifier).
+ *
+ * Kept only to verify records written before SRD 013. New verifiers come from
+ * {@link createPinCredential}.
  *
  * @param pin - 4-digit PIN to hash
  * @returns Promise resolving to hex-encoded hash
