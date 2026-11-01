@@ -94,7 +94,7 @@ test.describe('DITA Instructor Flow', () => {
     await expect(statusPanel).toBeVisible({ timeout: 3000 });
 
     // Verify student status shows progress
-    await expect(statusPanel.locator('.progress-text')).toContainText('0 answered');
+    await expect(statusPanel.locator('.progress-text')).toContainText('0 of 37 answered'); // dita-demo publishes its question total (SCO-05)
 
     // Navigate to a quiz page
     await page.click('a.quizPageBtn[href*="quiz-mcq"]');

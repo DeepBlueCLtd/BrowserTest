@@ -90,7 +90,7 @@ test.describe('DITA Student Flow', () => {
     await expect(loginForm).not.toBeVisible();
 
     // Verify status shows initial progress (0 correct)
-    await expect(statusPanel.locator('.progress-text')).toContainText('0 answered');
+    await expect(statusPanel.locator('.progress-text')).toContainText('0 of 37 answered'); // dita-demo publishes its question total (SCO-05)
     await expect(statusPanel.locator('.progress-text')).toContainText('correct');
 
     // Verify status indicator is red (no progress)
@@ -355,7 +355,7 @@ test.describe('DITA Student Flow', () => {
     await statusPanel.waitFor();
 
     // Verify new session created (progress starts at 0)
-    await expect(statusPanel.locator('.progress-text')).toContainText('0 answered');
+    await expect(statusPanel.locator('.progress-text')).toContainText('0 of 37 answered'); // dita-demo publishes its question total (SCO-05)
 
     // Navigate to quiz page
     await page.click('a.quizPageBtn[href*="quiz-mcq"]');

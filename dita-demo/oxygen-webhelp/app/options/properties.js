@@ -2,7 +2,7 @@ var properties =
  { "default.language" : "en",
   "use.stemming" : "false",
   "webhelp.enable.scroll.to.search.term" : "no",
-  "webhelp.enable.search.autocomplete" : "true",
+  "webhelp.enable.search.autocomplete" : "no",
   "webhelp.enable.search.kuromoji.js" : "true",
   "webhelp.enable.sticky.header" : "yes",
   "webhelp.enable.sticky.publication.toc" : "yes",

@@ -27,6 +27,8 @@
             <parameter name="force-unique" value="true"/>
             <parameter name="webhelp.show.print.link" value="no"/>
             <parameter name="webhelp.show.publication.toc" value="no"/>
+            <!-- Search is removed (SRD 013 ANS-01); its autocomplete script throws without the search box -->
+            <parameter name="webhelp.enable.search.autocomplete" value="no"/>
         </parameters>
         <xslt>
             <extension 

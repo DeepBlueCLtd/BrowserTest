@@ -118,3 +118,9 @@ npm run update-dita-demo                       # copies the output into dita-dem
 ```
 
 Then commit `dita-demo/`. CI's E2E tests and the PR previews use it.
+
+Without Oxygen, `npm run protect-dita-demo` applies the template's protection to the existing
+`dita-demo/` output instead: it encodes answers and tolerances with the default key, adds the
+`#qd-answer-key` and `#qd-question-total` spans, removes search and its index, and turns off
+search autocomplete. It follows the template's rules (`scripts/protect-demo-output.js`), but it
+is a stand-in: a real Oxygen publish is still the check that the template works.
