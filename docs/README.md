@@ -8,6 +8,7 @@ Which documents to trust, and for what. Updated 2026-09-05.
 |---|---|
 | [MAINTAINERS.md](./MAINTAINERS.md) | Setting up, building, testing, releasing; repo map; known issues |
 | [PROJECT_STATE.md](./PROJECT_STATE.md) | The September 2026 audit: what was found, what was fixed, what remains |
+| [FEATURE_IDEAS.md](./FEATURE_IDEAS.md) | Unscheduled feature ideas (November 2026 brainstorm), with value, cost and a recommended order |
 | [../CLAUDE.md](../CLAUDE.md) | Working conventions, constitution, definition of done (written for AI agents, accurate for people) |
 
 ## Current reference
