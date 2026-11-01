@@ -4336,7 +4336,7 @@ var __decorateClass$j = (decorators, target, key, kind) => {
 };
 let QdBuildInfo = class extends i$1 {
   render() {
-    const buildDate = "31/Oct/2026";
+    const buildDate = "1/Nov/2026";
     return x`
       <span class="info-icon" tabindex="0" role="button" aria-label="Build information">i</span>
       <div class="tooltip" role="tooltip">
@@ -9076,7 +9076,7 @@ function isInitialized() {
   return state.initialized;
 }
 const VERSION = "0.2.0";
-const BUILD_DATE = "31/Oct/2026";
+const BUILD_DATE = "1/Nov/2026";
 if (typeof window !== "undefined") {
   const init = () => {
     info("Auto-initializing Sonar Quiz System");
