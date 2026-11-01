@@ -72,7 +72,7 @@ window.WALKTHROUGH_SHOTS = {
     "progress": {
       "x": 73.08,
       "y": 14.5,
-      "w": 11.09,
+      "w": 13.84,
       "h": 3.19
     },
     "header": {
@@ -224,15 +224,15 @@ window.WALKTHROUGH_SHOTS = {
     "answers": {
       "x": 32.06,
       "y": 39.78,
-      "w": 16.84,
+      "w": 16.55,
       "h": 9.2
     }
   },
   "16-analysis-instructor": {
     "entries": {
-      "x": 17.96,
+      "x": 17.78,
       "y": 42.53,
-      "w": 32.26,
+      "w": 31.9,
       "h": 7.1
     }
   },
@@ -311,4 +311,4 @@ window.WALKTHROUGH_SHOTS = {
     }
   }
 };
-window.WALKTHROUGH_CSV = "Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp,Kind,Attempts,First Attempt Correct\n30012345,Jo Bloggs,TRV Connectors Autumn 2025,quiz-mcq,0,1,true,2026-10-31T17:40:36.019Z,quiz,2,false\n30012345,Jo Bloggs,TRV Connectors Autumn 2025,quiz-mcq,1,2,false,2026-10-31T17:40:36.427Z,quiz,1,false\n30012345,Jo Bloggs,TRV Connectors Autumn 2025,quiz-numeric,4,1500,true,2026-10-31T17:40:37.861Z,quiz,1,true\n30012345,Jo Bloggs,TRV Connectors Autumn 2025,analysis-tactical,Threat Assessment,High: submarine contact bearing 045,,2026-10-31T17:40:39.742Z,analysis,,\n30012345,Jo Bloggs,TRV Connectors Autumn 2025,analysis-tactical,Recommended Action,Turn away and increase speed,,2026-10-31T17:40:39.742Z,analysis,,\n30067890,Sam Smith,TRV Connectors Autumn 2025,quiz-mcq,0,1,true,2026-10-31T17:40:44.530Z,quiz,1,true\n30067890,Sam Smith,TRV Connectors Autumn 2025,quiz-mcq,1,3,true,2026-10-31T17:40:44.790Z,quiz,1,true\n30067890,Sam Smith,TRV Connectors Autumn 2025,quiz-mcq,2,1,true,2026-10-31T17:40:45.048Z,quiz,1,true\n30067890,Sam Smith,TRV Connectors Autumn 2025,quiz-mcq,3,1,true,2026-10-31T17:40:45.306Z,quiz,1,true\n30067890,Sam Smith,TRV Connectors Autumn 2025,quiz-mcq,4,2,true,2026-10-31T17:40:45.566Z,quiz,1,true";
+window.WALKTHROUGH_CSV = "Service ID,Name,Release,Page ID,Question Index,Answer,Success,Timestamp,Kind,Attempts,First Attempt Correct\n30012345,Jo Bloggs,TRV Connectors Autumn 2025,quiz-mcq,0,1,true,2026-11-01T10:13:30.980Z,quiz,2,false\n30012345,Jo Bloggs,TRV Connectors Autumn 2025,quiz-mcq,1,2,false,2026-11-01T10:13:31.398Z,quiz,1,false\n30012345,Jo Bloggs,TRV Connectors Autumn 2025,quiz-numeric,4,1500,true,2026-11-01T10:13:32.851Z,quiz,1,true\n30012345,Jo Bloggs,TRV Connectors Autumn 2025,analysis-tactical,Threat Assessment,High: submarine contact bearing 045,,2026-11-01T10:13:34.788Z,analysis,,\n30012345,Jo Bloggs,TRV Connectors Autumn 2025,analysis-tactical,Recommended Action,Turn away and increase speed,,2026-11-01T10:13:34.788Z,analysis,,\n30067890,Sam Smith,TRV Connectors Autumn 2025,quiz-mcq,0,1,true,2026-11-01T10:13:39.674Z,quiz,1,true\n30067890,Sam Smith,TRV Connectors Autumn 2025,quiz-mcq,1,3,true,2026-11-01T10:13:39.934Z,quiz,1,true\n30067890,Sam Smith,TRV Connectors Autumn 2025,quiz-mcq,2,1,true,2026-11-01T10:13:40.197Z,quiz,1,true\n30067890,Sam Smith,TRV Connectors Autumn 2025,quiz-mcq,3,1,true,2026-11-01T10:13:40.461Z,quiz,1,true\n30067890,Sam Smith,TRV Connectors Autumn 2025,quiz-mcq,4,2,true,2026-11-01T10:13:40.721Z,quiz,1,true";

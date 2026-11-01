@@ -117,15 +117,6 @@ async function main() {
     viewport: { width: WIDTH, height: HEIGHT },
     acceptDownloads: true,
   });
-  // The published template no longer has a search box (SRD 013 ANS-01), but
-  // dita-demo/ predates that template; hide it so screenshots match.
-  await context.addInitScript(() => {
-    document.addEventListener('DOMContentLoaded', () => {
-      const style = document.createElement('style');
-      style.textContent = '.wh_search_input { display: none !important; }';
-      document.head.appendChild(style);
-    });
-  });
   const page = await context.newPage();
 
   console.log('Student journey');
@@ -319,13 +310,6 @@ async function main() {
 
   console.log('Shared-machine check');
   const forged = await browser.newContext({ viewport: { width: WIDTH, height: HEIGHT } });
-  await forged.addInitScript(() => {
-    document.addEventListener('DOMContentLoaded', () => {
-      const style = document.createElement('style');
-      style.textContent = '.wh_search_input { display: none !important; }';
-      document.head.appendChild(style);
-    });
-  });
   const intruder = await forged.newPage();
   await open(intruder, 'Pages/quiz-mcq.html');
   await intruder.evaluate(() => sessionStorage.setItem('qd/instructor', 'true'));
