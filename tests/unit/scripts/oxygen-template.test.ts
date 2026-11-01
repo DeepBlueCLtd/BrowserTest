@@ -40,4 +40,9 @@ describe('Oxygen template wiring', () => {
     expect(total).toContain('<xsl:param name="input.map.url"');
     expect(total).toContain("oxyf:getParameter('qd-question-total')");
   });
+
+  it('turns off search autocomplete, whose script throws once the search box is gone', () => {
+    const opt = readFileSync(resolve(__dirname, '../../../dita/template/f13ldMan-CSA.opt'), 'utf8');
+    expect(opt).toContain('<parameter name="webhelp.enable.search.autocomplete" value="no"/>');
+  });
 });
